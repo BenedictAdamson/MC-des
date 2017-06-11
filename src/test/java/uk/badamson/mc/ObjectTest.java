@@ -19,6 +19,8 @@ public final class ObjectTest {
 	public static void assertInvariants(Object object1, Object object2) {
 		assert object1 != null;
 		assert object2 != null;
-		assertEquals("Equality is symmetric", object1.equals(object2), object2.equals(object1));
+		final boolean equals = object1.equals(object2);
+		assertEquals("Equality is symmetric", equals, object2.equals(object1));
+		assertFalse("hashCode() is consistent with equals()", equals && object1.hashCode() != object2.hashCode());
 	}
 }

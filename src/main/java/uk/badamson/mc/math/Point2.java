@@ -19,7 +19,9 @@ public final class Point2 {
 	 * </p>
 	 * 
 	 * @param x
+	 *            The x coordinate of this point; its <i>abcissa</i>.
 	 * @param y
+	 *            The y coordinate of this point; its <i>ordinate</i>.
 	 */
 	public Point2(double x, double y) {
 		this.x = x;
@@ -54,7 +56,7 @@ public final class Point2 {
 
 	/**
 	 * <p>
-	 * The x coordinate of this point.
+	 * The x coordinate of this point; its <i>abcissa</i>.
 	 * </p>
 	 */
 	public final double getX() {
@@ -63,7 +65,7 @@ public final class Point2 {
 
 	/**
 	 * <p>
-	 * The y coordinate of this point.
+	 * The y coordinate of this point; its <i>ordinate</i>.
 	 * </p>
 	 */
 	public final double getY() {
