@@ -6,14 +6,16 @@ import net.jcip.annotations.Immutable;
 
 /**
  * <p>
- * Functions and auxiliary classes for one dimensional minimization.
+ * Functions and auxiliary classes for minimization of a {@linkplain Function1
+ * one dimensional function}.
  * </p>
  */
 public final class Min1 {
 
 	/**
 	 * <p>
-	 * A bracket of the minimum of a function.
+	 * A bracket of the minimum of a {@linkplain Function1 one dimensional
+	 * function}.
 	 * </p>
 	 * <p>
 	 * A Bracket indicates a range of values within which the minimum is known
