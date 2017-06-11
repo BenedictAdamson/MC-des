@@ -183,6 +183,218 @@ public final class Min1 {
 
 	}// class
 
+	private static final double GOLD = (1.0 + Math.sqrt(5.0)) * 0.5;
+
+	private static final double MAX_STEP = 100;
+
+	private static Point2 evaluate(Function1 f, double x) {
+		return new Point2(x, f.value(x));
+	}
+
+	/**
+	 * <p>
+	 * Find a {@linkplain Min1.Bracket bracket} of a {@linkplain Function1 one
+	 * dimensional function of a continuous variable}, given two values of the
+	 * continuous variable.
+	 * </p>
+	 * <p>
+	 * The method optimistically assumes that the two given values are close to
+	 * a minimum, but copes if they are not near the minimum. The function will
+	 * therefore be more efficient if the two given values <em>are</em> close to
+	 * a minimum.
+	 * </p>
+	 * <ul>
+	 * <li>Always returns a (non null) bracket.</li>
+	 * <li>The returned bracket has {@linkplain Point2#getY() y (ordinate)}
+	 * values calculated from the corresponding {@linkplain Point2#getX() x
+	 * (abscissa)} values using the given function.</li>
+	 * </ul>
+	 * 
+	 * @param f
+	 *            The function for which a bracket is to be found.
+	 * @param x1
+	 *            A guess for the position of a minimum
+	 * @param x2
+	 *            A second guess for the position of the minimum
+	 * @return a bracket
+	 * 
+	 * @throws NullPointerException
+	 *             If {@code f} is null.
+	 * @throws IllegalArgumentException
+	 *             <ul>
+	 *             <li>If {@code x1} equals {@code x2}.</li>
+	 *             <li>If {@code x1} is {@linkplain Double#isNaN(double) is not
+	 *             a number}.</li>
+	 *             <li>If {@code x2} is is not a number.</li>
+	 */
+	public static Bracket findBracket(final Function1 f, double x1, double x2) {
+		Objects.requireNonNull(f, "f");
+		if (x1 == x2) {
+			throw new IllegalArgumentException("x1 == x2 <" + x1 + ">");
+		}
+		if (Double.isNaN(x1)) {
+			throw new IllegalArgumentException("x1 NAN <" + x1 + ">");
+		}
+		if (Double.isNaN(x2)) {
+			throw new IllegalArgumentException("x2 NAN <" + x2 + ">");
+		}
+
+		Point2 p1 = evaluate(f, x1);
+		Point2 p2 = evaluate(f, x2);
+		if (p1.getY() < p2.getY()) {
+			// Swap
+			final Point2 pTemp = p1;
+			p1 = p2;
+			p2 = pTemp;
+		}
+		assert p2.getY() <= p1.getY();
+		/*
+		 * First guess is to step in the same direction:
+		 */
+		Point2 p3 = stepFurther(f, p1, p2);
+
+		while (p3.getY() < p2.getY() || p1.getY() <= p2.getY()) {
+			final double xLimit = p2.getX() + MAX_STEP * (p3.getX() - p2.getX());
+			final double xNew = parabolicExtrapolation(p1, p2, p3);
+			if (isBetween(p2.getX(), xNew, p3.getX())) {
+				final double fNew = f.value(xNew);
+				if (fNew < p3.getY()) {
+					// Found a minimum between p2 and p3
+					p1 = p2;
+					p2 = new Point2(xNew, fNew);
+					// p3 unchanged
+					break;
+				} else if (p2.getY() < fNew) {
+					/*
+					 * Function has higher order terms. We have p1.y > p2.y and
+					 * fNew > p2.y, which can form a bracket
+					 */
+					// p1 unchanged
+					// p2 unchanged
+					p3 = new Point2(xNew, fNew);
+					break;
+				} else {
+					/*
+					 * Parabolic fit failed; Step even further in the same
+					 * direction and try again.
+					 */
+					final Point2 pNew = stepFurther(f, p2, p3);
+					p1 = p2;
+					p2 = p3;
+					p3 = pNew;
+				}
+			} else if (isBetween(p3.getX(), xNew, xLimit)) {
+				/* Extrapolation is not excessive. */
+				final double fNew = f.value(xNew);
+				if (fNew < p3.getY()) {
+					/*
+					 * Have stepped further down hill; continue stepping.
+					 */
+					p1 = p2;
+					p2 = p3;
+					p3 = new Point2(xNew, fNew);
+				} else if (p3.getY() < p2.getY()) {
+					/*
+					 * Function has higher order terms. We have p3.y < p2.y and
+					 * p3.y < fNew, which can form a bracket.
+					 */
+					final Point2 pNew = new Point2(xNew, fNew);
+					return new Bracket(p2, p3, pNew);
+				} else {
+					final Point2 pNew = new Point2(xNew, fNew);
+					/*
+					 * We have p2.y < p1.y and p3.y = p2.y and p3.y <= fNew.
+					 * Unclear where the minimum might be, but is perhaps
+					 * between p2 and p3 (it will be, if the higher order terms
+					 * do not contribute). If we use (p2, p3, pNew) as our next
+					 * guess, parabolic extrapolation will guess a point between
+					 * p2 and p3.
+					 */
+					p1 = p2;
+					p2 = p3;
+					p3 = pNew;
+				}
+			} else if (isBeyond(p3.getX(), xLimit, xNew)) {
+				/*
+				 * Extrapolation was excessive; clamp to the limit. In
+				 * particular, this handles cases when the extrapolated value is
+				 * infinite. Assume it is nevertheless a step in the right
+				 * direction
+				 */
+				final Point2 pNew = evaluate(f, xLimit);
+				p1 = p2;
+				p2 = p3;
+				p3 = pNew;
+			} else if (isBetween(p1.getX(), xNew, p2.getX())) {
+				final double fNew = f.value(xNew);
+				if (fNew < p1.getY() && fNew < p2.getY()) {
+					/* p1, pNew, p2 form a bracket. */
+					// p1 unchanged
+					p3 = p2;
+					p2 = new Point2(xNew, fNew);
+					break;
+				} else {
+					/*
+					 * Parabolic extrapolation stepped backwards. Step even
+					 * further in the same direction and try again.
+					 */
+					final Point2 pNew = stepFurther(f, p2, p3);
+					p1 = p2;
+					p2 = p3;
+					p3 = pNew;
+				}
+			} else {// xNew <= p1.x
+				/*
+				 * Parabolic extrapolation stepped backwards. Step even further
+				 * in the same direction and try again.
+				 */
+				final Point2 pNew = stepFurther(f, p2, p3);
+				p1 = p2;
+				p2 = p3;
+				p3 = pNew;
+			}
+		}
+		if (p1.getX() < p2.getX()) {
+			return new Bracket(p1, p2, p3);
+		} else {
+			return new Bracket(p3, p2, p1);
+		}
+	}
+
+	private static boolean isBetween(double x1, double x2, double x3) {
+		if (x1 < x3) {
+			return x1 < x2 && x2 < x3;
+		} else {
+			return x3 < x2 && x2 < x1;
+		}
+	}
+
+	private static boolean isBeyond(double x1, double x2, double x3) {
+		if (x1 < x2) {
+			return x2 < x3;
+		} else {
+			return x3 < x1;
+		}
+	}
+
+	private static double parabolicExtrapolation(Point2 p1, Point2 p2, Point2 p3) {
+		final double x2 = p2.getX();
+		final double y2 = p2.getY();
+		final double x21 = x2 - p1.getX();
+		final double x23 = x2 - p3.getX();
+		final double y23 = y2 - p3.getY();
+		final double y21 = y2 - p1.getY();
+		final double x21y23 = x21 * y23;
+		final double x23y21 = x23 * y21;
+		final double xNew = x2 - (x21 * x21y23 - x23 * x23y21) / (2.0 * (x21y23 - x23y21));
+		return xNew;
+	}
+
+	private static Point2 stepFurther(Function1 f, Point2 p1, Point2 p2) {
+		final double x2 = p2.getX();
+		return evaluate(f, x2 + GOLD * (x2 - p1.getX()));
+	}
+
 	private Min1() {
 		throw new AssertionError("Class should not be instantiated");
 	}
