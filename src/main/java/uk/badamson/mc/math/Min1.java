@@ -352,6 +352,7 @@ public final class Min1 {
 					 * do not contribute). If we use (p2, p3, pNew) as our next
 					 * guess, parabolic extrapolation will guess a point between
 					 * p2 and p3.
+					 * Hard to test.
 					 */
 					p1 = p2;
 					p2 = p3;

@@ -215,8 +215,13 @@ public class Min1Test {
 	}
 
 	@Test
-	public void findBracket_squaredLeftFar() {
+	public void findBracket_squaredLeftFarA() {
 		findBracket(SQUARED, -1E9, -0.9E9);
+	}
+
+	@Test
+	public void findBracket_squaredLeftFarB() {
+		findBracket(SQUARED, -1E9, -0.9999E9);
 	}
 
 	@Test
