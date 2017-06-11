@@ -177,4 +177,17 @@ public class Min1Test {
 		findBracket(SQUARED, -1.0, 1.0);
 	}
 
+	@Test
+	public void findBracket_order3A() {
+		final Function1 f = new Function1() {
+
+			@Override
+			public double value(double x) {
+				final double x2 = x * x;
+				return x + x2 - x * x2;
+			}
+		};
+		findBracket(f, -1.0, 0.0);
+	}
+
 }

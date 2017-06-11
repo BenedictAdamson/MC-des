@@ -253,7 +253,7 @@ public final class Min1 {
 		 */
 		Point2 p3 = stepFurther(f, p1, p2);
 
-		while (p3.getY() < p2.getY() || p1.getY() <= p2.getY()) {
+		while (p3.getY() <= p2.getY() || p1.getY() <= p2.getY()) {
 			final double xLimit = p2.getX() + MAX_STEP * (p3.getX() - p2.getX());
 			final double xNew = parabolicExtrapolation(p1, p2, p3);
 			if (isBetween(p2.getX(), xNew, p3.getX())) {
@@ -285,23 +285,21 @@ public final class Min1 {
 				}
 			} else if (isBetween(p3.getX(), xNew, xLimit)) {
 				/* Extrapolation is not excessive. */
-				final double fNew = f.value(xNew);
-				if (fNew < p3.getY()) {
+				final Point2 pNew = evaluate(f, xNew);
+				if (pNew.getY() < p3.getY()) {
 					/*
 					 * Have stepped further down hill; continue stepping.
 					 */
 					p1 = p2;
 					p2 = p3;
-					p3 = new Point2(xNew, fNew);
+					p3 = pNew;
 				} else if (p3.getY() < p2.getY()) {
 					/*
 					 * Function has higher order terms. We have p3.y < p2.y and
-					 * p3.y < fNew, which can form a bracket.
+					 * p3.y < pNew.y, which can form a bracket.
 					 */
-					final Point2 pNew = new Point2(xNew, fNew);
 					return new Bracket(p2, p3, pNew);
 				} else {
-					final Point2 pNew = new Point2(xNew, fNew);
 					/*
 					 * We have p2.y < p1.y and p3.y = p2.y and p3.y <= fNew.
 					 * Unclear where the minimum might be, but is perhaps
