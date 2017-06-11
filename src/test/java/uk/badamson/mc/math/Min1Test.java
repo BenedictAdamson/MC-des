@@ -38,7 +38,7 @@ public class Min1Test {
 			final double innerY = inner.getY();
 			assertTrue("The inner point " + inner + " is to the right of the leftmost point " + left,
 					left.getX() < innerX);
-			assertTrue("The inner point is below the leftmost point.", innerY < left.getY());
+			assertTrue("The inner point " + inner + " is below the leftmost point " + left + ".", innerY < left.getY());
 			assertTrue("The rightmost point is to the right of the inner point.", innerX < right.getX());
 			assertTrue("The rightmost point is above the inner point.", innerY < right.getY());
 		}
@@ -90,7 +90,37 @@ public class Min1Test {
 		}
 	};
 
-	private static Bracket findBracket(final Function1 f, double x1, double x2) {
+	private static final Function1 ORDER_3 = new Function1() {
+
+		@Override
+		public double value(double x) {
+			final double x2 = x * x;
+			return x + x2 - x * x2;
+		}
+	};
+
+	private static final Function1 NOT_SMOOTH = new Function1() {
+
+		@Override
+		public double value(double x) {
+			double f = x * x;
+			if (-1 < x) {
+				f += x + 1;
+			}
+			return f;
+		}
+	};
+
+	private static final Function1 COS = new Function1() {
+
+		@Override
+		public double value(double x) {
+			return Math.cos(x);
+		}
+	};
+
+	private static Bracket findBracket(final Function1 f, double x1, double x2)
+			throws Min1.PoorlyConditionedFunctionException {
 		final Bracket bracket = Min1.findBracket(f, x1, x2);
 
 		assertNotNull("Not null, bracket", bracket);// guard
@@ -105,6 +135,44 @@ public class Min1Test {
 		assertEquals("right y", f.value(right.getX()), right.getY(), Double.MIN_NORMAL);
 
 		return bracket;
+	}
+
+	@Test
+	public void findBracket_nearMaxA() {
+		findBracket(COS, 0.0, 0.1);
+	}
+
+	@Test
+	public void findBracket_nearMaxB() {
+		findBracket(COS, -0.1, 0.1);
+	}
+
+	@Test
+	public void findBracket_notSmoothA() {
+		findBracket(NOT_SMOOTH, -3.0, -2.0);
+	}
+
+	@Test
+	public void findBracket_notSmoothB() {
+		findBracket(NOT_SMOOTH, -4.0, -3.0);
+	}
+
+	@Test
+	public void findBracket_order3A() {
+		try {
+			findBracket(ORDER_3, -1.0, 0.0);
+		} catch (Min1.PoorlyConditionedFunctionException e) {
+			// Permitted
+		}
+	}
+
+	@Test
+	public void findBracket_order3B() {
+		try {
+			findBracket(ORDER_3, -1.6, 0.0);
+		} catch (Min1.PoorlyConditionedFunctionException e) {
+			// Permitted
+		}
 	}
 
 	@Test
@@ -175,19 +243,6 @@ public class Min1Test {
 	@Test
 	public void findBracket_squaredSpan() {
 		findBracket(SQUARED, -1.0, 1.0);
-	}
-
-	@Test
-	public void findBracket_order3A() {
-		final Function1 f = new Function1() {
-
-			@Override
-			public double value(double x) {
-				final double x2 = x * x;
-				return x + x2 - x * x2;
-			}
-		};
-		findBracket(f, -1.0, 0.0);
 	}
 
 }

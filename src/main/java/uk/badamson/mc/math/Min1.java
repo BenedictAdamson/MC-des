@@ -82,16 +82,19 @@ public final class Min1 {
 			Objects.requireNonNull(left, "left");
 			Objects.requireNonNull(inner, "inner");
 			Objects.requireNonNull(right, "right");
-			if (inner.getX() <= left.getX()) {
+			/* Attention: precondition checks must handle NaN values. */
+			final double innerX = inner.getX();
+			final double innerY = inner.getY();
+			if (!(left.getX() < innerX)) {
 				throw new IllegalArgumentException("inner <" + inner + "> not to the right of left <" + left + ">");
 			}
-			if (right.getX() <= inner.getX()) {
+			if (!(innerX < right.getX())) {
 				throw new IllegalArgumentException("right <" + right + "> not to the right of inner <" + inner + ">");
 			}
-			if (left.getY() <= inner.getY()) {
+			if (!(innerY < left.getY())) {
 				throw new IllegalArgumentException("inner <" + inner + "> not below left <" + left + ">");
 			}
-			if (right.getY() <= inner.getY()) {
+			if (!(innerY < right.getY())) {
 				throw new IllegalArgumentException("inner <" + inner + "> not below right <" + right + ">");
 			}
 			this.left = left;
@@ -183,6 +186,33 @@ public final class Min1 {
 
 	}// class
 
+	/**
+	 * <p>
+	 * An exception class for indicating that minimization of a
+	 * {@linkplain Function1 one dimensional function} is not possible because
+	 * the function is poorly conditioned.
+	 * </p>
+	 * <ul>
+	 * <li>The exception might indicate that the function does not have a
+	 * minimum</li>
+	 * <li>The exception might indicate that, although function has a minimum,
+	 * it is impossible to
+	 * {@linkplain Min1#findBracket(Function1, double, double) find a bracket}
+	 * for a function with the starting points because the function has an
+	 * odd-powered high order term that causes the iterative procedure to
+	 * diverge.</li>
+	 * </ul>
+	 */
+	public static final class PoorlyConditionedFunctionException extends IllegalArgumentException {
+
+		private static final long serialVersionUID = 1L;
+
+		private PoorlyConditionedFunctionException(Function1 f) {
+			super("Poorly conditioned function " + f);
+		}
+
+	}// class
+
 	private static final double GOLD = (1.0 + Math.sqrt(5.0)) * 0.5;
 
 	private static final double MAX_STEP = 100;
@@ -226,8 +256,19 @@ public final class Min1 {
 	 *             <li>If {@code x1} is {@linkplain Double#isNaN(double) is not
 	 *             a number}.</li>
 	 *             <li>If {@code x2} is is not a number.</li>
+	 *             </ul>
+	 * @throws PoorlyConditionedFunctionException
+	 *             <ul>
+	 *             <li>If {@code f} does not have a minimum</li>
+	 *             <li>If {@code f} has a minimum, but it is impossible to find
+	 *             a bracket for P@code f} using {@code x1} and {@code x2}
+	 *             because the function has an odd-powered high order term that
+	 *             causes the iterative procedure to diverge.</li>
+	 *             </ul>
+	 * 
 	 */
-	public static Bracket findBracket(final Function1 f, double x1, double x2) {
+	public static Bracket findBracket(final Function1 f, double x1, double x2)
+			throws PoorlyConditionedFunctionException {
 		Objects.requireNonNull(f, "f");
 		if (x1 == x2) {
 			throw new IllegalArgumentException("x1 == x2 <" + x1 + ">");
@@ -260,6 +301,7 @@ public final class Min1 {
 				final double fNew = f.value(xNew);
 				if (fNew < p3.getY()) {
 					// Found a minimum between p2 and p3
+					assert !Double.isNaN(fNew);
 					p1 = p2;
 					p2 = new Point2(xNew, fNew);
 					// p3 unchanged
@@ -269,6 +311,7 @@ public final class Min1 {
 					 * Function has higher order terms. We have p1.y > p2.y and
 					 * fNew > p2.y, which can form a bracket
 					 */
+					assert !Double.isNaN(fNew);
 					// p1 unchanged
 					// p2 unchanged
 					p3 = new Point2(xNew, fNew);
@@ -279,6 +322,7 @@ public final class Min1 {
 					 * direction and try again.
 					 */
 					final Point2 pNew = stepFurther(f, p2, p3);
+					assert !Double.isNaN(pNew.getY());
 					p1 = p2;
 					p2 = p3;
 					p3 = pNew;
@@ -286,6 +330,7 @@ public final class Min1 {
 			} else if (isBetween(p3.getX(), xNew, xLimit)) {
 				/* Extrapolation is not excessive. */
 				final Point2 pNew = evaluate(f, xNew);
+				assert !Double.isNaN(pNew.getY());
 				if (pNew.getY() < p3.getY()) {
 					/*
 					 * Have stepped further down hill; continue stepping.
@@ -320,6 +365,7 @@ public final class Min1 {
 				 * direction
 				 */
 				final Point2 pNew = evaluate(f, xLimit);
+				assert !Double.isNaN(pNew.getY());
 				p1 = p2;
 				p2 = p3;
 				p3 = pNew;
@@ -333,10 +379,11 @@ public final class Min1 {
 					break;
 				} else {
 					/*
-					 * Parabolic extrapolation stepped backwards. Step even
-					 * further in the same direction and try again.
+					 * xNew seems to be near a local maximum. Step even further
+					 * in the same direction to try to get away from it.
 					 */
 					final Point2 pNew = stepFurther(f, p2, p3);
+					assert !Double.isNaN(pNew.getY());
 					p1 = p2;
 					p2 = p3;
 					p3 = pNew;
@@ -347,6 +394,7 @@ public final class Min1 {
 				 * in the same direction and try again.
 				 */
 				final Point2 pNew = stepFurther(f, p2, p3);
+				assert !Double.isNaN(pNew.getY());
 				p1 = p2;
 				p2 = p3;
 				p3 = pNew;
@@ -388,9 +436,22 @@ public final class Min1 {
 		return xNew;
 	}
 
-	private static Point2 stepFurther(Function1 f, Point2 p1, Point2 p2) {
+	private static Point2 stepFurther(Function1 f, Point2 p1, Point2 p2) throws PoorlyConditionedFunctionException {
 		final double x2 = p2.getX();
-		return evaluate(f, x2 + GOLD * (x2 - p1.getX()));
+		final double dx = x2 - p1.getX();
+		double r = GOLD;
+		double xNew;
+		double fNew;
+		do {
+			xNew = x2 + r * dx;
+			fNew = f.value(xNew);
+			r *= 0.5;
+		} while (Double.isNaN(fNew) && 0.0 < r && xNew != x2);
+		if (xNew != x2) {
+			return new Point2(xNew, fNew);
+		} else {
+			throw new PoorlyConditionedFunctionException(f);
+		}
 	}
 
 	private Min1() {
