@@ -3,4 +3,7 @@
   <groupId>uk.badamson.mc</groupId>
   <artifactId>MC</artifactId>
   <version>0.0.1-SNAPSHOT</version>
+  <organization>
+  	<name>Benedict Adamson</name>
+  </organization>
 </project>
