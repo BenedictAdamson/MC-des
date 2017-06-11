@@ -8,7 +8,6 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 import uk.badamson.mc.ObjectTest;
-import uk.badamson.mc.math.Min1.Bracket;
 
 /**
  * <p>
@@ -119,9 +118,9 @@ public class Min1Test {
 		}
 	};
 
-	private static Bracket findBracket(final Function1 f, double x1, double x2)
+	private static Min1.Bracket findBracket(final Function1 f, double x1, double x2)
 			throws Min1.PoorlyConditionedFunctionException {
-		final Bracket bracket = Min1.findBracket(f, x1, x2);
+		final Min1.Bracket bracket = Min1.findBracket(f, x1, x2);
 
 		assertNotNull("Not null, bracket", bracket);// guard
 		BracketTest.assertInvariants(bracket);
