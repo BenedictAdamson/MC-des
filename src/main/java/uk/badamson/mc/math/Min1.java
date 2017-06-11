@@ -157,6 +157,22 @@ public final class Min1 {
 
 		/**
 		 * <p>
+		 * The smallest function value of the points constituting this bracket.
+		 * </p>
+		 * <ul>
+		 * <li>The smallest function value of the points constituting this
+		 * bracket is the {@linkplain Point2#getY() y value (ordinate)} of the
+		 * {@linkplain #getInner() inner point} of the bracket.</li>
+		 * </ul>
+		 * 
+		 * @return
+		 */
+		public final double getMin() {
+			return inner.getY();
+		}
+
+		/**
+		 * <p>
 		 * The right point of of this Bracket.
 		 * </p>
 		 * <ul>
@@ -351,8 +367,7 @@ public final class Min1 {
 					 * between p2 and p3 (it will be, if the higher order terms
 					 * do not contribute). If we use (p2, p3, pNew) as our next
 					 * guess, parabolic extrapolation will guess a point between
-					 * p2 and p3.
-					 * Hard to test.
+					 * p2 and p3. Hard to test.
 					 */
 					p1 = p2;
 					p2 = p3;
@@ -406,6 +421,43 @@ public final class Min1 {
 		} else {
 			return new Bracket(p3, p2, p1);
 		}
+	}
+
+	/**
+	 * <p>
+	 * Find a minimum of a {@linkplain Function1 one dimensional function} using
+	 * <i>Brent's method</i>.
+	 * </p>
+	 * <ul>
+	 * <li>The method always returns a (non null) bracket.</li>
+	 * <li>The returned bracket is consistent with the given function.</li>
+	 * <li>The returned bracket indicates a non-strict sub range of the input
+	 * bracket (that is, it may return an equivalent range, but never a super
+	 * range).</li>
+	 * <li>The {@linkplain Bracket#getMin() minimum value} of the returned
+	 * bracket is not larger than the minimum value of the given bracket.</li>
+	 * </ul>
+	 * 
+	 * @param f
+	 *            The function for which a minimum is to be found.
+	 * @param bracket
+	 *            A bracket of the minimum to be found.
+	 * @return a bracket of the minimum to be found.
+	 * 
+	 * @throws NullPointerException
+	 *             <ul>
+	 *             <li>If {@code f} is null.</li>
+	 *             <li>If {@code bracket} is null.</li>
+	 *             </ul>
+	 * @throws IllegalArgumentException
+	 *             (Optional) if {@code bracket} is not consistent with
+	 *             {@code f}.
+	 */
+	public static Bracket findBrent(final Function1 f, Bracket bracket) {
+		Objects.requireNonNull(f, "f");
+		Objects.requireNonNull(bracket, "bracket");
+		// TODO
+		return null;
 	}
 
 	private static boolean isBetween(double x1, double x2, double x3) {

@@ -40,6 +40,10 @@ public class Min1Test {
 			assertTrue("The inner point " + inner + " is below the leftmost point " + left + ".", innerY < left.getY());
 			assertTrue("The rightmost point is to the right of the inner point.", innerX < right.getX());
 			assertTrue("The rightmost point is above the inner point.", innerY < right.getY());
+
+			assertEquals(
+					"The smallest function value of the points constituting this bracket is the y value of the inner point of the bracket",
+					inner.getY(), bracket.getMin(), Double.MIN_NORMAL);
 		}
 
 		public static void assertInvariants(Min1.Bracket bracket1, Min1.Bracket bracket2) {
@@ -118,22 +122,49 @@ public class Min1Test {
 		}
 	};
 
+	private static void assertConsistent(final Min1.Bracket bracket, final Function1 f) {
+		final Point2 left = bracket.getLeft();
+		final Point2 inner = bracket.getInner();
+		final Point2 right = bracket.getRight();
+
+		assertEquals("Bracket <" + bracket + "> is consistent with function <" + f + ">, left", f.value(left.getX()),
+				left.getY(), Double.MIN_NORMAL);
+		assertEquals("Bracket <" + bracket + "> is consistent with function <" + f + ">,inner", f.value(inner.getX()),
+				inner.getY(), Double.MIN_NORMAL);
+		assertEquals("Bracket <" + bracket + "> is consistent with function <" + f + ">,right", f.value(right.getX()),
+				right.getY(), Double.MIN_NORMAL);
+	}
+
 	private static Min1.Bracket findBracket(final Function1 f, double x1, double x2)
 			throws Min1.PoorlyConditionedFunctionException {
 		final Min1.Bracket bracket = Min1.findBracket(f, x1, x2);
 
 		assertNotNull("Not null, bracket", bracket);// guard
 		BracketTest.assertInvariants(bracket);
-
-		final Point2 left = bracket.getLeft();
-		final Point2 inner = bracket.getInner();
-		final Point2 right = bracket.getRight();
-
-		assertEquals("left y", f.value(left.getX()), left.getY(), Double.MIN_NORMAL);
-		assertEquals("inner y", f.value(inner.getX()), inner.getY(), Double.MIN_NORMAL);
-		assertEquals("right y", f.value(right.getX()), right.getY(), Double.MIN_NORMAL);
+		assertConsistent(bracket, f);
 
 		return bracket;
+	}
+
+	private static Min1.Bracket findBrent(final Function1 f, Min1.Bracket bracket) {
+		final Min1.Bracket min = Min1.findBrent(f, bracket);
+
+		assertNotNull("The method always returns a bracket", min);// guard
+		BracketTest.assertInvariants(bracket);
+		BracketTest.assertInvariants(bracket, min);
+		assertConsistent(min, f);
+
+		assertTrue("The returned bracket <" + min + "> indicates a non-strict sub range of the input bracket <"
+				+ bracket + "> (left X)", bracket.getLeft().getX() <= min.getLeft().getX());
+		assertTrue("The returned bracket <" + min + "> indicates a non-strict sub range of the input bracket <"
+				+ bracket + "> (right X)", min.getRight().getX() <= bracket.getRight().getX());
+
+		assertTrue(
+				"The minimum value of the returned bracket <" + min
+						+ "> is not larger than the minimum value of the given bracket <" + bracket + ">",
+				min.getInner().getY() <= bracket.getInner().getY());
+
+		return min;
 	}
 
 	@Test
@@ -248,5 +279,4 @@ public class Min1Test {
 	public void findBracket_squaredSpan() {
 		findBracket(SQUARED, -1.0, 1.0);
 	}
-
 }
