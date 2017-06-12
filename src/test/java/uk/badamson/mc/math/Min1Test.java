@@ -127,16 +127,14 @@ public class Min1Test {
 	};
 
 	private static void assertConsistent(final Min1.Bracket bracket, final Function1 f) {
-		final Point2 left = bracket.getLeft();
-		final Point2 inner = bracket.getInner();
-		final Point2 right = bracket.getRight();
+		assertConsistent("Left point of bracket", bracket.getLeft(), f);
+		assertConsistent("Inner point of bracket", bracket.getInner(), f);
+		assertConsistent("Right point of bracket", bracket.getRight(), f);
+	}
 
-		assertEquals("Bracket <" + bracket + "> is consistent with function <" + f + ">, left", f.value(left.getX()),
-				left.getY(), Double.MIN_NORMAL);
-		assertEquals("Bracket <" + bracket + "> is consistent with function <" + f + ">,inner", f.value(inner.getX()),
-				inner.getY(), Double.MIN_NORMAL);
-		assertEquals("Bracket <" + bracket + "> is consistent with function <" + f + ">,right", f.value(right.getX()),
-				right.getY(), Double.MIN_NORMAL);
+	private static void assertConsistent(String message, final Point2 p, final Function1 f) {
+		assertEquals(message + " <" + p + "> is consistent with function <" + f + ">", f.value(p.getX()), p.getY(),
+				Double.MIN_NORMAL);
 	}
 
 	private static Min1.Bracket findBracket(final Function1 f, double x1, double x2)
@@ -150,31 +148,22 @@ public class Min1Test {
 		return bracket;
 	}
 
-	private static Min1.Bracket findBrent(final Function1 f, Min1.Bracket bracket, double xTolerance) {
-		final Min1.Bracket min = Min1.findBrent(f, bracket, xTolerance);
+	private static Point2 findBrent(final Function1 f, Min1.Bracket bracket, double tolerance) {
+		final Point2 min = Min1.findBrent(f, bracket, tolerance);
 
 		assertNotNull("The method always returns a bracket", min);// guard
 		BracketTest.assertInvariants(bracket);
-		BracketTest.assertInvariants(bracket, min);
-		assertConsistent(min, f);
-
-		assertTrue("The returned bracket <" + min + "> indicates a non-strict sub range of the input bracket <"
-				+ bracket + "> (left X)", bracket.getLeft().getX() <= min.getLeft().getX());
-		assertTrue("The returned bracket <" + min + "> indicates a non-strict sub range of the input bracket <"
-				+ bracket + "> (right X)", min.getRight().getX() <= bracket.getRight().getX());
+		assertConsistent("Minimum", min, f);
 
 		assertTrue(
 				"The minimum value of the returned bracket <" + min
 						+ "> is not larger than the minimum value of the given bracket <" + bracket + ">",
-				min.getInner().getY() <= bracket.getInner().getY());
-		assertTrue("The width <" + min.getWidth()
-				+ "> of the returned bracket is not larger than the given convergence tolerance <" + xTolerance + ">.",
-				min.getWidth() < xTolerance);
+				min.getY() <= bracket.getInner().getY());
 
 		return min;
 	}
 
-	private static final void findBrent_squared(double x1, double x2, double x3, double xTolerance) {
+	private static final void findBrent_squared(double x1, double x2, double x3, double tolerance) {
 		assert x1 < x2;
 		assert x2 < x3;
 		assert x1 < 0.0;
@@ -182,12 +171,7 @@ public class Min1Test {
 		final Min1.Bracket bracket = new Bracket(new Point2(x1, SQUARED.value(x1)), new Point2(x2, SQUARED.value(x2)),
 				new Point2(x3, SQUARED.value(x3)));
 
-		final Min1.Bracket min = findBrent(SQUARED, bracket, xTolerance);
-
-		final double leftX = min.getLeft().getX();
-		final double rightX = min.getRight().getX();
-		assertTrue("Left x <" + leftX + "> is close to the minimum", -xTolerance <= leftX && leftX < 0.0);
-		assertTrue("Right x <" + rightX + "> is close to the minimum", 0.0 < rightX && rightX <= xTolerance);
+		findBrent(SQUARED, bracket, tolerance);
 	}
 
 	@Test
@@ -304,12 +288,31 @@ public class Min1Test {
 	}
 
 	@Test
-	public void findBrent_squaredNoIterations() {
+	public void findBrent_squaredCentre() {
 		final double x1 = -1.0;
 		final double x2 = 0.0;
 		final double x3 = 1.0;
-		final double xTolerance = 1E3;
-		assert x3 - x1 < xTolerance;
+		final double xTolerance = 1E-3;
+
+		findBrent_squared(x1, x2, x3, xTolerance);
+	}
+
+	@Test
+	public void findBrent_squaredLeft() {
+		final double x1 = -3.0;
+		final double x2 = -1.0;
+		final double x3 = 2.0;
+		final double xTolerance = 1E-3;
+
+		findBrent_squared(x1, x2, x3, xTolerance);
+	}
+
+	@Test
+	public void findBrent_squaredRight() {
+		final double x1 = -2.0;
+		final double x2 = 1.0;
+		final double x3 = 3.0;
+		final double xTolerance = 1E-3;
 
 		findBrent_squared(x1, x2, x3, xTolerance);
 	}

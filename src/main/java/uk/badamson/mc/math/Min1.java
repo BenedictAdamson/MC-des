@@ -447,24 +447,20 @@ public final class Min1 {
 	 * <i>Brent's method</i>.
 	 * </p>
 	 * <ul>
-	 * <li>The method always returns a (non null) bracket.</li>
-	 * <li>The returned bracket is consistent with the given function.</li>
-	 * <li>The returned bracket indicates a non-strict sub range of the input
-	 * bracket (that is, it may return an equivalent range, but never a super
-	 * range).</li>
-	 * <li>The {@linkplain Bracket#getMin() minimum value} of the returned
-	 * bracket is not larger than the minimum value of the given bracket.</li>
-	 * <li>The {@linkplain Bracket#getWidth() width} of the returned bracket is
-	 * not larger than the given convergence tolerance.</li>
+	 * <li>The method always returns a (non null) point.</li>
+	 * <li>The returned point is consistent with the given function.</li>
+	 * <li>The {@linkplain Point2#getY() y coordinate} of the returned point is
+	 * not larger than the {@linkplain Bracket#getMin() minimum value} of the
+	 * given bracket.</li>
 	 * </ul>
 	 * 
 	 * @param f
 	 *            The function for which a minimum is to be found.
 	 * @param bracket
 	 *            A bracket of the minimum to be found.
-	 * @param xTolerance
+	 * @param tolerance
 	 *            The convergence tolerance.
-	 * @return a bracket of the minimum to be found.
+	 * @return a minimum of the function.
 	 * 
 	 * @throws NullPointerException
 	 *             <ul>
@@ -473,33 +469,125 @@ public final class Min1 {
 	 *             </ul>
 	 * @throws IllegalArgumentException
 	 *             <ul>
-	 *             <li>If {@code tolerance} is not positive.</li>
+	 *             <li>If {@code tolerance} is not in the range (0.0, 1.0).</li>
 	 *             <li>(Optional) if {@code bracket} is not consistent with
 	 *             {@code f}.</li>
 	 *             </ul>
 	 */
-	public static Bracket findBrent(final Function1 f, Bracket bracket, double xTolerance) {
+	public static Point2 findBrent(final Function1 f, Bracket bracket, double tolerance) {
 		Objects.requireNonNull(f, "f");
 		Objects.requireNonNull(bracket, "bracket");
-		if (!(0.0 < xTolerance)) {
-			throw new IllegalArgumentException("tolerance <" + xTolerance + ">");
+		if (!(0.0 < tolerance && tolerance < 1.0)) {
+			throw new IllegalArgumentException("tolerance <" + tolerance + ">");
 		}
 
 		Point2 left = bracket.getLeft();
+		Point2 inner = bracket.getInner();
 		Point2 right = bracket.getRight();
-		Point2 leastF = bracket.getInner();
-		Point2 leastF2;
-		Point2 previousLeastF2;
+		Point2 secondLeast;
+		Point2 previousSecondLeast;
 		if (left.getY() < right.getY()) {
-			leastF2 = left;
-			previousLeastF2 = right;
+			secondLeast = left;
+			previousSecondLeast = right;
 		} else {
-			leastF2 = right;
-			previousLeastF2 = left;
+			secondLeast = right;
+			previousSecondLeast = left;
 		}
-		Point2 latest = leastF;
-		// TODO
-		return new Bracket(left, leastF, right);
+		double width = right.getX() - left.getX();
+		// Recent step sizes (start with guesses)
+		double dx2 = width * (GOLD - 1.0);
+		double dx3 = dx2 * GOLD;
+
+		while (true) {
+			final double xTolerance = Double.max(Math.abs(inner.getX()) * tolerance, Double.MIN_NORMAL);
+			if (width <= xTolerance * 2.0) {
+				// Converged
+				break;
+			}
+			double xNew;
+			if (xTolerance < Math.abs(dx3)) {
+				/*
+				 * We are making big steps, which are not close to the round-off
+				 * limits, so parabolic extrapolation is worth trying.
+				 */
+				xNew = parabolicExtrapolation(inner, secondLeast, previousSecondLeast);
+				/*
+				 * But did parabolic extrapolation produce a reliable result? If
+				 * not, fall back to golden section search.
+				 */
+				if (!Double.isFinite(xNew) || xNew <= left.getX() || right.getX() <= xNew
+						|| Math.abs(dx3) * 0.5 <= Math.abs(xNew - inner.getX())) {
+					xNew = goldenSectionSearch(left, inner, right);
+				}
+			} else {
+				/*
+				 * We are making small steps, which can be vulnerable to
+				 * round-off error. So use golden section search instead.
+				 */
+				xNew = goldenSectionSearch(left, inner, right);
+			}
+			double dx = xNew - inner.getX();
+			/*
+			 * However, rounding errors mean that it is never worthwhile taking
+			 * tiny steps.
+			 */
+			if (Math.abs(dx) < xTolerance) {
+				dx = Math.copySign(xTolerance, dx);
+				xNew = inner.getX() + dx;
+			}
+			assert left.getX() < xNew && xNew < right.getX();
+			final Point2 pNew = evaluate(f, xNew);
+			if (pNew.getY() <= inner.getY()) {
+				// Found a new minimum.
+				previousSecondLeast = secondLeast;
+				secondLeast = inner;
+				if (xNew < inner.getX()) {
+					// To the left of the current minimum
+					// left unchanged
+					right = inner;
+				} else {
+					// To the right of the current minimum
+					// right unchanged
+					left = inner;
+				}
+				inner = pNew;
+			} else {
+				/*
+				 * Not a new minimum; but have narrowed the bracket.
+				 */
+				if (xNew < inner.getX()) {
+					// To the left of the current minimum
+					left = pNew;
+				} else {
+					right = pNew;
+				}
+				/*
+				 * And might be a new value for the second smallest value.
+				 */
+				if (pNew.getY() < secondLeast.getY()) {
+					previousSecondLeast = secondLeast;
+					secondLeast = pNew;
+				}
+			}
+			dx3 = dx2;
+			dx2 = dx;
+			width = right.getX() - left.getX();
+		}
+
+		return inner;
+	}
+
+	private static double goldenSectionSearch(Point2 p1, Point2 p2, Point2 p3) {
+		final double x2 = p2.getX();
+		final double x21 = x2 - p1.getX();
+		final double x32 = p3.getX() - x2;
+		assert 0.0 < x21;
+		assert 0.0 < x32;
+		if (x21 <= x32) {
+			return x2 + (2.0 - GOLD) * x32;
+		} else {
+			return x2 - (2.0 - GOLD) * x21;
+		}
 	}
 
 	private static boolean isBetween(double x1, double x2, double x3) {
