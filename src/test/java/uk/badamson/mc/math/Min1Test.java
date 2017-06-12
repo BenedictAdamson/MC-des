@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 import uk.badamson.mc.ObjectTest;
+import uk.badamson.mc.math.Min1.Bracket;
 
 /**
  * <p>
@@ -24,6 +25,7 @@ public class Min1Test {
 			final Point2 left = bracket.getLeft();
 			final Point2 inner = bracket.getInner();
 			final Point2 right = bracket.getRight();
+			final double width = bracket.getWidth();
 
 			assertNotNull("Not null, left", left);// guard
 			assertNotNull("Not null, inner", inner);// guard
@@ -44,6 +46,8 @@ public class Min1Test {
 			assertEquals(
 					"The smallest function value of the points constituting this bracket is the y value of the inner point of the bracket",
 					inner.getY(), bracket.getMin(), Double.MIN_NORMAL);
+			assertTrue("The width of a bracket <" + width + "> is always positive.", 0.0 < width);
+			assertEquals("width", right.getX() - left.getX(), width, Double.MIN_NORMAL);
 		}
 
 		public static void assertInvariants(Min1.Bracket bracket1, Min1.Bracket bracket2) {
@@ -146,8 +150,8 @@ public class Min1Test {
 		return bracket;
 	}
 
-	private static Min1.Bracket findBrent(final Function1 f, Min1.Bracket bracket) {
-		final Min1.Bracket min = Min1.findBrent(f, bracket);
+	private static Min1.Bracket findBrent(final Function1 f, Min1.Bracket bracket, double xTolerance) {
+		final Min1.Bracket min = Min1.findBrent(f, bracket, xTolerance);
 
 		assertNotNull("The method always returns a bracket", min);// guard
 		BracketTest.assertInvariants(bracket);
@@ -163,8 +167,27 @@ public class Min1Test {
 				"The minimum value of the returned bracket <" + min
 						+ "> is not larger than the minimum value of the given bracket <" + bracket + ">",
 				min.getInner().getY() <= bracket.getInner().getY());
+		assertTrue("The width <" + min.getWidth()
+				+ "> of the returned bracket is not larger than the given convergence tolerance <" + xTolerance + ">.",
+				min.getWidth() < xTolerance);
 
 		return min;
+	}
+
+	private static final void findBrent_squared(double x1, double x2, double x3, double xTolerance) {
+		assert x1 < x2;
+		assert x2 < x3;
+		assert x1 < 0.0;
+		assert 0.0 < x3;
+		final Min1.Bracket bracket = new Bracket(new Point2(x1, SQUARED.value(x1)), new Point2(x2, SQUARED.value(x2)),
+				new Point2(x3, SQUARED.value(x3)));
+
+		final Min1.Bracket min = findBrent(SQUARED, bracket, xTolerance);
+
+		final double leftX = min.getLeft().getX();
+		final double rightX = min.getRight().getX();
+		assertTrue("Left x <" + leftX + "> is close to the minimum", -xTolerance <= leftX && leftX < 0.0);
+		assertTrue("Right x <" + rightX + "> is close to the minimum", 0.0 < rightX && rightX <= xTolerance);
 	}
 
 	@Test
@@ -278,5 +301,16 @@ public class Min1Test {
 	@Test
 	public void findBracket_squaredSpan() {
 		findBracket(SQUARED, -1.0, 1.0);
+	}
+
+	@Test
+	public void findBrent_squaredNoIterations() {
+		final double x1 = -1.0;
+		final double x2 = 0.0;
+		final double x3 = 1.0;
+		final double xTolerance = 1E3;
+		assert x3 - x1 < xTolerance;
+
+		findBrent_squared(x1, x2, x3, xTolerance);
 	}
 }

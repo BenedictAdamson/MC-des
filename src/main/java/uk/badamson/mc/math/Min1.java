@@ -190,6 +190,24 @@ public final class Min1 {
 			return right;
 		}
 
+		/**
+		 * <p>
+		 * The size of this bracket.
+		 * </p>
+		 * <ul>
+		 * <li>The width of a bracket is always positive.</li>
+		 * <li>The width is the difference between the {@linkplain Point2#getX()
+		 * x coordinate (abscissa)} of the {@linkplain #getRight() rightmost}
+		 * point and the x coordinate of the {@linkplain #getLeft() leftmost}
+		 * point.</li>
+		 * </ul>
+		 * 
+		 * @return the width
+		 */
+		public final double getWidth() {
+			return right.getX() - left.getX();
+		}
+
 		@Override
 		public final int hashCode() {
 			final int prime = 31;
@@ -436,12 +454,16 @@ public final class Min1 {
 	 * range).</li>
 	 * <li>The {@linkplain Bracket#getMin() minimum value} of the returned
 	 * bracket is not larger than the minimum value of the given bracket.</li>
+	 * <li>The {@linkplain Bracket#getWidth() width} of the returned bracket is
+	 * not larger than the given convergence tolerance.</li>
 	 * </ul>
 	 * 
 	 * @param f
 	 *            The function for which a minimum is to be found.
 	 * @param bracket
 	 *            A bracket of the minimum to be found.
+	 * @param xTolerance
+	 *            The convergence tolerance.
 	 * @return a bracket of the minimum to be found.
 	 * 
 	 * @throws NullPointerException
@@ -450,14 +472,34 @@ public final class Min1 {
 	 *             <li>If {@code bracket} is null.</li>
 	 *             </ul>
 	 * @throws IllegalArgumentException
-	 *             (Optional) if {@code bracket} is not consistent with
-	 *             {@code f}.
+	 *             <ul>
+	 *             <li>If {@code tolerance} is not positive.</li>
+	 *             <li>(Optional) if {@code bracket} is not consistent with
+	 *             {@code f}.</li>
+	 *             </ul>
 	 */
-	public static Bracket findBrent(final Function1 f, Bracket bracket) {
+	public static Bracket findBrent(final Function1 f, Bracket bracket, double xTolerance) {
 		Objects.requireNonNull(f, "f");
 		Objects.requireNonNull(bracket, "bracket");
+		if (!(0.0 < xTolerance)) {
+			throw new IllegalArgumentException("tolerance <" + xTolerance + ">");
+		}
+
+		Point2 left = bracket.getLeft();
+		Point2 right = bracket.getRight();
+		Point2 leastF = bracket.getInner();
+		Point2 leastF2;
+		Point2 previousLeastF2;
+		if (left.getY() < right.getY()) {
+			leastF2 = left;
+			previousLeastF2 = right;
+		} else {
+			leastF2 = right;
+			previousLeastF2 = left;
+		}
+		Point2 latest = leastF;
 		// TODO
-		return null;
+		return new Bracket(left, leastF, right);
 	}
 
 	private static boolean isBetween(double x1, double x2, double x3) {
