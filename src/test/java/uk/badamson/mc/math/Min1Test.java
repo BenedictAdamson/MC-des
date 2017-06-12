@@ -163,6 +163,17 @@ public class Min1Test {
 		return min;
 	}
 
+	private static final void findBrent_power4(double x1, double x2, double x3, double tolerance) {
+		assert x1 < x2;
+		assert x2 < x3;
+		assert x1 < 0.0;
+		assert 0.0 < x3;
+		final Min1.Bracket bracket = new Bracket(new Point2(x1, POWER_4.value(x1)), new Point2(x2, POWER_4.value(x2)),
+				new Point2(x3, POWER_4.value(x3)));
+
+		findBrent(SQUARED, bracket, tolerance);
+	}
+
 	private static final void findBrent_squared(double x1, double x2, double x3, double tolerance) {
 		assert x1 < x2;
 		assert x2 < x3;
@@ -285,6 +296,36 @@ public class Min1Test {
 	@Test
 	public void findBracket_squaredSpan() {
 		findBracket(SQUARED, -1.0, 1.0);
+	}
+
+	@Test
+	public void findBrent_power4Centre() {
+		final double x1 = -1.0;
+		final double x2 = 0.0;
+		final double x3 = 1.0;
+		final double xTolerance = 1E-3;
+
+		findBrent_power4(x1, x2, x3, xTolerance);
+	}
+
+	@Test
+	public void findBrent_power4Left() {
+		final double x1 = -3.0;
+		final double x2 = -1.0;
+		final double x3 = 2.0;
+		final double xTolerance = 1E-3;
+
+		findBrent_power4(x1, x2, x3, xTolerance);
+	}
+
+	@Test
+	public void findBrent_power4Right() {
+		final double x1 = -2.0;
+		final double x2 = 1.0;
+		final double x3 = 3.0;
+		final double xTolerance = 1E-3;
+
+		findBrent_power4(x1, x2, x3, xTolerance);
 	}
 
 	@Test
