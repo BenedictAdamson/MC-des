@@ -22,7 +22,7 @@ public interface FunctionN {
 	 * 
 	 * @throws NullPointerException
 	 *             If {@code x} is null.
-	 * @throws ArrayIndexOutOfBoundsException
+	 * @throws IndexOutOfBoundsException
 	 *             (Optional) If the length of {@code x} is not equal to the
 	 *             {@linkplain #getDimensions() number of dimensions} of this
 	 *             function. In practice, many implementations will not complain
@@ -34,6 +34,10 @@ public interface FunctionN {
 	/**
 	 * <p>
 	 * The number of independent variables of the function.
+	 * </p>
+	 * <p>
+	 * This attribute must be <dfn>constant</dfn>:
+	 * the value for a given object must always be the same value.
 	 * </p>
 	 * 
 	 * @return the number of dimensions; positive.
