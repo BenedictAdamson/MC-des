@@ -58,7 +58,7 @@ public final class PointN {
 	 * <p>
 	 * The {@link PointN} class has <i>value semantics</i>: this object is
 	 * equivalent to another object if, and only if, the other object is also a
-	 * {@link Point2} object, and thw two objects have equivalent attributes.
+	 * {@link Point2} object, and the two objects have equivalent attributes.
 	 * </p>
 	 */
 	@Override
