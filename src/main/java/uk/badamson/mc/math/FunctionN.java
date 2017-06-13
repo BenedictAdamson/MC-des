@@ -1,6 +1,7 @@
 package uk.badamson.mc.math;
 
 import net.jcip.annotations.Immutable;
+import net.jcip.annotations.NotThreadSafe;
 
 /**
  * <p>
@@ -8,11 +9,17 @@ import net.jcip.annotations.Immutable;
  * </p>
  */
 @Immutable
+@NotThreadSafe
 public interface FunctionN {
 
 	/**
 	 * <p>
 	 * The value of the function for given values of the continuous variables.
+	 * </p>
+	 * <p>
+	 * Because this interface is {@linkplain NotThreadSafe not thread safe},
+	 * callers should not alter the content of the {@code x} array during the
+	 * computation of teh value.
 	 * </p>
 	 * 
 	 * @param x
@@ -36,8 +43,8 @@ public interface FunctionN {
 	 * The number of independent variables of the function.
 	 * </p>
 	 * <p>
-	 * This attribute must be <dfn>constant</dfn>:
-	 * the value for a given object must always be the same value.
+	 * This attribute must be <dfn>constant</dfn>: the value for a given object
+	 * must always be the same value.
 	 * </p>
 	 * 
 	 * @return the number of dimensions; positive.
