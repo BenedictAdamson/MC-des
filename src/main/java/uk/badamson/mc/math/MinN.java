@@ -10,6 +10,45 @@ import java.util.Objects;
  */
 public final class MinN {
 
+	private static double basicPowell(final FunctionN f, final double[] x0, final double[] dx0, final double[] x,
+			final double[][] dx) throws PoorlyConditionedFunctionException {
+		final int n = f.getDimensions();
+		assert n == x0.length;
+		assert n == dx0.length;
+		assert n == x.length;
+		assert n == dx.length;
+		copyTo(x0, x);
+		for (int i = 0; i < n; ++i) {
+			copyTo(dx0, dx[i]);
+			minimiseAlongLine(f, x, dx0);
+		}
+		dx[n - 1] = dx[0];// recycle array
+		for (int i = 0; i < n - 1; ++i) {
+			dx[i] = dx[i + 1];
+		}
+		double xNewMax = 0;
+		for (int j = 0; j < n; ++j) {
+			final double xNew = x[j] - x0[j];
+			dx[n - 1][j] = xNew;
+			xNewMax = Math.max(xNewMax, Math.abs(xNew));
+		}
+		if (xNewMax < Min1.TOLERANCE) {
+			/*
+			 * We have converged on the minimum, or the search directions have
+			 * degenerated.
+			 */
+			resetSearchDirections(dx);
+		}
+		copyTo(dx0, dx[n - 1]);
+		return minimiseAlongLine(f, x, dx0);
+	}
+
+	private static void copyTo(double[] x, double[] y) {
+		for (int j = 0, n = x.length; j < n; ++j) {
+			x[j] = y[j];
+		}
+	}
+
 	/**
 	 * <p>
 	 * Create a {@linkplain Function1 functor for a one-dimensional function of
@@ -79,6 +118,93 @@ public final class MinN {
 
 	/**
 	 * <p>
+	 * Find a minimum of a {@linkplain FunctionN multidimensional function}
+	 * using <i>basic Powell's method</i> with periodic resetting of the search
+	 * directions.
+	 * </p>
+	 * <p>
+	 * This method is appropriate for a function that is approximately a
+	 * quadratic form.
+	 * </p>
+	 * 
+	 * @param f
+	 *            The function for which a minimum is to be found.
+	 * @param x
+	 *            A point at which to start the search. The method changes this
+	 *            value to record the minimum point.
+	 * @param tolerance
+	 *            The convergence tolerance; the minimum fractional change in
+	 *            the value of the minimum for which continuing to iterate is
+	 *            worthwhile.
+	 * @return a minimum of the function.
+	 * 
+	 * @throws NullPointerException
+	 *             <ul>
+	 *             <li>If {@code f} is null.</li>
+	 *             <li>If {@code x} is null.</li>
+	 *             </ul>
+	 * @throws IllegalArgumentException
+	 *             <ul>
+	 *             <li>If the length of {code x} is different from the
+	 *             {@linkplain FunctionN#getDimensions() number of dimensions}
+	 *             of {@code f}.</li></li>
+	 *             <li>If {@code tolerance} is not in the range (0.0, 1.0).</li>
+	 *             </ul>
+	 * @throws PoorlyConditionedFunctionException
+	 *             <ul>
+	 *             <li>If {@code f} does not have a minimum</li>
+	 *             <li>If {@code f} has a minimum, but it is impossible to find
+	 *             a bracket for P@code f} using {@code x1} and {@code x2}
+	 *             because the function has an odd-powered high order term that
+	 *             causes the iterative procedure to diverge.</li>
+	 *             <li>The magnitude of {@code dx} is zero (or very small).</li>
+	 *             </ul>
+	 */
+	public static double findPowell(final FunctionN f, final double[] x, double tolerance)
+			throws PoorlyConditionedFunctionException {
+		Objects.requireNonNull(f, "f");
+		Objects.requireNonNull(x, "x");
+		if (!(0.0 < tolerance && tolerance < 1.0)) {
+			throw new IllegalArgumentException("tolerance <" + tolerance + ">");
+		}
+		final int n = f.getDimensions();
+		if (x.length != n) {
+			throw new IllegalArgumentException("Inconsistent dimensions f <" + n + "> x <" + x.length + ">");
+		}
+
+		final double[] x0 = new double[n];
+		final double[] dx0 = new double[n];
+		final double[][] dx = new double[n][];
+		for (int i = 0; i < n; ++i) {
+			dx[i] = new double[n];
+		}
+
+		int iteration = 0;
+		double min = Double.POSITIVE_INFINITY;
+		while (true) {
+			if (iteration % n == 0) {
+				/*
+				 * To prevent the search directions collapsing to a bundle of
+				 * linearly dependent vectors, reset them to the basis vectors.
+				 */
+				resetSearchDirections(dx);
+			}
+
+			final double minNext = basicPowell(f, x0, dx0, x, dx);
+			assert minNext <= min;
+			final double dMin = minNext - min;
+			min = minNext;
+			iteration++;
+			if (n <= iteration && dMin <= min * tolerance) {
+				break;
+			}
+		}
+
+		return min;
+	}
+
+	/**
+	 * <p>
 	 * Perform <i>line minimisation</i> of a {@linkplain FunctionN
 	 * multidimensional function}.
 	 * </p>
@@ -120,8 +246,18 @@ public final class MinN {
 	 *             {@linkplain FunctionN#getDimensions() number of dimensions}
 	 *             of {@code f}.</li></li>
 	 *             </ul>
+	 * @throws PoorlyConditionedFunctionException
+	 *             <ul>
+	 *             <li>If {@code f} does not have a minimum</li>
+	 *             <li>If {@code f} has a minimum, but it is impossible to find
+	 *             a bracket for P@code f} using {@code x1} and {@code x2}
+	 *             because the function has an odd-powered high order term that
+	 *             causes the iterative procedure to diverge.</li>
+	 *             <li>The magnitude of {@code dx} is zero (or very small).</li>
+	 *             </ul>
 	 */
-	static double minimiseAlongLine(final FunctionN f, final double[] x, final double[] dx) {
+	static double minimiseAlongLine(final FunctionN f, final double[] x, final double[] dx)
+			throws PoorlyConditionedFunctionException {
 		final Function1 fLine = createLineFunction(f, x, dx);
 		final Min1.Bracket bracket = Min1.findBracket(fLine, 0.0, 1.0);
 		final Point2 p = Min1.findBrent(fLine, bracket, Min1.TOLERANCE);
@@ -132,6 +268,15 @@ public final class MinN {
 			x[i] += dxi;
 		}
 		return p.getY();
+	}
+
+	private static void resetSearchDirections(final double[][] dx) {
+		final int n = dx.length;
+		for (int i = 0; i < n; ++i) {
+			for (int j = 0; j < n; ++j) {
+				dx[i][j] = (i == j ? 1 : 0);
+			}
+		}
 	}
 
 	private MinN() {

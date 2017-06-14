@@ -138,7 +138,7 @@ public class Min1Test {
 	}
 
 	private static Min1.Bracket findBracket(final Function1 f, double x1, double x2)
-			throws Min1.PoorlyConditionedFunctionException {
+			throws PoorlyConditionedFunctionException {
 		final Min1.Bracket bracket = Min1.findBracket(f, x1, x2);
 
 		assertNotNull("Not null, bracket", bracket);// guard
@@ -209,7 +209,7 @@ public class Min1Test {
 	public void findBracket_order3A() {
 		try {
 			findBracket(ORDER_3, -1.0, 0.0);
-		} catch (Min1.PoorlyConditionedFunctionException e) {
+		} catch (PoorlyConditionedFunctionException e) {
 			// Permitted
 		}
 	}
@@ -218,7 +218,7 @@ public class Min1Test {
 	public void findBracket_order3B() {
 		try {
 			findBracket(ORDER_3, -1.6, 0.0);
-		} catch (Min1.PoorlyConditionedFunctionException e) {
+		} catch (PoorlyConditionedFunctionException e) {
 			// Permitted
 		}
 	}

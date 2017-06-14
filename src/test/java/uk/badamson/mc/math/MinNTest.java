@@ -66,6 +66,24 @@ public class MinNTest {
 		return lineFunction;
 	}
 
+	private static double findPowell(final FunctionN f, final double[] x, double tolerance) {
+		final double min = MinN.findPowell(f, x, tolerance);
+
+		assertEquals("Minimum value", f.value(x), min, adjacentPrecision(min));
+
+		return min;
+	}
+
+	private static void findPowell_paraboloid(double x0, double x1, double tolerance) {
+		final double[] x = { x0, x1 };
+		final double precision = Math.sqrt(tolerance);
+
+		findPowell(PARABOLOID, x, tolerance);
+
+		assertEquals("x[0]", 0.0, x[0], precision);
+		assertEquals("x[1]", 0.0, x[1], precision);
+	}
+
 	private static double magnitude(double[] x) {
 		double m2 = 0.0;
 		for (double xi : x) {
@@ -169,6 +187,31 @@ public class MinNTest {
 		assertEquals("lineFunction[0]", 1.0, lineFunction.value(0.0), 1E-3);
 		assertEquals("lineFunction[1.0]", 1.0, lineFunction.value(1.0), 1E-3);
 		assertEquals("lineFunction[-1.0]", 1.0, lineFunction.value(-1.0), 1E-3);
+	}
+
+	@Test
+	public void findPowell_paraboloidA() {
+		findPowell_paraboloid(0, 1, 1E-3);
+	}
+
+	@Test
+	public void findPowell_paraboloidAtMin() {
+		findPowell_paraboloid(0, 0, 1E-3);
+	}
+
+	@Test
+	public void findPowell_paraboloidB() {
+		findPowell_paraboloid(1, 0, 1E-3);
+	}
+
+	@Test
+	public void findPowell_paraboloidC() {
+		findPowell_paraboloid(1, 1, 1E-3);
+	}
+
+	@Test
+	public void findPowell_paraboloidD() {
+		findPowell_paraboloid(1, 1, 1E-5);
 	}
 
 	@Test
