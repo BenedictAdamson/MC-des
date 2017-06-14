@@ -247,6 +247,19 @@ public final class Min1 {
 
 	}// class
 
+	/**
+	 * <p>
+	 * The typical fractional tolerance possible for minimization of a
+	 * {@linkplain Function1 one dimensional function}.
+	 * </p>
+	 * <p>
+	 * If the true minimum occurs where the variable has value <var>x</var>, a
+	 * numeric procedure will locate the minimum with an accuracy no better than
+	 * this tolerance multiplied by <var>x</var>.
+	 * </p>
+	 */
+	public static final double TOLERANCE = Math.sqrt(Math.nextAfter(1.0, 2.0) - 1.0);
+
 	private static final double GOLD = (1.0 + Math.sqrt(5.0)) * 0.5;
 
 	private static final double MAX_STEP = 100;
@@ -459,7 +472,8 @@ public final class Min1 {
 	 * @param bracket
 	 *            A bracket of the minimum to be found.
 	 * @param tolerance
-	 *            The convergence tolerance.
+	 *            The convergence tolerance. This should not normally exceed the
+	 *            {@linkplain #TOLERANCE recommended minimum tolerance}.
 	 * @return a minimum of the function.
 	 * 
 	 * @throws NullPointerException
@@ -533,6 +547,12 @@ public final class Min1 {
 			 */
 			if (Math.abs(dx) < xTolerance) {
 				dx = Math.copySign(xTolerance, dx);
+				/* But despite that, never step outside the bracket */
+				if (0.0 < dx) {
+					dx = Math.min(dx, 0.9 * (right.getX() - inner.getX()));
+				} else {
+					dx = Math.max(dx, 0.9 * (left.getX() - inner.getX()));
+				}
 				xNew = inner.getX() + dx;
 			}
 			assert left.getX() < xNew && xNew < right.getX();
