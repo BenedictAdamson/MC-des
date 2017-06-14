@@ -77,6 +77,63 @@ public final class MinN {
 		};
 	}
 
+	/**
+	 * <p>
+	 * Perform <i>line minimisation</i> of a {@linkplain FunctionN
+	 * multidimensional function}.
+	 * </p>
+	 * <p>
+	 * That is, find the minimum value of the function along a straight line.
+	 * </p>
+	 * 
+	 * <section>
+	 * <h1>Post Conditions</h1>
+	 * <ul>
+	 * <li>The point on the line ({@code x}) has been moved to the position of
+	 * the minimum found.</li>
+	 * <li>The direction vector has been set to the amount the point of the line
+	 * was moved to move from the original position to the position of the
+	 * minimum.</li>
+	 * </ul>
+	 * </section>
+	 * 
+	 * @param f
+	 *            The multi-dimensional function
+	 * @param x
+	 *            A point on the line.
+	 * @param dx
+	 *            The direction vector of the line.
+	 * @return the minimum value along the line.
+	 * 
+	 * @throws NullPointerException
+	 *             <ul>
+	 *             <li>If {@code f} is null.</li>
+	 *             <li>If {@code x} is null.</li>
+	 *             <li>If {@code dx} is null.</li>
+	 *             </ul>
+	 * @throws IllegalArgumentException
+	 *             <ul>
+	 *             <li>If the length of {code x} is 0.</li>
+	 *             <li>If the length of {code x} is different from the length of
+	 *             {@code dx}.</li></li>
+	 *             <li>If the length of {code x} is different from the
+	 *             {@linkplain FunctionN#getDimensions() number of dimensions}
+	 *             of {@code f}.</li></li>
+	 *             </ul>
+	 */
+	static double minimiseAlongLine(final FunctionN f, final double[] x, final double[] dx) {
+		final Function1 fLine = createLineFunction(f, x, dx);
+		final Min1.Bracket bracket = Min1.findBracket(fLine, 0.0, 1.0);
+		final Point2 p = Min1.findBrent(fLine, bracket, Min1.TOLERANCE);
+		final double w = p.getX();
+		for (int i = 0, n = x.length; i < n; i++) {
+			final double dxi = dx[i] * w;
+			dx[i] = dxi;
+			x[i] += dxi;
+		}
+		return p.getY();
+	}
+
 	private MinN() {
 		throw new AssertionError("Class should not be instantiated");
 	}
