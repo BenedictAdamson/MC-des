@@ -154,10 +154,9 @@ public final class MinN {
 	 *             <ul>
 	 *             <li>If {@code f} does not have a minimum</li>
 	 *             <li>If {@code f} has a minimum, but it is impossible to find
-	 *             a bracket for P@code f} using {@code x1} and {@code x2}
-	 *             because the function has an odd-powered high order term that
-	 *             causes the iterative procedure to diverge.</li>
-	 *             <li>The magnitude of {@code dx} is zero (or very small).</li>
+	 *             using {@code x} because the function has an odd-powered high
+	 *             order term that causes the iterative procedure to
+	 *             diverge.</li>
 	 *             </ul>
 	 */
 	public static double findPowell(final FunctionN f, final double[] x, double tolerance)
@@ -250,7 +249,7 @@ public final class MinN {
 	 *             <ul>
 	 *             <li>If {@code f} does not have a minimum</li>
 	 *             <li>If {@code f} has a minimum, but it is impossible to find
-	 *             a bracket for P@code f} using {@code x1} and {@code x2}
+	 *             a bracket for {@code f} using {@code x} and {@code dx}
 	 *             because the function has an odd-powered high order term that
 	 *             causes the iterative procedure to diverge.</li>
 	 *             <li>The magnitude of {@code dx} is zero (or very small).</li>
