@@ -259,14 +259,14 @@ public final class MinN {
 			throws PoorlyConditionedFunctionException {
 		final Function1 fLine = createLineFunction(f, x, dx);
 		final Min1.Bracket bracket = Min1.findBracket(fLine, 0.0, 1.0);
-		final Point2 p = Min1.findBrent(fLine, bracket, Min1.TOLERANCE);
+		final Function1Value p = Min1.findBrent(fLine, bracket, Min1.TOLERANCE);
 		final double w = p.getX();
 		for (int i = 0, n = x.length; i < n; i++) {
 			final double dxi = dx[i] * w;
 			dx[i] = dxi;
 			x[i] += dxi;
 		}
-		return p.getY();
+		return p.getF();
 	}
 
 	private static void resetSearchDirections(final double[][] dx) {

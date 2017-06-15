@@ -22,30 +22,30 @@ public class Min1Test {
 		public static void assertInvariants(Min1.Bracket bracket) {
 			ObjectTest.assertInvariants(bracket);// inherited
 
-			final Point2 left = bracket.getLeft();
-			final Point2 inner = bracket.getInner();
-			final Point2 right = bracket.getRight();
+			final Function1Value left = bracket.getLeft();
+			final Function1Value inner = bracket.getInner();
+			final Function1Value right = bracket.getRight();
 			final double width = bracket.getWidth();
 
 			assertNotNull("Not null, left", left);// guard
 			assertNotNull("Not null, inner", inner);// guard
 			assertNotNull("Not null, right", right);// guard
 
-			Point2Test.assertInvariants(left);
-			Point2Test.assertInvariants(inner);
-			Point2Test.assertInvariants(right);
+			Function1ValueTest.assertInvariants(left);
+			Function1ValueTest.assertInvariants(inner);
+			Function1ValueTest.assertInvariants(right);
 
 			final double innerX = inner.getX();
-			final double innerY = inner.getY();
+			final double innerY = inner.getF();
 			assertTrue("The inner point " + inner + " is to the right of the leftmost point " + left,
 					left.getX() < innerX);
-			assertTrue("The inner point " + inner + " is below the leftmost point " + left + ".", innerY < left.getY());
+			assertTrue("The inner point " + inner + " is below the leftmost point " + left + ".", innerY < left.getF());
 			assertTrue("The rightmost point is to the right of the inner point.", innerX < right.getX());
-			assertTrue("The rightmost point is above the inner point.", innerY < right.getY());
+			assertTrue("The rightmost point is above the inner point.", innerY < right.getF());
 
 			assertEquals(
 					"The smallest function value of the points constituting this bracket is the y value of the inner point of the bracket",
-					inner.getY(), bracket.getMin(), Double.MIN_NORMAL);
+					inner.getF(), bracket.getMin(), Double.MIN_NORMAL);
 			assertTrue("The width of a bracket <" + width + "> is always positive.", 0.0 < width);
 			assertEquals("width", right.getX() - left.getX(), width, Double.MIN_NORMAL);
 		}
@@ -54,7 +54,7 @@ public class Min1Test {
 			ObjectTest.assertInvariants(bracket1, bracket2);// inherited
 		}
 
-		private static Min1.Bracket constructor(Point2 left, Point2 inner, Point2 right) {
+		private static Min1.Bracket constructor(Function1Value left, Function1Value inner, Function1Value right) {
 			final Min1.Bracket bracket = new Min1.Bracket(left, inner, right);
 			assertInvariants(bracket);
 			assertSame("left", left, bracket.getLeft());
@@ -74,11 +74,11 @@ public class Min1Test {
 		}
 	}// class
 
-	private static final Point2 POINT_1 = new Point2(1, 8);
-	private static final Point2 POINT_2 = new Point2(2, 7);
-	private static final Point2 POINT_3 = new Point2(4, 3);
-	private static final Point2 POINT_4 = new Point2(5, 4);
-	private static final Point2 POINT_5 = new Point2(6, 9);
+	private static final Function1Value POINT_1 = new Function1Value(1, 8);
+	private static final Function1Value POINT_2 = new Function1Value(2, 7);
+	private static final Function1Value POINT_3 = new Function1Value(4, 3);
+	private static final Function1Value POINT_4 = new Function1Value(5, 4);
+	private static final Function1Value POINT_5 = new Function1Value(6, 9);
 
 	private static final Function1 SQUARED = new Function1() {
 
@@ -132,8 +132,8 @@ public class Min1Test {
 		assertConsistent("Right point of bracket", bracket.getRight(), f);
 	}
 
-	private static void assertConsistent(String message, final Point2 p, final Function1 f) {
-		assertEquals(message + " <" + p + "> is consistent with function <" + f + ">", f.value(p.getX()), p.getY(),
+	private static void assertConsistent(String message, final Function1Value p, final Function1 f) {
+		assertEquals(message + " <" + p + "> is consistent with function <" + f + ">", f.value(p.getX()), p.getF(),
 				Double.MIN_NORMAL);
 	}
 
@@ -148,8 +148,8 @@ public class Min1Test {
 		return bracket;
 	}
 
-	private static Point2 findBrent(final Function1 f, Min1.Bracket bracket, double tolerance) {
-		final Point2 min = Min1.findBrent(f, bracket, tolerance);
+	private static Function1Value findBrent(final Function1 f, Min1.Bracket bracket, double tolerance) {
+		final Function1Value min = Min1.findBrent(f, bracket, tolerance);
 
 		assertNotNull("The method always returns a bracket", min);// guard
 		BracketTest.assertInvariants(bracket);
@@ -158,7 +158,7 @@ public class Min1Test {
 		assertTrue(
 				"The minimum value of the returned bracket <" + min
 						+ "> is not larger than the minimum value of the given bracket <" + bracket + ">",
-				min.getY() <= bracket.getInner().getY());
+				min.getF() <= bracket.getInner().getF());
 
 		return min;
 	}
@@ -168,8 +168,8 @@ public class Min1Test {
 		assert x2 < x3;
 		assert x1 < 0.0;
 		assert 0.0 < x3;
-		final Min1.Bracket bracket = new Bracket(new Point2(x1, POWER_4.value(x1)), new Point2(x2, POWER_4.value(x2)),
-				new Point2(x3, POWER_4.value(x3)));
+		final Min1.Bracket bracket = new Bracket(new Function1Value(x1, POWER_4.value(x1)),
+				new Function1Value(x2, POWER_4.value(x2)), new Function1Value(x3, POWER_4.value(x3)));
 
 		findBrent(SQUARED, bracket, tolerance);
 	}
@@ -179,8 +179,8 @@ public class Min1Test {
 		assert x2 < x3;
 		assert x1 < 0.0;
 		assert 0.0 < x3;
-		final Min1.Bracket bracket = new Bracket(new Point2(x1, SQUARED.value(x1)), new Point2(x2, SQUARED.value(x2)),
-				new Point2(x3, SQUARED.value(x3)));
+		final Min1.Bracket bracket = new Bracket(new Function1Value(x1, SQUARED.value(x1)),
+				new Function1Value(x2, SQUARED.value(x2)), new Function1Value(x3, SQUARED.value(x3)));
 
 		findBrent(SQUARED, bracket, tolerance);
 	}

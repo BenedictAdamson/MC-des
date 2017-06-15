@@ -32,15 +32,15 @@ public final class Min1 {
 	 * values, there is a function value smaller than the values at the end
 	 * points of the range. Furthermore, it is is useful to retain the position
 	 * and the function value for that point. Hence a bracket has three
-	 * {@linkplain Point2 points}:
+	 * {@linkplain Function1Value points}:
 	 * 
 	 * </p>
 	 */
 	@Immutable
 	public static final class Bracket {
-		private final Point2 left;
-		private final Point2 inner;
-		private final Point2 right;
+		private final Function1Value left;
+		private final Function1Value inner;
+		private final Function1Value right;
 
 		/**
 		 * <p>
@@ -78,23 +78,23 @@ public final class Min1 {
 		 *             {@code inner}.</li>
 		 *             </ul>
 		 */
-		public Bracket(Point2 left, Point2 inner, Point2 right) {
+		public Bracket(Function1Value left, Function1Value inner, Function1Value right) {
 			Objects.requireNonNull(left, "left");
 			Objects.requireNonNull(inner, "inner");
 			Objects.requireNonNull(right, "right");
 			/* Attention: precondition checks must handle NaN values. */
 			final double innerX = inner.getX();
-			final double innerY = inner.getY();
+			final double innerY = inner.getF();
 			if (!(left.getX() < innerX)) {
 				throw new IllegalArgumentException("inner <" + inner + "> not to the right of left <" + left + ">");
 			}
 			if (!(innerX < right.getX())) {
 				throw new IllegalArgumentException("right <" + right + "> not to the right of inner <" + inner + ">");
 			}
-			if (!(innerY < left.getY())) {
+			if (!(innerY < left.getF())) {
 				throw new IllegalArgumentException("inner <" + inner + "> not below left <" + left + ">");
 			}
-			if (!(innerY < right.getY())) {
+			if (!(innerY < right.getF())) {
 				throw new IllegalArgumentException("inner <" + inner + "> not below right <" + right + ">");
 			}
 			this.left = left;
@@ -132,15 +132,15 @@ public final class Min1 {
 		 * <ul>
 		 * <li>Always have a (non null) inner point.</li>
 		 * <li>The inner point is to the right of the {@linkplain #getLeft()
-		 * leftmost point}; it has a larger {@linkplain Point2#getX()
+		 * leftmost point}; it has a larger {@linkplain Function1Value#getX()
 		 * abscissa}.</li>
 		 * <li>The inner point is below the leftmost point; it has a smaller
-		 * {@linkplain Point2#getY() ordinate}.</li>
+		 * {@linkplain Function1Value#getF() ordinate}.</li>
 		 * </ul>
 		 *
 		 * @return the inner point.
 		 */
-		public final Point2 getInner() {
+		public final Function1Value getInner() {
 			return inner;
 		}
 
@@ -151,7 +151,7 @@ public final class Min1 {
 		 *
 		 * @return the leftmost point; not null.
 		 */
-		public final Point2 getLeft() {
+		public final Function1Value getLeft() {
 			return left;
 		}
 
@@ -161,14 +161,14 @@ public final class Min1 {
 		 * </p>
 		 * <ul>
 		 * <li>The smallest function value of the points constituting this
-		 * bracket is the {@linkplain Point2#getY() y value (ordinate)} of the
-		 * {@linkplain #getInner() inner point} of the bracket.</li>
+		 * bracket is the {@linkplain Function1Value#getF() y value (ordinate)}
+		 * of the {@linkplain #getInner() inner point} of the bracket.</li>
 		 * </ul>
 		 * 
 		 * @return
 		 */
 		public final double getMin() {
-			return inner.getY();
+			return inner.getF();
 		}
 
 		/**
@@ -179,14 +179,14 @@ public final class Min1 {
 		 * <li>Always have a (non null) rightmost point.</li>
 		 * <li>The rightmost point is to the right of the
 		 * {@linkplain #getInner() inner point}; it has a smaller
-		 * {@linkplain Point2#getX() abscissa}.</li>
+		 * {@linkplain Function1Value#getX() abscissa}.</li>
 		 * <li>The rightmost point is above the inner point; it has a larger
-		 * {@linkplain Point2#getY() ordinate}.</li>
+		 * {@linkplain Function1Value#getF() ordinate}.</li>
 		 * </ul>
 		 *
 		 * @return the rightmost point
 		 */
-		public final Point2 getRight() {
+		public final Function1Value getRight() {
 			return right;
 		}
 
@@ -196,10 +196,10 @@ public final class Min1 {
 		 * </p>
 		 * <ul>
 		 * <li>The width of a bracket is always positive.</li>
-		 * <li>The width is the difference between the {@linkplain Point2#getX()
-		 * x coordinate (abscissa)} of the {@linkplain #getRight() rightmost}
-		 * point and the x coordinate of the {@linkplain #getLeft() leftmost}
-		 * point.</li>
+		 * <li>The width is the difference between the
+		 * {@linkplain Function1Value#getX() x coordinate (abscissa)} of the
+		 * {@linkplain #getRight() rightmost} point and the x coordinate of the
+		 * {@linkplain #getLeft() leftmost} point.</li>
 		 * </ul>
 		 * 
 		 * @return the width
@@ -237,8 +237,8 @@ public final class Min1 {
 
 	private static final double MAX_STEP = 100;
 
-	private static Point2 evaluate(Function1 f, double x) {
-		return new Point2(x, f.value(x));
+	private static Function1Value evaluate(Function1 f, double x) {
+		return new Function1Value(x, f.value(x));
 	}
 
 	/**
@@ -255,9 +255,10 @@ public final class Min1 {
 	 * </p>
 	 * <ul>
 	 * <li>Always returns a (non null) bracket.</li>
-	 * <li>The returned bracket has {@linkplain Point2#getY() y (ordinate)}
-	 * values calculated from the corresponding {@linkplain Point2#getX() x
-	 * (abscissa)} values using the given function.</li>
+	 * <li>The returned bracket has {@linkplain Function1Value#getF() y
+	 * (ordinate)} values calculated from the corresponding
+	 * {@linkplain Function1Value#getX() x (abscissa)} values using the given
+	 * function.</li>
 	 * </ul>
 	 * 
 	 * @param f
@@ -300,33 +301,33 @@ public final class Min1 {
 			throw new IllegalArgumentException("x2 NAN <" + x2 + ">");
 		}
 
-		Point2 p1 = evaluate(f, x1);
-		Point2 p2 = evaluate(f, x2);
-		if (p1.getY() < p2.getY()) {
+		Function1Value p1 = evaluate(f, x1);
+		Function1Value p2 = evaluate(f, x2);
+		if (p1.getF() < p2.getF()) {
 			// Swap
-			final Point2 pTemp = p1;
+			final Function1Value pTemp = p1;
 			p1 = p2;
 			p2 = pTemp;
 		}
-		assert p2.getY() <= p1.getY();
+		assert p2.getF() <= p1.getF();
 		/*
 		 * First guess is to step in the same direction:
 		 */
-		Point2 p3 = stepFurther(f, p1, p2);
+		Function1Value p3 = stepFurther(f, p1, p2);
 
-		while (p3.getY() <= p2.getY() || p1.getY() <= p2.getY()) {
+		while (p3.getF() <= p2.getF() || p1.getF() <= p2.getF()) {
 			final double xLimit = p2.getX() + MAX_STEP * (p3.getX() - p2.getX());
 			final double xNew = parabolicExtrapolation(p1, p2, p3);
 			if (isBetween(p2.getX(), xNew, p3.getX())) {
 				final double fNew = f.value(xNew);
-				if (fNew < p3.getY()) {
+				if (fNew < p3.getF()) {
 					// Found a minimum between p2 and p3
 					assert !Double.isNaN(fNew);
 					p1 = p2;
-					p2 = new Point2(xNew, fNew);
+					p2 = new Function1Value(xNew, fNew);
 					// p3 unchanged
 					break;
-				} else if (p2.getY() < fNew) {
+				} else if (p2.getF() < fNew) {
 					/*
 					 * Function has higher order terms. We have p1.y > p2.y and
 					 * fNew > p2.y, which can form a bracket
@@ -334,31 +335,31 @@ public final class Min1 {
 					assert !Double.isNaN(fNew);
 					// p1 unchanged
 					// p2 unchanged
-					p3 = new Point2(xNew, fNew);
+					p3 = new Function1Value(xNew, fNew);
 					break;
 				} else {
 					/*
 					 * Parabolic fit failed; Step even further in the same
 					 * direction and try again.
 					 */
-					final Point2 pNew = stepFurther(f, p2, p3);
-					assert !Double.isNaN(pNew.getY());
+					final Function1Value pNew = stepFurther(f, p2, p3);
+					assert !Double.isNaN(pNew.getF());
 					p1 = p2;
 					p2 = p3;
 					p3 = pNew;
 				}
 			} else if (isBetween(p3.getX(), xNew, xLimit)) {
 				/* Extrapolation is not excessive. */
-				final Point2 pNew = evaluate(f, xNew);
-				assert !Double.isNaN(pNew.getY());
-				if (pNew.getY() < p3.getY()) {
+				final Function1Value pNew = evaluate(f, xNew);
+				assert !Double.isNaN(pNew.getF());
+				if (pNew.getF() < p3.getF()) {
 					/*
 					 * Have stepped further down hill; continue stepping.
 					 */
 					p1 = p2;
 					p2 = p3;
 					p3 = pNew;
-				} else if (p3.getY() < p2.getY()) {
+				} else if (p3.getF() < p2.getF()) {
 					/*
 					 * Function has higher order terms. We have p3.y < p2.y and
 					 * p3.y < pNew.y, which can form a bracket.
@@ -384,26 +385,26 @@ public final class Min1 {
 				 * infinite. Assume it is nevertheless a step in the right
 				 * direction
 				 */
-				final Point2 pNew = evaluate(f, xLimit);
-				assert !Double.isNaN(pNew.getY());
+				final Function1Value pNew = evaluate(f, xLimit);
+				assert !Double.isNaN(pNew.getF());
 				p1 = p2;
 				p2 = p3;
 				p3 = pNew;
 			} else if (isBetween(p1.getX(), xNew, p2.getX())) {
 				final double fNew = f.value(xNew);
-				if (fNew < p1.getY() && fNew < p2.getY()) {
+				if (fNew < p1.getF() && fNew < p2.getF()) {
 					/* p1, pNew, p2 form a bracket. */
 					// p1 unchanged
 					p3 = p2;
-					p2 = new Point2(xNew, fNew);
+					p2 = new Function1Value(xNew, fNew);
 					break;
 				} else {
 					/*
 					 * xNew seems to be near a local maximum. Step even further
 					 * in the same direction to try to get away from it.
 					 */
-					final Point2 pNew = stepFurther(f, p2, p3);
-					assert !Double.isNaN(pNew.getY());
+					final Function1Value pNew = stepFurther(f, p2, p3);
+					assert !Double.isNaN(pNew.getF());
 					p1 = p2;
 					p2 = p3;
 					p3 = pNew;
@@ -413,8 +414,8 @@ public final class Min1 {
 				 * Parabolic extrapolation stepped backwards. Step even further
 				 * in the same direction and try again.
 				 */
-				final Point2 pNew = stepFurther(f, p2, p3);
-				assert !Double.isNaN(pNew.getY());
+				final Function1Value pNew = stepFurther(f, p2, p3);
+				assert !Double.isNaN(pNew.getF());
 				p1 = p2;
 				p2 = p3;
 				p3 = pNew;
@@ -435,9 +436,9 @@ public final class Min1 {
 	 * <ul>
 	 * <li>The method always returns a (non null) point.</li>
 	 * <li>The returned point is consistent with the given function.</li>
-	 * <li>The {@linkplain Point2#getY() y coordinate} of the returned point is
-	 * not larger than the {@linkplain Bracket#getMin() minimum value} of the
-	 * given bracket.</li>
+	 * <li>The {@linkplain Function1Value#getF() y coordinate} of the returned
+	 * point is not larger than the {@linkplain Bracket#getMin() minimum value}
+	 * of the given bracket.</li>
 	 * </ul>
 	 * 
 	 * @param f
@@ -461,19 +462,19 @@ public final class Min1 {
 	 *             {@code f}.</li>
 	 *             </ul>
 	 */
-	public static Point2 findBrent(final Function1 f, Bracket bracket, double tolerance) {
+	public static Function1Value findBrent(final Function1 f, Bracket bracket, double tolerance) {
 		Objects.requireNonNull(f, "f");
 		Objects.requireNonNull(bracket, "bracket");
 		if (!(0.0 < tolerance && tolerance < 1.0)) {
 			throw new IllegalArgumentException("tolerance <" + tolerance + ">");
 		}
 
-		Point2 left = bracket.getLeft();
-		Point2 inner = bracket.getInner();
-		Point2 right = bracket.getRight();
-		Point2 secondLeast;
-		Point2 previousSecondLeast;
-		if (left.getY() < right.getY()) {
+		Function1Value left = bracket.getLeft();
+		Function1Value inner = bracket.getInner();
+		Function1Value right = bracket.getRight();
+		Function1Value secondLeast;
+		Function1Value previousSecondLeast;
+		if (left.getF() < right.getF()) {
 			secondLeast = left;
 			previousSecondLeast = right;
 		} else {
@@ -529,8 +530,8 @@ public final class Min1 {
 				xNew = inner.getX() + dx;
 			}
 			assert left.getX() < xNew && xNew < right.getX();
-			final Point2 pNew = evaluate(f, xNew);
-			if (pNew.getY() < inner.getY()) {
+			final Function1Value pNew = evaluate(f, xNew);
+			if (pNew.getF() < inner.getF()) {
 				// Found a new minimum.
 				previousSecondLeast = secondLeast;
 				secondLeast = inner;
@@ -557,7 +558,7 @@ public final class Min1 {
 				/*
 				 * And might be a new value for the second smallest value.
 				 */
-				if (pNew.getY() < secondLeast.getY()) {
+				if (pNew.getF() < secondLeast.getF()) {
 					previousSecondLeast = secondLeast;
 					secondLeast = pNew;
 				}
@@ -570,7 +571,7 @@ public final class Min1 {
 		return inner;
 	}
 
-	private static double goldenSectionSearch(Point2 p1, Point2 p2, Point2 p3) {
+	private static double goldenSectionSearch(Function1Value p1, Function1Value p2, Function1Value p3) {
 		final double x2 = p2.getX();
 		final double x21 = x2 - p1.getX();
 		final double x32 = p3.getX() - x2;
@@ -599,20 +600,21 @@ public final class Min1 {
 		}
 	}
 
-	private static double parabolicExtrapolation(Point2 p1, Point2 p2, Point2 p3) {
+	private static double parabolicExtrapolation(Function1Value p1, Function1Value p2, Function1Value p3) {
 		final double x2 = p2.getX();
-		final double y2 = p2.getY();
+		final double y2 = p2.getF();
 		final double x21 = x2 - p1.getX();
 		final double x23 = x2 - p3.getX();
-		final double y23 = y2 - p3.getY();
-		final double y21 = y2 - p1.getY();
+		final double y23 = y2 - p3.getF();
+		final double y21 = y2 - p1.getF();
 		final double x21y23 = x21 * y23;
 		final double x23y21 = x23 * y21;
 		final double xNew = x2 - (x21 * x21y23 - x23 * x23y21) / (2.0 * (x21y23 - x23y21));
 		return xNew;
 	}
 
-	private static Point2 stepFurther(Function1 f, Point2 p1, Point2 p2) throws PoorlyConditionedFunctionException {
+	private static Function1Value stepFurther(Function1 f, Function1Value p1, Function1Value p2)
+			throws PoorlyConditionedFunctionException {
 		final double x2 = p2.getX();
 		final double dx = x2 - p1.getX();
 		double r = GOLD;
@@ -624,7 +626,7 @@ public final class Min1 {
 			r *= 0.5;
 		} while (Double.isNaN(fNew) && 0.0 < r && xNew != x2);
 		if (xNew != x2) {
-			return new Point2(xNew, fNew);
+			return new Function1Value(xNew, fNew);
 		} else {
 			throw new PoorlyConditionedFunctionException(f);
 		}

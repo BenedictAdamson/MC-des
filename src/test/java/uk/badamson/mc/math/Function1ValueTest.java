@@ -9,37 +9,37 @@ import uk.badamson.mc.ObjectTest;
 
 /**
  * <p>
- * Unit tests for the class {@link Point2}.
+ * Unit tests for the class {@link Function1Value}.
  * </p>
  */
-public class Point2Test {
+public class Function1ValueTest {
 
-	public static void assertInvariants(Point2 point) {
+	public static void assertInvariants(Function1Value point) {
 		ObjectTest.assertInvariants(point);// inherited
 	}
 
-	public static void assertInvariants(Point2 point1, Point2 point2) {
+	public static void assertInvariants(Function1Value point1, Function1Value point2) {
 		ObjectTest.assertInvariants(point1, point2);// inherited
 
 		final boolean equals = point1.equals(point2);
 		assertFalse("Value semantics, x",
 				equals && Double.doubleToLongBits(point1.getX()) != Double.doubleToLongBits(point2.getX()));
-		assertFalse("Value semantics, y",
-				equals && Double.doubleToLongBits(point1.getY()) != Double.doubleToLongBits(point2.getY()));
+		assertFalse("Value semantics, f",
+				equals && Double.doubleToLongBits(point1.getF()) != Double.doubleToLongBits(point2.getF()));
 	}
 
-	private static Point2 constructor(double x, double y) {
-		final Point2 point = new Point2(x, y);
+	private static Function1Value constructor(double x, double f) {
+		final Function1Value point = new Function1Value(x, f);
 
 		assertInvariants(point);
 		assertEquals("x bits", Double.doubleToLongBits(x), Double.doubleToLongBits(point.getX()));
-		assertEquals("y bits", Double.doubleToLongBits(y), Double.doubleToLongBits(point.getY()));
+		assertEquals("f bits", Double.doubleToLongBits(f), Double.doubleToLongBits(point.getF()));
 		return point;
 	}
 
-	private static void equals_equivalent(final double x, final double y) {
-		final Point2 point1 = new Point2(x, y);
-		final Point2 point2 = new Point2(x, y);
+	private static void equals_equivalent(final double x, final double f) {
+		final Function1Value point1 = new Function1Value(x, f);
+		final Function1Value point2 = new Function1Value(x, f);
 
 		assertInvariants(point1, point2);
 		assertEquals("Equivalent", point1, point2);
