@@ -237,6 +237,41 @@ public final class Min1 {
 
 	private static final double MAX_STEP = 100;
 
+	/*
+	 * Rounding errors mean that it is never worthwhile taking tiny steps.
+	 * Instead try stepping into the largest interval.
+	 */
+	private static double avoidTinyStep(final double xNew, final double xTolerance, final double xLeft,
+			final double xInner, final double xRight) {
+		double dx = xNew - xInner;
+		if (Math.abs(dx) < xTolerance) {
+			final double xr = xRight - xInner;
+			final double xl = xInner - xLeft;
+			if (xl <= xr) {
+				dx = Math.min(xTolerance, xr * 0.5);
+			} else {
+				dx = -Math.min(xTolerance, xl * 0.5);
+			}
+			return xInner + dx;
+		} else {
+			return xNew;
+		}
+	}
+
+	private static double bisect(Function1ValueWithGradient left, Function1ValueWithGradient inner,
+			Function1ValueWithGradient right) {
+		final double xi = inner.getX();
+		/*
+		 * Use the gradient at teh inner point to guess which side probably
+		 * contains the minmiium
+		 */
+		if (0.0 <= inner.getDfDx()) {
+			return xi + (left.getX() - xi) * 0.5;
+		} else {
+			return xi + (right.getX() - xi) * 0.5;
+		}
+	}
+
 	private static Function1Value evaluate(Function1 f, double x) {
 		return new Function1Value(x, f.value(x));
 	}
@@ -436,7 +471,7 @@ public final class Min1 {
 	 * <ul>
 	 * <li>The method always returns a (non null) point.</li>
 	 * <li>The returned point is consistent with the given function.</li>
-	 * <li>The {@linkplain Function1Value#getF() y coordinate} of the returned
+	 * <li>The {@linkplain Function1Value#getF() codomain value} of the returned
 	 * point is not larger than the {@linkplain Bracket#getMin() minimum value}
 	 * of the given bracket.</li>
 	 * </ul>
@@ -514,21 +549,8 @@ public final class Min1 {
 				 */
 				xNew = goldenSectionSearch(left, inner, right);
 			}
-			double dx = xNew - inner.getX();
-			/*
-			 * However, rounding errors mean that it is never worthwhile taking
-			 * tiny steps.
-			 */
-			if (Math.abs(dx) < xTolerance) {
-				dx = Math.copySign(xTolerance, dx);
-				/* But despite that, never step outside the bracket */
-				if (0.0 < dx) {
-					dx = Math.min(dx, 0.9 * (right.getX() - inner.getX()));
-				} else {
-					dx = Math.max(dx, 0.9 * (left.getX() - inner.getX()));
-				}
-				xNew = inner.getX() + dx;
-			}
+			xNew = avoidTinyStep(xNew, xTolerance, left.getX(), inner.getX(), right.getX());
+			final double dx = xNew - inner.getX();
 			assert left.getX() < xNew && xNew < right.getX();
 			final Function1Value pNew = evaluate(f, xNew);
 			if (pNew.getF() < inner.getF()) {
@@ -551,6 +573,158 @@ public final class Min1 {
 				 */
 				if (xNew < inner.getX()) {
 					// To the left of the current minimum
+					left = pNew;
+				} else {
+					right = pNew;
+				}
+				/*
+				 * And might be a new value for the second smallest value.
+				 */
+				if (pNew.getF() < secondLeast.getF()) {
+					previousSecondLeast = secondLeast;
+					secondLeast = pNew;
+				}
+			}
+			dx3 = dx2;
+			dx2 = dx;
+			width = right.getX() - left.getX();
+		}
+
+		return inner;
+	}
+
+	/**
+	 * <p>
+	 * Find a minimum of a {@linkplain Function1WithGradient one dimensional
+	 * function that also has a computable gradient}, using <i>Brent's
+	 * method</i>.
+	 * </p>
+	 * <ul>
+	 * <li>The method always returns a (non null) point.</li>
+	 * <li>The returned point is consistent with the given function.</li>
+	 * <li>The {@linkplain Function1ValueWithGradient#getF() codomain value} of
+	 * the returned point is not larger than the {@linkplain Bracket#getMin()
+	 * minimum value} of the given bracket.</li>
+	 * </ul>
+	 * 
+	 * @param f
+	 *            The function for which a minimum is to be found.
+	 * @param bracket
+	 *            A bracket of the minimum to be found.
+	 * @param tolerance
+	 *            The convergence tolerance. This should not normally exceed the
+	 *            {@linkplain #TOLERANCE recommended minimum tolerance}.
+	 * @return a minimum of the function.
+	 * 
+	 * @throws NullPointerException
+	 *             <ul>
+	 *             <li>If {@code f} is null.</li>
+	 *             <li>If {@code bracket} is null.</li>
+	 *             </ul>
+	 * @throws IllegalArgumentException
+	 *             <ul>
+	 *             <li>If {@code tolerance} is not in the range (0.0, 1.0).</li>
+	 *             <li>(Optional) if {@code bracket} is not consistent with
+	 *             {@code f}.</li>
+	 *             </ul>
+	 */
+	public static Function1ValueWithGradient findBrent(final Function1WithGradient f, Bracket bracket,
+			double tolerance) {
+		Objects.requireNonNull(f, "f");
+		Objects.requireNonNull(bracket, "bracket");
+		if (!(0.0 < tolerance && tolerance < 1.0)) {
+			throw new IllegalArgumentException("tolerance <" + tolerance + ">");
+		}
+
+		Function1ValueWithGradient left = f.value(bracket.getLeft().getX());
+		Function1ValueWithGradient inner = f.value(bracket.getInner().getX());
+		Function1ValueWithGradient right = f.value(bracket.getRight().getX());
+		Function1ValueWithGradient secondLeast;
+		Function1ValueWithGradient previousSecondLeast;
+		if (left.getF() < right.getF()) {
+			secondLeast = left;
+			previousSecondLeast = right;
+		} else {
+			secondLeast = right;
+			previousSecondLeast = left;
+		}
+		double width = right.getX() - left.getX();
+		// Recent step sizes (start with guesses)
+		double dx2 = width * (GOLD - 1.0);
+		double dx3 = dx2 * GOLD;
+
+		while (true) {
+			final double xTolerance = Double.max(Math.abs(inner.getX()) * tolerance, Double.MIN_NORMAL);
+			if (width <= xTolerance * 2.0) {
+				// Converged
+				break;
+			}
+			double xNew;
+			if (xTolerance < Math.abs(dx3)) {
+				/*
+				 * We are making big steps, which are not close to the round-off
+				 * limits, so secant extrapolation of the gradient is worth
+				 * trying.
+				 */
+				final double xNew1 = secantGradientExtrapolation(inner, secondLeast);
+				final double xNew2 = secantGradientExtrapolation(inner, previousSecondLeast);
+				/*
+				 * But did the extrapolation produce reliable results?
+				 */
+				final boolean ok1 = secantExtrapolationOk(xNew1, left, inner, right);
+				final boolean ok2 = secantExtrapolationOk(xNew2, left, inner, right);
+				/*
+				 * Choose between the two options.
+				 */
+				if (ok1 && ok2) {
+					/*
+					 * Prefer the smallest change
+					 */
+					if (Math.abs(xNew1 - inner.getX()) <= Math.abs(xNew2 - inner.getX())) {
+						xNew = xNew1;
+					} else {
+						xNew = xNew2;
+					}
+				} else if (ok1) {// && !ok2
+					xNew = xNew1;
+				} else if (ok2) {// && !ok1
+					xNew = xNew2;
+				} else { // !ok1 && !ok2
+					/*
+					 * Fall back to bisection
+					 */
+					xNew = bisect(left, inner, right);
+				}
+			} else {
+				/*
+				 * We are making small steps, which can be vulnerable to
+				 * round-off error. So use bisection instead.
+				 */
+				xNew = bisect(left, inner, right);
+			}
+			xNew = avoidTinyStep(xNew, xTolerance, left.getX(), inner.getX(), right.getX());
+			final double dx = xNew - inner.getX();
+			assert left.getX() < xNew && xNew < right.getX();
+			final Function1ValueWithGradient pNew = f.value(xNew);
+			if (pNew.getF() < inner.getF()) {
+				// Found a new minimum.
+				previousSecondLeast = secondLeast;
+				secondLeast = inner;
+				if (xNew < inner.getX()) {
+					// To the left of the current minimum
+					// left unchanged
+					right = inner;
+				} else {
+					// To the right of the current minimum
+					// right unchanged
+					left = inner;
+				}
+				inner = pNew;
+			} else {
+				/*
+				 * Not a new minimum; but have narrowed the bracket.
+				 */
+				if (xNew < inner.getX()) {
 					left = pNew;
 				} else {
 					right = pNew;
@@ -613,6 +787,25 @@ public final class Min1 {
 		return xNew;
 	}
 
+	private static boolean secantExtrapolationOk(double xNew, Function1ValueWithGradient left,
+			Function1ValueWithGradient inner, Function1ValueWithGradient right) {
+		return left.getX() < xNew && xNew < right.getX() && (xNew - inner.getX()) * inner.getDfDx() <= 0;
+	}
+
+	private static double secantGradientExtrapolation(Function1ValueWithGradient p1, Function1ValueWithGradient p2) {
+		final double x1 = p1.getX();
+		final double x2 = p2.getX();
+		final double y1 = p1.getDfDx();
+		final double y2 = p2.getDfDx();
+
+		final double y21 = y2 - y1;
+		final double x21 = x2 - x1;
+
+		final double dxdy = x21 / y21;
+
+		return x1 - y1 * dxdy;
+	}
+
 	private static Function1Value stepFurther(Function1 f, Function1Value p1, Function1Value p2)
 			throws PoorlyConditionedFunctionException {
 		final double x2 = p2.getX();
@@ -635,4 +828,5 @@ public final class Min1 {
 	private Min1() {
 		throw new AssertionError("Class should not be instantiated");
 	}
+
 }
