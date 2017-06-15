@@ -126,6 +126,23 @@ public class Min1Test {
 		}
 	};
 
+	private static final Function1WithGradient SQUARED_WITH_GRADIENT = new Function1WithGradient() {
+
+		@Override
+		public Function1ValueWithGradient value(double x) {
+			return new Function1ValueWithGradient(x, x * x, 2.0 * x);
+		}
+	};
+
+	private static final Function1WithGradient POWER_4_WITH_GRADIENT = new Function1WithGradient() {
+
+		@Override
+		public Function1ValueWithGradient value(double x) {
+			final double x2 = x * x;
+			return new Function1ValueWithGradient(x, x2 * x2, 4.0 * x2 * x);
+		}
+	};
+
 	private static void assertConsistent(final Min1.Bracket bracket, final Function1 f) {
 		assertConsistent("Left point of bracket", bracket.getLeft(), f);
 		assertConsistent("Inner point of bracket", bracket.getInner(), f);
@@ -135,6 +152,15 @@ public class Min1Test {
 	private static void assertConsistent(String message, final Function1Value p, final Function1 f) {
 		assertEquals(message + " <" + p + "> is consistent with function <" + f + ">", f.value(p.getX()), p.getF(),
 				Double.MIN_NORMAL);
+	}
+
+	private static void assertConsistent(String message, final Function1ValueWithGradient p,
+			final Function1WithGradient f) {
+		final Function1ValueWithGradient fp = f.value(p.getX());
+		assertEquals(message + " <" + p + "> is consistent with function <" + f + ">, codomain", fp.getF(), p.getF(),
+				Double.MIN_NORMAL);
+		assertEquals(message + " <" + p + "> is consistent with function <" + f + ">, gradient", fp.getDfDx(),
+				p.getDfDx(), Double.MIN_NORMAL);
 	}
 
 	private static Min1.Bracket findBracket(final Function1 f, double x1, double x2)
@@ -163,6 +189,21 @@ public class Min1Test {
 		return min;
 	}
 
+	private static Function1ValueWithGradient findBrent(final Function1WithGradient f, Bracket bracket,
+			double tolerance) {
+		final Function1ValueWithGradient min = Min1.findBrent(f, bracket, tolerance);
+
+		assertNotNull("The method always returns a bracket", min);// guard
+		BracketTest.assertInvariants(bracket);
+		assertConsistent("Minimum", min, f);
+
+		assertTrue(
+				"The minimum value of the returned bracket <" + min
+						+ "> is not larger than the minimum value of the given bracket <" + bracket + ">",
+				min.getF() <= bracket.getInner().getF());
+		return min;
+	}
+
 	private static final void findBrent_power4(double x1, double x2, double x3, double tolerance) {
 		assert x1 < x2;
 		assert x2 < x3;
@@ -183,6 +224,28 @@ public class Min1Test {
 				new Function1Value(x2, SQUARED.value(x2)), new Function1Value(x3, SQUARED.value(x3)));
 
 		findBrent(SQUARED, bracket, tolerance);
+	}
+
+	private static final void findBrent_withGradientPower4(double x1, double x2, double x3, double tolerance) {
+		assert x1 < x2;
+		assert x2 < x3;
+		assert x1 < 0.0;
+		assert 0.0 < x3;
+		final Min1.Bracket bracket = new Bracket(new Function1Value(x1, POWER_4.value(x1)),
+				new Function1Value(x2, POWER_4.value(x2)), new Function1Value(x3, POWER_4.value(x3)));
+
+		findBrent(POWER_4_WITH_GRADIENT, bracket, tolerance);
+	}
+
+	private static final void findBrent_withGradientSquared(double x1, double x2, double x3, double tolerance) {
+		assert x1 < x2;
+		assert x2 < x3;
+		assert x1 < 0.0;
+		assert 0.0 < x3;
+		final Min1.Bracket bracket = new Bracket(new Function1Value(x1, SQUARED.value(x1)),
+				new Function1Value(x2, SQUARED.value(x2)), new Function1Value(x3, SQUARED.value(x3)));
+
+		findBrent(SQUARED_WITH_GRADIENT, bracket, tolerance);
 	}
 
 	@Test
@@ -357,4 +420,65 @@ public class Min1Test {
 
 		findBrent_squared(x1, x2, x3, xTolerance);
 	}
+
+	@Test
+	public void findBrent_withGradientPower4Centre() {
+		final double x1 = -1.0;
+		final double x2 = 0.0;
+		final double x3 = 1.0;
+		final double xTolerance = 1E-3;
+
+		findBrent_withGradientPower4(x1, x2, x3, xTolerance);
+	}
+
+	@Test
+	public void findBrent_withGradientPower4Left() {
+		final double x1 = -3.0;
+		final double x2 = -1.0;
+		final double x3 = 2.0;
+		final double xTolerance = 1E-3;
+
+		findBrent_withGradientPower4(x1, x2, x3, xTolerance);
+	}
+
+	@Test
+	public void findBrent_withGradientPower4Right() {
+		final double x1 = -2.0;
+		final double x2 = 1.0;
+		final double x3 = 3.0;
+		final double xTolerance = 1E-3;
+
+		findBrent_withGradientPower4(x1, x2, x3, xTolerance);
+	}
+
+	@Test
+	public void findBrent_withGradientSquaredCentre() {
+		final double x1 = -1.0;
+		final double x2 = 0.0;
+		final double x3 = 1.0;
+		final double xTolerance = 1E-3;
+
+		findBrent_withGradientSquared(x1, x2, x3, xTolerance);
+	}
+
+	@Test
+	public void findBrent_withGradientSquaredLeft() {
+		final double x1 = -3.0;
+		final double x2 = -1.0;
+		final double x3 = 2.0;
+		final double xTolerance = 1E-3;
+
+		findBrent_withGradientSquared(x1, x2, x3, xTolerance);
+	}
+
+	@Test
+	public void findBrent_withGradientSquaredRight() {
+		final double x1 = -2.0;
+		final double x2 = 1.0;
+		final double x3 = 3.0;
+		final double xTolerance = 1E-3;
+
+		findBrent_withGradientSquared(x1, x2, x3, xTolerance);
+	}
+
 }
