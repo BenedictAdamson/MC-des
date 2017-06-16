@@ -171,10 +171,10 @@ public final class MinN {
 		return new Function1WithGradient() {
 
 			@Override
-			public Function1ValueWithGradient value(double w) {
+			public Function1WithGradientValue value(double w) {
 				final ImmutableVector x = ImmutableVector.createOnLine(x0, dx, w);
-				final FunctionNValueWithGradient v = f.value(x);
-				return new Function1ValueWithGradient(w, v.getF(), v.getDfDx().dot(dx));
+				final FunctionNWithGradientValue v = f.value(x);
+				return new Function1WithGradientValue(w, v.getF(), v.getDfDx().dot(dx));
 			}
 		};
 	}

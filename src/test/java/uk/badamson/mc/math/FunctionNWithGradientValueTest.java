@@ -11,12 +11,12 @@ import uk.badamson.mc.ObjectTest;
 
 /**
  * <p>
- * Unit tests of the class {@link FunctionNValueWithGradient}.
+ * Unit tests of the class {@link FunctionNWithGradientValue}.
  * </p>
  */
-public class FunctionNValueWithGradientTest {
+public class FunctionNWithGradientValueTest {
 
-	public static void assertInvariants(FunctionNValueWithGradient f) {
+	public static void assertInvariants(FunctionNWithGradientValue f) {
 		ObjectTest.assertInvariants(f);
 
 		final ImmutableVector x = f.getX();
@@ -28,7 +28,7 @@ public class FunctionNValueWithGradientTest {
 				x.getDimension(), dfdx.getDimension());
 	}
 
-	public static void assertInvariants(FunctionNValueWithGradient f1, FunctionNValueWithGradient f2) {
+	public static void assertInvariants(FunctionNWithGradientValue f1, FunctionNWithGradientValue f2) {
 		ObjectTest.assertInvariants(f1, f2);
 
 		final boolean equals = f1.equals(f2);
@@ -38,8 +38,8 @@ public class FunctionNValueWithGradientTest {
 		assertFalse("Equality requires equivalent attributes, dfdx", equals && !f1.getDfDx().equals(f2.getDfDx()));
 	}
 
-	private static FunctionNValueWithGradient constructor(ImmutableVector x, double f, ImmutableVector dfdx) {
-		final FunctionNValueWithGradient v = new FunctionNValueWithGradient(x, f, dfdx);
+	private static FunctionNWithGradientValue constructor(ImmutableVector x, double f, ImmutableVector dfdx) {
+		final FunctionNWithGradientValue v = new FunctionNWithGradientValue(x, f, dfdx);
 
 		assertInvariants(v);
 		assertEquals("f (bits)", Double.doubleToLongBits(f), Double.doubleToLongBits(v.getF()));
@@ -50,8 +50,8 @@ public class FunctionNValueWithGradientTest {
 	}
 
 	private static void constructor_equals(ImmutableVector x, double f, ImmutableVector dfdx) {
-		final FunctionNValueWithGradient v1 = new FunctionNValueWithGradient(x, f, dfdx);
-		final FunctionNValueWithGradient v2 = new FunctionNValueWithGradient(x, f, dfdx);
+		final FunctionNWithGradientValue v1 = new FunctionNWithGradientValue(x, f, dfdx);
+		final FunctionNWithGradientValue v2 = new FunctionNWithGradientValue(x, f, dfdx);
 
 		assertInvariants(v1, v2);
 		assertEquals(v1, v2);
@@ -91,8 +91,8 @@ public class FunctionNValueWithGradientTest {
 	public void constructor_notEqualsDfDx() {
 		final ImmutableVector x = ImmutableVector.create(1.0);
 		final double f = 2.0;
-		final FunctionNValueWithGradient v1 = new FunctionNValueWithGradient(x, f, ImmutableVector.create(3.0));
-		final FunctionNValueWithGradient v2 = new FunctionNValueWithGradient(x, f, ImmutableVector.create(4.0));
+		final FunctionNWithGradientValue v1 = new FunctionNWithGradientValue(x, f, ImmutableVector.create(3.0));
+		final FunctionNWithGradientValue v2 = new FunctionNWithGradientValue(x, f, ImmutableVector.create(4.0));
 
 		assertInvariants(v1, v2);
 		assertNotEquals(v1, v2);
@@ -102,8 +102,8 @@ public class FunctionNValueWithGradientTest {
 	public void constructor_notEqualsF() {
 		final ImmutableVector x = ImmutableVector.create(1.0);
 		final ImmutableVector dfdx = ImmutableVector.create(4.0);
-		final FunctionNValueWithGradient v1 = new FunctionNValueWithGradient(x, 2.0, dfdx);
-		final FunctionNValueWithGradient v2 = new FunctionNValueWithGradient(x, 3.0, dfdx);
+		final FunctionNWithGradientValue v1 = new FunctionNWithGradientValue(x, 2.0, dfdx);
+		final FunctionNWithGradientValue v2 = new FunctionNWithGradientValue(x, 3.0, dfdx);
 
 		assertInvariants(v1, v2);
 		assertNotEquals(v1, v2);
@@ -113,8 +113,8 @@ public class FunctionNValueWithGradientTest {
 	public void constructor_notEqualsX() {
 		final double f = 3.0;
 		final ImmutableVector dfdx = ImmutableVector.create(4.0);
-		final FunctionNValueWithGradient v1 = new FunctionNValueWithGradient(ImmutableVector.create(1.0), f, dfdx);
-		final FunctionNValueWithGradient v2 = new FunctionNValueWithGradient(ImmutableVector.create(2.0), f, dfdx);
+		final FunctionNWithGradientValue v1 = new FunctionNWithGradientValue(ImmutableVector.create(1.0), f, dfdx);
+		final FunctionNWithGradientValue v2 = new FunctionNWithGradientValue(ImmutableVector.create(2.0), f, dfdx);
 
 		assertInvariants(v1, v2);
 		assertNotEquals(v1, v2);

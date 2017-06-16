@@ -11,7 +11,7 @@ import net.jcip.annotations.Immutable;
  * </p>
  */
 @Immutable
-public final class Function1ValueWithGradient {
+public final class Function1WithGradientValue {
 
 	private final double x;
 	private final double f;
@@ -29,7 +29,7 @@ public final class Function1ValueWithGradient {
 	 * @param dfdx
 	 *            The gradient value
 	 */
-	public Function1ValueWithGradient(double x, double f, double dfdx) {
+	public Function1WithGradientValue(double x, double f, double dfdx) {
 		this.x = x;
 		this.f = f;
 		this.dfdx = dfdx;
@@ -40,9 +40,9 @@ public final class Function1ValueWithGradient {
 	 * Whether this object is <dfn>equivalent</dfn> another object.
 	 * </p>
 	 * <p>
-	 * The {@link Function1ValueWithGradient} class has <i>value semantics</i>:
+	 * The {@link Function1WithGradientValue} class has <i>value semantics</i>:
 	 * this object is equivalent to another object if, and only if, the other
-	 * object is also a {@link Function1ValueWithGradient} object, and the two
+	 * object is also a {@link Function1WithGradientValue} object, and the two
 	 * objects have equivalent attributes.
 	 * </p>
 	 */
@@ -54,7 +54,7 @@ public final class Function1ValueWithGradient {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		Function1ValueWithGradient other = (Function1ValueWithGradient) obj;
+		Function1WithGradientValue other = (Function1WithGradientValue) obj;
 		return Double.doubleToLongBits(x) == Double.doubleToLongBits(other.x)
 				&& Double.doubleToLongBits(f) == Double.doubleToLongBits(other.f)
 				&& Double.doubleToLongBits(dfdx) == Double.doubleToLongBits(other.dfdx);

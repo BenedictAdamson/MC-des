@@ -129,17 +129,17 @@ public class Min1Test {
 	private static final Function1WithGradient SQUARED_WITH_GRADIENT = new Function1WithGradient() {
 
 		@Override
-		public Function1ValueWithGradient value(double x) {
-			return new Function1ValueWithGradient(x, x * x, 2.0 * x);
+		public Function1WithGradientValue value(double x) {
+			return new Function1WithGradientValue(x, x * x, 2.0 * x);
 		}
 	};
 
 	private static final Function1WithGradient POWER_4_WITH_GRADIENT = new Function1WithGradient() {
 
 		@Override
-		public Function1ValueWithGradient value(double x) {
+		public Function1WithGradientValue value(double x) {
 			final double x2 = x * x;
-			return new Function1ValueWithGradient(x, x2 * x2, 4.0 * x2 * x);
+			return new Function1WithGradientValue(x, x2 * x2, 4.0 * x2 * x);
 		}
 	};
 
@@ -154,9 +154,9 @@ public class Min1Test {
 				Double.MIN_NORMAL);
 	}
 
-	private static void assertConsistent(String message, final Function1ValueWithGradient p,
+	private static void assertConsistent(String message, final Function1WithGradientValue p,
 			final Function1WithGradient f) {
-		final Function1ValueWithGradient fp = f.value(p.getX());
+		final Function1WithGradientValue fp = f.value(p.getX());
 		assertEquals(message + " <" + p + "> is consistent with function <" + f + ">, codomain", fp.getF(), p.getF(),
 				Double.MIN_NORMAL);
 		assertEquals(message + " <" + p + "> is consistent with function <" + f + ">, gradient", fp.getDfDx(),
@@ -189,9 +189,9 @@ public class Min1Test {
 		return min;
 	}
 
-	private static Function1ValueWithGradient findBrent(final Function1WithGradient f, Bracket bracket,
+	private static Function1WithGradientValue findBrent(final Function1WithGradient f, Bracket bracket,
 			double tolerance) {
-		final Function1ValueWithGradient min = Min1.findBrent(f, bracket, tolerance);
+		final Function1WithGradientValue min = Min1.findBrent(f, bracket, tolerance);
 
 		assertNotNull("The method always returns a bracket", min);// guard
 		BracketTest.assertInvariants(bracket);

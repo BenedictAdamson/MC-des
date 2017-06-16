@@ -258,8 +258,8 @@ public final class Min1 {
 		}
 	}
 
-	private static double bisect(Function1ValueWithGradient left, Function1ValueWithGradient inner,
-			Function1ValueWithGradient right) {
+	private static double bisect(Function1WithGradientValue left, Function1WithGradientValue inner,
+			Function1WithGradientValue right) {
 		final double xi = inner.getX();
 		/*
 		 * Use the gradient at teh inner point to guess which side probably
@@ -602,7 +602,7 @@ public final class Min1 {
 	 * <ul>
 	 * <li>The method always returns a (non null) point.</li>
 	 * <li>The returned point is consistent with the given function.</li>
-	 * <li>The {@linkplain Function1ValueWithGradient#getF() codomain value} of
+	 * <li>The {@linkplain Function1WithGradientValue#getF() codomain value} of
 	 * the returned point is not larger than the {@linkplain Bracket#getMin()
 	 * minimum value} of the given bracket.</li>
 	 * </ul>
@@ -628,7 +628,7 @@ public final class Min1 {
 	 *             {@code f}.</li>
 	 *             </ul>
 	 */
-	public static Function1ValueWithGradient findBrent(final Function1WithGradient f, Bracket bracket,
+	public static Function1WithGradientValue findBrent(final Function1WithGradient f, Bracket bracket,
 			double tolerance) {
 		Objects.requireNonNull(f, "f");
 		Objects.requireNonNull(bracket, "bracket");
@@ -636,11 +636,11 @@ public final class Min1 {
 			throw new IllegalArgumentException("tolerance <" + tolerance + ">");
 		}
 
-		Function1ValueWithGradient left = f.value(bracket.getLeft().getX());
-		Function1ValueWithGradient inner = f.value(bracket.getInner().getX());
-		Function1ValueWithGradient right = f.value(bracket.getRight().getX());
-		Function1ValueWithGradient secondLeast;
-		Function1ValueWithGradient previousSecondLeast;
+		Function1WithGradientValue left = f.value(bracket.getLeft().getX());
+		Function1WithGradientValue inner = f.value(bracket.getInner().getX());
+		Function1WithGradientValue right = f.value(bracket.getRight().getX());
+		Function1WithGradientValue secondLeast;
+		Function1WithGradientValue previousSecondLeast;
 		if (left.getF() < right.getF()) {
 			secondLeast = left;
 			previousSecondLeast = right;
@@ -705,7 +705,7 @@ public final class Min1 {
 			xNew = avoidTinyStep(xNew, xTolerance, left.getX(), inner.getX(), right.getX());
 			final double dx = xNew - inner.getX();
 			assert left.getX() < xNew && xNew < right.getX();
-			final Function1ValueWithGradient pNew = f.value(xNew);
+			final Function1WithGradientValue pNew = f.value(xNew);
 			if (pNew.getF() < inner.getF()) {
 				// Found a new minimum.
 				previousSecondLeast = secondLeast;
@@ -787,12 +787,12 @@ public final class Min1 {
 		return xNew;
 	}
 
-	private static boolean secantExtrapolationOk(double xNew, Function1ValueWithGradient left,
-			Function1ValueWithGradient inner, Function1ValueWithGradient right) {
+	private static boolean secantExtrapolationOk(double xNew, Function1WithGradientValue left,
+			Function1WithGradientValue inner, Function1WithGradientValue right) {
 		return left.getX() < xNew && xNew < right.getX() && (xNew - inner.getX()) * inner.getDfDx() <= 0;
 	}
 
-	private static double secantGradientExtrapolation(Function1ValueWithGradient p1, Function1ValueWithGradient p2) {
+	private static double secantGradientExtrapolation(Function1WithGradientValue p1, Function1WithGradientValue p2) {
 		final double x1 = p1.getX();
 		final double x2 = p2.getX();
 		final double y1 = p1.getDfDx();

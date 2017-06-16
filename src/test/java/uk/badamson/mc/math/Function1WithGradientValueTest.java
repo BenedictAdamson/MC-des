@@ -9,16 +9,16 @@ import uk.badamson.mc.ObjectTest;
 
 /**
  * <p>
- * Unit tests for the class {@link Function1ValueWithGradient}.
+ * Unit tests for the class {@link Function1WithGradientValue}.
  * </p>
  */
-public class Function1ValueWithGradientTest {
+public class Function1WithGradientValueTest {
 
-	public static void assertInvariants(Function1ValueWithGradient v) {
+	public static void assertInvariants(Function1WithGradientValue v) {
 		ObjectTest.assertInvariants(v);// inherited
 	}
 
-	public static void assertInvariants(Function1ValueWithGradient v1, Function1ValueWithGradient v2) {
+	public static void assertInvariants(Function1WithGradientValue v1, Function1WithGradientValue v2) {
 		ObjectTest.assertInvariants(v1, v2);// inherited
 
 		final boolean equals = v1.equals(v2);
@@ -30,8 +30,8 @@ public class Function1ValueWithGradientTest {
 				equals && Double.doubleToLongBits(v1.getDfDx()) != Double.doubleToLongBits(v2.getDfDx()));
 	}
 
-	private static Function1ValueWithGradient constructor(double x, double f, double dfdx) {
-		final Function1ValueWithGradient point = new Function1ValueWithGradient(x, f, dfdx);
+	private static Function1WithGradientValue constructor(double x, double f, double dfdx) {
+		final Function1WithGradientValue point = new Function1WithGradientValue(x, f, dfdx);
 
 		assertInvariants(point);
 		assertEquals("x bits", Double.doubleToLongBits(x), Double.doubleToLongBits(point.getX()));
@@ -41,8 +41,8 @@ public class Function1ValueWithGradientTest {
 	}
 
 	private static void equals_equivalent(final double x, final double f, final double dfdx) {
-		final Function1ValueWithGradient point1 = new Function1ValueWithGradient(x, f, dfdx);
-		final Function1ValueWithGradient point2 = new Function1ValueWithGradient(x, f, dfdx);
+		final Function1WithGradientValue point1 = new Function1WithGradientValue(x, f, dfdx);
+		final Function1WithGradientValue point2 = new Function1WithGradientValue(x, f, dfdx);
 
 		assertInvariants(point1, point2);
 		assertEquals("Equivalent", point1, point2);

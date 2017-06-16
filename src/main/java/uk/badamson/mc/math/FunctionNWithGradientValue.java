@@ -13,7 +13,7 @@ import net.jcip.annotations.Immutable;
  * </p>
  */
 @Immutable
-public final class FunctionNValueWithGradient {
+public final class FunctionNWithGradientValue {
 
 	private final double f;
 	private final ImmutableVector x;
@@ -40,7 +40,7 @@ public final class FunctionNValueWithGradient {
 	 *             If {@code x} and {@code dfdx} have different
 	 *             {@linkplain ImmutableVector#getDimension() dimensions}.
 	 */
-	public FunctionNValueWithGradient(ImmutableVector x, double f, ImmutableVector dfdx) {
+	public FunctionNWithGradientValue(ImmutableVector x, double f, ImmutableVector dfdx) {
 		Objects.requireNonNull(x, "x");
 		Objects.requireNonNull(dfdx, "dfdx");
 		if (x.getDimension() != dfdx.getDimension()) {
@@ -58,9 +58,9 @@ public final class FunctionNValueWithGradient {
 	 * Whether this object is <dfn>equivalent</dfn> another object.
 	 * </p>
 	 * <p>
-	 * The {@link FunctionNValueWithGradient} class has <i>value semantics</i>:
+	 * The {@link FunctionNWithGradientValue} class has <i>value semantics</i>:
 	 * this object is equivalent to another object if, and only if, the other
-	 * object is also a {@link FunctionNValueWithGradient} object, and the two
+	 * object is also a {@link FunctionNWithGradientValue} object, and the two
 	 * objects have equivalent attributes.
 	 * </p>
 	 */
@@ -72,7 +72,7 @@ public final class FunctionNValueWithGradient {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		FunctionNValueWithGradient other = (FunctionNValueWithGradient) obj;
+		FunctionNWithGradientValue other = (FunctionNWithGradientValue) obj;
 		return Double.doubleToLongBits(f) == Double.doubleToLongBits(other.f) && x.equals(other.x)
 				&& dfdx.equals(other.dfdx);
 	}

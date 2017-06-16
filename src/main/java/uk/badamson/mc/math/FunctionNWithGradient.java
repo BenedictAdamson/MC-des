@@ -13,23 +13,6 @@ public interface FunctionNWithGradient {
 
 	/**
 	 * <p>
-	 * The value of the function and its gradient for a given value of the
-	 * continuous variable.
-	 * </p>
-	 * <ul>
-	 * <li>Always returns a (non null) value.</li>
-	 * <li>The {@linkplain Function1ValueWithGradient#getX() domain value} of
-	 * the returned object is the given domain value.</li>
-	 * </ul>
-	 * 
-	 * @param x
-	 *            The domain value
-	 * @return The value of the function.
-	 */
-	public FunctionNValueWithGradient value(ImmutableVector x);
-
-	/**
-	 * <p>
 	 * The number of independent variables of the function.
 	 * </p>
 	 * <p>
@@ -40,4 +23,21 @@ public interface FunctionNWithGradient {
 	 * @return the number of dimensions; positive.
 	 */
 	public int getDimension();
+
+	/**
+	 * <p>
+	 * The value of the function and its gradient for a given value of the
+	 * continuous variable.
+	 * </p>
+	 * <ul>
+	 * <li>Always returns a (non null) value.</li>
+	 * <li>The {@linkplain Function1WithGradientValue#getX() domain value} of
+	 * the returned object is the given domain value.</li>
+	 * </ul>
+	 * 
+	 * @param x
+	 *            The domain value
+	 * @return The value of the function.
+	 */
+	public FunctionNWithGradientValue value(ImmutableVector x);
 }

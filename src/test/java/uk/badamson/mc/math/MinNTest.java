@@ -61,10 +61,10 @@ public class MinNTest {
 		}
 
 		@Override
-		public FunctionNValueWithGradient value(ImmutableVector x) {
+		public FunctionNWithGradientValue value(ImmutableVector x) {
 			final double x0 = x.get(0);
 			final double x1 = x.get(1);
-			return new FunctionNValueWithGradient(x, x0 * x0 + x1 * x1, ImmutableVector.create(2.0 * x0, 2.0 * x1));
+			return new FunctionNWithGradientValue(x, x0 * x0 + x1 * x1, ImmutableVector.create(2.0 * x0, 2.0 * x1));
 		}
 	};
 
@@ -97,7 +97,7 @@ public class MinNTest {
 
 		final Function1WithGradient f = createLineFunction(PARABOLOID_WITH_GRADIENT, x, dx);
 
-		final Function1ValueWithGradient fw = Function1WithGradientTest.value(f, w);
+		final Function1WithGradientValue fw = Function1WithGradientTest.value(f, w);
 		assertEquals("f(" + w + ")", expectedF, fw.getF(), toleranceF);
 		assertEquals("dfdw(" + w + ")", expectedDfDw, fw.getDfDx(), toleranceDfDw);
 	}
