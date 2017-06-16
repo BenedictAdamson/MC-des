@@ -2,6 +2,7 @@ package uk.badamson.mc.math;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
@@ -52,6 +53,15 @@ public class ImmutableVectorTest {
 		}
 
 		return v;
+	}
+
+	private static ImmutableVector createOnLine(final ImmutableVector x0, ImmutableVector dx, double w) {
+		final ImmutableVector x = ImmutableVector.createOnLine(x0, dx, w);
+
+		assertNotNull("Always returns a (non null) vector", x);
+		assertEquals("dimension", x0.getDimension(), x.getDimension());
+
+		return x;
 	}
 
 	@Test
@@ -116,5 +126,49 @@ public class ImmutableVectorTest {
 	@Test
 	public void constructor_2() {
 		constructor(0.0, 1.0);
+	}
+
+	@Test
+	public void createOnLine_A() {
+		final ImmutableVector x0 = new ImmutableVector(0.0);
+		final ImmutableVector dx = new ImmutableVector(1.0);
+		final double w = 1.0;
+
+		final ImmutableVector x = createOnLine(x0, dx, w);
+
+		assertEquals("x", 1.0, x.get(0), Double.MIN_NORMAL);
+	}
+
+	@Test
+	public void createOnLine_B() {
+		final ImmutableVector x0 = new ImmutableVector(1.0);
+		final ImmutableVector dx = new ImmutableVector(1.0);
+		final double w = 1.0;
+
+		final ImmutableVector x = createOnLine(x0, dx, w);
+
+		assertEquals("x", 2.0, x.get(0), Double.MIN_NORMAL);
+	}
+
+	@Test
+	public void createOnLine_C() {
+		final ImmutableVector x0 = new ImmutableVector(0.0);
+		final ImmutableVector dx = new ImmutableVector(2.0);
+		final double w = 1.0;
+
+		final ImmutableVector x = createOnLine(x0, dx, w);
+
+		assertEquals("x", 2.0, x.get(0), Double.MIN_NORMAL);
+	}
+
+	@Test
+	public void createOnLine_D() {
+		final ImmutableVector x0 = new ImmutableVector(0.0);
+		final ImmutableVector dx = new ImmutableVector(1.0);
+		final double w = 2.0;
+
+		final ImmutableVector x = createOnLine(x0, dx, w);
+
+		assertEquals("x", 2.0, x.get(0), Double.MIN_NORMAL);
 	}
 }

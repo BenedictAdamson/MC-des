@@ -13,6 +13,50 @@ import net.jcip.annotations.Immutable;
 @Immutable
 public final class ImmutableVector {
 
+	/**
+	 * <p>
+	 * Create a vector that lies along a line given by an origin point and
+	 * position vector.
+	 * </p>
+	 * <ul>
+	 * <li>Always returns a (non null) vector.</li>
+	 * <li>The {@linkplain ImmutableVector#getDimension() dimension} of the
+	 * returned vector is equal to the dimension of thetwo input vectors.</li>
+	 * <li>Returns the vector <code>x0 + w dx</code></li>
+	 * </ul>
+	 * 
+	 * @param x0
+	 *            The original point
+	 * @param dx
+	 *            The direction vector along the line
+	 * @param w
+	 *            Position parameter giving the position along the line.
+	 * @return the indicate point on the line
+	 * 
+	 * @throws NullPointerException
+	 *             <ul>
+	 *             <li>If {@code x0} is null.</li>
+	 *             <li>If {@code dx} is null.</li>
+	 *             </ul>
+	 * @throws IllegalArgumentException
+	 *             If {@code x0} and {@code dx} have different
+	 *             {@linkplain ImmutableVector#getDimension() dimensions}.
+	 */
+	public static ImmutableVector createOnLine(final ImmutableVector x0, ImmutableVector dx, double w) {
+		Objects.requireNonNull(x0, "x0");
+		Objects.requireNonNull(dx, "dx");
+		final int n = x0.getDimension();
+		if (n != dx.getDimension()) {
+			throw new IllegalArgumentException("Inconsistent dimensions, x0 " + n + " dx " + dx.getDimension());
+		}
+
+		final double[] x = new double[n];
+		for (int i = 0; i < n; i++) {
+			x[i] = x0.x[i] + w * dx.x[i];
+		}
+		return new ImmutableVector(x);
+	}
+
 	private final double[] x;
 
 	/**
