@@ -24,7 +24,7 @@ public final class ImmutableVector {
 	 * <h1>Post Conditions</h1>
 	 * <ul>
 	 * <li>This has the given values for its components.</li>
-	 * <li>The {@linkplain #getDimensions() number of dimensions} of this vector
+	 * <li>The {@linkplain #getDimension() number of dimensions} of this vector
 	 * is equal to the length of the given array of components.</li>
 	 * </ul>
 	 * </section>
@@ -79,7 +79,7 @@ public final class ImmutableVector {
 	 * 
 	 * @throws IndexOutOfBoundsException
 	 *             If {@code i} is less than 0 or greater than or equal to the
-	 *             {@linkplain #getDimensions() number of dimensions} of thsi
+	 *             {@linkplain #getDimension() number of dimensions} of thsi
 	 *             vector.
 	 */
 	public final double get(int i) {
@@ -96,7 +96,7 @@ public final class ImmutableVector {
 	 * 
 	 * @return the number of dimensions
 	 */
-	public final int getDimensions() {
+	public final int getDimension() {
 		return x.length;
 	}
 

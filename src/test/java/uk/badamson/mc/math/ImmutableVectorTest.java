@@ -18,7 +18,7 @@ public class ImmutableVectorTest {
 	public static void assertInvariants(ImmutableVector x) {
 		ObjectTest.assertInvariants(x);// inherited
 
-		final int dimensions = x.getDimensions();
+		final int dimensions = x.getDimension();
 		assertTrue("The number of dimensions <" + dimensions + "> is positive", 0 < dimensions);
 	}
 
@@ -26,8 +26,8 @@ public class ImmutableVectorTest {
 		ObjectTest.assertInvariants(x1, x2);// inherited
 
 		if (x1.equals(x2)) {
-			final int dimensions1 = x1.getDimensions();
-			assertEquals("Equality requires equal dimensions", dimensions1, x2.getDimensions());// guard
+			final int dimensions1 = x1.getDimension();
+			assertEquals("Equality requires equal dimensions", dimensions1, x2.getDimension());// guard
 			for (int i = 0; i < dimensions1; i++) {
 				assertEquals("Equality requires equal components [" + i + "]", x1.get(i), x2.get(i), Double.MIN_NORMAL);
 			}
@@ -46,7 +46,7 @@ public class ImmutableVectorTest {
 		final ImmutableVector v = new ImmutableVector(x);
 
 		assertInvariants(v);
-		assertEquals("dimensions", x.length, v.getDimensions());
+		assertEquals("dimension", x.length, v.getDimension());
 		for (int i = 0; i < x.length; i++) {
 			assertEquals("x[" + i + "]", x[i], v.get(i), Double.MIN_NORMAL);
 		}
