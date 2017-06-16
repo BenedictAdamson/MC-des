@@ -17,7 +17,7 @@ public class MinNTest {
 	private static final FunctionN CONSTANT_1 = new FunctionN() {
 
 		@Override
-		public int getDimensions() {
+		public int getDimension() {
 			return 1;
 		}
 
@@ -30,7 +30,7 @@ public class MinNTest {
 	private static final FunctionN BILINEANR_1 = new FunctionN() {
 
 		@Override
-		public int getDimensions() {
+		public int getDimension() {
 			return 2;
 		}
 
@@ -43,13 +43,28 @@ public class MinNTest {
 	private static final FunctionN PARABOLOID = new FunctionN() {
 
 		@Override
-		public int getDimensions() {
+		public int getDimension() {
 			return 2;
 		}
 
 		@Override
 		public double value(double[] x) {
 			return x[0] * x[0] + x[1] * x[1];
+		}
+	};
+
+	private static final FunctionNWithGradient PARABOLOID_WITH_GRADIENT = new FunctionNWithGradient() {
+
+		@Override
+		public int getDimension() {
+			return 2;
+		}
+
+		@Override
+		public FunctionNValueWithGradient value(ImmutableVector x) {
+			final double x0 = x.get(0);
+			final double x1 = x.get(1);
+			return new FunctionNValueWithGradient(x, x0 * x0 + x1 * x1, ImmutableVector.create(2.0 * x0, 2.0 * x1));
 		}
 	};
 
@@ -64,6 +79,27 @@ public class MinNTest {
 		assertNotNull("Not null, result", lineFunction);
 
 		return lineFunction;
+	}
+
+	private static Function1WithGradient createLineFunction(final FunctionNWithGradient f, ImmutableVector x0,
+			ImmutableVector dx) {
+		final Function1WithGradient lineFunction = MinN.createLineFunction(f, x0, dx);
+
+		assertNotNull("Not null, result", lineFunction);
+
+		return lineFunction;
+	}
+
+	private static void createLineFunction_paraboloidWithGradient(double x00, double x01, double dx0, double dx1,
+			double w, double expectedF, double expectedDfDw, double toleranceF, double toleranceDfDw) {
+		final ImmutableVector x = ImmutableVector.create(x00, x01);
+		final ImmutableVector dx = ImmutableVector.create(dx0, dx1);
+
+		final Function1WithGradient f = createLineFunction(PARABOLOID_WITH_GRADIENT, x, dx);
+
+		final Function1ValueWithGradient fw = Function1WithGradientTest.value(f, w);
+		assertEquals("f(" + w + ")", expectedF, fw.getF(), toleranceF);
+		assertEquals("dfdw(" + w + ")", expectedDfDw, fw.getDfDx(), toleranceDfDw);
 	}
 
 	private static double findPowell(final FunctionN f, final double[] x, double tolerance) {
@@ -187,6 +223,118 @@ public class MinNTest {
 		assertEquals("lineFunction[0]", 1.0, lineFunction.value(0.0), 1E-3);
 		assertEquals("lineFunction[1.0]", 1.0, lineFunction.value(1.0), 1E-3);
 		assertEquals("lineFunction[-1.0]", 1.0, lineFunction.value(-1.0), 1E-3);
+	}
+
+	@Test
+	public void createLineFunction_paraboloidWithGradientA() {
+		final double x00 = 0.0;
+		final double x01 = 0.0;
+		final double dx0 = 1.0;
+		final double dx1 = 0.0;
+		final double w = 0.0;
+		final double expectedF = 0.0;
+		final double expectedDfDw = 0.0;
+		final double toleranceF = Double.MIN_NORMAL;
+		final double toleranceDfDw = Double.MIN_NORMAL;
+
+		createLineFunction_paraboloidWithGradient(x00, x01, dx0, dx1, w, expectedF, expectedDfDw, toleranceF,
+				toleranceDfDw);
+	}
+
+	@Test
+	public void createLineFunction_paraboloidWithGradientB() {
+		final double x00 = 1.0;
+		final double x01 = 0.0;
+		final double dx0 = 1.0;
+		final double dx1 = 0.0;
+		final double w = 0.0;
+		final double expectedF = 1.0;
+		final double expectedDfDw = 2.0;
+		final double toleranceF = Double.MIN_NORMAL;
+		final double toleranceDfDw = Double.MIN_NORMAL;
+
+		createLineFunction_paraboloidWithGradient(x00, x01, dx0, dx1, w, expectedF, expectedDfDw, toleranceF,
+				toleranceDfDw);
+	}
+
+	@Test
+	public void createLineFunction_paraboloidWithGradientC() {
+		final double x00 = 0.0;
+		final double x01 = 0.0;
+		final double dx0 = 2.0;
+		final double dx1 = 0.0;
+		final double w = 0.0;
+		final double expectedF = 0.0;
+		final double expectedDfDw = 0.0;
+		final double toleranceF = Double.MIN_NORMAL;
+		final double toleranceDfDw = Double.MIN_NORMAL;
+
+		createLineFunction_paraboloidWithGradient(x00, x01, dx0, dx1, w, expectedF, expectedDfDw, toleranceF,
+				toleranceDfDw);
+	}
+
+	@Test
+	public void createLineFunction_paraboloidWithGradientD() {
+		final double x00 = 0.0;
+		final double x01 = 0.0;
+		final double dx0 = 1.0;
+		final double dx1 = 1.0;
+		final double w = 0.0;
+		final double expectedF = 0.0;
+		final double expectedDfDw = 0.0;
+		final double toleranceF = Double.MIN_NORMAL;
+		final double toleranceDfDw = Double.MIN_NORMAL;
+
+		createLineFunction_paraboloidWithGradient(x00, x01, dx0, dx1, w, expectedF, expectedDfDw, toleranceF,
+				toleranceDfDw);
+	}
+
+	@Test
+	public void createLineFunction_paraboloidWithGradientE() {
+		final double x00 = 0.0;
+		final double x01 = 0.0;
+		final double dx0 = 1.0;
+		final double dx1 = 0.0;
+		final double w = 1.0;
+		final double expectedF = 1.0;
+		final double expectedDfDw = 2.0;
+		final double toleranceF = Double.MIN_NORMAL;
+		final double toleranceDfDw = Double.MIN_NORMAL;
+
+		createLineFunction_paraboloidWithGradient(x00, x01, dx0, dx1, w, expectedF, expectedDfDw, toleranceF,
+				toleranceDfDw);
+	}
+
+	@Test
+	public void createLineFunction_paraboloidWithGradientF() {
+		final double x00 = 1.0;
+		final double x01 = 0.0;
+		final double dx0 = 1.0;
+		final double dx1 = 0.0;
+		final double w = 1.0;
+		final double expectedF = 4.0;
+		final double expectedDfDw = 4.0;
+		final double toleranceF = Double.MIN_NORMAL;
+		final double toleranceDfDw = Double.MIN_NORMAL;
+
+		createLineFunction_paraboloidWithGradient(x00, x01, dx0, dx1, w, expectedF, expectedDfDw, toleranceF,
+				toleranceDfDw);
+	}
+
+	@Test
+	public void createLineFunction_paraboloidWithGradientG() {
+		final double x00 = 0.0;
+		final double x01 = 1.0;
+		final double dx0 = 1.0;
+		final double dx1 = 0.0;
+		final double w = 1.0;
+		final double expectedF = 2.0;
+		final double expectedDfDw = 2.0;
+		final double toleranceF = Double.MIN_NORMAL;
+		final double toleranceDfDw = Double.MIN_NORMAL;
+
+		createLineFunction_paraboloidWithGradient(x00, x01, dx0, dx1, w, expectedF, expectedDfDw, toleranceF,
+				toleranceDfDw);
 	}
 
 	@Test

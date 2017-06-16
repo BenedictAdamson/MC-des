@@ -12,7 +12,7 @@ public final class MinN {
 
 	private static double basicPowell(final FunctionN f, final double[] x0, final double[] dx0, final double[] x,
 			final double[][] dx) throws PoorlyConditionedFunctionException {
-		final int n = f.getDimensions();
+		final int n = f.getDimension();
 		assert n == x0.length;
 		assert n == dx0.length;
 		assert n == x.length;
@@ -86,8 +86,8 @@ public final class MinN {
 	 *             <li>If the length of {code x0} is different from the length
 	 *             of {@code dx}.</li></li>
 	 *             <li>If the length of {code x0} is different from the
-	 *             {@linkplain FunctionN#getDimensions() number of dimensions}
-	 *             of {@code f}.</li></li>
+	 *             {@linkplain FunctionN#getDimension() number of dimensions} of
+	 *             {@code f}.</li></li>
 	 *             </ul>
 	 */
 	static Function1 createLineFunction(final FunctionN f, final double[] x0, final double[] dx) {
@@ -98,9 +98,9 @@ public final class MinN {
 		if (n == 0) {
 			throw new IllegalArgumentException("x0.length == 0");
 		}
-		if (n != dx.length || n != f.getDimensions()) {
+		if (n != dx.length || n != f.getDimension()) {
 			throw new IllegalArgumentException(
-					"Inconsistent lengths, x0 " + n + ", dx " + dx.length + ", f.dimensions " + f.getDimensions());
+					"Inconsistent lengths, x0 " + n + ", dx " + dx.length + ", f.dimensions " + f.getDimension());
 		}
 
 		return new Function1() {
@@ -112,6 +112,69 @@ public final class MinN {
 					x[i] = x0[i] + w * dx[i];
 				}
 				return f.value(x);
+			}
+		};
+	}
+
+	/**
+	 * <p>
+	 * Create a {@linkplain Function1 functor for a one-dimensional function of
+	 * a continuous variable} that is the evaluation of a {@linkplain FunctionN
+	 * functor for a multi-dimensional function of continuous variables} along a
+	 * given line.
+	 * </p>
+	 * <p>
+	 * The created functor retains references to the given objects. Those
+	 * objects should therefore not be changed while the created function is in
+	 * use.
+	 * </p>
+	 * 
+	 * @param f
+	 *            The multi-dimensional function
+	 * @param x0
+	 *            The origin point; the position in the space of the
+	 *            multidimensional function corresponding to the origin point of
+	 *            the created function.
+	 * @param dx
+	 *            The direction vector of the line in the space of the
+	 *            multidimensional function; (x + dx) corresponds to the value
+	 *            for 1.0 of the created function.
+	 * @return the created functor; not null.
+	 * 
+	 * @throws NullPointerException
+	 *             <ul>
+	 *             <li>If {@code f} is null.</li>
+	 *             <li>If {@code x0} is null.</li>
+	 *             <li>If {@code dx} is null.</li>
+	 *             </ul>
+	 * @throws IllegalArgumentException
+	 *             <ul>
+	 *             <li>If the {@linkplain ImmutableVector#getDimension()
+	 *             dimension} of {code x0} is different from the dimension of
+	 *             {@code dx}.</li></li>
+	 *             <li>If the dimension of {code x0} is different from the
+	 *             {@linkplain FunctionN#getDimension() number of dimensions} of
+	 *             {@code f}.</li></li>
+	 *             </ul>
+	 */
+	static Function1WithGradient createLineFunction(final FunctionNWithGradient f, final ImmutableVector x0,
+			final ImmutableVector dx) {
+		Objects.requireNonNull(f, "f");
+		Objects.requireNonNull(x0, "x0");
+		Objects.requireNonNull(dx, "dx");
+		final int n = x0.getDimension();
+		if (n != dx.getDimension() || n != f.getDimension()) {
+			throw new IllegalArgumentException("Inconsistent lengths, x0 " + n + ", dx " + dx.getDimension()
+					+ ", f.dimensions " + f.getDimension());
+		}
+
+		return new Function1WithGradient() {
+
+			@Override
+			public Function1ValueWithGradient value(double w) {
+				final ImmutableVector x = ImmutableVector.createOnLine(x0, dx, w);
+				final FunctionNValueWithGradient v = f.value(x);
+				return new Function1ValueWithGradient(w, v.getF(), v.getDfDx().dot(dx));
 			}
 		};
 	}
@@ -146,8 +209,8 @@ public final class MinN {
 	 * @throws IllegalArgumentException
 	 *             <ul>
 	 *             <li>If the length of {code x} is different from the
-	 *             {@linkplain FunctionN#getDimensions() number of dimensions}
-	 *             of {@code f}.</li></li>
+	 *             {@linkplain FunctionN#getDimension() number of dimensions} of
+	 *             {@code f}.</li></li>
 	 *             <li>If {@code tolerance} is not in the range (0.0, 1.0).</li>
 	 *             </ul>
 	 * @throws PoorlyConditionedFunctionException
@@ -166,7 +229,7 @@ public final class MinN {
 		if (!(0.0 < tolerance && tolerance < 1.0)) {
 			throw new IllegalArgumentException("tolerance <" + tolerance + ">");
 		}
-		final int n = f.getDimensions();
+		final int n = f.getDimension();
 		if (x.length != n) {
 			throw new IllegalArgumentException("Inconsistent dimensions f <" + n + "> x <" + x.length + ">");
 		}
@@ -242,8 +305,8 @@ public final class MinN {
 	 *             <li>If the length of {code x} is different from the length of
 	 *             {@code dx}.</li></li>
 	 *             <li>If the length of {code x} is different from the
-	 *             {@linkplain FunctionN#getDimensions() number of dimensions}
-	 *             of {@code f}.</li></li>
+	 *             {@linkplain FunctionN#getDimension() number of dimensions} of
+	 *             {@code f}.</li></li>
 	 *             </ul>
 	 * @throws PoorlyConditionedFunctionException
 	 *             <ul>

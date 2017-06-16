@@ -5,11 +5,9 @@ import net.jcip.annotations.Immutable;
 /**
  * <p>
  * A functor for a scalar function of a vector that also has a computable
- * gradient that also
- * has a computable gradient.
+ * gradient.
  * </p>
  */
-@FunctionalInterface
 @Immutable
 public interface FunctionNWithGradient {
 
@@ -19,7 +17,7 @@ public interface FunctionNWithGradient {
 	 * continuous variable.
 	 * </p>
 	 * <ul>
-	 * <li>Always returns a (non null) value and gradient.</li>
+	 * <li>Always returns a (non null) value.</li>
 	 * <li>The {@linkplain Function1ValueWithGradient#getX() domain value} of
 	 * the returned object is the given domain value.</li>
 	 * </ul>
@@ -28,5 +26,18 @@ public interface FunctionNWithGradient {
 	 *            The domain value
 	 * @return The value of the function.
 	 */
-	public Function1ValueWithGradient value(double x);
+	public FunctionNValueWithGradient value(ImmutableVector x);
+
+	/**
+	 * <p>
+	 * The number of independent variables of the function.
+	 * </p>
+	 * <p>
+	 * This attribute must be <dfn>constant</dfn>: the value for a given object
+	 * must always be the same value.
+	 * </p>
+	 * 
+	 * @return the number of dimensions; positive.
+	 */
+	public int getDimension();
 }

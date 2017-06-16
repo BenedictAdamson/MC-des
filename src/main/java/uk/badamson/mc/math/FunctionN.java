@@ -31,7 +31,7 @@ public interface FunctionN {
 	 *             If {@code x} is null.
 	 * @throws IndexOutOfBoundsException
 	 *             (Optional) If the length of {@code x} is not equal to the
-	 *             {@linkplain #getDimensions() number of dimensions} of this
+	 *             {@linkplain #getDimension() number of dimensions} of this
 	 *             function. In practice, many implementations will not complain
 	 *             is the length of {@code x} exceeds the number of dimensions
 	 *             of this function.
@@ -49,5 +49,5 @@ public interface FunctionN {
 	 * 
 	 * @return the number of dimensions; positive.
 	 */
-	public int getDimensions();
+	public int getDimension();
 }
