@@ -171,4 +171,34 @@ public class ImmutableVectorTest {
 
 		assertEquals("x", 2.0, x.get(0), Double.MIN_NORMAL);
 	}
+
+	@Test
+	public void dot_A() {
+		final double d = ImmutableVector.create(1.0).dot(ImmutableVector.create(1.0));
+		assertEquals("dot product", 1.0, d, Double.MIN_NORMAL);
+	}
+
+	@Test
+	public void dot_B() {
+		final double d = ImmutableVector.create(2.0).dot(ImmutableVector.create(1.0));
+		assertEquals("dot product", 2.0, d, Double.MIN_NORMAL);
+	}
+
+	@Test
+	public void dot_C() {
+		final double d = ImmutableVector.create(1.0).dot(ImmutableVector.create(2.0));
+		assertEquals("dot product", 2.0, d, Double.MIN_NORMAL);
+	}
+
+	@Test
+	public void dot_D() {
+		final double d = ImmutableVector.create(2.0).dot(ImmutableVector.create(2.0));
+		assertEquals("dot product", 4.0, d, Double.MIN_NORMAL);
+	}
+
+	@Test
+	public void dot_E() {
+		final double d = ImmutableVector.create(1.0, 1.0).dot(ImmutableVector.create(1.0, 1.0));
+		assertEquals("dot product", 2.0, d, Double.MIN_NORMAL);
+	}
 }

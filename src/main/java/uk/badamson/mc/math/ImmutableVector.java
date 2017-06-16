@@ -74,10 +74,8 @@ public final class ImmutableVector {
 	public static ImmutableVector createOnLine(final ImmutableVector x0, ImmutableVector dx, double w) {
 		Objects.requireNonNull(x0, "x0");
 		Objects.requireNonNull(dx, "dx");
+		requireConsistentDimensions(x0, dx);
 		final int n = x0.getDimension();
-		if (n != dx.getDimension()) {
-			throw new IllegalArgumentException("Inconsistent dimensions, x0 " + n + " dx " + dx.getDimension());
-		}
 
 		final double[] x = new double[n];
 		for (int i = 0; i < n; i++) {
@@ -86,10 +84,43 @@ public final class ImmutableVector {
 		return new ImmutableVector(x);
 	}
 
+	private static void requireConsistentDimensions(ImmutableVector v1, ImmutableVector v2) {
+		if (v1.getDimension() != v2.getDimension()) {
+			throw new IllegalArgumentException(
+					"Inconsistent dimensions, " + v1.getDimension() + ", " + v2.getDimension());
+		}
+	}
+
 	private final double[] x;
 
 	private ImmutableVector(double... x) {
 		this.x = x;
+	}
+
+	/**
+	 * <p>
+	 * Calculate the dot product of this vector and another vector.
+	 * </p>
+	 * 
+	 * @param that
+	 *            The other vector
+	 * @return the product
+	 * 
+	 * @throws NullPointerException
+	 *             If {@code that} is null.
+	 * @throws IllegalArgumentException
+	 *             If the {@linkplain #getDimension() dimension} of {@code that}
+	 *             is not equal to the dimension of this.
+	 */
+	public double dot(ImmutableVector that) {
+		Objects.requireNonNull(that, "that");
+		requireConsistentDimensions(this, that);
+
+		double d = 0.0;
+		for (int i = 0, n = x.length; i < n; ++i) {
+			d += x[i] * that.x[i];
+		}
+		return d;
 	}
 
 	/**
