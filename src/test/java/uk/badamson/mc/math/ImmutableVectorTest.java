@@ -36,15 +36,15 @@ public class ImmutableVectorTest {
 	}
 
 	private static void construct_equals(double x) {
-		final ImmutableVector v1 = new ImmutableVector(x);
-		final ImmutableVector v2 = new ImmutableVector(x);
+		final ImmutableVector v1 = ImmutableVector.create(x);
+		final ImmutableVector v2 = ImmutableVector.create(x);
 
 		assertInvariants(v1, v2);
 		assertEquals("Equivalent", v1, v2);
 	}
 
-	private static ImmutableVector constructor(double... x) {
-		final ImmutableVector v = new ImmutableVector(x);
+	private static ImmutableVector create(double... x) {
+		final ImmutableVector v = ImmutableVector.create(x);
 
 		assertInvariants(v);
 		assertEquals("dimension", x.length, v.getDimension());
@@ -83,8 +83,8 @@ public class ImmutableVectorTest {
 	public void construct_equals2() {
 		final double x1 = 0.0;
 		final double x2 = 1.0;
-		final ImmutableVector v1 = new ImmutableVector(x1, x2);
-		final ImmutableVector v2 = new ImmutableVector(x1, x2);
+		final ImmutableVector v1 = ImmutableVector.create(x1, x2);
+		final ImmutableVector v2 = ImmutableVector.create(x1, x2);
 
 		assertInvariants(v1, v2);
 		assertEquals("Equivalent", v1, v2);
@@ -92,8 +92,8 @@ public class ImmutableVectorTest {
 
 	@Test
 	public void construct_notEqualsA() {
-		final ImmutableVector v1 = new ImmutableVector(0.0);
-		final ImmutableVector v2 = new ImmutableVector(1.0);
+		final ImmutableVector v1 = ImmutableVector.create(0.0);
+		final ImmutableVector v2 = ImmutableVector.create(1.0);
 
 		assertInvariants(v1, v2);
 		assertNotEquals("Not equivalent", v1, v2);
@@ -101,37 +101,37 @@ public class ImmutableVectorTest {
 
 	@Test
 	public void construct_notEqualsB() {
-		final ImmutableVector v1 = new ImmutableVector(0.0);
-		final ImmutableVector v2 = new ImmutableVector(0.0, 1.0);
+		final ImmutableVector v1 = ImmutableVector.create(0.0);
+		final ImmutableVector v2 = ImmutableVector.create(0.0, 1.0);
 
 		assertInvariants(v1, v2);
 		assertNotEquals("Not equivalent", v1, v2);
 	}
 
 	@Test
-	public void constructor_1A() {
-		constructor(0.0);
+	public void create_1A() {
+		create(0.0);
 	}
 
 	@Test
-	public void constructor_1B() {
-		constructor(-1.0);
+	public void create_1B() {
+		create(-1.0);
 	}
 
 	@Test
-	public void constructor_1Nan() {
-		constructor(Double.POSITIVE_INFINITY);
+	public void create_1Nan() {
+		create(Double.POSITIVE_INFINITY);
 	}
 
 	@Test
-	public void constructor_2() {
-		constructor(0.0, 1.0);
+	public void create_2() {
+		create(0.0, 1.0);
 	}
 
 	@Test
 	public void createOnLine_A() {
-		final ImmutableVector x0 = new ImmutableVector(0.0);
-		final ImmutableVector dx = new ImmutableVector(1.0);
+		final ImmutableVector x0 = ImmutableVector.create(0.0);
+		final ImmutableVector dx = ImmutableVector.create(1.0);
 		final double w = 1.0;
 
 		final ImmutableVector x = createOnLine(x0, dx, w);
@@ -141,8 +141,8 @@ public class ImmutableVectorTest {
 
 	@Test
 	public void createOnLine_B() {
-		final ImmutableVector x0 = new ImmutableVector(1.0);
-		final ImmutableVector dx = new ImmutableVector(1.0);
+		final ImmutableVector x0 = ImmutableVector.create(1.0);
+		final ImmutableVector dx = ImmutableVector.create(1.0);
 		final double w = 1.0;
 
 		final ImmutableVector x = createOnLine(x0, dx, w);
@@ -152,8 +152,8 @@ public class ImmutableVectorTest {
 
 	@Test
 	public void createOnLine_C() {
-		final ImmutableVector x0 = new ImmutableVector(0.0);
-		final ImmutableVector dx = new ImmutableVector(2.0);
+		final ImmutableVector x0 = ImmutableVector.create(0.0);
+		final ImmutableVector dx = ImmutableVector.create(2.0);
 		final double w = 1.0;
 
 		final ImmutableVector x = createOnLine(x0, dx, w);
@@ -163,8 +163,8 @@ public class ImmutableVectorTest {
 
 	@Test
 	public void createOnLine_D() {
-		final ImmutableVector x0 = new ImmutableVector(0.0);
-		final ImmutableVector dx = new ImmutableVector(1.0);
+		final ImmutableVector x0 = ImmutableVector.create(0.0);
+		final ImmutableVector dx = ImmutableVector.create(1.0);
 		final double w = 2.0;
 
 		final ImmutableVector x = createOnLine(x0, dx, w);

@@ -15,6 +15,35 @@ public final class ImmutableVector {
 
 	/**
 	 * <p>
+	 * Create a vector from its components.
+	 * </p>
+	 * <ul>
+	 * <li>Always returns a (non null) vector.</li>
+	 * <li>This has the given values for its components.</li>
+	 * <li>The {@linkplain #getDimension() number of dimensions} of this vector
+	 * is equal to the length of the given array of components.</li>
+	 * </ul>
+	 *
+	 * @param x
+	 *            The components of this vector
+	 * @return the created vector
+	 * 
+	 * @throws NullPointerException
+	 *             If {@code x} is null.
+	 * @throws IllegalArgumentException
+	 *             If {@code x} is empty (length 0)
+	 */
+	public static ImmutableVector create(double... x) {
+		Objects.requireNonNull(x, "x");
+		final int n = x.length;
+		if (n == 0) {
+			throw new IllegalArgumentException("x is empty");
+		}
+		return new ImmutableVector(Arrays.copyOf(x, n));
+	}
+
+	/**
+	 * <p>
 	 * Create a vector that lies along a line given by an origin point and
 	 * position vector.
 	 * </p>
@@ -59,35 +88,8 @@ public final class ImmutableVector {
 
 	private final double[] x;
 
-	/**
-	 * <p>
-	 * Construct an vector from its components.
-	 * </p>
-	 *
-	 * <section>
-	 * <h1>Post Conditions</h1>
-	 * <ul>
-	 * <li>This has the given values for its components.</li>
-	 * <li>The {@linkplain #getDimension() number of dimensions} of this vector
-	 * is equal to the length of the given array of components.</li>
-	 * </ul>
-	 * </section>
-	 *
-	 * @param x
-	 *            The components of this vector
-	 * 
-	 * @throws NullPointerException
-	 *             If {@code x} is null.
-	 * @throws IllegalArgumentException
-	 *             If {@code x} is empty (length 0)
-	 */
-	public ImmutableVector(double... x) {
-		Objects.requireNonNull(x, "x");
-		final int n = x.length;
-		if (n == 0) {
-			throw new IllegalArgumentException("x is empty");
-		}
-		this.x = Arrays.copyOf(x, n);
+	private ImmutableVector(double... x) {
+		this.x = x;
 	}
 
 	/**
