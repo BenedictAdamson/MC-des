@@ -38,6 +38,13 @@ public interface FunctionNWithGradient {
 	 * @param x
 	 *            The domain value
 	 * @return The value of the function.
+	 * 
+	 * @throws NullPointerException
+	 *             If {@code x} is null.
+	 * @throws IllegalArgumentException
+	 *             If the {@linkplain ImmutableVector#getDimension() dimension}
+	 *             of {@code x} does not equal the {@linkplain #getDimension()
+	 *             dimension} of this functor.
 	 */
 	public FunctionNWithGradientValue value(ImmutableVector x);
 }
