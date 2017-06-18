@@ -184,6 +184,32 @@ public final class ImmutableVector {
 
 	/**
 	 * <p>
+	 * The magnitude of this vector.
+	 * </p>
+	 * 
+	 * @return
+	 */
+	public final double magnitude() {
+		/* Use a scaling value to avoid overflow. */
+		double scale = 0.0;
+		for (double xI : x) {
+			scale = Math.max(scale, Math.abs(xI));
+		}
+		if (scale <= Double.MIN_NORMAL || !Double.isFinite(scale)) {
+			return scale;
+		} else {
+			final double r = 1.0 / scale;
+			double m2 = 0.0;
+			for (double xI : x) {
+				final double xIScaled = xI * r;
+				m2 += xIScaled * xIScaled;
+			}
+			return Math.sqrt(m2) * scale;
+		}
+	}
+
+	/**
+	 * <p>
 	 * Create the vector that is opposite in direction of this vector.
 	 * </p>
 	 * <ul>

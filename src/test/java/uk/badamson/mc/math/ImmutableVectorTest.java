@@ -129,23 +129,48 @@ public class ImmutableVectorTest {
 	}
 
 	@Test
-	public void create_1A() {
-		create(0.0);
+	public void create_10() {
+		final ImmutableVector x = create(0.0);
+
+		assertEquals("magnitude", 0.0, x.magnitude(), Double.MIN_NORMAL);
 	}
 
 	@Test
 	public void create_1B() {
-		create(-1.0);
+		final ImmutableVector x = create(-1.0);
+
+		assertEquals("magnitude", 1.0, x.magnitude(), Double.MIN_NORMAL);
+	}
+
+	@Test
+	public void create_1Max() {
+		final double xI = Double.MAX_VALUE;
+		final ImmutableVector x = create(xI);
+
+		assertEquals("magnitude", xI, x.magnitude(), xI * 1.0E-6);
 	}
 
 	@Test
 	public void create_1Nan() {
-		create(Double.POSITIVE_INFINITY);
+		final ImmutableVector x = create(Double.POSITIVE_INFINITY);
+
+		final double magnitude = x.magnitude();
+		assertEquals("magnitude <" + magnitude + "> (bits)", Double.doubleToLongBits(magnitude),
+				Double.doubleToLongBits(Double.POSITIVE_INFINITY));
 	}
 
 	@Test
-	public void create_2() {
-		create(0.0, 1.0);
+	public void create_2A() {
+		final ImmutableVector x = create(0.0, 1.0);
+
+		assertEquals("magnitude", 1.0, x.magnitude(), Double.MIN_NORMAL);
+	}
+
+	@Test
+	public void create_2B() {
+		final ImmutableVector x = create(1.0, 1.0);
+
+		assertEquals("magnitude", Math.sqrt(2.0), x.magnitude(), Double.MIN_NORMAL);
 	}
 
 	@Test
