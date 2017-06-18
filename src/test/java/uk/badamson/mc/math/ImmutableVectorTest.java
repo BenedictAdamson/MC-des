@@ -64,6 +64,26 @@ public class ImmutableVectorTest {
 		return x;
 	}
 
+	private static final ImmutableVector minus(ImmutableVector x) {
+		final ImmutableVector minus = x.minus();
+
+		assertNotNull("Not null, result", minus);// guard
+		assertInvariants(minus);
+		assertInvariants(x, minus);
+
+		final int dimension = minus.getDimension();
+		assertEquals("dimension", x.getDimension(), dimension);
+		for (int i = 0; i < dimension; i++) {
+			final double xI = x.get(i);
+			final double minusI = minus.get(i);
+			final boolean signed = Double.isInfinite(xI) || Double.isFinite(xI);
+			assertTrue("minus[" + i + "] <" + xI + "," + minusI + ">",
+					!signed || Double.doubleToLongBits(-xI) == Double.doubleToLongBits(minus.get(i)));
+		}
+
+		return minus;
+	}
+
 	@Test
 	public void construct_equals1A() {
 		construct_equals(0.0);
@@ -200,5 +220,35 @@ public class ImmutableVectorTest {
 	public void dot_E() {
 		final double d = ImmutableVector.create(1.0, 1.0).dot(ImmutableVector.create(1.0, 1.0));
 		assertEquals("dot product", 2.0, d, Double.MIN_NORMAL);
+	}
+
+	@Test
+	public void minus_0() {
+		minus(ImmutableVector.create(0.0));
+	}
+
+	@Test
+	public void minus_1A() {
+		minus(ImmutableVector.create(1.0));
+	}
+
+	@Test
+	public void minus_1B() {
+		minus(ImmutableVector.create(-2.0));
+	}
+
+	@Test
+	public void minus_1Infinity() {
+		minus(ImmutableVector.create(Double.POSITIVE_INFINITY));
+	}
+
+	@Test
+	public void minus_1Nan() {
+		minus(ImmutableVector.create(Double.NaN));
+	}
+
+	@Test
+	public void minus_2() {
+		minus(ImmutableVector.create(1.0, 2.0));
 	}
 }

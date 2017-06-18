@@ -182,9 +182,31 @@ public final class ImmutableVector {
 		return Arrays.hashCode(x);
 	}
 
+	/**
+	 * <p>
+	 * Create the vector that is opposite in direction of this vector.
+	 * </p>
+	 * <ul>
+	 * <li>Always returns a (non null) vector.</li>
+	 * <li>The opposite vector has the same {@linkplain #getDimension()
+	 * dimension} as this vector.</li>
+	 * <li>The {@linkplain #get(int) components} of the opposite vector are the
+	 * negative of the corresponsing component of this vector.</li>
+	 * </ul>
+	 * 
+	 * @return the opposite vector; not null
+	 */
+	public final ImmutableVector minus() {
+		final int n = x.length;
+		final double[] minus = new double[n];
+		for (int i = 0; i < n; ++i) {
+			minus[i] = -x[i];
+		}
+		return new ImmutableVector(minus);
+	}
+
 	@Override
 	public final String toString() {
 		return Arrays.toString(x);
 	}
-
 }
