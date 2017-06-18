@@ -57,18 +57,28 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
 
 	/**
 	 * <p>
-	 * A contributor to the {@linkplain TimeStepEnergyErrorFunction}physical
+	 * A contributor to the {@linkplain TimeStepEnergyErrorFunction physical
 	 * modelling error of a system at a future point in time}.
 	 * </p>
 	 */
 	@Immutable
 	public interface Term {
 
+		/**
+		 * <p>
+		 * Whether this term can be calculated for a physical state vector that
+		 * has a given number of variables.
+		 * </p>
+		 * 
+		 * @return whether valid.
+		 * @throws IllegalArgumentException
+		 *             If {@code n} is not positive.
+		 */
+		public boolean isValidForDimension(int n);
 	}// interface
 
 	private final ImmutableVector x0;
 	private final double dt;
-
 	private final List<Term> terms;
 
 	/**
@@ -101,8 +111,14 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
 	 *             <li>If {@code terms} is null.</li>
 	 *             <li>If {@code terms} contains any null references.</li>
 	 * @throws IllegalArgumentException
-	 *             If {@code dt} is not positive and
-	 *             {@linkplain Double#isInfinite() finite}.
+	 *             <ul>
+	 *             <li>If {@code dt} is not positive and
+	 *             {@linkplain Double#isInfinite() finite}.</li>
+	 *             <li>If and of the {@code terms} is not
+	 *             {@linkplain TimeStepEnergyErrorFunction.Term#isValidForDimension(int)
+	 *             valid} for the {@linkplain ImmutableVector#getDimension()
+	 *             dimension} of {@code x0}.</li>
+	 *             </ul>
 	 */
 	public TimeStepEnergyErrorFunction(ImmutableVector x0, double dt, List<Term> terms) {
 		Objects.requireNonNull(x0, "x0");
@@ -116,8 +132,12 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
 		this.terms = Collections.unmodifiableList(new ArrayList<>(terms));
 
 		/* Check precondition after construction to avoid race hazards. */
-		if (this.terms.contains(null)) {
-			throw new NullPointerException("null term");
+		final int dimension = x0.getDimension();
+		for (Term term : this.terms) {
+			Objects.requireNonNull(term, "term");
+			if (!term.isValidForDimension(dimension)) {
+				throw new IllegalArgumentException("term <" + term + "> not valid for " + dimension + " dimensions");
+			}
 		}
 	}
 

@@ -26,6 +26,11 @@ public class TimeStepEnergyErrorFunctionTest {
 
 	private static final class Term0 implements TimeStepEnergyErrorFunction.Term {
 
+		@Override
+		public final boolean isValidForDimension(int n) {
+			return true;
+		}
+
 	}// class
 
 	/**
