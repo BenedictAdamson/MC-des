@@ -33,10 +33,19 @@ public final class PositionError implements TimeStepEnergyErrorFunction.Term {
 		}
 		return copy;
 	}
+
+	private static ImmutableVector extract(ImmutableVector x, int term[]) {
+		final int n = term.length;
+		final double[] extract = new double[n];
+		for (int i = 0; i < n; i++) {
+			extract[i] = x.get(term[i]);
+		}
+		return ImmutableVector.create(extract);
+	}
+
 	private final ImmutableVector direction;
 	private final double mass;
 	private final int[] positionTerm;
-
 	private final int[] velocityTerm;
 
 	/**
@@ -105,10 +114,97 @@ public final class PositionError implements TimeStepEnergyErrorFunction.Term {
 		this.velocityTerm = copyTermIndex(velocityTerm);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 * 
+	 * <ol>
+	 * <li>The method uses the {@linkplain #getPositionTerm(int) position term
+	 * index} information and {@linkplain #getVelocityTerm(int) velocity term
+	 * index} information to extract position and velocity vectors from the
+	 * given state vectors.</li>
+	 * <li>It reduces those vectors to scalars by finding their components along
+	 * the {@linkplain #getDirection() direction vector}.</li>
+	 * <li>It calculates a mean acceleration from the old and new velocity
+	 * values, and the time-step size.</li>
+	 * <li>It calculates the extrapolated position from the old position, the
+	 * old velocity, and the mean acceleration.</li>
+	 * <li>It calculates a position error by comparing the new position with the
+	 * extrapolated position.</li>
+	 * <li>From that it calculates an equivalent velocity error, by dividing the
+	 * position error by the time-step size.</li>
+	 * <li>From that it calculates an equivalent kinetic energy error, using the
+	 * {@linkplain #getMass() characteristic mass value}. That is the error term
+	 * it returns.</li>
+	 * </ol>
+	 * 
+	 * @param dedx
+	 *            {@inheritDoc}
+	 * @param state0
+	 *            {@inheritDoc}
+	 * @param state
+	 *            {@inheritDoc}
+	 * @param dt
+	 *            {@inheritDoc}
+	 * @return the value
+	 * 
+	 * @throws NullPointerException
+	 *             {@inheritDoc}
+	 * @throws IllegalArgumentException
+	 *             {@inheritDoc}
+	 * @throws IllegalArgumentException
+	 *             If the length of {@code dedx} does not equal the
+	 *             {@linkplain ImmutableVector#getDimension() dimension} of
+	 *             {@code state0}.
+	 */
 	@Override
-	public double evaluate(double[] dedx, ImmutableVector x0, double dt) {
-		// TODO Auto-generated method stub
-		return 0;
+	public final double evaluate(double[] dedx, ImmutableVector state0, ImmutableVector state, double dt) {
+		Objects.requireNonNull(dedx, "dedx");
+		Objects.requireNonNull(state0, "x0");
+		Objects.requireNonNull(state, "x");
+		if (!(0.0 < dt && Double.isFinite(dt))) {
+			throw new IllegalArgumentException("dt " + dt);
+		}
+		final int nState = state0.getDimension();
+		if (state.getDimension() != nState) {
+			throw new IllegalArgumentException(
+					"Inconsistent dimensions x0 " + nState + " and x " + state.getDimension());
+		}
+		if (dedx.length != nState) {
+			throw new IllegalArgumentException(
+					"Inconsistent length of dedx " + dedx.length + " and dimension of x0 " + nState);
+		}
+
+		final ImmutableVector x0 = extract(state0, positionTerm);
+		final ImmutableVector v0 = extract(state0, velocityTerm);
+		final ImmutableVector x = extract(state, positionTerm);
+		final ImmutableVector v = extract(state, velocityTerm);
+		final ImmutableVector dx = x.minus(x0);
+		final ImmutableVector dv = v.minus(v0);
+
+		final double dsdt0 = v0.dot(direction);
+		final double ds = dx.dot(direction);
+		final double dsdt = dv.dot(direction);
+
+		final double rate = 1.0 / dt;
+		final double d2sdt2 = dsdt * rate;
+		final double dsExtrapolate = (dsdt0 + 0.5 * d2sdt2 * dt) * dt;
+		final double sError = ds - dsExtrapolate;
+		final double vError = sError * rate;
+		final double mvError = vError * mass;
+		final double eError = 0.5 * vError * mvError;
+
+		final double dedv = mvError * -0.5;
+		final double deds = mvError * rate;
+
+		for (int i = 0, n = positionTerm.length; i < n; ++i) {
+			final double dsdxi = direction.get(i);
+			final double dedxi = deds * dsdxi;
+			final double dedvi = dedv * dsdxi;
+
+			dedx[positionTerm[i]] += dedxi;
+			dedx[velocityTerm[i]] += dedvi;
+		}
+		return eError;
 	}
 
 	/**

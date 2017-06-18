@@ -77,8 +77,11 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
 		 * @param dedx
 		 *            An array for accumulating the components of the gradient
 		 *            of the error value.
-		 * @param x0
+		 * @param state0
 		 *            The state vector of the physical system at the current
+		 *            point in time.
+		 * @param state
+		 *            The state vector of the physical system at the future
 		 *            point in time.
 		 * @param dt
 		 *            The size of the time-step; the difference between the
@@ -88,12 +91,14 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
 		 * @throws NullPointerException
 		 *             <ul>
 		 *             <li>If {@code dedx} is null.</li>
-		 *             <li>If {@code x0} is null.</li>
+		 *             <li>If {@code state0} is null.</li>
+		 *             <li>If {@code state} is null.</li>
 		 *             </ul>
 		 * @throws IllegalArgumentException
 		 *             <ul>
 		 *             <li>If {@code dt} is not positive and
 		 *             {@linkplain Double#isInfinite() finite}.</li>
+		 *             <li>If {@code x0} and {@code state} have different {@linkplain ImmutableVector dimensions}.</li>
 		 *             <li>If this is not {@linkplain #isValidForDimension(int)
 		 *             valid} for the dimension of {@code x0}.</li>
 		 *             </ul>
@@ -104,7 +109,7 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
 		 *             {@link IndexOutOfBoundsException}, but it could be an
 		 *             {@link IllegalArgumentException}.
 		 */
-		public double evaluate(double[] dedx, ImmutableVector x0, double dt);
+		public double evaluate(double[] dedx, ImmutableVector state0, ImmutableVector state, double dt);
 
 		/**
 		 * <p>
@@ -117,6 +122,7 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
 		 *             If {@code n} is not positive.
 		 */
 		public boolean isValidForDimension(int n);
+		
 	}// interface
 
 	private final ImmutableVector x0;
@@ -265,22 +271,24 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
 	 * the returned object is the given domain value.</li>
 	 * </ul>
 	 * 
-	 * @param x
+	 * @param state
 	 *            The state of the physical system at the future point in time
-	 * @return The value of the function.
+	 * @return The error.
 	 * @throws NullPointerException
-	 *             {@inheritDoc}
+	 *             If {@code state} is null.
 	 * @throws IllegalArgumentException
-	 *             {@inheritDoc}
+	 *             If the {@linkplain ImmutableVector#getDimension() dimension}
+	 *             of {@code state} does not equal the {@linkplain #getDimension()
+	 *             dimension} of this functor.
 	 */
 	@Override
-	public final FunctionNWithGradientValue value(ImmutableVector x) {
+	public final FunctionNWithGradientValue value(ImmutableVector state) {
 		double e = 0.0;
 		double[] dedx = new double[getDimension()];
 		for (Term term : terms) {
-			e += term.evaluate(dedx, x, dt);
+			e += term.evaluate(dedx, state, x0, dt);
 		}
-		return new FunctionNWithGradientValue(x, e, ImmutableVector.create(dedx));
+		return new FunctionNWithGradientValue(state, e, ImmutableVector.create(dedx));
 	}
 
 }

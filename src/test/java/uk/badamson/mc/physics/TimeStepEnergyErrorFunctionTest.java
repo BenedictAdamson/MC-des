@@ -36,7 +36,7 @@ public class TimeStepEnergyErrorFunctionTest {
 		}
 
 		@Override
-		public final double evaluate(double[] dedx, ImmutableVector x0, double dt) {
+		public final double evaluate(double[] dedx, ImmutableVector x0, ImmutableVector x, double dt) {
 			Objects.requireNonNull(dedx, "dsdx");
 			Objects.requireNonNull(x0, "x0");
 			if (dedx.length != x0.getDimension()) {
@@ -73,8 +73,8 @@ public class TimeStepEnergyErrorFunctionTest {
 		}
 
 		public static double evaluate(TimeStepEnergyErrorFunction.Term term, double[] dedx, ImmutableVector x0,
-				double dt) {
-			final double e = term.evaluate(dedx, x0, dt);
+				ImmutableVector x, double dt) {
+			final double e = term.evaluate(dedx, x0, x, dt);
 
 			assertInvariants(term);
 
@@ -85,7 +85,7 @@ public class TimeStepEnergyErrorFunctionTest {
 	private static final class ZeroTerm implements TimeStepEnergyErrorFunction.Term {
 
 		@Override
-		public double evaluate(double[] dedx, ImmutableVector x0, double dt) {
+		public double evaluate(double[] dedx, ImmutableVector x0, ImmutableVector x, double dt) {
 			Objects.requireNonNull(dedx, "dsdx");
 			Objects.requireNonNull(x0, "x0");
 			if (dedx.length != x0.getDimension()) {
