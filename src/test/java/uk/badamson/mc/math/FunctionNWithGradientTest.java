@@ -20,7 +20,8 @@ public class FunctionNWithGradientTest {
 
 		assertNotNull("Not null, result", v);// guard
 		FunctionNWithGradientValueTest.assertInvariants(v);
-		assertTrue("x", x.minus(v.getX()).magnitude2() <= Double.MIN_NORMAL);
+		assertTrue("x <expected " + x + ", actual " + v.getX() + ">",
+				x.minus(v.getX()).magnitude2() <= Double.MIN_NORMAL);
 
 		return v;
 	}

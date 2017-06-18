@@ -53,9 +53,10 @@ public class TimeStepEnergyErrorFunctionTest {
 	private static final ImmutableVector X_1B = ImmutableVector.create(2.0);
 	private static final ImmutableVector X_2A = ImmutableVector.create(1.0, 2.0);
 	private static final ImmutableVector X_2B = ImmutableVector.create(3.0, 5.0);
-	private static final Term0 TERM_0A = new Term0();
 
+	private static final Term0 TERM_0A = new Term0();
 	private static final Term0 TERM_0B = new Term0();
+
 	public static void assertInvariants(TimeStepEnergyErrorFunction f) {
 		ObjectTest.assertInvariants(f);// inherited
 		FunctionNWithGradientTest.assertInvariants(f);// inherited
@@ -99,6 +100,16 @@ public class TimeStepEnergyErrorFunctionTest {
 		return fx;
 	}
 
+	private static void value_0(ImmutableVector x0, double dt, ImmutableVector x) {
+		final List<TimeStepEnergyErrorFunction.Term> terms = Collections.emptyList();
+		final TimeStepEnergyErrorFunction f = new TimeStepEnergyErrorFunction(x0, dt, terms);
+
+		final FunctionNWithGradientValue fx = FunctionNWithGradientTest.value(f, x);// inherited
+
+		assertEquals("value.f", fx.getF(), 0.0, Double.MIN_NORMAL);
+		assertEquals("value.dfDx <" + fx.getDfDx() + "> magnitude", fx.getDfDx().magnitude(), 0.0, Double.MIN_NORMAL);
+	}
+
 	@Test
 	public void constructor_A() {
 		final List<TimeStepEnergyErrorFunction.Term> terms = Collections.emptyList();
@@ -121,5 +132,15 @@ public class TimeStepEnergyErrorFunctionTest {
 	public void constructor_D() {
 		final List<TimeStepEnergyErrorFunction.Term> terms = Arrays.asList(TERM_0A);
 		constructor(X_2A, DT_B, terms);
+	}
+
+	@Test
+	public void value_0A() {
+		value_0(X_1A, DT_A, X_1B);
+	}
+
+	@Test
+	public void value_0B() {
+		value_0(X_2A, DT_B, X_2B);
 	}
 }

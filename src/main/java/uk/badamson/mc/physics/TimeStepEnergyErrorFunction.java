@@ -65,6 +65,7 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
 	public interface Term {
 
 	}// interface
+
 	private final ImmutableVector x0;
 	private final double dt;
 
@@ -211,8 +212,10 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
 	 */
 	@Override
 	public FunctionNWithGradientValue value(ImmutableVector x) {
-		// TODO Auto-generated method stub
-		return null;
+		double e = 0.0;
+		double[] dedx = new double[getDimension()];
+		// TODO
+		return new FunctionNWithGradientValue(x, e, ImmutableVector.create(dedx));
 	}
 
 }
