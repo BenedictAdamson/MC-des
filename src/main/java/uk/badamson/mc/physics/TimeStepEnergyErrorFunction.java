@@ -94,12 +94,15 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
 		 *             <ul>
 		 *             <li>If {@code dt} is not positive and
 		 *             {@linkplain Double#isInfinite() finite}.</li>
-		 *             <li>If the length of {@code dedx} does not equal the
-		 *             {@linkplain ImmutableVector#getDimension() dimension} of
-		 *             {@code x0}.</li>
 		 *             <li>If this is not {@linkplain #isValidForDimension(int)
 		 *             valid} for the dimension of {@code x0}.</li>
 		 *             </ul>
+		 * @throws RuntimeException
+		 *             If the length of {@code dedx} does not equal the
+		 *             {@linkplain ImmutableVector#getDimension() dimension} of
+		 *             {@code x0}. For a typical implementation this would be an
+		 *             {@link IndexOutOfBoundsException}, but it could be an
+		 *             {@link IllegalArgumentException}.
 		 */
 		public double evaluate(double[] dedx, ImmutableVector x0, double dt);
 
