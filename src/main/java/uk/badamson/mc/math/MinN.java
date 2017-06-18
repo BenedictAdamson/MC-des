@@ -171,12 +171,108 @@ public final class MinN {
 		return new Function1WithGradient() {
 
 			@Override
+			public String toString() {
+				final StringBuilder str = new StringBuilder();
+				str.append(f);
+				str.append(" along ");
+				str.append(x0);
+				str.append(" + w*");
+				str.append(dx);
+				return str.toString();
+			}
+
+			@Override
 			public Function1WithGradientValue value(double w) {
 				final ImmutableVector x = ImmutableVector.createOnLine(x0, dx, w);
 				final FunctionNWithGradientValue v = f.value(x);
 				return new Function1WithGradientValue(w, v.getF(), v.getDfDx().dot(dx));
 			}
 		};
+	}
+
+	private static ImmutableVector downSlope(FunctionNWithGradientValue fx) {
+		final ImmutableVector dfDx = fx.getDfDx();
+		if (dfDx.magnitude2() < Double.MIN_NORMAL) {
+			/* Avoid division by zero when close to a minimum */
+			final double[] x = new double[fx.getX().getDimension()];
+			x[0] = 1.0;
+			return ImmutableVector.create(x);
+		} else {
+			return dfDx.minus();
+		}
+	}
+
+	/**
+	 * <p>
+	 * Find a minimum of a {@linkplain FunctionNWithGradient scalar function of
+	 * a vector that also has a computable gradient} using the Polak-Ribere's
+	 * modification of the Fletcher-Reeves conjugate gradient algorithm.
+	 * </p>
+	 * 
+	 * @param f
+	 *            The function for which a minimum is to be found.
+	 * @param x0
+	 *            A point at which to start the search.
+	 * @param tolerance
+	 *            The convergence tolerance; the minimum fractional change in
+	 *            the value of the minimum for which continuing to iterate is
+	 *            worthwhile.
+	 * @return a minimum of the function; not null.
+	 * 
+	 * @throws NullPointerException
+	 *             <ul>
+	 *             <li>If {@code f} is null.</li>
+	 *             <li>If {@code x} is null.</li>
+	 *             </ul>
+	 * @throws IllegalArgumentException
+	 *             <ul>
+	 *             <li>If the {@linkplain ImmutableVector#getDimension()
+	 *             dimension} of {code x} is different from the
+	 *             {@linkplain FunctionN#getDimension() dimension} of
+	 *             {@code f}.</li></li>
+	 *             <li>If {@code tolerance} is not in the range (0.0, 1.0).</li>
+	 *             </ul>
+	 * @throws PoorlyConditionedFunctionException
+	 *             <ul>
+	 *             <li>If {@code f} does not have a minimum</li>
+	 *             <li>If {@code f} has a minimum, but it is impossible to find
+	 *             using {@code x} because the function has an odd-powered high
+	 *             order term that causes the iterative procedure to
+	 *             diverge.</li>
+	 *             </ul>
+	 */
+	public static FunctionNWithGradientValue findFletcherReevesPolakRibere(final FunctionNWithGradient f,
+			ImmutableVector x0, double tolerance) throws PoorlyConditionedFunctionException {
+		Objects.requireNonNull(f, "f");
+		Objects.requireNonNull(x0, "x");
+		requireToleranceInRange(tolerance);
+		final int n = f.getDimension();
+		if (x0.getDimension() != n) {
+			throw new IllegalArgumentException("Inconsistent dimensions f <" + n + "> x <" + x0.getDimension() + ">");
+		}
+
+		FunctionNWithGradientValue fx = f.value(x0);
+		ImmutableVector g = downSlope(fx);
+		ImmutableVector dx = g;
+		ImmutableVector h = g;
+
+		while (true) {
+			final ImmutableVector x = fx.getX();
+			final FunctionNWithGradientValue fXNew = minimiseAlongLine(f, x, dx);
+			if (Math.abs(fx.getF() - fXNew.getF()) <= fx.getF() * tolerance) {
+				fx = fXNew;
+				break;// converged
+			}
+			final ImmutableVector gNew = downSlope(fXNew);
+			final double gamma = (gNew.minus(g)).dot(gNew) / g.magnitude2();
+			final ImmutableVector hNew = ImmutableVector.createOnLine(gNew, h, gamma);
+
+			g = gNew;
+			h = hNew;
+			fx = fXNew;
+			dx = hNew;
+		}
+		return fx;
 	}
 
 	/**
@@ -226,9 +322,7 @@ public final class MinN {
 			throws PoorlyConditionedFunctionException {
 		Objects.requireNonNull(f, "f");
 		Objects.requireNonNull(x, "x");
-		if (!(0.0 < tolerance && tolerance < 1.0)) {
-			throw new IllegalArgumentException("tolerance <" + tolerance + ">");
-		}
+		requireToleranceInRange(tolerance);
 		final int n = f.getDimension();
 		if (x.length != n) {
 			throw new IllegalArgumentException("Inconsistent dimensions f <" + n + "> x <" + x.length + ">");
@@ -332,6 +426,76 @@ public final class MinN {
 		return p.getF();
 	}
 
+	/**
+	 * <p>
+	 * Perform <i>line minimisation</i> of a {@linkplain FunctionNWithGradient
+	 * scalar function of a vector that also has a computable gradient}.
+	 * </p>
+	 * <p>
+	 * That is, find the minimum value of the function along a straight line.
+	 * </p>
+	 * 
+	 * @param f
+	 *            The function
+	 * @param x
+	 *            A point on the line.
+	 * @param dx
+	 *            The direction vector of the line.
+	 * @return the minimum value along the line; not null.
+	 * 
+	 * @throws NullPointerException
+	 *             <ul>
+	 *             <li>If {@code f} is null.</li>
+	 *             <li>If {@code x} is null.</li>
+	 *             <li>If {@code dx} is null.</li>
+	 *             </ul>
+	 * @throws IllegalArgumentException
+	 *             <ul>
+	 *             <li>If the length of {code x} is 0.</li>
+	 *             <li>If the length of {code x} is different from the length of
+	 *             {@code dx}.</li></li>
+	 *             <li>If the length of {code x} is different from the
+	 *             {@linkplain FunctionN#getDimension() number of dimensions} of
+	 *             {@code f}.</li></li>
+	 *             </ul>
+	 * @throws PoorlyConditionedFunctionException
+	 *             <ul>
+	 *             <li>If {@code f} does not have a minimum</li>
+	 *             <li>If {@code f} has a minimum, but it is impossible to find
+	 *             a bracket for {@code f} using {@code x} and {@code dx}
+	 *             because the function has an odd-powered high order term that
+	 *             causes the iterative procedure to diverge.</li>
+	 *             <li>The magnitude of {@code dx} is zero (or very small).</li>
+	 *             </ul>
+	 */
+	static FunctionNWithGradientValue minimiseAlongLine(final FunctionNWithGradient f, final ImmutableVector x,
+			ImmutableVector dx) throws PoorlyConditionedFunctionException {
+		final Function1WithGradient fLine = createLineFunction(f, x, dx);
+		final Function1 f1Line = new Function1() {
+
+			@Override
+			public String toString() {
+				return fLine.toString();
+			}
+
+			@Override
+			public double value(double x) {
+				return fLine.value(x).getF();
+			}
+
+		};
+		final Min1.Bracket bracket = Min1.findBracket(f1Line, 0.0, 1.0);
+		final Function1WithGradientValue p = Min1.findBrent(fLine, bracket, Min1.TOLERANCE);
+		final ImmutableVector xMin = ImmutableVector.createOnLine(x, dx, p.getX());
+		return f.value(xMin);
+	}
+
+	private static void requireToleranceInRange(double tolerance) {
+		if (!(0.0 < tolerance && tolerance < 1.0)) {
+			throw new IllegalArgumentException("tolerance <" + tolerance + ">");
+		}
+	}
+
 	private static void resetSearchDirections(final double[][] dx) {
 		final int n = dx.length;
 		for (int i = 0; i < n; ++i) {
@@ -344,4 +508,5 @@ public final class MinN {
 	private MinN() {
 		throw new AssertionError("Class should not be instantiated");
 	}
+
 }

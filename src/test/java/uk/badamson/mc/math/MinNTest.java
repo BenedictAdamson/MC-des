@@ -102,6 +102,27 @@ public class MinNTest {
 		assertEquals("dfdw(" + w + ")", expectedDfDw, fw.getDfDx(), toleranceDfDw);
 	}
 
+	private static FunctionNWithGradientValue findFletcherReevesPolakRibere(final FunctionNWithGradient f,
+			ImmutableVector x, double tolerance) throws PoorlyConditionedFunctionException {
+		final FunctionNWithGradientValue min = MinN.findFletcherReevesPolakRibere(f, x, tolerance);
+
+		assertNotNull("Not null, result", min);// guard
+		FunctionNWithGradientValueTest.assertInvariants(min);
+
+		return min;
+	}
+
+	private static void findFletcherReevesPolakRibere_paraboloid(double x0, double x1, double tolerance) {
+		final ImmutableVector x = ImmutableVector.create(x0, x1);
+		final double precision = Math.sqrt(tolerance);
+
+		final FunctionNWithGradientValue min = findFletcherReevesPolakRibere(PARABOLOID_WITH_GRADIENT, x, tolerance);
+
+		final ImmutableVector minX = min.getX();
+		assertEquals("x[0]", 0.0, minX.get(0), precision);
+		assertEquals("x[1]", 0.0, min.getX().get(1), precision);
+	}
+
 	private static double findPowell(final FunctionN f, final double[] x, double tolerance) {
 		final double min = MinN.findPowell(f, x, tolerance);
 
@@ -146,6 +167,16 @@ public class MinNTest {
 		return min;
 	}
 
+	private static FunctionNWithGradientValue minimiseAlongLine(final FunctionNWithGradient f, final ImmutableVector x,
+			final ImmutableVector dx) {
+		final FunctionNWithGradientValue min = MinN.minimiseAlongLine(f, x, dx);
+
+		assertNotNull("Not null, result", min);// guard
+		FunctionNWithGradientValueTest.assertInvariants(min);
+
+		return min;
+	}
+
 	private static void minimiseAlongLine_paraboloid(double x0, double x1, double dx0, double dx1, double expectedXMin0,
 			double expectedXMin1) {
 		final double[] x = { x0, x1 };
@@ -164,6 +195,27 @@ public class MinNTest {
 		final double expectedXMin1 = x1;
 
 		minimiseAlongLine_paraboloid(x0, x1, dx0, dx1, expectedXMin0, expectedXMin1);
+	}
+
+	private static void minimiseAlongLine_paraboloidWithGradient(double x0, double x1, double dx0, double dx1,
+			double expectedXMin0, double expectedXMin1) {
+		final ImmutableVector x = ImmutableVector.create(x0, x1);
+		final ImmutableVector dx = ImmutableVector.create(dx0, dx1);
+		final double precision = adjacentPrecision(dx.magnitude());
+
+		final FunctionNWithGradientValue min = minimiseAlongLine(PARABOLOID_WITH_GRADIENT, x, dx);
+
+		final ImmutableVector xMin = min.getX();
+		assertEquals("xMin[0]", expectedXMin0, xMin.get(0), precision);
+		assertEquals("xMin[1]", expectedXMin1, min.getX().get(1), precision);
+	}
+
+	private static void minimiseAlongLine_paraboloidWithGradientAtMin(final double x0, final double x1,
+			final double dx0, final double dx1) {
+		final double expectedXMin0 = x0;
+		final double expectedXMin1 = x1;
+
+		minimiseAlongLine_paraboloidWithGradient(x0, x1, dx0, dx1, expectedXMin0, expectedXMin1);
 	}
 
 	private static double[] normalized(double[] x) {
@@ -338,6 +390,31 @@ public class MinNTest {
 	}
 
 	@Test
+	public void findFletcherReevesPolakRibere_paraboloidA() {
+		findFletcherReevesPolakRibere_paraboloid(0, 1, 1E-3);
+	}
+
+	@Test
+	public void findFletcherReevesPolakRibere_paraboloidAtMin() {
+		findFletcherReevesPolakRibere_paraboloid(0, 0, 1E-3);
+	}
+
+	@Test
+	public void findFletcherReevesPolakRibere_paraboloidB() {
+		findFletcherReevesPolakRibere_paraboloid(1, 0, 1E-3);
+	}
+
+	@Test
+	public void findFletcherReevesPolakRibere_paraboloidC() {
+		findFletcherReevesPolakRibere_paraboloid(1, 1, 1E-3);
+	}
+
+	@Test
+	public void findFletcherReevesPolakRibere_paraboloidD() {
+		findFletcherReevesPolakRibere_paraboloid(1, 1, 1E-5);
+	}
+
+	@Test
 	public void findPowell_paraboloidA() {
 		findPowell_paraboloid(0, 1, 1E-3);
 	}
@@ -442,4 +519,86 @@ public class MinNTest {
 
 		minimiseAlongLine_paraboloid(x0, x1, dx0, dx1, expectedXMin0, expectedXMin1);
 	}
+
+	@Test
+	public void minimiseAlongLine_paraboloidWithGradientA() {
+		final double x0 = -1;
+		final double x1 = 0;
+		final double dx0 = 1;
+		final double dx1 = 0;
+		final double expectedXMin0 = 0;
+		final double expectedXMin1 = 0;
+
+		minimiseAlongLine_paraboloidWithGradient(x0, x1, dx0, dx1, expectedXMin0, expectedXMin1);
+	}
+
+	@Test
+	public void minimiseAlongLine_paraboloidWithGradientAtMinA() {
+		final double x0 = 0;
+		final double x1 = 0;
+		final double dx0 = 1;
+		final double dx1 = 0;
+		minimiseAlongLine_paraboloidWithGradientAtMin(x0, x1, dx0, dx1);
+	}
+
+	@Test
+	public void minimiseAlongLine_paraboloidWithGradientAtMinB() {
+		final double x0 = 0;
+		final double x1 = 0;
+		final double dx0 = 0;
+		final double dx1 = 1;
+		minimiseAlongLine_paraboloidWithGradientAtMin(x0, x1, dx0, dx1);
+	}
+
+	@Test
+	public void minimiseAlongLine_paraboloidWithGradientAtMinC() {
+		final double x0 = 0;
+		final double x1 = 0;
+		final double dx0 = 1;
+		final double dx1 = 1;
+		minimiseAlongLine_paraboloidWithGradientAtMin(x0, x1, dx0, dx1);
+	}
+
+	@Test
+	public void minimiseAlongLine_paraboloidWithGradientAtMinD() {
+		final double x0 = 0;
+		final double x1 = 1;
+		final double dx0 = 1;
+		final double dx1 = 0;
+		minimiseAlongLine_paraboloidWithGradientAtMin(x0, x1, dx0, dx1);
+	}
+
+	@Test
+	public void minimiseAlongLine_paraboloidWithGradientAtMinE() {
+		final double x0 = 1;
+		final double x1 = 0;
+		final double dx0 = 0;
+		final double dx1 = 1;
+		minimiseAlongLine_paraboloidWithGradientAtMin(x0, x1, dx0, dx1);
+	}
+
+	@Test
+	public void minimiseAlongLine_paraboloidWithGradientB() {
+		final double x0 = -2;
+		final double x1 = 0;
+		final double dx0 = 1;
+		final double dx1 = 0;
+		final double expectedXMin0 = 0;
+		final double expectedXMin1 = 0;
+
+		minimiseAlongLine_paraboloidWithGradient(x0, x1, dx0, dx1, expectedXMin0, expectedXMin1);
+	}
+
+	@Test
+	public void minimiseAlongLine_paraboloidWithGradientC() {
+		final double x0 = 1;
+		final double x1 = 1;
+		final double dx0 = 0;
+		final double dx1 = -5;
+		final double expectedXMin0 = 1;
+		final double expectedXMin1 = 0;
+
+		minimiseAlongLine_paraboloidWithGradient(x0, x1, dx0, dx1, expectedXMin0, expectedXMin1);
+	}
+
 }
