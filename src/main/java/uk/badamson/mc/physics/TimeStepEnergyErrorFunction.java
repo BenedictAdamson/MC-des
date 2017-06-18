@@ -66,6 +66,45 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
 
 		/**
 		 * <p>
+		 * Calculate the value of this term.
+		 * </p>
+		 * <p>
+		 * The method returns the value for this error term, and adds the
+		 * components of the gradient of the error value to the given array of
+		 * components.
+		 * </p>
+		 * 
+		 * @param dedx
+		 *            An array for accumulating the components of the gradient
+		 *            of the error value.
+		 * @param x0
+		 *            The state vector of the physical system at the current
+		 *            point in time.
+		 * @param dt
+		 *            The size of the time-step; the difference between the
+		 *            future point in time and the current point in time.
+		 * @return the value
+		 * 
+		 * @throws NullPointerException
+		 *             <ul>
+		 *             <li>If {@code dedx} is null.</li>
+		 *             <li>If {@code x0} is null.</li>
+		 *             </ul>
+		 * @throws IllegalArgumentException
+		 *             <ul>
+		 *             <li>If {@code dt} is not positive and
+		 *             {@linkplain Double#isInfinite() finite}.</li>
+		 *             <li>If the length of {@code dedx} does not equal the
+		 *             {@linkplain ImmutableVector#getDimension() dimension} of
+		 *             {@code x0}.</li>
+		 *             <li>If this is not {@linkplain #isValidForDimension(int)
+		 *             valid} for the dimension of {@code x0}.</li>
+		 *             </ul>
+		 */
+		public double evaluate(double[] dedx, ImmutableVector x0, double dt);
+
+		/**
+		 * <p>
 		 * Whether this term can be calculated for a physical state vector that
 		 * has a given number of variables.
 		 * </p>
@@ -99,7 +138,7 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
 	 *            The state vector of the physical system at the current point
 	 *            in time.
 	 * @param dt
-	 *            The size of the time-step; the difference between the futre
+	 *            The size of the time-step; the difference between the future
 	 *            point in time and the current point in time.
 	 * @param terms
 	 *            The terms that contribute to the
@@ -110,6 +149,7 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
 	 *             <li>If {@code x0} is null.</li>
 	 *             <li>If {@code terms} is null.</li>
 	 *             <li>If {@code terms} contains any null references.</li>
+	 *             </ul>
 	 * @throws IllegalArgumentException
 	 *             <ul>
 	 *             <li>If {@code dt} is not positive and
@@ -161,8 +201,8 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
 
 	/**
 	 * <p>
-	 * The size of the time-step; the difference between the futre point in time
-	 * and the current point in time.
+	 * The size of the time-step; the difference between the future point in
+	 * time and the current point in time.
 	 * </p>
 	 * <ul>
 	 * <li>The time-step is positive and {@linkplain Double#isInfinite()
@@ -231,10 +271,12 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
 	 *             {@inheritDoc}
 	 */
 	@Override
-	public FunctionNWithGradientValue value(ImmutableVector x) {
+	public final FunctionNWithGradientValue value(ImmutableVector x) {
 		double e = 0.0;
 		double[] dedx = new double[getDimension()];
-		// TODO
+		for (Term term : terms) {
+			e += term.evaluate(dedx, x, dt);
+		}
 		return new FunctionNWithGradientValue(x, e, ImmutableVector.create(dedx));
 	}
 
