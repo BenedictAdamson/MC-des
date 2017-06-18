@@ -164,7 +164,7 @@ public class TimeStepEnergyErrorFunctionTest {
 		final List<TimeStepEnergyErrorFunction.Term> terms = Collections.singletonList(term);
 		final TimeStepEnergyErrorFunction f = new TimeStepEnergyErrorFunction(ImmutableVector.create(x0), dt, terms);
 
-		final FunctionNWithGradientValue fx = FunctionNWithGradientTest.value(f, ImmutableVector.create(x));// inherited
+		final FunctionNWithGradientValue fx = value(f, ImmutableVector.create(x));// inherited
 
 		assertEquals("value.f", expectedE, fx.getF(), Double.MIN_NORMAL);
 		assertEquals("value.dfDx", expectedDeDx, fx.getDfDx().get(0), Double.MIN_NORMAL);
@@ -296,7 +296,7 @@ public class TimeStepEnergyErrorFunctionTest {
 		final List<TimeStepEnergyErrorFunction.Term> terms = Arrays.asList(term, term);
 		final TimeStepEnergyErrorFunction f = new TimeStepEnergyErrorFunction(ImmutableVector.create(x0), dt, terms);
 
-		final FunctionNWithGradientValue fx = FunctionNWithGradientTest.value(f, ImmutableVector.create(x));// inherited
+		final FunctionNWithGradientValue fx = value(f, ImmutableVector.create(x));// inherited
 
 		assertEquals("value.f", expectedE, fx.getF(), Double.MIN_NORMAL);
 		assertEquals("value.dfDx", expectedDeDx, fx.getDfDx().get(0), Double.MIN_NORMAL);
