@@ -177,6 +177,14 @@ public final class ImmutableVector {
 		return x.length;
 	}
 
+	private double getScale() {
+		double scale = 0.0;
+		for (double xI : x) {
+			scale = Math.max(scale, Math.abs(xI));
+		}
+		return scale;
+	}
+
 	@Override
 	public final int hashCode() {
 		return Arrays.hashCode(x);
@@ -187,15 +195,11 @@ public final class ImmutableVector {
 	 * The magnitude of this vector.
 	 * </p>
 	 * 
-	 * @return
+	 * @return the magnitude
 	 */
 	public final double magnitude() {
-		/* Use a scaling value to avoid overflow. */
-		double scale = 0.0;
-		for (double xI : x) {
-			scale = Math.max(scale, Math.abs(xI));
-		}
-		if (scale <= Double.MIN_NORMAL || !Double.isFinite(scale)) {
+		double scale = getScale();
+		if (!Double.isFinite(scale) || scale < Double.MIN_NORMAL) {
 			return scale;
 		} else {
 			final double r = 1.0 / scale;
@@ -205,6 +209,36 @@ public final class ImmutableVector {
 				m2 += xIScaled * xIScaled;
 			}
 			return Math.sqrt(m2) * scale;
+		}
+	}
+
+	/**
+	 * <p>
+	 * The square of the magnitude of this vector.
+	 * </p>
+	 * <p>
+	 * The method takes care to properly handle vectors with components that are
+	 * large, not numbers, or which differ greatly in magnitude. It is otherwise
+	 * similar to the {@linkplain #dot(ImmutableVector) dot product} of the
+	 * vector with itself.
+	 * </p>
+	 * 
+	 * @return the square of the magnitude.
+	 */
+	public final double magnitude2() {
+		/* Use a scaling value to avoid overflow. */
+		double scale = getScale();
+		final double scale2 = scale * scale;
+		if (!Double.isFinite(scale) || scale < Double.MIN_NORMAL) {
+			return scale2;
+		} else {
+			final double r = 1.0 / scale;
+			double m2 = 0.0;
+			for (double xI : x) {
+				final double xIScaled = xI * r;
+				m2 += xIScaled * xIScaled;
+			}
+			return m2 * scale2;
 		}
 	}
 
@@ -227,6 +261,41 @@ public final class ImmutableVector {
 		final double[] minus = new double[n];
 		for (int i = 0; i < n; ++i) {
 			minus[i] = -x[i];
+		}
+		return new ImmutableVector(minus);
+	}
+
+	/**
+	 * <p>
+	 * Create the vector that is a given vector subtracted from this vector; the
+	 * difference between this vector and another.
+	 * </p>
+	 * <ul>
+	 * <li>Always returns a (non null) vector.</li>
+	 * <li>The difference vector has the same {@linkplain #getDimension()
+	 * dimension} as this vector.</li>
+	 * <li>The {@linkplain #get(int) components} of the opposite vector are the
+	 * difference of the corresponding component of this vector.</li>
+	 * </ul>
+	 * 
+	 * @param that
+	 *            The other vector
+	 * @return the difference vector
+	 * 
+	 * @throws NullPointerException
+	 *             If {@code that} is null.
+	 * @throws IllegalArgumentException
+	 *             If the {@linkplain #getDimension() dimension} of {@code that}
+	 *             is not equal to the dimension of this.
+	 */
+	public final ImmutableVector minus(ImmutableVector that) {
+		Objects.requireNonNull(that, "that");
+		requireConsistentDimensions(this, that);
+
+		final int n = x.length;
+		final double[] minus = new double[n];
+		for (int i = 0; i < n; ++i) {
+			minus[i] = x[i] - that.x[i];
 		}
 		return new ImmutableVector(minus);
 	}
