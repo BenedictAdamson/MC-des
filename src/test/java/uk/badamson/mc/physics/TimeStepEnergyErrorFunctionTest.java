@@ -71,6 +71,15 @@ public class TimeStepEnergyErrorFunctionTest {
 		public static void assertInvariants(TimeStepEnergyErrorFunction.Term t1, TimeStepEnergyErrorFunction.Term t2) {
 			ObjectTest.assertInvariants(t1, t2);// inherited
 		}
+
+		public static double evaluate(TimeStepEnergyErrorFunction.Term term, double[] dedx, ImmutableVector x0,
+				double dt) {
+			final double e = term.evaluate(dedx, x0, dt);
+
+			assertInvariants(term);
+
+			return e;
+		}
 	}// class
 
 	private static final class ZeroTerm implements TimeStepEnergyErrorFunction.Term {
