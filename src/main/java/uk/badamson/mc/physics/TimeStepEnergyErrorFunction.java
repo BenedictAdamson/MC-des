@@ -47,7 +47,7 @@ import uk.badamson.mc.math.MinN;
  * <p>
  * The function is {@linkplain #value(ImmutableVector) calculated} by summing
  * the contributions of a {@linkplain #getTerms() collection of}
- * {@linkplain TimeStepEnergyErrorFunction.Term terms}. Multiple physical
+ * {@linkplain TimeStepEnergyErrorFunctionTerm terms}. Multiple physical
  * processes and multiple objects can be modelled by including terms for each of
  * the processes and objects.
  * </p>
@@ -55,79 +55,9 @@ import uk.badamson.mc.math.MinN;
 @Immutable
 public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient {
 
-	/**
-	 * <p>
-	 * A contributor to the {@linkplain TimeStepEnergyErrorFunction physical
-	 * modelling error of a system at a future point in time}.
-	 * </p>
-	 */
-	@Immutable
-	public interface Term {
-
-		/**
-		 * <p>
-		 * Calculate the value of this term.
-		 * </p>
-		 * <p>
-		 * The method returns the value for this error term, and adds the
-		 * components of the gradient of the error value to the given array of
-		 * components.
-		 * </p>
-		 * 
-		 * @param dedx
-		 *            An array for accumulating the components of the gradient
-		 *            of the error value.
-		 * @param state0
-		 *            The state vector of the physical system at the current
-		 *            point in time.
-		 * @param state
-		 *            The state vector of the physical system at the future
-		 *            point in time.
-		 * @param dt
-		 *            The size of the time-step; the difference between the
-		 *            future point in time and the current point in time.
-		 * @return the value
-		 * 
-		 * @throws NullPointerException
-		 *             <ul>
-		 *             <li>If {@code dedx} is null.</li>
-		 *             <li>If {@code state0} is null.</li>
-		 *             <li>If {@code state} is null.</li>
-		 *             </ul>
-		 * @throws IllegalArgumentException
-		 *             <ul>
-		 *             <li>If {@code dt} is not positive and
-		 *             {@linkplain Double#isInfinite() finite}.</li>
-		 *             <li>If {@code x0} and {@code state} have different {@linkplain ImmutableVector dimensions}.</li>
-		 *             <li>If this is not {@linkplain #isValidForDimension(int)
-		 *             valid} for the dimension of {@code x0}.</li>
-		 *             </ul>
-		 * @throws RuntimeException
-		 *             If the length of {@code dedx} does not equal the
-		 *             {@linkplain ImmutableVector#getDimension() dimension} of
-		 *             {@code x0}. For a typical implementation this would be an
-		 *             {@link IndexOutOfBoundsException}, but it could be an
-		 *             {@link IllegalArgumentException}.
-		 */
-		public double evaluate(double[] dedx, ImmutableVector state0, ImmutableVector state, double dt);
-
-		/**
-		 * <p>
-		 * Whether this term can be calculated for a physical state vector that
-		 * has a given number of variables.
-		 * </p>
-		 * 
-		 * @return whether valid.
-		 * @throws IllegalArgumentException
-		 *             If {@code n} is not positive.
-		 */
-		public boolean isValidForDimension(int n);
-		
-	}// interface
-
 	private final ImmutableVector x0;
 	private final double dt;
-	private final List<Term> terms;
+	private final List<TimeStepEnergyErrorFunctionTerm> terms;
 
 	/**
 	 * <p>
@@ -164,12 +94,12 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
 	 *             <li>If {@code dt} is not positive and
 	 *             {@linkplain Double#isInfinite() finite}.</li>
 	 *             <li>If and of the {@code terms} is not
-	 *             {@linkplain TimeStepEnergyErrorFunction.Term#isValidForDimension(int)
+	 *             {@linkplain TimeStepEnergyErrorFunctionTerm#isValidForDimension(int)
 	 *             valid} for the {@linkplain ImmutableVector#getDimension()
 	 *             dimension} of {@code x0}.</li>
 	 *             </ul>
 	 */
-	public TimeStepEnergyErrorFunction(ImmutableVector x0, double dt, List<Term> terms) {
+	public TimeStepEnergyErrorFunction(ImmutableVector x0, double dt, List<TimeStepEnergyErrorFunctionTerm> terms) {
 		Objects.requireNonNull(x0, "x0");
 		Objects.requireNonNull(terms, "terms");
 		if (dt <= 0.0 || !Double.isFinite(dt)) {
@@ -182,7 +112,7 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
 
 		/* Check precondition after construction to avoid race hazards. */
 		final int dimension = x0.getDimension();
-		for (Term term : this.terms) {
+		for (TimeStepEnergyErrorFunctionTerm term : this.terms) {
 			Objects.requireNonNull(term, "term");
 			if (!term.isValidForDimension(dimension)) {
 				throw new IllegalArgumentException("term <" + term + "> not valid for " + dimension + " dimensions");
@@ -241,7 +171,7 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
 	 *
 	 * @return the terms
 	 */
-	public final List<Term> getTerms() {
+	public final List<TimeStepEnergyErrorFunctionTerm> getTerms() {
 		return terms;
 	}
 
@@ -278,14 +208,14 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
 	 *             If {@code state} is null.
 	 * @throws IllegalArgumentException
 	 *             If the {@linkplain ImmutableVector#getDimension() dimension}
-	 *             of {@code state} does not equal the {@linkplain #getDimension()
-	 *             dimension} of this functor.
+	 *             of {@code state} does not equal the
+	 *             {@linkplain #getDimension() dimension} of this functor.
 	 */
 	@Override
 	public final FunctionNWithGradientValue value(ImmutableVector state) {
 		double e = 0.0;
 		double[] dedx = new double[getDimension()];
-		for (Term term : terms) {
+		for (TimeStepEnergyErrorFunctionTerm term : terms) {
 			e += term.evaluate(dedx, state, x0, dt);
 		}
 		return new FunctionNWithGradientValue(state, e, ImmutableVector.create(dedx));

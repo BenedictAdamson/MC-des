@@ -9,7 +9,7 @@ import org.junit.Test;
 
 import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.math.ImmutableVector;
-import uk.badamson.mc.physics.TimeStepEnergyErrorFunctionTest;
+import uk.badamson.mc.physics.TimeStepEnergyErrorFunctionTermTest;
 
 /**
  * <p>
@@ -22,7 +22,7 @@ public class PositionErrorTest {
 
 	public static void assertInvariants(PositionError term) {
 		ObjectTest.assertInvariants(term);// inherited
-		TimeStepEnergyErrorFunctionTest.TermTest.assertInvariants(term);// inherited
+		TimeStepEnergyErrorFunctionTermTest.assertInvariants(term);// inherited
 
 		final ImmutableVector direction = term.getDirection();
 		final double mass = term.getMass();
@@ -52,7 +52,7 @@ public class PositionErrorTest {
 
 	public static void assertInvariants(PositionError term1, PositionError term2) {
 		ObjectTest.assertInvariants(term1, term2);// inherited
-		TimeStepEnergyErrorFunctionTest.TermTest.assertInvariants(term1, term2);// inherited
+		TimeStepEnergyErrorFunctionTermTest.assertInvariants(term1, term2);// inherited
 	}
 
 	private static PositionError constructor(ImmutableVector direction, double mass, int[] positionTerm,
@@ -73,7 +73,7 @@ public class PositionErrorTest {
 
 	private static double evaluate(PositionError term, double[] dedx, ImmutableVector x0, ImmutableVector x,
 			double dt) {
-		final double e = TimeStepEnergyErrorFunctionTest.TermTest.evaluate(term, dedx, x0, x, dt);
+		final double e = TimeStepEnergyErrorFunctionTermTest.evaluate(term, dedx, x0, x, dt);
 
 		assertInvariants(term);
 

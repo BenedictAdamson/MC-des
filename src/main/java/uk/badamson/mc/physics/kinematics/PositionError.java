@@ -4,11 +4,12 @@ import java.util.Arrays;
 import java.util.Objects;
 
 import uk.badamson.mc.math.ImmutableVector;
-import uk.badamson.mc.physics.TimeStepEnergyErrorFunction;;
+import uk.badamson.mc.physics.TimeStepEnergyErrorFunction;
+import uk.badamson.mc.physics.TimeStepEnergyErrorFunctionTerm;;
 
 /**
  * <p>
- * A {@linkplain TimeStepEnergyErrorFunction.Term term} for a
+ * A {@linkplain TimeStepEnergyErrorFunctionTerm term} for a
  * {@linkplain TimeStepEnergyErrorFunction functor that calculates the physical
  * modelling error of a system at a future point in time} that gives the degree
  * of inconsistency of the position and velocity of a body.
@@ -21,7 +22,7 @@ import uk.badamson.mc.physics.TimeStepEnergyErrorFunction;;
  * co-linear.
  * </p>
  */
-public final class PositionError implements TimeStepEnergyErrorFunction.Term {
+public final class PositionError implements TimeStepEnergyErrorFunctionTerm {
 
 	private static int[] copyTermIndex(int[] index) {
 		final int[] copy = Arrays.copyOf(index, index.length);
