@@ -15,7 +15,7 @@ import uk.badamson.mc.math.ImmutableVector;;
  */
 public abstract class AbstractTimeStepEnergyErrorFunctionTerm implements TimeStepEnergyErrorFunctionTerm {
 
-	protected static int[] copyTermIndex(int[] index) {
+	protected static final int[] copyTermIndex(int[] index) {
 		final int[] copy = Arrays.copyOf(index, index.length);
 		/* Check precondition after copy to avoid race hazards. */
 		for (int i : copy) {
@@ -26,7 +26,7 @@ public abstract class AbstractTimeStepEnergyErrorFunctionTerm implements TimeSte
 		return copy;
 	}
 
-	protected static ImmutableVector extract(ImmutableVector x, int term[]) {
+	protected static final ImmutableVector extract(ImmutableVector x, int term[]) {
 		final int n = term.length;
 		final double[] extract = new double[n];
 		for (int i = 0; i < n; i++) {
