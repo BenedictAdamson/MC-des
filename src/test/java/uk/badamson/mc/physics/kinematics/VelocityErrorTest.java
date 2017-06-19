@@ -80,6 +80,33 @@ public class VelocityErrorTest {
 		return e;
 	}
 
+	private static final void evaluate_1(double direction, double mass, double dedv0, double deda0, double v0,
+			double a0, double v, double a, double dt, double eExpected, double dEDVExpected, double dEDAExpected,
+			double tolerance) {
+		final int velocityTerm = 0;
+		final int accelerationTerm = 1;
+		final double[] dedx = { dedv0, deda0 };
+		final ImmutableVector state0 = ImmutableVector.create(v0, a0);
+		final ImmutableVector state = ImmutableVector.create(v, a);
+		final VelocityError term = new VelocityError(ImmutableVector.create(direction), mass,
+				new int[] { velocityTerm }, new int[] { accelerationTerm });
+
+		final double e = evaluate(term, dedx, state0, state, dt);
+
+		assertEquals("energy", eExpected, e, tolerance);
+		assertEquals("dedx[velocityTerm]", dEDVExpected, dedx[velocityTerm], tolerance);
+		assertEquals("dedx[accelerationTerm]", dEDAExpected, dedx[accelerationTerm], tolerance);
+	}
+
+	private static final void evaluate_1Minimum(double direction, double mass, double dedv0, double deda0, double v0,
+			double a0, double v, double a, double dt, double tolerance) {
+		final double eExpected = 0.0;
+		final double dEDVExpected = dedv0;
+		final double dEDAExpected = deda0;
+
+		evaluate_1(direction, mass, dedv0, deda0, v0, a0, v, a, dt, eExpected, dEDVExpected, dEDAExpected, tolerance);
+	}
+
 	@Test
 	public void constructor_1A() {
 		final ImmutableVector direction = ImmutableVector.create(1.0);
@@ -109,5 +136,282 @@ public class VelocityErrorTest {
 		final int[] velocityTerm = { 5, 6 };
 
 		constructor(direction, mass, positionTerm, velocityTerm);
+	}
+
+	@Test
+	public void evaluate_1A() {
+		final double direction = 1.0;
+		final double mass = 1.0;
+		final double dedv0 = 0.0;
+		final double deda0 = 0.0;
+		final double v0 = 0.0;
+		final double a0 = 0.0;
+		final double v = 0.0;
+		final double a = 2.0;
+		final double dt = 1.0;
+		final double eExpected = 0.5;
+		final double dEDVExpected = -1.0;
+		final double dEDAExpected = 0.5;
+		final double tolerance = 1E-3;
+
+		evaluate_1(direction, mass, dedv0, deda0, v0, a0, v, a, dt, eExpected, dEDVExpected, dEDAExpected, tolerance);
+	}
+
+	@Test
+	public void evaluate_1A0() {
+		final double direction = 1.0;
+		final double mass = 1.0;
+		final double dedv0 = 0.0;
+		final double deda0 = 0.0;
+		final double v0 = 0.0;
+		final double a0 = 2.0;
+		final double v = 0.0;
+		final double a = 0.0;
+		final double dt = 1.0;
+		final double eExpected = 0.5;
+		final double dEDVExpected = -1.0;
+		final double dEDAExpected = 0.5;
+		final double tolerance = 1E-3;
+
+		evaluate_1(direction, mass, dedv0, deda0, v0, a0, v, a, dt, eExpected, dEDVExpected, dEDAExpected, tolerance);
+	}
+
+	@Test
+	public void evaluate_1DT() {
+		final double direction = 1.0;
+		final double mass = 1.0;
+		final double dedv0 = 0.0;
+		final double deda0 = 0.0;
+		final double v0 = 0.0;
+		final double a0 = 0.0;
+		final double v = 0.0;
+		final double a = 2.0;
+		final double dt = 2.0;
+		final double eExpected = 2.0;
+		final double dEDVExpected = -2.0;
+		final double dEDAExpected = 2.0;
+		final double tolerance = 1E-3;
+
+		evaluate_1(direction, mass, dedv0, deda0, v0, a0, v, a, dt, eExpected, dEDVExpected, dEDAExpected, tolerance);
+	}
+
+	@Test
+	public void evaluate_1MinimumA0A() {
+		final double direction = 1.0;
+		final double mass = 1.0;
+		final double dedv0 = 0.0;
+		final double deda0 = 0;
+		final double v0 = 0.0;
+		final double a0 = 2.0;
+		final double v = 0.0;
+		final double a = -2.0;
+		final double dt = 1.0;
+		final double tolerance = 1E-3;
+
+		evaluate_1Minimum(direction, mass, dedv0, deda0, v0, a0, v, a, dt, tolerance);
+	}
+
+	@Test
+	public void evaluate_1MinimumA0V() {
+		final double direction = 1.0;
+		final double mass = 1.0;
+		final double dedv0 = 0.0;
+		final double deda0 = 0;
+		final double v0 = 0.0;
+		final double a0 = 2.0;
+		final double v = 1.0;
+		final double a = 0.0;
+		final double dt = 1.0;
+		final double tolerance = 1E-3;
+
+		evaluate_1Minimum(direction, mass, dedv0, deda0, v0, a0, v, a, dt, tolerance);
+	}
+
+	@Test
+	public void evaluate_1MinimumBase() {
+		final double direction = 1.0;
+		final double mass = 1.0;
+		final double dedv0 = 0.0;
+		final double deda0 = 0;
+		final double v0 = 0.0;
+		final double a0 = 0.0;
+		final double v = 0.0;
+		final double a = 0.0;
+		final double dt = 1.0;
+		final double tolerance = 1E-3;
+
+		evaluate_1Minimum(direction, mass, dedv0, deda0, v0, a0, v, a, dt, tolerance);
+	}
+
+	@Test
+	public void evaluate_1MinimumDEDA0() {
+		final double direction = 1.0;
+		final double mass = 1.0;
+		final double dedv0 = 0.0;
+		final double deda0 = 2.0;
+		final double v0 = 0.0;
+		final double a0 = 0.0;
+		final double v = 0.0;
+		final double a = 0.0;
+		final double dt = 1.0;
+		final double tolerance = 1E-3;
+
+		evaluate_1Minimum(direction, mass, dedv0, deda0, v0, a0, v, a, dt, tolerance);
+	}
+
+	@Test
+	public void evaluate_1MinimumDEDV0() {
+		final double direction = 1.0;
+		final double mass = 1.0;
+		final double dedv0 = 2.0;
+		final double deda0 = 0.0;
+		final double v0 = 0.0;
+		final double a0 = 0.0;
+		final double v = 0.0;
+		final double a = 0.0;
+		final double dt = 1.0;
+		final double tolerance = 1E-3;
+
+		evaluate_1Minimum(direction, mass, dedv0, deda0, v0, a0, v, a, dt, tolerance);
+	}
+
+	@Test
+	public void evaluate_1MinimumDirection() {
+		final double direction = -1.0;
+		final double mass = 1.0;
+		final double dedv0 = 0.0;
+		final double deda0 = 0.0;
+		final double v0 = 0.0;
+		final double a0 = 0.0;
+		final double v = 0.0;
+		final double a = 0.0;
+		final double dt = 1.0;
+		final double tolerance = 1E-3;
+
+		evaluate_1Minimum(direction, mass, dedv0, deda0, v0, a0, v, a, dt, tolerance);
+	}
+
+	@Test
+	public void evaluate_1MinimumMass() {
+		final double direction = 1.0;
+		final double mass = 2.0;
+		final double dedv0 = 0.0;
+		final double deda0 = 0.0;
+		final double v0 = 0.0;
+		final double a0 = 0.0;
+		final double v = 0.0;
+		final double a = 0.0;
+		final double dt = 1.0;
+		final double tolerance = 1E-3;
+
+		evaluate_1Minimum(direction, mass, dedv0, deda0, v0, a0, v, a, dt, tolerance);
+	}
+
+	@Test
+	public void evaluate_1MinimumV0A() {
+		final double direction = 1.0;
+		final double mass = 1.0;
+		final double dedv0 = 0.0;
+		final double deda0 = 0;
+		final double v0 = 2.0;
+		final double a0 = 0.0;
+		final double v = 0.0;
+		final double a = -4.0;
+		final double dt = 1.0;
+		final double tolerance = 1E-3;
+
+		evaluate_1Minimum(direction, mass, dedv0, deda0, v0, a0, v, a, dt, tolerance);
+	}
+
+	@Test
+	public void evaluate_1MinimumV0V() {
+		final double direction = 1.0;
+		final double mass = 1.0;
+		final double dedv0 = 0.0;
+		final double deda0 = 0;
+		final double v0 = 2.0;
+		final double a0 = 0.0;
+		final double v = 2.0;
+		final double a = 0.0;
+		final double dt = 1.0;
+		final double tolerance = 1E-3;
+
+		evaluate_1Minimum(direction, mass, dedv0, deda0, v0, a0, v, a, dt, tolerance);
+	}
+
+	@Test
+	public void evaluate_1V() {
+		final double direction = 1.0;
+		final double mass = 1.0;
+		final double dedv0 = 0.0;
+		final double deda0 = 0.0;
+		final double v0 = 0.0;
+		final double a0 = 0.0;
+		final double v = 2.0;
+		final double a = 0.0;
+		final double dt = 1.0;
+		final double eExpected = 2.0;
+		final double dEDVExpected = 2.0;
+		final double dEDAExpected = -1.0;
+		final double tolerance = 1E-3;
+
+		evaluate_1(direction, mass, dedv0, deda0, v0, a0, v, a, dt, eExpected, dEDVExpected, dEDAExpected, tolerance);
+	}
+
+	@Test
+	public void evaluate_1V0() {
+		final double direction = 1.0;
+		final double mass = 1.0;
+		final double dedv0 = 0.0;
+		final double deda0 = 0.0;
+		final double v0 = 2.0;
+		final double a0 = 0.0;
+		final double v = 0.0;
+		final double a = 0.0;
+		final double dt = 1.0;
+		final double eExpected = 2.0;
+		final double dEDVExpected = -2.0;
+		final double dEDAExpected = 1.0;
+		final double tolerance = 1E-3;
+
+		evaluate_1(direction, mass, dedv0, deda0, v0, a0, v, a, dt, eExpected, dEDVExpected, dEDAExpected, tolerance);
+	}
+
+	@Test
+	public void evaluate_1VDT() {
+		final double direction = 1.0;
+		final double mass = 1.0;
+		final double dedv0 = 0.0;
+		final double deda0 = 0.0;
+		final double v0 = 0.0;
+		final double a0 = 0.0;
+		final double v = 2.0;
+		final double a = 0.0;
+		final double dt = 2.0;
+		final double eExpected = 2.0;
+		final double dEDVExpected = 2.0;
+		final double dEDAExpected = -2.0;
+		final double tolerance = 1E-3;
+
+		evaluate_1(direction, mass, dedv0, deda0, v0, a0, v, a, dt, eExpected, dEDVExpected, dEDAExpected, tolerance);
+	}
+
+	@Test
+	public void evaluate_1VM() {
+		final double direction = 1.0;
+		final double mass = 2.0;
+		final double dedv0 = 0.0;
+		final double deda0 = 0.0;
+		final double v0 = 0.0;
+		final double a0 = 0.0;
+		final double v = 2.0;
+		final double a = 0.0;
+		final double dt = 1.0;
+		final double eExpected = 4.0;
+		final double dEDVExpected = 4.0;
+		final double dEDAExpected = -2.0;
+		final double tolerance = 1E-3;
+
+		evaluate_1(direction, mass, dedv0, deda0, v0, a0, v, a, dt, eExpected, dEDVExpected, dEDAExpected, tolerance);
 	}
 }
