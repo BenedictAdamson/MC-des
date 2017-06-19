@@ -11,7 +11,7 @@ import uk.badamson.mc.physics.TimeStepEnergyErrorFunction;;
  * A {@linkplain TimeStepEnergyErrorFunction.Term term} for a
  * {@linkplain TimeStepEnergyErrorFunction functor that calculates the physical
  * modelling error of a system at a future point in time} that gives the degree
- * of inconsistency of the position and velocity of a body.
+ * of inconsistency of the velocity and acceleration of a body.
  * </p>
  * <p>
  * This term calculates the error in only one {@linkplain #getDirection()
@@ -45,12 +45,12 @@ public final class VelocityError implements TimeStepEnergyErrorFunction.Term {
 
 	private final ImmutableVector direction;
 	private final double mass;
-	private final int[] positionTerm;
 	private final int[] velocityTerm;
+	private final int[] accelerationTerm;
 
 	/**
 	 * <p>
-	 * Construct a position error term.
+	 * Construct a velocity error term.
 	 * </p>
 	 *
 	 * <section>
@@ -65,73 +65,71 @@ public final class VelocityError implements TimeStepEnergyErrorFunction.Term {
 	 *            The direction in which to calculate the error term.
 	 * @param mass
 	 *            A reference mass scale.
-	 * @param positionTerm
-	 *            Which terms in the solution space vector correspond to the
-	 *            components of the position vector of the body.
-	 *            {@code positionTerm[i]} is index of component <var>i</var>,
 	 * @param velocityTerm
 	 *            Which terms in the solution space vector correspond to the
 	 *            components of the velocity vector of the body.
+	 *            {@code velocityTerm[i]} is index of component <var>i</var>,
+	 * @param accelerationTerm
+	 *            Which terms in the solution space vector correspond to the
+	 *            components of the acceleration vector of the body.
 	 *            {@code velocityTerm[i]} is index of component <var>i</var>,
 	 * 
 	 * @throws NullPointerException
 	 *             <ul>
 	 *             <li>If {@code direction} is null.</li>
-	 *             <li>If {@code positionTerm} is null.</li>
 	 *             <li>If {@code velocityTerm} is null.</li>
+	 *             <li>If {@code accelerationTerm} is null.</li>
 	 * @throws IllegalArgumentException
 	 *             <ul>
 	 *             <li>If {@code direction} is not a unit vector.</li>
 	 *             <li>If {@code mass} is not a positive and
 	 *             {@linkplain Double#isFinite(double) finite}.</li>
-	 *             <li>If the length of {@code positionTerm} does not equal the
+	 *             <li>If the length of {@code velocityTerm} does not equal the
 	 *             {@linkplain ImmutableVector#getDimension() dimension} of
 	 *             {@code direction}.</li>
-	 *             <li>If the length of {@code velocityTerm} does not equal the
-	 *             dimension of {@code direction}.</li>
-	 *             <li>If {@code positionTerm} has any negative values.</li>
+	 *             <li>If the length of {@code accelerationTerm} does not equal
+	 *             the dimension of {@code direction}.</li>
 	 *             <li>If {@code velocityTerm} has any negative values.</li>
+	 *             <li>If {@code accelerationTerm} has any negative values.</li>
 	 *             </ul>
 	 */
-	public VelocityError(ImmutableVector direction, double mass, int[] positionTerm, int[] velocityTerm) {
+	public VelocityError(ImmutableVector direction, double mass, int[] velocityTerm, int[] accelerationTerm) {
 		Objects.requireNonNull(direction, "direction");
-		Objects.requireNonNull(positionTerm, "positionTerm");
 		Objects.requireNonNull(velocityTerm, "velocityTerm");
+		Objects.requireNonNull(accelerationTerm, "accelerationTerm");
 
 		final int n = direction.getDimension();
-		if (positionTerm.length != n) {
-			throw new IllegalArgumentException("Inconsistent positionTerm.length <" + positionTerm.length
-					+ "> and direction.dimension<" + n + ">");
-		}
 		if (velocityTerm.length != n) {
 			throw new IllegalArgumentException("Inconsistent velocityTerm.length <" + velocityTerm.length
+					+ "> and direction.dimension<" + n + ">");
+		}
+		if (accelerationTerm.length != n) {
+			throw new IllegalArgumentException("Inconsistent accelerationTerm.length <" + accelerationTerm.length
 					+ "> and direction.dimension<" + n + ">");
 		}
 
 		this.direction = direction;
 		this.mass = mass;
-		this.positionTerm = copyTermIndex(positionTerm);
 		this.velocityTerm = copyTermIndex(velocityTerm);
+		this.accelerationTerm = copyTermIndex(accelerationTerm);
 	}
 
 	/**
 	 * {@inheritDoc}
 	 * 
 	 * <ol>
-	 * <li>The method uses the {@linkplain #getPositionTerm(int) position term
-	 * index} information and {@linkplain #getVelocityTerm(int) velocity term
-	 * index} information to extract position and velocity vectors from the
-	 * given state vectors.</li>
+	 * <li>The method uses the {@linkplain #getVelocityTerm(int) velocity term
+	 * index} information and {@linkplain #getAccelerationTerm(int) acceleration
+	 * term index} information to extract velocity and acceleraation vectors
+	 * from the given state vectors.</li>
 	 * <li>It reduces those vectors to scalars by finding their components along
 	 * the {@linkplain #getDirection() direction vector}.</li>
-	 * <li>It calculates a mean acceleration from the old and new velocity
-	 * values, and the time-step size.</li>
-	 * <li>It calculates the extrapolated position from the old position, the
-	 * old velocity, and the mean acceleration.</li>
-	 * <li>It calculates a position error by comparing the new position with the
-	 * extrapolated position.</li>
-	 * <li>From that it calculates an equivalent velocity error, by dividing the
-	 * position error by the time-step size.</li>
+	 * <li>It calculates a mean acceleration from the old and new acceleration
+	 * values.</li>
+	 * <li>It calculates the extrapolated velocity from the old velocity and the
+	 * mean acceleration.</li>
+	 * <li>It calculates a velocity error by comparing the new velocity with the
+	 * extrapolated velocity.</li>
 	 * <li>From that it calculates an equivalent kinetic energy error, using the
 	 * {@linkplain #getMass() characteristic mass value}. That is the error term
 	 * it returns.</li>
@@ -174,37 +172,58 @@ public final class VelocityError implements TimeStepEnergyErrorFunction.Term {
 					"Inconsistent length of dedx " + dedx.length + " and dimension of x0 " + nState);
 		}
 
-		final ImmutableVector x0 = extract(state0, positionTerm);
 		final ImmutableVector v0 = extract(state0, velocityTerm);
-		final ImmutableVector x = extract(state, positionTerm);
+		final ImmutableVector a0 = extract(state0, accelerationTerm);
 		final ImmutableVector v = extract(state, velocityTerm);
-		final ImmutableVector dx = x.minus(x0);
+		final ImmutableVector a = extract(state, accelerationTerm);
 		final ImmutableVector dv = v.minus(v0);
+		final ImmutableVector da = a.minus(a0);
 
-		final double dsdt0 = v0.dot(direction);
-		final double ds = dx.dot(direction);
-		final double dsdt = dv.dot(direction);
+		final double a01 = a0.dot(direction);
+		final double dv1 = dv.dot(direction);
+		final double da1 = da.dot(direction);
 
-		final double rate = 1.0 / dt;
-		final double d2sdt2 = dsdt * rate;
-		final double dsExtrapolate = (dsdt0 + 0.5 * d2sdt2 * dt) * dt;
-		final double sError = ds - dsExtrapolate;
-		final double vError = sError * rate;
+		final double aMean = a01 + 0.5 * da1;
+		final double dvExtrapolated = aMean * dt;
+
+		final double vError = dv1 - dvExtrapolated;
 		final double mvError = vError * mass;
 		final double eError = 0.5 * vError * mvError;
 
-		final double dedv = mvError * -0.5;
-		final double deds = mvError * rate;
+		final double dedv = mvError;
+		final double deda = -0.5 * mvError * dt;
 
-		for (int i = 0, n = positionTerm.length; i < n; ++i) {
+		for (int i = 0, n = velocityTerm.length; i < n; ++i) {
 			final double dsdxi = direction.get(i);
-			final double dedxi = deds * dsdxi;
 			final double dedvi = dedv * dsdxi;
+			final double dedai = deda * dsdxi;
 
-			dedx[positionTerm[i]] += dedxi;
 			dedx[velocityTerm[i]] += dedvi;
+			dedx[accelerationTerm[i]] += dedai;
 		}
 		return eError;
+	}
+
+	/**
+	 * <p>
+	 * Which terms in the solution space vector correspond to the components of
+	 * the acceleraation vector of the body.
+	 * </p>
+	 * 
+	 * @param i
+	 *            The component of interest.
+	 * @return the index of the component of the acceleration vector; not
+	 *         negative
+	 * 
+	 * @throws IndexOutOfBoundsException
+	 *             <ul>
+	 *             <li>If {@code i} is negative.</li>
+	 *             <li>If {@code i} is not less than the
+	 *             {@linkplain #getSpaceDimension() space dimension}.</li>
+	 *             </ul>
+	 */
+	public final int getAccelerationTerm(int i) {
+		return accelerationTerm[i];
 	}
 
 	/**
@@ -245,35 +264,14 @@ public final class VelocityError implements TimeStepEnergyErrorFunction.Term {
 
 	/**
 	 * <p>
-	 * Which terms in the solution space vector correspond to the components of
-	 * the position vector of the body.
-	 * </p>
-	 * 
-	 * @param i
-	 *            The component of interest.
-	 * @return the index of the component of the position vector; not negative
-	 * 
-	 * @throws IndexOutOfBoundsException
-	 *             <ul>
-	 *             <li>If {@code i} is negative.</li>
-	 *             <li>If {@code i} is not less than the
-	 *             {@linkplain #getSpaceDimension() space dimension}.</li>
-	 *             </ul>
-	 */
-	public final int getPositionTerm(int i) {
-		return positionTerm[i];
-	}
-
-	/**
-	 * <p>
-	 * The number of space dimensions for which this calculates a position
+	 * The number of space dimensions for which this calculates a velocity
 	 * error.
 	 * </p>
 	 * <ul>
 	 * <li>The number of space dimensions is equal to the
 	 * {@linkplain ImmutableVector#getDimension() dimension} of the
 	 * {@linkplain #getDirection() direction vector} along which this calculates
-	 * the position error.
+	 * the velocity error.
 	 * </ul>
 	 * 
 	 * @return
@@ -310,9 +308,9 @@ public final class VelocityError implements TimeStepEnergyErrorFunction.Term {
 	 * </p>
 	 * <ul>
 	 * <li>This is valid for a given dimension if, and only if, the number of
-	 * variables exceeds the largest {@linkplain #getPositionTerm(int) position
-	 * term index} and exceeds the largest {@linkplain #getVelocityTerm(int)
-	 * velocity term index}.</li>
+	 * variables exceeds the largest {@linkplain #getVelocityTerm(int) velocity
+	 * term index} and exceeds the largest {@linkplain #getAccelerationTerm(int)
+	 * acceleration term index}.</li>
 	 * </ul>
 	 * 
 	 * @return whether valid.
@@ -321,8 +319,8 @@ public final class VelocityError implements TimeStepEnergyErrorFunction.Term {
 	 */
 	@Override
 	public boolean isValidForDimension(int n) {
-		for (int i = 0, pn = positionTerm.length; i < pn; ++i) {
-			if (n < positionTerm[i] + 1 || n < velocityTerm[i] + 1) {
+		for (int i = 0, pn = velocityTerm.length; i < pn; ++i) {
+			if (n < velocityTerm[i] + 1 || n < accelerationTerm[i] + 1) {
 				return false;
 			}
 		}
