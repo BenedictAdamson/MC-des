@@ -1,9 +1,9 @@
 package uk.badamson.mc.physics.kinematics;
 
-import java.util.Arrays;
 import java.util.Objects;
 
 import uk.badamson.mc.math.ImmutableVector;
+import uk.badamson.mc.physics.AbstractTimeStepEnergyErrorFunctionTerm;
 import uk.badamson.mc.physics.TimeStepEnergyErrorFunction;
 import uk.badamson.mc.physics.TimeStepEnergyErrorFunctionTerm;;
 
@@ -22,27 +22,7 @@ import uk.badamson.mc.physics.TimeStepEnergyErrorFunctionTerm;;
  * co-linear.
  * </p>
  */
-public final class VelocityError implements TimeStepEnergyErrorFunctionTerm {
-
-	private static int[] copyTermIndex(int[] index) {
-		final int[] copy = Arrays.copyOf(index, index.length);
-		/* Check precondition after copy to avoid race hazards. */
-		for (int i : copy) {
-			if (i < 0) {
-				throw new IllegalArgumentException("Negative index term " + i);
-			}
-		}
-		return copy;
-	}
-
-	private static ImmutableVector extract(ImmutableVector x, int term[]) {
-		final int n = term.length;
-		final double[] extract = new double[n];
-		for (int i = 0; i < n; i++) {
-			extract[i] = x.get(term[i]);
-		}
-		return ImmutableVector.create(extract);
-	}
+public final class VelocityError extends AbstractTimeStepEnergyErrorFunctionTerm {
 
 	private final ImmutableVector direction;
 	private final double mass;

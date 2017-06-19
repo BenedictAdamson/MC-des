@@ -7,9 +7,8 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.math.ImmutableVector;
-import uk.badamson.mc.physics.TimeStepEnergyErrorFunctionTermTest;
+import uk.badamson.mc.physics.AbstractTimeStepEnergyErrorFunctionTermTest;
 
 /**
  * <p>
@@ -21,8 +20,7 @@ public class VelocityErrorTest {
 	private static final double TOLERANCE_1 = Math.nextAfter(1.0, Double.POSITIVE_INFINITY) - 1.0;
 
 	public static void assertInvariants(VelocityError term) {
-		ObjectTest.assertInvariants(term);// inherited
-		TimeStepEnergyErrorFunctionTermTest.assertInvariants(term);// inherited
+		AbstractTimeStepEnergyErrorFunctionTermTest.assertInvariants(term);// inherited
 
 		final ImmutableVector direction = term.getDirection();
 		final double mass = term.getMass();
@@ -51,8 +49,7 @@ public class VelocityErrorTest {
 	}
 
 	public static void assertInvariants(VelocityError term1, VelocityError term2) {
-		ObjectTest.assertInvariants(term1, term2);// inherited
-		TimeStepEnergyErrorFunctionTermTest.assertInvariants(term1, term2);// inherited
+		AbstractTimeStepEnergyErrorFunctionTermTest.assertInvariants(term1, term2);// inherited
 	}
 
 	private static VelocityError constructor(ImmutableVector direction, double mass, int[] velocityTerm,
@@ -73,7 +70,7 @@ public class VelocityErrorTest {
 
 	private static double evaluate(VelocityError term, double[] dedx, ImmutableVector x0, ImmutableVector x,
 			double dt) {
-		final double e = TimeStepEnergyErrorFunctionTermTest.evaluate(term, dedx, x0, x, dt);
+		final double e = AbstractTimeStepEnergyErrorFunctionTermTest.evaluate(term, dedx, x0, x, dt);
 
 		assertInvariants(term);
 
