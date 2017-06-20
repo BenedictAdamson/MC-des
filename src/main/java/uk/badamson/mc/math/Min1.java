@@ -262,8 +262,8 @@ public final class Min1 {
 			Function1WithGradientValue right) {
 		final double xi = inner.getX();
 		/*
-		 * Use the gradient at teh inner point to guess which side probably
-		 * contains the minmiium
+		 * Use the gradient at the inner point to guess which side probably
+		 * contains the minimum
 		 */
 		if (0.0 <= inner.getDfDx()) {
 			return xi + (left.getX() - xi) * 0.5;
