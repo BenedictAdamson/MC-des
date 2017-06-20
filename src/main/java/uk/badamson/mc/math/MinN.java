@@ -157,7 +157,7 @@ public final class MinN {
 	 *             {@code f}.</li></li>
 	 *             </ul>
 	 */
-	static Function1WithGradient createLineFunction(final FunctionNWithGradient f, final ImmutableVector x0,
+	public static Function1WithGradient createLineFunction(final FunctionNWithGradient f, final ImmutableVector x0,
 			final ImmutableVector dx) {
 		Objects.requireNonNull(f, "f");
 		Objects.requireNonNull(x0, "x0");

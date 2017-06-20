@@ -25,4 +25,10 @@ public class FunctionNWithGradientTest {
 
 		return v;
 	}
+
+	public static void assertValueConsistentWithGradientAlongLine(final FunctionNWithGradient f, final double w1,
+			final double w2, final int n, final ImmutableVector x0, final ImmutableVector dx) {
+		final Function1WithGradient fLine = MinN.createLineFunction(f, x0, dx);
+		Function1WithGradientTest.assertValueConsistentWithGradient(fLine, w1, w2, n);
+	}
 }
