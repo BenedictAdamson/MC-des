@@ -244,6 +244,37 @@ public final class ImmutableVector {
 
 	/**
 	 * <p>
+	 * Create the vector that is the mean of this vector with another vector.
+	 * </p>
+	 * <ul>
+	 * <li>Always returns a (non null) vector.</li>
+	 * <li>The {@linkplain ImmutableVector#getDimension() dimension} of the mean
+	 * vector is equal to the dimension of this vector.</li>
+	 * </ul>
+	 * 
+	 * @param that
+	 *            The vector to take the mean with
+	 * @return the mean vector
+	 * 
+	 * @throws NullPointerException
+	 *             If {@code that} is null.
+	 * @throws IllegalArgumentException
+	 *             If the {@linkplain ImmutableVector#getDimension() dimension}
+	 *             of }@code that} is not equal to ehe dimension of this vector.
+	 */
+	public final ImmutableVector mean(ImmutableVector that) {
+		Objects.requireNonNull(that, "that");
+		requireConsistentDimensions(this, that);
+		final int n = x.length;
+		final double[] mean = new double[n];
+		for (int i = 0; i < n; i++) {
+			mean[i] = (x[i] + that.x[i]) * 0.5;
+		}
+		return new ImmutableVector(mean);
+	}
+
+	/**
+	 * <p>
 	 * Create the vector that is opposite in direction of this vector.
 	 * </p>
 	 * <ul>

@@ -64,6 +64,18 @@ public class ImmutableVectorTest {
 		return x;
 	}
 
+	private static ImmutableVector mean(ImmutableVector x, ImmutableVector that) {
+		final ImmutableVector mean = x.mean(that);
+
+		assertNotNull("Not null, mean", mean);// guard
+		assertInvariants(mean);
+		assertInvariants(x, mean);
+		assertInvariants(that, mean);
+		assertEquals("dimension", x.getDimension(), mean.getDimension());
+
+		return mean;
+	}
+
 	private static final ImmutableVector minus(ImmutableVector x) {
 		final ImmutableVector minus = x.minus();
 
@@ -250,6 +262,37 @@ public class ImmutableVectorTest {
 	public void dot_E() {
 		final double d = ImmutableVector.create(1.0, 1.0).dot(ImmutableVector.create(1.0, 1.0));
 		assertEquals("dot product", 2.0, d, Double.MIN_NORMAL);
+	}
+
+	@Test
+	public void mean_1A() {
+		final ImmutableVector mean = mean(ImmutableVector.create(1.0), ImmutableVector.create(1.0));
+		assertEquals("mean[0]", 1.0, mean.get(0), Double.MIN_NORMAL);
+	}
+
+	@Test
+	public void mean_1B() {
+		final ImmutableVector mean = mean(ImmutableVector.create(1.0), ImmutableVector.create(-1.0));
+		assertEquals("mean[0]", 0.0, mean.get(0), Double.MIN_NORMAL);
+	}
+
+	@Test
+	public void mean_1C() {
+		final ImmutableVector mean = mean(ImmutableVector.create(2.0), ImmutableVector.create(0.0));
+		assertEquals("mean[0]", 1.0, mean.get(0), Double.MIN_NORMAL);
+	}
+
+	@Test
+	public void mean_1D() {
+		final ImmutableVector mean = mean(ImmutableVector.create(0.0), ImmutableVector.create(2.0));
+		assertEquals("mean[0]", 1.0, mean.get(0), Double.MIN_NORMAL);
+	}
+
+	@Test
+	public void mean_2() {
+		final ImmutableVector mean = mean(ImmutableVector.create(1.0, 2.0), ImmutableVector.create(3.0, 4.0));
+		assertEquals("mean[0]", 2.0, mean.get(0), Double.MIN_NORMAL);
+		assertEquals("mean[1]", 3.0, mean.get(1), Double.MIN_NORMAL);
 	}
 
 	private final ImmutableVector minus(ImmutableVector x, ImmutableVector that) {
