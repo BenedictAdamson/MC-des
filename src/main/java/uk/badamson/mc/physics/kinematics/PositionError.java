@@ -14,17 +14,9 @@ import uk.badamson.mc.physics.TimeStepEnergyErrorFunctionTerm;;
  * modelling error of a system at a future point in time} that gives the degree
  * of inconsistency of the position and velocity of a body.
  * </p>
- * <p>
- * This term calculates the error in only one {@linkplain #getDirection()
- * direction}. The error functor should therefore include a
- * {@linkplain TimeStepEnergyErrorFunction#getTerms() term} for each dimension
- * of space (usually 3) for each body. The directions for each body must not be
- * co-linear.
- * </p>
  */
 public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm {
 
-	private final ImmutableVector direction;
 	private final double mass;
 	private final int[] positionTerm;
 	private final int[] velocityTerm;
@@ -39,11 +31,12 @@ public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm
 	 * <ul>
 	 * <li>The constructed object has attribute values equal to the given
 	 * values.</li>
+	 * <li>The {@linkplain #getSpaceDimension() space dimension} of the
+	 * constructed object is equal to the length of the arrays of position
+	 * terms.</li>
 	 * </ul>
 	 * </section>
-	 *
-	 * @param direction
-	 *            The direction in which to calculate the error term.
+	 * 
 	 * @param mass
 	 *            A reference mass scale.
 	 * @param positionTerm
@@ -54,42 +47,34 @@ public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm
 	 *            Which terms in the solution space vector correspond to the
 	 *            components of the velocity vector of the body.
 	 *            {@code velocityTerm[i]} is index of component <var>i</var>,
-	 * 
+	 *
 	 * @throws NullPointerException
 	 *             <ul>
-	 *             <li>If {@code direction} is null.</li>
 	 *             <li>If {@code positionTerm} is null.</li>
 	 *             <li>If {@code velocityTerm} is null.</li>
 	 * @throws IllegalArgumentException
 	 *             <ul>
-	 *             <li>If {@code direction} is not a unit vector.</li>
 	 *             <li>If {@code mass} is not a positive and
 	 *             {@linkplain Double#isFinite(double) finite}.</li>
 	 *             <li>If the length of {@code positionTerm} does not equal the
-	 *             {@linkplain ImmutableVector#getDimension() dimension} of
-	 *             {@code direction}.</li>
-	 *             <li>If the length of {@code velocityTerm} does not equal the
-	 *             dimension of {@code direction}.</li>
+	 *             length of {@code velocityTerm}.</li>
 	 *             <li>If {@code positionTerm} has any negative values.</li>
 	 *             <li>If {@code velocityTerm} has any negative values.</li>
 	 *             </ul>
 	 */
-	public PositionError(ImmutableVector direction, double mass, int[] positionTerm, int[] velocityTerm) {
-		Objects.requireNonNull(direction, "direction");
+	public PositionError(double mass, int[] positionTerm, int[] velocityTerm) {
 		Objects.requireNonNull(positionTerm, "positionTerm");
 		Objects.requireNonNull(velocityTerm, "velocityTerm");
 
-		final int n = direction.getDimension();
-		if (positionTerm.length != n) {
-			throw new IllegalArgumentException("Inconsistent positionTerm.length <" + positionTerm.length
-					+ "> and direction.dimension<" + n + ">");
-		}
+		final int n = positionTerm.length;
 		if (velocityTerm.length != n) {
-			throw new IllegalArgumentException("Inconsistent velocityTerm.length <" + velocityTerm.length
-					+ "> and direction.dimension<" + n + ">");
+			throw new IllegalArgumentException("Inconsistent positionTerm.length <" + positionTerm.length
+					+ "> and velocityTerm.length<" + velocityTerm.length + ">");
+		}
+		if (!(0.0 < mass && Double.isFinite(mass))) {
+			throw new IllegalArgumentException("mass " + mass);
 		}
 
-		this.direction = direction;
 		this.mass = mass;
 		this.positionTerm = copyTermIndex(positionTerm);
 		this.velocityTerm = copyTermIndex(velocityTerm);
@@ -118,7 +103,7 @@ public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm
 	 * it returns.</li>
 	 * </ol>
 	 * 
-	 * @param dedx
+	 * @param dedState
 	 *            {@inheritDoc}
 	 * @param state0
 	 *            {@inheritDoc}
@@ -138,10 +123,10 @@ public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm
 	 *             {@code state0}.
 	 */
 	@Override
-	public final double evaluate(double[] dedx, ImmutableVector state0, ImmutableVector state, double dt) {
-		Objects.requireNonNull(dedx, "dedx");
-		Objects.requireNonNull(state0, "x0");
-		Objects.requireNonNull(state, "x");
+	public final double evaluate(double[] dedState, ImmutableVector state0, ImmutableVector state, double dt) {
+		Objects.requireNonNull(dedState, "dedState");
+		Objects.requireNonNull(state0, "state0");
+		Objects.requireNonNull(state, "state");
 		if (!(0.0 < dt && Double.isFinite(dt))) {
 			throw new IllegalArgumentException("dt " + dt);
 		}
@@ -150,58 +135,31 @@ public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm
 			throw new IllegalArgumentException(
 					"Inconsistent dimensions x0 " + nState + " and x " + state.getDimension());
 		}
-		if (dedx.length != nState) {
+		if (dedState.length != nState) {
 			throw new IllegalArgumentException(
-					"Inconsistent length of dedx " + dedx.length + " and dimension of x0 " + nState);
+					"Inconsistent length of dedx " + dedState.length + " and dimension of x0 " + nState);
 		}
+
+		final double rate = 1.0 / dt;
 
 		final ImmutableVector x0 = extract(state0, positionTerm);
 		final ImmutableVector v0 = extract(state0, velocityTerm);
 		final ImmutableVector x = extract(state, positionTerm);
 		final ImmutableVector v = extract(state, velocityTerm);
+
 		final ImmutableVector dx = x.minus(x0);
-		final ImmutableVector dv = v.minus(v0);
+		final ImmutableVector vMean = v.mean(v0);
+		final ImmutableVector ve = dx.scale(rate).minus(vMean);
 
-		final double dsdt0 = v0.dot(direction);
-		final double ds = dx.dot(direction);
-		final double dsdt = dv.dot(direction);
-
-		final double rate = 1.0 / dt;
-		final double d2sdt2 = dsdt * rate;
-		final double dsExtrapolate = (dsdt0 + 0.5 * d2sdt2 * dt) * dt;
-		final double sError = ds - dsExtrapolate;
-		final double vError = sError * rate;
-		final double mvError = vError * mass;
-		final double eError = 0.5 * vError * mvError;
-
-		final double dedv = mvError * -0.5;
-		final double deds = mvError * rate;
+		final double e = 0.5 * mass * ve.magnitude2();
+		final ImmutableVector dedx = ve.scale(mass * rate);
+		final ImmutableVector dedv = ve.scale(-0.5 * mass);
 
 		for (int i = 0, n = positionTerm.length; i < n; ++i) {
-			final double dsdxi = direction.get(i);
-			final double dedxi = deds * dsdxi;
-			final double dedvi = dedv * dsdxi;
-
-			dedx[positionTerm[i]] += dedxi;
-			dedx[velocityTerm[i]] += dedvi;
+			dedState[positionTerm[i]] += dedx.get(i);
+			dedState[velocityTerm[i]] += dedv.get(i);
 		}
-		return eError;
-	}
-
-	/**
-	 * <p>
-	 * The direction in which to calculate the error term.
-	 * </p>
-	 * <ul>
-	 * <li>Always have a (non null) direction.</li>
-	 * <li>The direction vector is a unit vector (it has
-	 * {@linkplain ImmutableVector#magnitude() magnitude} 1.0).</li>
-	 * </ul>
-	 * 
-	 * @return the direction vector.
-	 */
-	public final ImmutableVector getDirection() {
-		return direction;
+		return e;
 	}
 
 	/**
@@ -250,17 +208,11 @@ public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm
 	 * The number of space dimensions for which this calculates a position
 	 * error.
 	 * </p>
-	 * <ul>
-	 * <li>The number of space dimensions is equal to the
-	 * {@linkplain ImmutableVector#getDimension() dimension} of the
-	 * {@linkplain #getDirection() direction vector} along which this calculates
-	 * the position error.
-	 * </ul>
 	 * 
 	 * @return
 	 */
 	public final int getSpaceDimension() {
-		return direction.getDimension();
+		return positionTerm.length;
 	}
 
 	/**

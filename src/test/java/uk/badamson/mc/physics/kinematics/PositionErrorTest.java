@@ -1,8 +1,6 @@
 package uk.badamson.mc.physics.kinematics;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
@@ -17,21 +15,12 @@ import uk.badamson.mc.physics.AbstractTimeStepEnergyErrorFunctionTermTest;
  */
 public class PositionErrorTest {
 
-	private static final double TOLERANCE_1 = Math.nextAfter(1.0, Double.POSITIVE_INFINITY) - 1.0;
-
 	public static void assertInvariants(PositionError term) {
 		AbstractTimeStepEnergyErrorFunctionTermTest.assertInvariants(term);// inherited
 
-		final ImmutableVector direction = term.getDirection();
 		final double mass = term.getMass();
 		final int spaceDimension = term.getSpaceDimension();
 
-		assertNotNull("Not null, direction", direction);// guard
-
-		assertEquals("The direction vector is a unit vector", 1.0, direction.magnitude2(),
-				Math.sqrt(TOLERANCE_1 * spaceDimension));
-		assertEquals("The number of space dimensions is equal to the dimension of the direction vector.",
-				direction.getDimension(), spaceDimension);
 		assertTrue("Mass <" + mass + "> is positive and  finite", 0.0 < mass && Double.isFinite(mass));
 
 		int maxTerm = -1;
@@ -54,11 +43,11 @@ public class PositionErrorTest {
 
 	private static PositionError constructor(ImmutableVector direction, double mass, int[] positionTerm,
 			int[] velocityTerm) {
-		final PositionError term = new PositionError(direction, mass, positionTerm, velocityTerm);
+		final PositionError term = new PositionError(mass, positionTerm, velocityTerm);
 
 		assertInvariants(term);
 
-		assertSame("direction", direction, term.getDirection());
+		assertEquals("spaceDimension", positionTerm.length, term.getSpaceDimension());
 		assertEquals("mass", mass, term.getMass(), Double.MIN_NORMAL);
 		for (int i = 0, n = direction.getDimension(); i < n; ++i) {
 			assertEquals("positionTerm[" + i + "]", positionTerm[i], term.getPositionTerm(i));
@@ -77,11 +66,10 @@ public class PositionErrorTest {
 		return e;
 	}
 
-	private static final void evaluate_1(double direction, double mass, int positionTerm, int velocityTerm,
-			double dedx0, double dedv0, double x0, double v0, double x, double v, double dt, double eExpected,
-			double dEDXExpected, double dEDVExpected, double tolerance) {
-		final PositionError term = new PositionError(ImmutableVector.create(direction), mass,
-				new int[] { positionTerm }, new int[] { velocityTerm });
+	private static final void evaluate_1(double mass, int positionTerm, int velocityTerm, double dedx0, double dedv0,
+			double x0, double v0, double x, double v, double dt, double eExpected, double dEDXExpected,
+			double dEDVExpected, double tolerance) {
+		final PositionError term = new PositionError(mass, new int[] { positionTerm }, new int[] { velocityTerm });
 		final double[] dedx = { dedx0, dedv0 };
 
 		final double e = evaluate(term, dedx, ImmutableVector.create(x0, v0), ImmutableVector.create(x, v), dt);
@@ -91,14 +79,14 @@ public class PositionErrorTest {
 		assertEquals("dedx[velocityTerm]", dEDVExpected, dedx[velocityTerm], tolerance);
 	}
 
-	private static void evaluate_1Minimum(final double direction, final double mass, final int positionTerm,
-			final int velocityTerm, final double dedx0, final double dedv0, final double x0, final double v0,
-			final double x, final double v, final double dt, final double tolerance) {
+	private static void evaluate_1Minimum(final double mass, final int positionTerm, final int velocityTerm,
+			final double dedx0, final double dedv0, final double x0, final double v0, final double x, final double v,
+			final double dt, final double tolerance) {
 		final double eExpected = 0.0;
 		final double dEDXExpected = dedx0;
 		final double dEDVExpected = dedv0;
 
-		evaluate_1(direction, mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, eExpected, dEDXExpected,
+		evaluate_1(mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, eExpected, dEDXExpected,
 				dEDVExpected, tolerance);
 	}
 
@@ -135,7 +123,6 @@ public class PositionErrorTest {
 
 	@Test
 	public void evaluate_1MassX0() {
-		final double direction = 1.0;
 		final double mass = 2.0;
 		final int positionTerm = 0;
 		final int velocityTerm = 1;
@@ -151,13 +138,12 @@ public class PositionErrorTest {
 		final double dEDVExpected = 2.0;
 		final double tolerance = 1E-3;
 
-		evaluate_1(direction, mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, eExpected, dEDXExpected,
+		evaluate_1(mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, eExpected, dEDXExpected,
 				dEDVExpected, tolerance);
 	}
 
 	@Test
 	public void evaluate_1MinimumBase() {
-		final double direction = 1.0;
 		final double mass = 1.0;
 		final int positionTerm = 0;
 		final int velocityTerm = 1;
@@ -170,12 +156,11 @@ public class PositionErrorTest {
 		final double dt = 1.0;
 		final double tolerance = 1E-3;
 
-		evaluate_1Minimum(direction, mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, tolerance);
+		evaluate_1Minimum(mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, tolerance);
 	}
 
 	@Test
 	public void evaluate_1MinimumDEDV0() {
-		final double direction = 1.0;
 		final double mass = 1.0;
 		final int positionTerm = 0;
 		final int velocityTerm = 1;
@@ -188,12 +173,11 @@ public class PositionErrorTest {
 		final double dt = 1.0;
 		final double tolerance = 1E-3;
 
-		evaluate_1Minimum(direction, mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, tolerance);
+		evaluate_1Minimum(mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, tolerance);
 	}
 
 	@Test
 	public void evaluate_1MinimumDEDX0() {
-		final double direction = 1.0;
 		final double mass = 1.0;
 		final int positionTerm = 0;
 		final int velocityTerm = 1;
@@ -206,30 +190,11 @@ public class PositionErrorTest {
 		final double dt = 1.0;
 		final double tolerance = 1E-3;
 
-		evaluate_1Minimum(direction, mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, tolerance);
-	}
-
-	@Test
-	public void evaluate_1MinimumDirection() {
-		final double direction = -1.0;
-		final double mass = 1.0;
-		final int positionTerm = 0;
-		final int velocityTerm = 1;
-		final double dedx0 = 0.0;
-		final double dedv0 = 0.0;
-		final double x0 = 0.0;
-		final double v0 = 0.0;
-		final double x = 0.0;
-		final double v = 0.0;
-		final double dt = 1.0;
-		final double tolerance = 1E-3;
-
-		evaluate_1Minimum(direction, mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, tolerance);
+		evaluate_1Minimum(mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, tolerance);
 	}
 
 	@Test
 	public void evaluate_1MinimumMass() {
-		final double direction = 1.0;
 		final double mass = 2.0;
 		final int positionTerm = 0;
 		final int velocityTerm = 1;
@@ -242,12 +207,11 @@ public class PositionErrorTest {
 		final double dt = 1.0;
 		final double tolerance = 1E-3;
 
-		evaluate_1Minimum(direction, mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, tolerance);
+		evaluate_1Minimum(mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, tolerance);
 	}
 
 	@Test
 	public void evaluate_1MinimumMoving() {
-		final double direction = 1.0;
 		final double mass = 1.0;
 		final int positionTerm = 0;
 		final int velocityTerm = 1;
@@ -260,12 +224,11 @@ public class PositionErrorTest {
 		final double dt = 1.0;
 		final double tolerance = 1E-3;
 
-		evaluate_1Minimum(direction, mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, tolerance);
+		evaluate_1Minimum(mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, tolerance);
 	}
 
 	@Test
 	public void evaluate_1MinimumTerms() {
-		final double direction = 1.0;
 		final double mass = 1.0;
 		final int positionTerm = 1;
 		final int velocityTerm = 0;
@@ -278,12 +241,11 @@ public class PositionErrorTest {
 		final double dt = 1.0;
 		final double tolerance = 1E-3;
 
-		evaluate_1Minimum(direction, mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, tolerance);
+		evaluate_1Minimum(mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, tolerance);
 	}
 
 	@Test
 	public void evaluate_1V() {
-		final double direction = 1.0;
 		final double mass = 1.0;
 		final int positionTerm = 0;
 		final int velocityTerm = 1;
@@ -299,13 +261,12 @@ public class PositionErrorTest {
 		final double dEDVExpected = 0.5;
 		final double tolerance = 1E-3;
 
-		evaluate_1(direction, mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, eExpected, dEDXExpected,
+		evaluate_1(mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, eExpected, dEDXExpected,
 				dEDVExpected, tolerance);
 	}
 
 	@Test
 	public void evaluate_1V0() {
-		final double direction = 1.0;
 		final double mass = 1.0;
 		final int positionTerm = 0;
 		final int velocityTerm = 1;
@@ -321,13 +282,12 @@ public class PositionErrorTest {
 		final double dEDVExpected = 0.5;
 		final double tolerance = 1E-3;
 
-		evaluate_1(direction, mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, eExpected, dEDXExpected,
+		evaluate_1(mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, eExpected, dEDXExpected,
 				dEDVExpected, tolerance);
 	}
 
 	@Test
 	public void evaluate_1X() {
-		final double direction = 1.0;
 		final double mass = 1.0;
 		final int positionTerm = 0;
 		final int velocityTerm = 1;
@@ -343,13 +303,12 @@ public class PositionErrorTest {
 		final double dEDVExpected = -1.0;
 		final double tolerance = 1E-3;
 
-		evaluate_1(direction, mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, eExpected, dEDXExpected,
+		evaluate_1(mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, eExpected, dEDXExpected,
 				dEDVExpected, tolerance);
 	}
 
 	@Test
 	public void evaluate_1X0() {
-		final double direction = 1.0;
 		final double mass = 1.0;
 		final int positionTerm = 0;
 		final int velocityTerm = 1;
@@ -365,13 +324,12 @@ public class PositionErrorTest {
 		final double dEDVExpected = 1.0;
 		final double tolerance = 1E-3;
 
-		evaluate_1(direction, mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, eExpected, dEDXExpected,
+		evaluate_1(mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, eExpected, dEDXExpected,
 				dEDVExpected, tolerance);
 	}
 
 	@Test
 	public void evaluate_1XDT() {
-		final double direction = 1.0;
 		final double mass = 1.0;
 		final int positionTerm = 0;
 		final int velocityTerm = 1;
@@ -387,7 +345,7 @@ public class PositionErrorTest {
 		final double dEDVExpected = -0.5;
 		final double tolerance = 1E-3;
 
-		evaluate_1(direction, mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, eExpected, dEDXExpected,
+		evaluate_1(mass, positionTerm, velocityTerm, dedx0, dedv0, x0, v0, x, v, dt, eExpected, dEDXExpected,
 				dEDVExpected, tolerance);
 	}
 }

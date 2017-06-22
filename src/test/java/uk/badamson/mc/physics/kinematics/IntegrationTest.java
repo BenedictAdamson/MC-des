@@ -76,13 +76,12 @@ public class IntegrationTest {
 
 	private static TimeStepEnergyErrorFunction create1DconstantVelocityErrorFunction(double x0, double v0, double dt,
 			double mass) {
-		final ImmutableVector direction = ImmutableVector.create(1.0);
 		final int[] positionTerm = new int[] { 0 };
 		final int[] velocityTerm = new int[] { 1 };
 		final int[] accelerationTerm = new int[] { 2 };
 		final List<TimeStepEnergyErrorFunctionTerm> terms = Arrays.asList(
-				new PositionError(direction, mass, positionTerm, velocityTerm),
-				new VelocityError(direction, mass, velocityTerm, accelerationTerm), new ConstantVelocityError(mass));
+				new PositionError(mass, positionTerm, velocityTerm),
+				new VelocityError(mass, velocityTerm, accelerationTerm), new ConstantVelocityError(mass));
 
 		final TimeStepEnergyErrorFunction errorFunction = new TimeStepEnergyErrorFunction(
 				create1DStateVector(x0, v0, 0.0), dt, terms);
