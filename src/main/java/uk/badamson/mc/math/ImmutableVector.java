@@ -331,6 +331,30 @@ public final class ImmutableVector {
 		return new ImmutableVector(minus);
 	}
 
+	/**
+	 * <p>
+	 * Create a vector that is this vector scaled by a given scalar.
+	 * </p>
+	 * <ul>
+	 * <li>Always returns a (non null) vector.
+	 * <li>
+	 * <li>The {@linkplain ImmutableVector#getDimension() dimension} of the
+	 * scaled vector is equal to the dimension of this vector.</li>
+	 * </ul>
+	 * 
+	 * @param f
+	 *            the scalar
+	 * @return the scaled vector
+	 */
+	public final ImmutableVector scale(double f) {
+		final int n = x.length;
+		final double[] s = new double[n];
+		for (int i = 0; i < n; ++i) {
+			s[i] = x[i] * f;
+		}
+		return new ImmutableVector(s);
+	}
+
 	@Override
 	public final String toString() {
 		return Arrays.toString(x);

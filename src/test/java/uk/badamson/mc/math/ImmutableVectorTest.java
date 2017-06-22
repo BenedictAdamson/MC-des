@@ -96,6 +96,17 @@ public class ImmutableVectorTest {
 		return minus;
 	}
 
+	private static ImmutableVector scale(ImmutableVector x, double f) {
+		final ImmutableVector scaled = x.scale(f);
+
+		assertNotNull("Not null, result", scaled);
+		assertInvariants(scaled);
+		assertInvariants(x, scaled);
+		assertEquals("dimension", x.getDimension(), scaled.getDimension());
+
+		return scaled;
+	}
+
 	@Test
 	public void construct_equals1A() {
 		construct_equals(0.0);
@@ -388,5 +399,41 @@ public class ImmutableVectorTest {
 		final ImmutableVector x2 = ImmutableVector.create(3, 4);
 
 		minus(x1, x2);
+	}
+
+	@Test
+	public void scale_1A() {
+		final ImmutableVector scaled = scale(ImmutableVector.create(1.0), 0.0);
+
+		assertEquals("scaled[0]", 0.0, scaled.get(0), Double.MIN_NORMAL);
+	}
+
+	@Test
+	public void scale_1B() {
+		final ImmutableVector scaled = scale(ImmutableVector.create(0.0), 1.0);
+
+		assertEquals("scaled[0]", 0.0, scaled.get(0), Double.MIN_NORMAL);
+	}
+
+	@Test
+	public void scale_1C() {
+		final ImmutableVector scaled = scale(ImmutableVector.create(1.0), 1.0);
+
+		assertEquals("scaled[0]", 1.0, scaled.get(0), Double.MIN_NORMAL);
+	}
+
+	@Test
+	public void scale_1D() {
+		final ImmutableVector scaled = scale(ImmutableVector.create(1.0), -2.0);
+
+		assertEquals("scaled[0]", -2.0, scaled.get(0), Double.MIN_NORMAL);
+	}
+
+	@Test
+	public void scale_2() {
+		final ImmutableVector scaled = scale(ImmutableVector.create(1.0, 2.0), 4.0);
+
+		assertEquals("scaled[0]", 4.0, scaled.get(0), Double.MIN_NORMAL);
+		assertEquals("scaled[1]", 8.0, scaled.get(1), Double.MIN_NORMAL);
 	}
 }
