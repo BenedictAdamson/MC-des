@@ -245,30 +245,34 @@ public final class Min1 {
 			final double xInner, final double xRight) {
 		double dx = xNew - xInner;
 		if (Math.abs(dx) < xTolerance) {
-			final double xr = xRight - xInner;
-			final double xl = xInner - xLeft;
-			if (xl <= xr) {
-				dx = Math.min(xTolerance, xr * 0.5);
-			} else {
-				dx = -Math.min(xTolerance, xl * 0.5);
-			}
-			return xInner + dx;
+			return stepIntoLargestInterval(xLeft, xInner, xRight);
 		} else {
 			return xNew;
 		}
 	}
 
 	private static double bisect(Function1WithGradientValue left, Function1WithGradientValue inner,
-			Function1WithGradientValue right) {
+			Function1WithGradientValue right, double xTolerance, double fTolerance) {
 		final double xi = inner.getX();
-		/*
-		 * Use the gradient at the inner point to guess which side probably
-		 * contains the minimum
-		 */
-		if (0.0 <= inner.getDfDx()) {
-			return xi + (left.getX() - xi) * 0.5;
+		final double dfdxi = inner.getDfDx();
+		if (fTolerance / xTolerance < Math.abs(dfdxi)) {
+			/*
+			 * Use the gradient at the inner point to guess which side probably
+			 * contains the minimum
+			 */
+			if (0.0 <= dfdxi) {
+				return xi + (left.getX() - xi) * 0.5;
+			} else {
+				return xi + (right.getX() - xi) * 0.5;
+			}
 		} else {
-			return xi + (right.getX() - xi) * 0.5;
+			/*
+			 * Gradient is very small (the inner point is very close to the
+			 * minimum), and so does not point clearly to one side or the other.
+			 * Instead try stepping into the largest interval, to more
+			 * dramatically reduce the bracket size.
+			 */
+			return stepIntoLargestInterval(left.getX(), xi, right.getX());
 		}
 	}
 
@@ -655,12 +659,13 @@ public final class Min1 {
 
 		while (true) {
 			final double xTolerance = Double.max(Math.abs(inner.getX()) * tolerance, Double.MIN_NORMAL);
+			final double fTolerance = Double.max(Math.abs(inner.getF()) * tolerance, Double.MIN_NORMAL);
 			if (width <= xTolerance * 2.0) {
 				// Converged
 				break;
 			}
 			double xNew;
-			if (xTolerance < Math.abs(dx3)) {
+			if (2.0 * xTolerance < Math.abs(dx3)) {
 				/*
 				 * We are making big steps, which are not close to the round-off
 				 * limits, so secant extrapolation of the gradient is worth
@@ -693,14 +698,14 @@ public final class Min1 {
 					/*
 					 * Fall back to bisection
 					 */
-					xNew = bisect(left, inner, right);
+					xNew = bisect(left, inner, right, xTolerance, fTolerance);
 				}
 			} else {
 				/*
 				 * We are making small steps, which can be vulnerable to
 				 * round-off error. So use bisection instead.
 				 */
-				xNew = bisect(left, inner, right);
+				xNew = bisect(left, inner, right, xTolerance, fTolerance);
 			}
 			xNew = avoidTinyStep(xNew, xTolerance, left.getX(), inner.getX(), right.getX());
 			final double dx = xNew - inner.getX();
@@ -823,6 +828,23 @@ public final class Min1 {
 		} else {
 			throw new PoorlyConditionedFunctionException(f);
 		}
+	}
+
+	/*
+	 * This is a fall back for when more clever means of selecting the next
+	 * value for which to evaluate the function have failed. Should therefore be
+	 * cautious about being clever. So, simply bisect the largest interval.
+	 */
+	private static double stepIntoLargestInterval(final double xLeft, final double xInner, final double xRight) {
+		double dx;
+		final double xr = xRight - xInner;
+		final double xl = xInner - xLeft;
+		if (xl <= xr) {
+			dx = 0.5 * xr;
+		} else {
+			dx = -0.5 * xl;
+		}
+		return xInner + dx;
 	}
 
 	private Min1() {
