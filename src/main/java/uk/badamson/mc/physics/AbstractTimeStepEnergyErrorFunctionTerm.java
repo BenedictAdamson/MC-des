@@ -17,12 +17,11 @@ public abstract class AbstractTimeStepEnergyErrorFunctionTerm implements TimeSte
 
 	protected static final int[] copyTermIndex(int[] index, String name) {
 		Objects.requireNonNull(index, name);
-		final int[] copy = Arrays.copyOf(index, index.length);
+		final int n = index.length;
+		final int[] copy = Arrays.copyOf(index, n);
 		/* Check precondition after copy to avoid race hazards. */
-		for (int i : copy) {
-			if (i < 0) {
-				throw new IllegalArgumentException("Negative index term " + name + " " + i);
-			}
+		for (int i = 0; i < n; ++i) {
+			requireTermIndex(copy[i], name + "[" + i + "]");
 		}
 		return copy;
 	}
@@ -56,6 +55,13 @@ public abstract class AbstractTimeStepEnergyErrorFunctionTerm implements TimeSte
 			throw new IllegalArgumentException(name + " scale " + s);
 		}
 		return s;
+	}
+
+	protected static final int requireTermIndex(int index, String name) {
+		if (index < 0) {
+			throw new IllegalArgumentException("Negative index term " + name + " " + index);
+		}
+		return index;
 	}
 
 	/**
