@@ -44,7 +44,7 @@ public class TimeStepEnergyErrorFunctionTest {
 						"Inconsistent length " + dedx.length + " for dimension " + x0.getDimension());
 			}
 
-			final double xr = x0.get(0) - xMin;
+			final double xr = x.get(0) - xMin;
 			dedx[0] += 2.0 * xr;
 			return eMin + xr * xr;
 		}

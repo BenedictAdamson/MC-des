@@ -216,7 +216,7 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
 		double e = 0.0;
 		double[] dedx = new double[getDimension()];
 		for (TimeStepEnergyErrorFunctionTerm term : terms) {
-			e += term.evaluate(dedx, state, x0, dt);
+			e += term.evaluate(dedx, x0, state, dt);
 		}
 		return new FunctionNWithGradientValue(state, e, ImmutableVector.create(dedx));
 	}
