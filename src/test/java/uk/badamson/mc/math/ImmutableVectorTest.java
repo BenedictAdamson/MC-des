@@ -55,6 +55,19 @@ public class ImmutableVectorTest {
 		return v;
 	}
 
+	private static ImmutableVector create0(int dimension) {
+		final ImmutableVector zero = ImmutableVector.create0(dimension);
+
+		assertNotNull("Always returns a vector", zero);// guard
+		assertInvariants(zero);
+		assertEquals("dimension", dimension, zero.getDimension());
+		for (int i = 0; i < dimension; ++i) {
+			assertEquals("The elements of the zero vector are all zero.", 0.0, zero.get(i), Double.MIN_NORMAL);
+		}
+
+		return zero;
+	}
+
 	private static ImmutableVector createOnLine(final ImmutableVector x0, ImmutableVector dx, double w) {
 		final ImmutableVector x = ImmutableVector.createOnLine(x0, dx, w);
 
@@ -221,6 +234,16 @@ public class ImmutableVectorTest {
 		final ImmutableVector x = create(1.0, 1.0);
 
 		assertEquals("magnitude", Math.sqrt(2.0), x.magnitude(), Double.MIN_NORMAL);
+	}
+
+	@Test
+	public void create01() {
+		create0(1);
+	}
+
+	@Test
+	public void create02() {
+		create0(2);
 	}
 
 	@Test
@@ -500,5 +523,4 @@ public class ImmutableVectorTest {
 
 		assertEquals("sum[0]", 13.0, sum.get(0), Double.MIN_NORMAL);
 	}
-
 }

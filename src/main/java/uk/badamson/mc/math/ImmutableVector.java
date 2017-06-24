@@ -44,6 +44,31 @@ public final class ImmutableVector {
 
 	/**
 	 * <p>
+	 * Create a zero vector having a given dimension.
+	 * </p>
+	 * <ul>
+	 * <li>Always returns a (non null) vector.</li>
+	 * <li>The {@linkplain #getDimension() dimension} of the zero vector is the
+	 * given dimension.</li>
+	 * <li>The {@linkplain #get(int) elements} of the zero vector are all
+	 * zero.</li>
+	 * </ul>
+	 * 
+	 * @param dimension
+	 *            The dimension
+	 * @return the zero vector.
+	 * @throws IllegalArgumentException
+	 *             If {@code dimension} is not positive
+	 */
+	public static ImmutableVector create0(int dimension) {
+		if (dimension <= 0) {
+			throw new IllegalArgumentException("dimension " + dimension);
+		}
+		return new ImmutableVector(new double[dimension]);
+	}
+
+	/**
+	 * <p>
 	 * Create a vector that lies along a line given by an origin point and
 	 * position vector.
 	 * </p>
@@ -119,7 +144,7 @@ public final class ImmutableVector {
 	 *             <li>If {@code weight} has a length of 0.</li>
 	 *             <li>If {@code weight} and {@code x} have different
 	 *             lengths.</li>
-	 *             <li>If the elemnts of {@code x} do not have the same
+	 *             <li>If the elements of {@code x} do not have the same
 	 *             {@linkplain #getDimension() dimension}.</li>
 	 *             </ul>
 	 */
