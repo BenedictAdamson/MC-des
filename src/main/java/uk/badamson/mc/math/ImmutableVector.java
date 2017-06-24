@@ -91,6 +91,68 @@ public final class ImmutableVector {
 		}
 	}
 
+	/**
+	 * <p>
+	 * Calculate the weighted sum of several vectors that have the same
+	 * {@linkplain #getDimension() dimension}.
+	 * </p>
+	 * </ul>
+	 * <li>Always returns a (non null) sum vector.</li>
+	 * <li>The dimension of the sum equals the dimension of the summed
+	 * vectors.</li>
+	 * </ul>
+	 * 
+	 * @param weight
+	 *            The weights to apply; {@code weight[i]} is the weight for
+	 *            vector {@code x[i]}.
+	 * @param x
+	 *            The vectors to sum
+	 * @return The weighted sum; not null
+	 * 
+	 * @throws NullPointerException
+	 *             <ul>
+	 *             <li>If {@code weight} is null.</li>
+	 *             <li>If {@code x} is null.</li>
+	 *             <li>If {@code x} has any null elements.</li>
+	 * @throws IllegalArgumentException
+	 *             <ul>
+	 *             <li>If {@code weight} has a length of 0.</li>
+	 *             <li>If {@code weight} and {@code x} have different
+	 *             lengths.</li>
+	 *             <li>If the elemnts of {@code x} do not have the same
+	 *             {@linkplain #getDimension() dimension}.</li>
+	 *             </ul>
+	 */
+	public static ImmutableVector weightedSum(double[] weight, ImmutableVector[] x) {
+		Objects.requireNonNull(weight, "weight");
+		Objects.requireNonNull(x, "x");
+		final int n = weight.length;
+		if (n == 0) {
+			throw new IllegalArgumentException("weight.length " + n);
+		}
+		if (n != x.length) {
+			throw new IllegalArgumentException("Inconsistent lengths weight.length " + n + " x.length " + x.length);
+		}
+		Objects.requireNonNull(x[0], "x[0]");
+
+		final int d = x[0].getDimension();
+		final double[] sum = new double[d];
+		for (int j = 0; j < n; ++j) {
+			final double wj = weight[j];
+			final ImmutableVector xj = x[j];
+			Objects.requireNonNull(xj, "x[j]");
+			if (xj.getDimension() != d) {
+				throw new IllegalArgumentException("Inconsistent dimension " + d + ", " + xj.getDimension());
+			}
+
+			for (int i = 0; i < d; ++i) {
+				sum[i] += wj * xj.get(i);
+			}
+		}
+
+		return new ImmutableVector(sum);
+	}
+
 	private final double[] x;
 
 	private ImmutableVector(double... x) {

@@ -107,6 +107,28 @@ public class ImmutableVectorTest {
 		return scaled;
 	}
 
+	private static ImmutableVector weightedSum(double[] weight, ImmutableVector[] x) {
+		final ImmutableVector sum = ImmutableVector.weightedSum(weight, x);
+
+		assertNotNull("Always returns a sum vector.", sum);// guard
+		assertInvariants(sum);
+		for (ImmutableVector xi : x) {
+			assertInvariants(sum, xi);
+		}
+
+		assertEquals("The dimension of the sum equals the dimension of the summed vectors.", x[0].getDimension(),
+				sum.getDimension());
+
+		return sum;
+	}
+
+	private static final void weightedSum_11(double weight, double x) {
+		final ImmutableVector sum = weightedSum(new double[] { weight },
+				new ImmutableVector[] { ImmutableVector.create(x) });
+
+		assertEquals("sum[0]", weight * x, sum.get(0), Double.MIN_NORMAL);
+	}
+
 	@Test
 	public void construct_equals1A() {
 		construct_equals(0.0);
@@ -436,4 +458,47 @@ public class ImmutableVectorTest {
 		assertEquals("scaled[0]", 4.0, scaled.get(0), Double.MIN_NORMAL);
 		assertEquals("scaled[1]", 8.0, scaled.get(1), Double.MIN_NORMAL);
 	}
+
+	@Test
+	public void weightedSum_11A() {
+		weightedSum_11(0.0, 1.0);
+	}
+
+	@Test
+	public void weightedSum_11B() {
+		weightedSum_11(1.0, 0.0);
+	}
+
+	@Test
+	public void weightedSum_11C() {
+		weightedSum_11(1.0, 1.0);
+	}
+
+	@Test
+	public void weightedSum_11D() {
+		weightedSum_11(2.0, 1.0);
+	}
+
+	@Test
+	public void weightedSum_11E() {
+		weightedSum_11(1.0, 2.0);
+	}
+
+	@Test
+	public void weightedSum_12() {
+		final ImmutableVector sum = weightedSum(new double[] { 2.0 },
+				new ImmutableVector[] { ImmutableVector.create(1.0, 3.0) });
+
+		assertEquals("sum[0]", 2.0, sum.get(0), Double.MIN_NORMAL);
+		assertEquals("sum[1]", 6.0, sum.get(1), Double.MIN_NORMAL);
+	}
+
+	@Test
+	public void weightedSum_21() {
+		final ImmutableVector sum = weightedSum(new double[] { 1.0, 2.0 },
+				new ImmutableVector[] { ImmutableVector.create(3.0), ImmutableVector.create(5.0) });
+
+		assertEquals("sum[0]", 13.0, sum.get(0), Double.MIN_NORMAL);
+	}
+
 }
