@@ -63,21 +63,10 @@ public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm
 	 *             </ul>
 	 */
 	public PositionError(double mass, int[] positionTerm, int[] velocityTerm) {
-		Objects.requireNonNull(positionTerm, "positionTerm");
-		Objects.requireNonNull(velocityTerm, "velocityTerm");
-
-		final int n = positionTerm.length;
-		if (velocityTerm.length != n) {
-			throw new IllegalArgumentException("Inconsistent positionTerm.length <" + positionTerm.length
-					+ "> and velocityTerm.length<" + velocityTerm.length + ">");
-		}
-		if (!(0.0 < mass && Double.isFinite(mass))) {
-			throw new IllegalArgumentException("mass " + mass);
-		}
-
-		this.mass = mass;
-		this.positionTerm = copyTermIndex(positionTerm);
-		this.velocityTerm = copyTermIndex(velocityTerm);
+		this.mass = requireReferenceScale(mass, "mass");
+		this.positionTerm = copyTermIndex(positionTerm, "positionTerm");
+		this.velocityTerm = copyTermIndex(velocityTerm, "velocityTerm");
+		requireConsistentLengths(positionTerm, "positionTerm", velocityTerm, "velocityTerm");
 	}
 
 	/**

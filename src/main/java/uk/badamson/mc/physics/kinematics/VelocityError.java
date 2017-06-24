@@ -2,6 +2,7 @@ package uk.badamson.mc.physics.kinematics;
 
 import java.util.Objects;
 
+import net.jcip.annotations.Immutable;
 import uk.badamson.mc.math.ImmutableVector;
 import uk.badamson.mc.physics.AbstractTimeStepEnergyErrorFunctionTerm;
 import uk.badamson.mc.physics.TimeStepEnergyErrorFunction;
@@ -15,6 +16,7 @@ import uk.badamson.mc.physics.TimeStepEnergyErrorFunctionTerm;;
  * of inconsistency of the velocity and acceleration of a body.
  * </p>
  */
+@Immutable
 public final class VelocityError extends AbstractTimeStepEnergyErrorFunctionTerm {
 
 	private final double mass;
@@ -42,11 +44,13 @@ public final class VelocityError extends AbstractTimeStepEnergyErrorFunctionTerm
 	 * @param velocityTerm
 	 *            Which terms in the solution space vector correspond to the
 	 *            components of the velocity vector of the body.
-	 *            {@code velocityTerm[i]} is index of component <var>i</var>,
+	 *            {@code velocityTerm[i]} is the index of component
+	 *            <var>i</var>.
 	 * @param accelerationTerm
 	 *            Which terms in the solution space vector correspond to the
 	 *            components of the acceleration vector of the body.
-	 *            {@code velocityTerm[i]} is index of component <var>i</var>,
+	 *            {@code velocityTerm[i]} is the index of component
+	 *            <var>i</var>.
 	 *
 	 * @throws NullPointerException
 	 *             <ul>
@@ -63,18 +67,10 @@ public final class VelocityError extends AbstractTimeStepEnergyErrorFunctionTerm
 	 *             </ul>
 	 */
 	public VelocityError(double mass, int[] velocityTerm, int[] accelerationTerm) {
-		Objects.requireNonNull(velocityTerm, "velocityTerm");
-		Objects.requireNonNull(accelerationTerm, "accelerationTerm");
-
-		final int n = velocityTerm.length;
-		if (accelerationTerm.length != n) {
-			throw new IllegalArgumentException("Inconsistent accelerationTerm.length <" + accelerationTerm.length
-					+ "> and velocityTerm.length<" + n + ">");
-		}
-
-		this.mass = mass;
-		this.velocityTerm = copyTermIndex(velocityTerm);
-		this.accelerationTerm = copyTermIndex(accelerationTerm);
+		this.mass = requireReferenceScale(mass, "mass");
+		this.velocityTerm = copyTermIndex(velocityTerm, "velocityTerm");
+		this.accelerationTerm = copyTermIndex(accelerationTerm, "accelerationTerm");
+		requireConsistentLengths(velocityTerm, "velocityTerm", accelerationTerm, "accelerationTerm");
 	}
 
 	/**
@@ -83,10 +79,8 @@ public final class VelocityError extends AbstractTimeStepEnergyErrorFunctionTerm
 	 * <ol>
 	 * <li>The method uses the {@linkplain #getVelocityTerm(int) velocity term
 	 * index} information and {@linkplain #getAccelerationTerm(int) acceleration
-	 * term index} information to extract velocity and acceleraation vectors
-	 * from the given state vectors.</li>
-	 * <li>It reduces those vectors to scalars by finding their components along
-	 * the {@linkplain #getDirection() direction vector}.</li>
+	 * term index} information to extract velocity and acceleration vectors from
+	 * the given state vectors.</li>
 	 * <li>It calculates a mean acceleration from the old and new acceleration
 	 * values.</li>
 	 * <li>It calculates the extrapolated velocity from the old velocity and the
@@ -158,7 +152,7 @@ public final class VelocityError extends AbstractTimeStepEnergyErrorFunctionTerm
 	/**
 	 * <p>
 	 * Which terms in the solution space vector correspond to the components of
-	 * the acceleraation vector of the body.
+	 * the acceleration vector of the body.
 	 * </p>
 	 * 
 	 * @param i

@@ -15,12 +15,13 @@ import uk.badamson.mc.math.ImmutableVector;;
  */
 public abstract class AbstractTimeStepEnergyErrorFunctionTerm implements TimeStepEnergyErrorFunctionTerm {
 
-	protected static final int[] copyTermIndex(int[] index) {
+	protected static final int[] copyTermIndex(int[] index, String name) {
+		Objects.requireNonNull(index, name);
 		final int[] copy = Arrays.copyOf(index, index.length);
 		/* Check precondition after copy to avoid race hazards. */
 		for (int i : copy) {
 			if (i < 0) {
-				throw new IllegalArgumentException("Negative index term " + i);
+				throw new IllegalArgumentException("Negative index term " + name + " " + i);
 			}
 		}
 		return copy;
@@ -33,6 +34,28 @@ public abstract class AbstractTimeStepEnergyErrorFunctionTerm implements TimeSte
 			extract[i] = x.get(term[i]);
 		}
 		return ImmutableVector.create(extract);
+	}
+
+	protected static final ImmutableVector extract(ImmutableVector x, int term[], int i0, int n) {
+		final double[] extract = new double[n];
+		for (int i = 0; i < n; i++) {
+			extract[i] = x.get(term[i0 + i]);
+		}
+		return ImmutableVector.create(extract);
+	}
+
+	protected static void requireConsistentLengths(int[] index1, String name1, int[] index2, String name2) {
+		if (index1.length != index2.length) {
+			throw new IllegalArgumentException(
+					"Inconsistent " + name1 + ".length " + index1.length + " " + name2 + ".length " + index2.length);
+		}
+	}
+
+	protected static double requireReferenceScale(double s, String name) {
+		if (!(0.0 < s && Double.isFinite(s))) {
+			throw new IllegalArgumentException(name + " scale " + s);
+		}
+		return s;
 	}
 
 	/**
