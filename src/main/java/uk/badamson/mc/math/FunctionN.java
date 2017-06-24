@@ -14,6 +14,19 @@ public interface FunctionN {
 
 	/**
 	 * <p>
+	 * The number of independent variables of the function.
+	 * </p>
+	 * <p>
+	 * This attribute must be <dfn>constant</dfn>: the value for a given object
+	 * must always be the same value.
+	 * </p>
+	 * 
+	 * @return the number of dimensions; positive.
+	 */
+	public int getDimension();
+
+	/**
+	 * <p>
 	 * The value of the function for given values of the continuous variables.
 	 * </p>
 	 * <p>
@@ -37,17 +50,4 @@ public interface FunctionN {
 	 *             of this function.
 	 */
 	public double value(double[] x);
-
-	/**
-	 * <p>
-	 * The number of independent variables of the function.
-	 * </p>
-	 * <p>
-	 * This attribute must be <dfn>constant</dfn>: the value for a given object
-	 * must always be the same value.
-	 * </p>
-	 * 
-	 * @return the number of dimensions; positive.
-	 */
-	public int getDimension();
 }
