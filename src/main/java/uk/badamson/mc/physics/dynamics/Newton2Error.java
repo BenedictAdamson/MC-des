@@ -27,17 +27,18 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
 		}
 		return true;
 	}
-	private final double massReference;
 
+	private final double massReference;
 	private final double timeReference;
+
 	private final int massTerm;
 	private final int[] accelerationTerm;
 	private final int[] velocityTerm;
 	private final int[] advectionVelocityTerm;
 	private final int[] advectionMassRateTerm;
 	private final int[] forceTerm;
-	private final boolean[] massTransferInto;
 
+	private final boolean[] massTransferInto;
 	private final boolean[] forceOn;
 
 	/**
@@ -226,15 +227,16 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
 			fs[k] = forceOn[k] ? 1.0 : -1.0;
 		}
 
-		final ImmutableVector advectionTotal = ImmutableVector.weightedSum(massRate, vrel);
-		final ImmutableVector fTotal = ImmutableVector.weightedSum(fs, f);
+		final ImmutableVector advectionTotal = 0 < nm ? ImmutableVector.weightedSum(massRate, vrel)
+				: ImmutableVector.create0(ns);
+		final ImmutableVector fTotal = 0 < nf ? ImmutableVector.weightedSum(fs, f) : ImmutableVector.create0(ns);
 
 		final ImmutableVector fe = a.scale(m).minus(advectionTotal).minus(fTotal);
 		final ImmutableVector ve = fe.scale(getTimeReference() / mRef2);
 		final ImmutableVector xe = ve.scale(getTimeReference());
 		final double e = 0.5 * massReference * ve.magnitude2();
 
-		dedx[massTerm] += 0.5 * getTimeReference() * (ve.dot(a));
+		dedx[massTerm] += xe.dot(a);
 		for (int i = 0; i < ns; ++i) {
 			dedx[getAccelerationTerm(i)] += m * xe.get(i);
 		}
