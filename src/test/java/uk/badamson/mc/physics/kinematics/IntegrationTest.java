@@ -93,6 +93,46 @@ public class IntegrationTest {
 	}
 
 	@Test
+	public void assertConstantVelocityErrorFunctionConsitentWithGradientAlongLineDA() {
+		final double x0 = 0.0;
+		final double v0 = 2.0;
+		final double dt = 1.0;
+		final double mass = 1.0;
+		final double tolerance = 1E-3;
+		;
+		final double dx = 0.0;
+		final double dv = 0.0;
+		final double da = 1.0;
+
+		final double w1 = -2.0;
+		final double w2 = 2.0;
+		final int n = 20;
+
+		assertConstantVelocityErrorFunctionConsitentWithGradientAlongLine(x0, v0, dt, dx, dv, da, mass, tolerance, w1,
+				w2, n);
+	}
+
+	@Test
+	public void assertConstantVelocityErrorFunctionConsitentWithGradientAlongLineDV() {
+		final double x0 = 0.0;
+		final double v0 = 2.0;
+		final double dt = 1.0;
+		final double mass = 1.0;
+		final double tolerance = 1E-3;
+		;
+		final double dx = 0.0;
+		final double dv = 1.0;
+		final double da = 0.0;
+
+		final double w1 = -2.0;
+		final double w2 = 2.0;
+		final int n = 20;
+
+		assertConstantVelocityErrorFunctionConsitentWithGradientAlongLine(x0, v0, dt, dx, dv, da, mass, tolerance, w1,
+				w2, n);
+	}
+
+	@Test
 	public void assertConstantVelocityErrorFunctionConsitentWithGradientAlongLineDX() {
 		final double x0 = 0.0;
 		final double v0 = 2.0;
@@ -103,9 +143,11 @@ public class IntegrationTest {
 		final double dx = 1.0;
 		final double dv = 0.0;
 		final double da = 0.0;
+
 		final double w1 = -2.0;
 		final double w2 = 2.0;
 		final int n = 20;
+
 		assertConstantVelocityErrorFunctionConsitentWithGradientAlongLine(x0, v0, dt, dx, dv, da, mass, tolerance, w1,
 				w2, n);
 	}
@@ -164,4 +206,5 @@ public class IntegrationTest {
 
 		constantVelocitySolution(x0, v0, dt, mass, tolerance);
 	}
+
 }
