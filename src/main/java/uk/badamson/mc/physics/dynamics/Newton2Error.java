@@ -212,11 +212,14 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
 		final ImmutableVector a = extract(state, accelerationTerm);
 		final ImmutableVector v = extract(state, velocityTerm);
 
+		double massRateTotal = 0.0;
 		final double[] massRate = new double[nm];
 		final ImmutableVector[] vrel = new ImmutableVector[nm];
 		for (int j = 0; j < nm; ++j) {
 			final double sign = massTransferInto[j] ? 1.0 : -1.0;
-			massRate[j] = sign * state.get(advectionMassRateTerm[j]);
+			final double massRateJ = sign * state.get(advectionMassRateTerm[j]);
+			massRate[j] = massRateJ;
+			massRateTotal += massRateJ;
 			vrel[j] = extract(state, advectionVelocityTerm, j * ns, ns).minus(v);
 		}
 
@@ -238,7 +241,9 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
 
 		dedx[massTerm] += xe.dot(a);
 		for (int i = 0; i < ns; ++i) {
-			dedx[getAccelerationTerm(i)] += m * xe.get(i);
+			final double xi = xe.get(i);
+			dedx[getVelocityTerm(i)] += massRateTotal * xi;
+			dedx[getAccelerationTerm(i)] += m * xi;
 		}
 
 		for (int j = 0; j < nm; ++j) {

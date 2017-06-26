@@ -109,6 +109,36 @@ public class Newton2ErrorTest {
 		return e;
 	}
 
+	private static void evaluate_1Advection(double massReference, double timeReference, boolean massTransferInto,
+			double m0, double v0, double mrate0, double u0, double a0, double m, double v, double a, double mrate,
+			double u, double dt, double dedmrate0, double dedu0, double expectedE, double expectedDedm,
+			double expectedDedv, double expectedDeda, double expectedDedmrate, double expectedDedu) {
+		final int massTerm = 0;
+		final int[] velocityTerm = { 1 };
+		final int[] accelerationTerm = { 2 };
+		final int[] advectionMassRateTerm = { 3 };
+		final int[] advectionVelocityTerm = { 4 };
+		final boolean[] forceOn = {};
+		final int[] forceTerm = {};
+
+		final double[] dedx = { 0.0, 0.0, 0.0, dedmrate0, dedu0 };
+		final ImmutableVector state0 = ImmutableVector.create(m0, v0, a0, mrate0, u0);
+		final ImmutableVector state = ImmutableVector.create(m, v, a, mrate, u);
+
+		final Newton2Error term = new Newton2Error(massReference, timeReference, massTerm, velocityTerm,
+				accelerationTerm, new boolean[] { massTransferInto }, advectionMassRateTerm, advectionVelocityTerm,
+				forceOn, forceTerm);
+
+		final double e = evaluate(term, dedx, state0, state, dt);
+
+		assertEquals("e", expectedE, e, 1E-8);
+		assertEquals("dedm", expectedDedm, dedx[0], 1E-8);
+		assertEquals("dedv", expectedDedv, dedx[1], 1E-8);
+		assertEquals("deda", expectedDeda, dedx[2], 1E-8);
+		assertEquals("dedmrate", expectedDedmrate, dedx[3], 1E-8);
+		assertEquals("dedu", expectedDedu, dedx[4], 1E-8);
+	}
+
 	private static void evaluate_1Closed(double massReference, double timeReference, double dedm0, double dedv0,
 			double deda0, double m0, double v0, double a0, double m, double v, double a, double dt, double expectedE,
 			double expectedDedm, double expectedDedv, double expectedDeda) {
@@ -179,6 +209,584 @@ public class Newton2ErrorTest {
 
 		constructor(MASS_REFERENCE_1, TIME_REFERNCE_1, massTerm, velocityTerm, accelerationTerm, massTransferInto,
 				advectionMassRateTerm, advectionVelocityTerm, forceOn, forceTerm);
+	}
+
+	@Test
+	public void evaluate_1AdvectionA() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean massTransferInto = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double mrate0 = 1.0;
+		final double u0 = 1.0;
+		final double a0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 2.0;
+		final double mrate = 1.0;
+		final double u = 1.0;
+
+		final double dt = 1.0;
+		final double dedmrate0 = 0.0;
+		final double dedu0 = 0.0;
+
+		final double expectedE = 2.0;
+		final double expectedDedm = 4.0;
+		final double expectedDedv = 2.0;
+		final double expectedDeda = 2.0;
+		final double expectedDedmrate = 0.0;
+		final double expectedDedu = -2.0;
+
+		evaluate_1Advection(massReference, timeReference, massTransferInto, m0, v0, mrate0, u0, a0, m, v, a, mrate, u,
+				dt, dedmrate0, dedu0, expectedE, expectedDedm, expectedDedv, expectedDeda, expectedDedmrate,
+				expectedDedu);
+	}
+
+	@Test
+	public void evaluate_1AdvectionA0() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean massTransferInto = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double mrate0 = 1.0;
+		final double u0 = 1.0;
+		final double a0 = 2.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double mrate = 1.0;
+		final double u = 1.0;
+
+		final double dt = 1.0;
+		final double dedmrate0 = 0.0;
+		final double dedu0 = 0.0;
+
+		final double expectedE = 0.5;
+		final double expectedDedm = 1.0;
+		final double expectedDedv = 1.0;
+		final double expectedDeda = 1.0;
+		final double expectedDedmrate = 0.0;
+		final double expectedDedu = -1.0;
+
+		evaluate_1Advection(massReference, timeReference, massTransferInto, m0, v0, mrate0, u0, a0, m, v, a, mrate, u,
+				dt, dedmrate0, dedu0, expectedE, expectedDedm, expectedDedv, expectedDeda, expectedDedmrate,
+				expectedDedu);
+	}
+
+	@Test
+	public void evaluate_1AdvectionBase() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean massTransferInto = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double mrate0 = 1.0;
+		final double u0 = 1.0;
+		final double a0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double mrate = 1.0;
+		final double u = 1.0;
+
+		final double dt = 1.0;
+		final double dedmrate0 = 0.0;
+		final double dedu0 = 0.0;
+
+		final double expectedE = 0.5;
+		final double expectedDedm = 1.0;
+		final double expectedDedv = 1.0;
+		final double expectedDeda = 1.0;
+		final double expectedDedmrate = 0.0;
+		final double expectedDedu = -1.0;
+
+		evaluate_1Advection(massReference, timeReference, massTransferInto, m0, v0, mrate0, u0, a0, m, v, a, mrate, u,
+				dt, dedmrate0, dedu0, expectedE, expectedDedm, expectedDedv, expectedDeda, expectedDedmrate,
+				expectedDedu);
+	}
+
+	@Test
+	public void evaluate_1AdvectionDedmrate0() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean massTransferInto = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double mrate0 = 1.0;
+		final double u0 = 1.0;
+		final double a0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double mrate = 1.0;
+		final double u = 1.0;
+
+		final double dt = 1.0;
+		final double dedmrate0 = 2.0;
+		final double dedu0 = 0.0;
+
+		final double expectedE = 0.5;
+		final double expectedDedm = 1.0;
+		final double expectedDedv = 1.0;
+		final double expectedDeda = 1.0;
+		final double expectedDedmrate = 2.0;
+		final double expectedDedu = -1.0;
+
+		evaluate_1Advection(massReference, timeReference, massTransferInto, m0, v0, mrate0, u0, a0, m, v, a, mrate, u,
+				dt, dedmrate0, dedu0, expectedE, expectedDedm, expectedDedv, expectedDeda, expectedDedmrate,
+				expectedDedu);
+	}
+
+	@Test
+	public void evaluate_1AdvectionDedu0() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean massTransferInto = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double mrate0 = 1.0;
+		final double u0 = 1.0;
+		final double a0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double mrate = 1.0;
+		final double u = 1.0;
+
+		final double dt = 1.0;
+		final double dedmrate0 = 0.0;
+		final double dedu0 = 2.0;
+
+		final double expectedE = 0.5;
+		final double expectedDedm = 1.0;
+		final double expectedDedv = 1.0;
+		final double expectedDeda = 1.0;
+		final double expectedDedmrate = 0.0;
+		final double expectedDedu = 1.0;
+
+		evaluate_1Advection(massReference, timeReference, massTransferInto, m0, v0, mrate0, u0, a0, m, v, a, mrate, u,
+				dt, dedmrate0, dedu0, expectedE, expectedDedm, expectedDedv, expectedDeda, expectedDedmrate,
+				expectedDedu);
+	}
+
+	@Test
+	public void evaluate_1AdvectionDt() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean massTransferInto = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double mrate0 = 1.0;
+		final double u0 = 1.0;
+		final double a0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double mrate = 1.0;
+		final double u = 1.0;
+
+		final double dt = 2.0;
+		final double dedmrate0 = 0.0;
+		final double dedu0 = 0.0;
+
+		final double expectedE = 0.5;
+		final double expectedDedm = 1.0;
+		final double expectedDedv = 1.0;
+		final double expectedDeda = 1.0;
+		final double expectedDedmrate = 0.0;
+		final double expectedDedu = -1.0;
+
+		evaluate_1Advection(massReference, timeReference, massTransferInto, m0, v0, mrate0, u0, a0, m, v, a, mrate, u,
+				dt, dedmrate0, dedu0, expectedE, expectedDedm, expectedDedv, expectedDeda, expectedDedmrate,
+				expectedDedu);
+	}
+
+	@Test
+	public void evaluate_1AdvectionM() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean massTransferInto = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double mrate0 = 1.0;
+		final double u0 = 1.0;
+		final double a0 = 1.0;
+
+		final double m = 2.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double mrate = 1.0;
+		final double u = 1.0;
+
+		final double dt = 1.0;
+		final double dedmrate0 = 0.0;
+		final double dedu0 = 0.0;
+
+		final double expectedE = 2.0;
+		final double expectedDedm = 2.0;
+		final double expectedDedv = 2.0;
+		final double expectedDeda = 4.0;
+		final double expectedDedmrate = 0.0;
+		final double expectedDedu = -2.0;
+
+		evaluate_1Advection(massReference, timeReference, massTransferInto, m0, v0, mrate0, u0, a0, m, v, a, mrate, u,
+				dt, dedmrate0, dedu0, expectedE, expectedDedm, expectedDedv, expectedDeda, expectedDedmrate,
+				expectedDedu);
+	}
+
+	@Test
+	public void evaluate_1AdvectionM0() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean massTransferInto = true;
+
+		final double m0 = 2.0;
+		final double v0 = 1.0;
+		final double mrate0 = 1.0;
+		final double u0 = 1.0;
+		final double a0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double mrate = 1.0;
+		final double u = 1.0;
+
+		final double dt = 1.0;
+		final double dedmrate0 = 0.0;
+		final double dedu0 = 0.0;
+
+		final double expectedE = 0.5;
+		final double expectedDedm = 1.0;
+		final double expectedDedv = 1.0;
+		final double expectedDeda = 1.0;
+		final double expectedDedmrate = 0.0;
+		final double expectedDedu = -1.0;
+
+		evaluate_1Advection(massReference, timeReference, massTransferInto, m0, v0, mrate0, u0, a0, m, v, a, mrate, u,
+				dt, dedmrate0, dedu0, expectedE, expectedDedm, expectedDedv, expectedDeda, expectedDedmrate,
+				expectedDedu);
+	}
+
+	@Test
+	public void evaluate_1AdvectionMassReference() {
+		final double massReference = 2.0;
+		final double timeReference = 1.0;
+		final boolean massTransferInto = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double mrate0 = 1.0;
+		final double u0 = 1.0;
+		final double a0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double mrate = 1.0;
+		final double u = 1.0;
+
+		final double dt = 1.0;
+		final double dedmrate0 = 0.0;
+		final double dedu0 = 0.0;
+
+		final double expectedE = 0.0625;
+		final double expectedDedm = 0.25;
+		final double expectedDedv = 0.25;
+		final double expectedDeda = 0.25;
+		final double expectedDedmrate = 0.0;
+		final double expectedDedu = -0.25;
+
+		evaluate_1Advection(massReference, timeReference, massTransferInto, m0, v0, mrate0, u0, a0, m, v, a, mrate, u,
+				dt, dedmrate0, dedu0, expectedE, expectedDedm, expectedDedv, expectedDeda, expectedDedmrate,
+				expectedDedu);
+	}
+
+	@Test
+	public void evaluate_1AdvectionMassTransferInto() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean massTransferInto = false;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double mrate0 = 1.0;
+		final double u0 = 1.0;
+		final double a0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double mrate = 1.0;
+		final double u = 1.0;
+
+		final double dt = 1.0;
+		final double dedmrate0 = 0.0;
+		final double dedu0 = 0.0;
+
+		final double expectedE = 0.5;
+		final double expectedDedm = 1.0;
+		final double expectedDedv = -1.0;
+		final double expectedDeda = 1.0;
+		final double expectedDedmrate = 0.0;
+		final double expectedDedu = 1.0;
+
+		evaluate_1Advection(massReference, timeReference, massTransferInto, m0, v0, mrate0, u0, a0, m, v, a, mrate, u,
+				dt, dedmrate0, dedu0, expectedE, expectedDedm, expectedDedv, expectedDeda, expectedDedmrate,
+				expectedDedu);
+	}
+
+	@Test
+	public void evaluate_1AdvectionMRate() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean massTransferInto = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double mrate0 = 1.0;
+		final double u0 = 1.0;
+		final double a0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double mrate = 2.0;
+		final double u = 1.0;
+
+		final double dt = 1.0;
+		final double dedmrate0 = 0.0;
+		final double dedu0 = 0.0;
+
+		final double expectedE = 0.5;
+		final double expectedDedm = 1.0;
+		final double expectedDedv = 2.0;
+		final double expectedDeda = 1.0;
+		final double expectedDedmrate = 0.0;
+		final double expectedDedu = -2.0;
+
+		evaluate_1Advection(massReference, timeReference, massTransferInto, m0, v0, mrate0, u0, a0, m, v, a, mrate, u,
+				dt, dedmrate0, dedu0, expectedE, expectedDedm, expectedDedv, expectedDeda, expectedDedmrate,
+				expectedDedu);
+	}
+
+	@Test
+	public void evaluate_1AdvectionMrate0() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean massTransferInto = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double mrate0 = 2.0;
+		final double u0 = 1.0;
+		final double a0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double mrate = 1.0;
+		final double u = 1.0;
+
+		final double dt = 1.0;
+		final double dedmrate0 = 0.0;
+		final double dedu0 = 0.0;
+
+		final double expectedE = 0.5;
+		final double expectedDedm = 1.0;
+		final double expectedDedv = 1.0;
+		final double expectedDeda = 1.0;
+		final double expectedDedmrate = 0.0;
+		final double expectedDedu = -1.0;
+
+		evaluate_1Advection(massReference, timeReference, massTransferInto, m0, v0, mrate0, u0, a0, m, v, a, mrate, u,
+				dt, dedmrate0, dedu0, expectedE, expectedDedm, expectedDedv, expectedDeda, expectedDedmrate,
+				expectedDedu);
+	}
+
+	@Test
+	public void evaluate_1AdvectionTimeReference() {
+		final double massReference = 1.0;
+		final double timeReference = 2.0;
+		final boolean massTransferInto = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double mrate0 = 1.0;
+		final double u0 = 1.0;
+		final double a0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double mrate = 1.0;
+		final double u = 1.0;
+
+		final double dt = 1.0;
+		final double dedmrate0 = 0.0;
+		final double dedu0 = 0.0;
+
+		final double expectedE = 2.0;
+		final double expectedDedm = 4.0;
+		final double expectedDedv = 4.0;
+		final double expectedDeda = 4.0;
+		final double expectedDedmrate = 0.0;
+		final double expectedDedu = -4.0;
+
+		evaluate_1Advection(massReference, timeReference, massTransferInto, m0, v0, mrate0, u0, a0, m, v, a, mrate, u,
+				dt, dedmrate0, dedu0, expectedE, expectedDedm, expectedDedv, expectedDeda, expectedDedmrate,
+				expectedDedu);
+	}
+
+	@Test
+	public void evaluate_1AdvectionU() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean massTransferInto = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double mrate0 = 1.0;
+		final double u0 = 1.0;
+		final double a0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double mrate = 1.0;
+		final double u = 2.0;
+
+		final double dt = 1.0;
+		final double dedmrate0 = 0.0;
+		final double dedu0 = 0.0;
+
+		final double expectedE = 0.0;
+		final double expectedDedm = 0.0;
+		final double expectedDedv = 0.0;
+		final double expectedDeda = 0.0;
+		final double expectedDedmrate = 0.0;
+		final double expectedDedu = 0.0;
+
+		evaluate_1Advection(massReference, timeReference, massTransferInto, m0, v0, mrate0, u0, a0, m, v, a, mrate, u,
+				dt, dedmrate0, dedu0, expectedE, expectedDedm, expectedDedv, expectedDeda, expectedDedmrate,
+				expectedDedu);
+	}
+
+	@Test
+	public void evaluate_1AdvectionU0() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean massTransferInto = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double mrate0 = 1.0;
+		final double u0 = 2.0;
+		final double a0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double mrate = 1.0;
+		final double u = 1.0;
+
+		final double dt = 1.0;
+		final double dedmrate0 = 0.0;
+		final double dedu0 = 0.0;
+
+		final double expectedE = 0.5;
+		final double expectedDedm = 1.0;
+		final double expectedDedv = 1.0;
+		final double expectedDeda = 1.0;
+		final double expectedDedmrate = 0.0;
+		final double expectedDedu = -1.0;
+
+		evaluate_1Advection(massReference, timeReference, massTransferInto, m0, v0, mrate0, u0, a0, m, v, a, mrate, u,
+				dt, dedmrate0, dedu0, expectedE, expectedDedm, expectedDedv, expectedDeda, expectedDedmrate,
+				expectedDedu);
+	}
+
+	@Test
+	public void evaluate_1AdvectionV() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean massTransferInto = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double mrate0 = 1.0;
+		final double u0 = 1.0;
+		final double a0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 2.0;
+		final double a = 1.0;
+		final double mrate = 1.0;
+		final double u = 1.0;
+
+		final double dt = 1.0;
+		final double dedmrate0 = 0.0;
+		final double dedu0 = 0.0;
+
+		final double expectedE = 2.0;
+		final double expectedDedm = 2.0;
+		final double expectedDedv = 2.0;
+		final double expectedDeda = 2.0;
+		final double expectedDedmrate = 2.0;
+		final double expectedDedu = -2.0;
+
+		evaluate_1Advection(massReference, timeReference, massTransferInto, m0, v0, mrate0, u0, a0, m, v, a, mrate, u,
+				dt, dedmrate0, dedu0, expectedE, expectedDedm, expectedDedv, expectedDeda, expectedDedmrate,
+				expectedDedu);
+	}
+
+	@Test
+	public void evaluate_1AdvectionV0() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean massTransferInto = true;
+
+		final double m0 = 1.0;
+		final double v0 = 2.0;
+		final double mrate0 = 1.0;
+		final double u0 = 1.0;
+		final double a0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double mrate = 1.0;
+		final double u = 1.0;
+
+		final double dt = 1.0;
+		final double dedmrate0 = 0.0;
+		final double dedu0 = 0.0;
+
+		final double expectedE = 0.5;
+		final double expectedDedm = 1.0;
+		final double expectedDedv = 1.0;
+		final double expectedDeda = 1.0;
+		final double expectedDedmrate = 0.0;
+		final double expectedDedu = -1.0;
+
+		evaluate_1Advection(massReference, timeReference, massTransferInto, m0, v0, mrate0, u0, a0, m, v, a, mrate, u,
+				dt, dedmrate0, dedu0, expectedE, expectedDedm, expectedDedv, expectedDeda, expectedDedmrate,
+				expectedDedu);
 	}
 
 	@Test
