@@ -77,8 +77,6 @@ public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm
 	 * index} information and {@linkplain #getVelocityTerm(int) velocity term
 	 * index} information to extract position and velocity vectors from the
 	 * given state vectors.</li>
-	 * <li>It reduces those vectors to scalars by finding their components along
-	 * the {@linkplain #getDirection() direction vector}.</li>
 	 * <li>It calculates a mean acceleration from the old and new velocity
 	 * values, and the time-step size.</li>
 	 * <li>It calculates the extrapolated position from the old position, the
