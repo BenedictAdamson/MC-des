@@ -260,8 +260,9 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
 		}
 
 		for (int k = 0; k < nf; ++k) {
+			final double fsk = fs[k];
 			for (int i = 0; i < ns; ++i) {
-				dedx[getForceTerm(k, i)] -= fs[k] * xe.get(i);
+				dedx[getForceTerm(k, i)] -= fsk * xe.get(i);
 			}
 		}
 

@@ -166,6 +166,34 @@ public class Newton2ErrorTest {
 		assertEquals("deda", expectedDeda, dedx[2], 1E-8);
 	}
 
+	private static void evaluate_1Force(double massReference, double timeReference, boolean forceOn, double m0,
+			double v0, double a0, double f0, double m, double v, double a, double f, double dt, double dedf0,
+			double expectedE, double expectedDedm, double expectedDedv, double expectedDeda, double expectedDedf) {
+		final int massTerm = 0;
+		final int[] velocityTerm = { 1 };
+		final int[] accelerationTerm = { 2 };
+		final boolean[] massTransferInto = {};
+		final int[] advectionMassRateTerm = {};
+		final int[] advectionVelocityTerm = {};
+		final int[] forceTerm = { 3 };
+
+		final double[] dedx = { 0.0, 0.0, 0.0, dedf0 };
+		final ImmutableVector state0 = ImmutableVector.create(m0, v0, a0, f0);
+		final ImmutableVector state = ImmutableVector.create(m, v, a, f);
+
+		final Newton2Error term = new Newton2Error(massReference, timeReference, massTerm, velocityTerm,
+				accelerationTerm, massTransferInto, advectionMassRateTerm, advectionVelocityTerm,
+				new boolean[] { forceOn }, forceTerm);
+
+		final double e = evaluate(term, dedx, state0, state, dt);
+
+		assertEquals("e", expectedE, e, 1E-8);
+		assertEquals("dedm", expectedDedm, dedx[0], 1E-8);
+		assertEquals("dedv", expectedDedv, dedx[1], 1E-8);
+		assertEquals("deda", expectedDeda, dedx[2], 1E-8);
+		assertEquals("dedf", expectedDedf, dedx[3], 1E-8);
+	}
+
 	@Test
 	public void constructor_1A() {
 		final int massTerm = 0;
@@ -1063,6 +1091,412 @@ public class Newton2ErrorTest {
 
 		evaluate_1Closed(massReference, timeReference, dedm0, dedv0, deda0, m0, v0, a0, m, v, a, dt, expectedE,
 				expectedDedm, expectedDedv, expectedDeda);
+	}
+
+	@Test
+	public void evaluate_1ForceA() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean forceOn = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double a0 = 1.0;
+		final double f0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 2.0;
+		final double f = 2.0;
+
+		final double dt = 1.0;
+		final double dedf0 = 0.0;
+
+		final double expectedE = 0.0;
+		final double expectedDedm = 0.0;
+		final double expectedDedv = 0.0;
+		final double expectedDeda = 0.0;
+		final double expectedDedf = 0.0;
+
+		evaluate_1Force(massReference, timeReference, forceOn, m0, v0, a0, f0, m, v, a, f, dt, dedf0, expectedE,
+				expectedDedm, expectedDedv, expectedDeda, expectedDedf);
+	}
+
+	@Test
+	public void evaluate_1ForceA0() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean forceOn = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double a0 = 2.0;
+		final double f0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double f = 2.0;
+
+		final double dt = 1.0;
+		final double dedf0 = 0.0;
+
+		final double expectedE = 0.5;
+		final double expectedDedm = -1.0;
+		final double expectedDedv = 0.0;
+		final double expectedDeda = -1.0;
+		final double expectedDedf = 1.0;
+
+		evaluate_1Force(massReference, timeReference, forceOn, m0, v0, a0, f0, m, v, a, f, dt, dedf0, expectedE,
+				expectedDedm, expectedDedv, expectedDeda, expectedDedf);
+	}
+
+	@Test
+	public void evaluate_1ForceBase() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean forceOn = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double a0 = 1.0;
+		final double f0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double f = 2.0;
+
+		final double dt = 1.0;
+		final double dedf0 = 0.0;
+
+		final double expectedE = 0.5;
+		final double expectedDedm = -1.0;
+		final double expectedDedv = 0.0;
+		final double expectedDeda = -1.0;
+		final double expectedDedf = 1.0;
+
+		evaluate_1Force(massReference, timeReference, forceOn, m0, v0, a0, f0, m, v, a, f, dt, dedf0, expectedE,
+				expectedDedm, expectedDedv, expectedDeda, expectedDedf);
+	}
+
+	@Test
+	public void evaluate_1ForceDedf0() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean forceOn = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double a0 = 1.0;
+		final double f0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double f = 2.0;
+
+		final double dt = 1.0;
+		final double dedf0 = 1.0;
+
+		final double expectedE = 0.5;
+		final double expectedDedm = -1.0;
+		final double expectedDedv = 0.0;
+		final double expectedDeda = -1.0;
+		final double expectedDedf = 2.0;
+
+		evaluate_1Force(massReference, timeReference, forceOn, m0, v0, a0, f0, m, v, a, f, dt, dedf0, expectedE,
+				expectedDedm, expectedDedv, expectedDeda, expectedDedf);
+	}
+
+	@Test
+	public void evaluate_1ForceDt() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean forceOn = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double a0 = 1.0;
+		final double f0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double f = 2.0;
+
+		final double dt = 2.0;
+		final double dedf0 = 0.0;
+
+		final double expectedE = 0.5;
+		final double expectedDedm = -1.0;
+		final double expectedDedv = 0.0;
+		final double expectedDeda = -1.0;
+		final double expectedDedf = 1.0;
+
+		evaluate_1Force(massReference, timeReference, forceOn, m0, v0, a0, f0, m, v, a, f, dt, dedf0, expectedE,
+				expectedDedm, expectedDedv, expectedDeda, expectedDedf);
+	}
+
+	@Test
+	public void evaluate_1ForceF() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean forceOn = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double a0 = 1.0;
+		final double f0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double f = 3.0;
+
+		final double dt = 1.0;
+		final double dedf0 = 0.0;
+
+		final double expectedE = 2.0;
+		final double expectedDedm = -2.0;
+		final double expectedDedv = 0.0;
+		final double expectedDeda = -2.0;
+		final double expectedDedf = 2.0;
+
+		evaluate_1Force(massReference, timeReference, forceOn, m0, v0, a0, f0, m, v, a, f, dt, dedf0, expectedE,
+				expectedDedm, expectedDedv, expectedDeda, expectedDedf);
+	}
+
+	@Test
+	public void evaluate_1ForceF0() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean forceOn = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double a0 = 1.0;
+		final double f0 = 2.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double f = 2.0;
+
+		final double dt = 1.0;
+		final double dedf0 = 0.0;
+
+		final double expectedE = 0.5;
+		final double expectedDedm = -1.0;
+		final double expectedDedv = 0.0;
+		final double expectedDeda = -1.0;
+		final double expectedDedf = 1.0;
+
+		evaluate_1Force(massReference, timeReference, forceOn, m0, v0, a0, f0, m, v, a, f, dt, dedf0, expectedE,
+				expectedDedm, expectedDedv, expectedDeda, expectedDedf);
+	}
+
+	@Test
+	public void evaluate_1ForceForceOn() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean forceOn = false;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double a0 = 1.0;
+		final double f0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double f = 2.0;
+
+		final double dt = 1.0;
+		final double dedf0 = 0.0;
+
+		final double expectedE = 4.5;
+		final double expectedDedm = 3.0;
+		final double expectedDedv = 0.0;
+		final double expectedDeda = 3.0;
+		final double expectedDedf = 3.0;
+
+		evaluate_1Force(massReference, timeReference, forceOn, m0, v0, a0, f0, m, v, a, f, dt, dedf0, expectedE,
+				expectedDedm, expectedDedv, expectedDeda, expectedDedf);
+	}
+
+	@Test
+	public void evaluate_1ForceM() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean forceOn = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double a0 = 1.0;
+		final double f0 = 1.0;
+
+		final double m = 2.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double f = 2.0;
+
+		final double dt = 1.0;
+		final double dedf0 = 0.0;
+
+		final double expectedE = 0.0;
+		final double expectedDedm = 0.0;
+		final double expectedDedv = 0.0;
+		final double expectedDeda = 0.0;
+		final double expectedDedf = 0.0;
+
+		evaluate_1Force(massReference, timeReference, forceOn, m0, v0, a0, f0, m, v, a, f, dt, dedf0, expectedE,
+				expectedDedm, expectedDedv, expectedDeda, expectedDedf);
+	}
+
+	@Test
+	public void evaluate_1ForceMassReference() {
+		final double massReference = 2.0;
+		final double timeReference = 1.0;
+		final boolean forceOn = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double a0 = 1.0;
+		final double f0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double f = 2.0;
+
+		final double dt = 1.0;
+		final double dedf0 = 0.0;
+
+		final double expectedE = 0.0625;
+		final double expectedDedm = -0.25;
+		final double expectedDedv = 0.0;
+		final double expectedDeda = -0.25;
+		final double expectedDedf = 0.25;
+
+		evaluate_1Force(massReference, timeReference, forceOn, m0, v0, a0, f0, m, v, a, f, dt, dedf0, expectedE,
+				expectedDedm, expectedDedv, expectedDeda, expectedDedf);
+	}
+
+	@Test
+	public void evaluate_1ForceTimeReference() {
+		final double massReference = 1.0;
+		final double timeReference = 2.0;
+		final boolean forceOn = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double a0 = 1.0;
+		final double f0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double f = 2.0;
+
+		final double dt = 1.0;
+		final double dedf0 = 0.0;
+
+		final double expectedE = 2.0;
+		final double expectedDedm = -4.0;
+		final double expectedDedv = 0.0;
+		final double expectedDeda = -4.0;
+		final double expectedDedf = 4.0;
+
+		evaluate_1Force(massReference, timeReference, forceOn, m0, v0, a0, f0, m, v, a, f, dt, dedf0, expectedE,
+				expectedDedm, expectedDedv, expectedDeda, expectedDedf);
+	}
+
+	@Test
+	public void evaluate_1ForceV() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean forceOn = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double a0 = 1.0;
+		final double f0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 2.0;
+		final double a = 1.0;
+		final double f = 2.0;
+
+		final double dt = 1.0;
+		final double dedf0 = 0.0;
+
+		final double expectedE = 0.5;
+		final double expectedDedm = -1.0;
+		final double expectedDedv = 0.0;
+		final double expectedDeda = -1.0;
+		final double expectedDedf = 1.0;
+
+		evaluate_1Force(massReference, timeReference, forceOn, m0, v0, a0, f0, m, v, a, f, dt, dedf0, expectedE,
+				expectedDedm, expectedDedv, expectedDeda, expectedDedf);
+	}
+
+	@Test
+	public void evaluate_1ForceV0() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean forceOn = true;
+
+		final double m0 = 1.0;
+		final double v0 = 2.0;
+		final double a0 = 1.0;
+		final double f0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double f = 2.0;
+
+		final double dt = 1.0;
+		final double dedf0 = 0.0;
+
+		final double expectedE = 0.5;
+		final double expectedDedm = -1.0;
+		final double expectedDedv = 0.0;
+		final double expectedDeda = -1.0;
+		final double expectedDedf = 1.0;
+
+		evaluate_1Force(massReference, timeReference, forceOn, m0, v0, a0, f0, m, v, a, f, dt, dedf0, expectedE,
+				expectedDedm, expectedDedv, expectedDeda, expectedDedf);
+	}
+
+	@Test
+	public void evaluate_1M0() {
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final boolean forceOn = true;
+
+		final double m0 = 2.0;
+		final double v0 = 1.0;
+		final double a0 = 1.0;
+		final double f0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double a = 1.0;
+		final double f = 2.0;
+
+		final double dt = 1.0;
+		final double dedf0 = 0.0;
+
+		final double expectedE = 0.5;
+		final double expectedDedm = -1.0;
+		final double expectedDedv = 0.0;
+		final double expectedDeda = -1.0;
+		final double expectedDedf = 1.0;
+
+		evaluate_1Force(massReference, timeReference, forceOn, m0, v0, a0, f0, m, v, a, f, dt, dedf0, expectedE,
+				expectedDedm, expectedDedv, expectedDeda, expectedDedf);
 	}
 
 	@Test
