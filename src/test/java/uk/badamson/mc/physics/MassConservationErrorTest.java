@@ -90,6 +90,25 @@ public class MassConservationErrorTest {
 		assertEquals("dedm", dedmExpected, dedx[0], 1E-6);
 	}
 
+	private static void evaluate_open(double massReference, double specificEnergyReference, boolean massTransferInto,
+			double m0, double mrate0, double m, double mrate, double dedmrate0, double dt, double eExpected,
+			double dedmExpected, double dedmrateExpected) {
+		final int massTerm = 0;
+		final int[] advectionMassRateTerm = { 1 };
+		final MassConservationError term = new MassConservationError(massReference, specificEnergyReference, massTerm,
+				new boolean[] { massTransferInto }, advectionMassRateTerm);
+
+		final ImmutableVector state0 = ImmutableVector.create(m0, mrate0);
+		final ImmutableVector state = ImmutableVector.create(m, mrate);
+		final double[] dedx = { 0.0, dedmrate0 };
+
+		final double e = evaluate(term, dedx, state0, state, dt);
+
+		assertEquals("e", eExpected, e, 1E-6);
+		assertEquals("dedm", dedmExpected, dedx[0], 1E-6);
+		assertEquals("dedmrate0", dedmrateExpected, dedx[1], 1E-6);
+	}
+
 	@Test
 	public void constructor_0A() {
 		final int massTerm = 0;
@@ -253,4 +272,215 @@ public class MassConservationErrorTest {
 
 		evaluate_closed(massReference, specificEnergyReference, m0, m, dedm0, dt, eExpected, dedmExpected);
 	}
+
+	@Test
+	public void evaluate_openBase() {
+		final double massReference = 1.0;
+		final double specificEnergyReference = 1.0;
+		final boolean massTransferInto = true;
+		final double m0 = 1.0;
+		final double mrate0 = 1.0;
+		final double m = 1.0;
+		final double mrate = 1.0;
+
+		final double dedmrate0 = 0.0;
+		final double dt = 1.0;
+
+		final double eExpected = 1.0;
+		final double dedmExpected = 2.0;
+		final double dedmrateExpected = 1.0;
+
+		evaluate_open(massReference, specificEnergyReference, massTransferInto, m0, mrate0, m, mrate, dedmrate0, dt,
+				eExpected, dedmExpected, dedmrateExpected);
+	}
+
+	@Test
+	public void evaluate_openDedmrate0() {
+		final double massReference = 1.0;
+		final double specificEnergyReference = 1.0;
+		final boolean massTransferInto = true;
+		final double m0 = 1.0;
+		final double mrate0 = 1.0;
+		final double m = 1.0;
+		final double mrate = 1.0;
+
+		final double dedmrate0 = 1.0;
+		final double dt = 1.0;
+
+		final double eExpected = 1.0;
+		final double dedmExpected = 2.0;
+		final double dedmrateExpected = 2.0;
+
+		evaluate_open(massReference, specificEnergyReference, massTransferInto, m0, mrate0, m, mrate, dedmrate0, dt,
+				eExpected, dedmExpected, dedmrateExpected);
+	}
+
+	@Test
+	public void evaluate_openDt() {
+		final double massReference = 1.0;
+		final double specificEnergyReference = 1.0;
+		final boolean massTransferInto = true;
+		final double m0 = 1.0;
+		final double mrate0 = 1.0;
+		final double m = 1.0;
+		final double mrate = 1.0;
+
+		final double dedmrate0 = 0.0;
+		final double dt = 2.0;
+
+		final double eExpected = 4.0;
+		final double dedmExpected = 4.0;
+		final double dedmrateExpected = 4.0;
+
+		evaluate_open(massReference, specificEnergyReference, massTransferInto, m0, mrate0, m, mrate, dedmrate0, dt,
+				eExpected, dedmExpected, dedmrateExpected);
+	}
+
+	@Test
+	public void evaluate_openM() {
+		final double massReference = 1.0;
+		final double specificEnergyReference = 1.0;
+		final boolean massTransferInto = true;
+		final double m0 = 1.0;
+		final double mrate0 = 1.0;
+		final double m = 2.0;
+		final double mrate = 1.0;
+
+		final double dedmrate0 = 0.0;
+		final double dt = 1.0;
+
+		final double eExpected = 4.0;
+		final double dedmExpected = 4.0;
+		final double dedmrateExpected = 2.0;
+
+		evaluate_open(massReference, specificEnergyReference, massTransferInto, m0, mrate0, m, mrate, dedmrate0, dt,
+				eExpected, dedmExpected, dedmrateExpected);
+	}
+
+	@Test
+	public void evaluate_openM0() {
+		final double massReference = 1.0;
+		final double specificEnergyReference = 1.0;
+		final boolean massTransferInto = true;
+		final double m0 = 2.0;
+		final double mrate0 = 1.0;
+		final double m = 1.0;
+		final double mrate = 1.0;
+
+		final double dedmrate0 = 0.0;
+		final double dt = 1.0;
+
+		final double eExpected = 0.0;
+		final double dedmExpected = 0.0;
+		final double dedmrateExpected = 0.0;
+
+		evaluate_open(massReference, specificEnergyReference, massTransferInto, m0, mrate0, m, mrate, dedmrate0, dt,
+				eExpected, dedmExpected, dedmrateExpected);
+	}
+
+	@Test
+	public void evaluate_openMassReference() {
+		final double massReference = 2.0;
+		final double specificEnergyReference = 1.0;
+		final boolean massTransferInto = true;
+		final double m0 = 1.0;
+		final double mrate0 = 1.0;
+		final double m = 1.0;
+		final double mrate = 1.0;
+
+		final double dedmrate0 = 0.0;
+		final double dt = 1.0;
+
+		final double eExpected = 0.5;
+		final double dedmExpected = 1.0;
+		final double dedmrateExpected = 0.5;
+
+		evaluate_open(massReference, specificEnergyReference, massTransferInto, m0, mrate0, m, mrate, dedmrate0, dt,
+				eExpected, dedmExpected, dedmrateExpected);
+	}
+
+	@Test
+	public void evaluate_openMassTransferInto() {
+		final double massReference = 1.0;
+		final double specificEnergyReference = 1.0;
+		final boolean massTransferInto = false;
+		final double m0 = 1.0;
+		final double mrate0 = 1.0;
+		final double m = 1.0;
+		final double mrate = 1.0;
+
+		final double dedmrate0 = 0.0;
+		final double dt = 1.0;
+
+		final double eExpected = 1.0;
+		final double dedmExpected = -2.0;
+		final double dedmrateExpected = 1.0;
+
+		evaluate_open(massReference, specificEnergyReference, massTransferInto, m0, mrate0, m, mrate, dedmrate0, dt,
+				eExpected, dedmExpected, dedmrateExpected);
+	}
+
+	@Test
+	public void evaluate_openMrate() {
+		final double massReference = 1.0;
+		final double specificEnergyReference = 1.0;
+		final boolean massTransferInto = true;
+		final double m0 = 1.0;
+		final double mrate0 = 1.0;
+		final double m = 1.0;
+		final double mrate = 3.0;
+
+		final double dedmrate0 = 0.0;
+		final double dt = 1.0;
+
+		final double eExpected = 4.0;
+		final double dedmExpected = 4.0;
+		final double dedmrateExpected = 2.0;
+
+		evaluate_open(massReference, specificEnergyReference, massTransferInto, m0, mrate0, m, mrate, dedmrate0, dt,
+				eExpected, dedmExpected, dedmrateExpected);
+	}
+
+	@Test
+	public void evaluate_openMrate0() {
+		final double massReference = 1.0;
+		final double specificEnergyReference = 1.0;
+		final boolean massTransferInto = true;
+		final double m0 = 1.0;
+		final double mrate0 = 2.0;
+		final double m = 1.0;
+		final double mrate = 1.0;
+
+		final double dedmrate0 = 0.0;
+		final double dt = 1.0;
+
+		final double eExpected = 2.25;
+		final double dedmExpected = 3.0;
+		final double dedmrateExpected = 1.5;
+
+		evaluate_open(massReference, specificEnergyReference, massTransferInto, m0, mrate0, m, mrate, dedmrate0, dt,
+				eExpected, dedmExpected, dedmrateExpected);
+	}
+
+	@Test
+	public void evaluate_openSpecificEnergyReference() {
+		final double massReference = 1.0;
+		final double specificEnergyReference = 2.0;
+		final boolean massTransferInto = true;
+		final double m0 = 1.0;
+		final double mrate0 = 1.0;
+		final double m = 1.0;
+		final double mrate = 1.0;
+
+		final double dedmrate0 = 0.0;
+		final double dt = 1.0;
+
+		final double eExpected = 2.0;
+		final double dedmExpected = 4.0;
+		final double dedmrateExpected = 2.0;
+
+		evaluate_open(massReference, specificEnergyReference, massTransferInto, m0, mrate0, m, mrate, dedmrate0, dt,
+				eExpected, dedmExpected, dedmrateExpected);
+	}
+
 }
