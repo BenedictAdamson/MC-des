@@ -25,6 +25,7 @@ public final class MassConservationError extends AbstractTimeStepEnergyErrorFunc
 		return true;
 	}
 
+	private final double massReference;
 	private final double specificEnergyReference;
 
 	private final int massTerm;
@@ -44,6 +45,8 @@ public final class MassConservationError extends AbstractTimeStepEnergyErrorFunc
 	 * </ul>
 	 * </section>
 	 * 
+	 * @param massReference
+	 *            A reference mass scale.
 	 * @param specificEnergyReference
 	 *            A reference energy per unit mass.
 	 * @param massTerm
@@ -68,14 +71,17 @@ public final class MassConservationError extends AbstractTimeStepEnergyErrorFunc
 	 *             </ul>
 	 * @throws IllegalArgumentException
 	 *             <ul>
+	 *             <li>If {@code massReference} is not positive and
+	 *             {@code Double#isInfinite() finite}.</li>
 	 *             <li>If {@code specificEnergyReference} is not positive and
 	 *             finite.</li>
 	 *             <li>If {@code massTransferInto} and
 	 *             {@code advectionMassRateTerm} have different lengths.</li>
 	 *             </ul>
 	 */
-	public MassConservationError(double specificEnergyReference, int massTerm, boolean[] massTransferInto,
-			int[] advectionMassRateTerm) {
+	public MassConservationError(double massReference, double specificEnergyReference, int massTerm,
+			boolean[] massTransferInto, int[] advectionMassRateTerm) {
+		this.massReference = requireReferenceScale(massReference, "massReference");
 		this.specificEnergyReference = requireReferenceScale(specificEnergyReference, "specificEnergyReference");
 		this.massTerm = requireTermIndex(massTerm, "massTerm");
 		this.massTransferInto = Arrays.copyOf(massTransferInto, massTransferInto.length);
@@ -94,12 +100,13 @@ public final class MassConservationError extends AbstractTimeStepEnergyErrorFunc
 	 * <ol>
 	 * <li>The method uses the term index information to extract mass and mass
 	 * transfer rates from the given current state vector.</li>
-	 * <li>It calculates a mean mass transfer rate from the old and new mass
+	 * <li>It calculates a mean mass transfer rate, from the old and new mass
 	 * transfer rates.</li>
 	 * <li>It uses those values to calculate a mass conservation error.</li>
-	 * <li>It multiplies the absolute value of the mass conservation error by
-	 * the {@linkplain #getSpecificEnergyReference() specific energy reference}
-	 * to calculate an equivalent energy error.. That is the error term it
+	 * <li>It multiplies the square of the mass conservation error by the
+	 * {@linkplain #getSpecificEnergyReference() specific energy reference} and
+	 * divides by the {@linkplain #getMassReference() mass reference} to
+	 * calculate an equivalent energy error.. That is the error term it
 	 * returns.</li>
 	 * </ol>
 	 * 
@@ -140,13 +147,12 @@ public final class MassConservationError extends AbstractTimeStepEnergyErrorFunc
 		}
 
 		final double me = (m - m0) + dt * massRateMean;
-		final double sign = Math.signum(me);
-		final double e = specificEnergyReference * me * sign;
+		final double ce = specificEnergyReference * (me / massReference);
+		// ce may be negative
+		final double e = ce * me;
 
-		dedx[massTerm] += specificEnergyReference * sign;
-
-		final double dedmrate = 0.5 * sign * specificEnergyReference * dt;
-		;
+		dedx[massTerm] += 2.0 * ce;
+		final double dedmrate = ce * dt;
 		for (int j = 0; j < nm; ++j) {
 			if (massTransferInto[j]) {
 				dedx[advectionMassRateTerm[j]] += dedmrate;
@@ -179,6 +185,26 @@ public final class MassConservationError extends AbstractTimeStepEnergyErrorFunc
 	 */
 	public final int getAdvectionMassRateTerm(int j) {
 		return advectionMassRateTerm[j];
+	}
+
+	/**
+	 * <p>
+	 * A reference mass scale.
+	 * </p>
+	 * <p>
+	 * The functor uses this value to convert a force error into an energy
+	 * error. It is tempting to use the mass of the solid body for which this
+	 * functor calculates the error, but that will produce bad results if there
+	 * are multiple bodies and they have very different masses; it is better to
+	 * use the same value for all bodies, with that value equal to the mass of a
+	 * typical body.
+	 * </p>
+	 * 
+	 * @return the mass; positive and {@linkplain Double#isFinite(double)
+	 *         finite}
+	 */
+	public final double getMassReference() {
+		return massReference;
 	}
 
 	/**
