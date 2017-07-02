@@ -120,6 +120,34 @@ public class ImmutableVectorTest {
 		return scaled;
 	}
 
+	private static ImmutableVector sum(ImmutableVector... x) {
+		final ImmutableVector sum = ImmutableVector.sum(x);
+
+		assertNotNull("Always returns a sum vector.", sum);// guard
+		assertInvariants(sum);
+		for (ImmutableVector xi : x) {
+			assertInvariants(sum, xi);
+		}
+
+		assertEquals("The dimension of the sum equals the dimension of the summed vectors.", x[0].getDimension(),
+				sum.getDimension());
+
+		return sum;
+	}
+
+	private static final void sum_multiple1(double x) {
+		final ImmutableVector sum = sum(new ImmutableVector[] { ImmutableVector.create(x) });
+
+		assertEquals("sum[0]", x, sum.get(0), Double.MIN_NORMAL);
+	}
+
+	private static final void sum_multiple2(double x1, double x2) {
+		final ImmutableVector sum = sum(
+				new ImmutableVector[] { ImmutableVector.create(x1), ImmutableVector.create(x2) });
+
+		assertEquals("sum[0]", x1 + x2, sum.get(0), Double.MIN_NORMAL);
+	}
+
 	private static ImmutableVector weightedSum(double[] weight, ImmutableVector[] x) {
 		final ImmutableVector sum = ImmutableVector.weightedSum(weight, x);
 
@@ -480,6 +508,51 @@ public class ImmutableVectorTest {
 
 		assertEquals("scaled[0]", 4.0, scaled.get(0), Double.MIN_NORMAL);
 		assertEquals("scaled[1]", 8.0, scaled.get(1), Double.MIN_NORMAL);
+	}
+
+	@Test
+	public void sum_multiple1A() {
+		sum_multiple1(1.0);
+	}
+
+	@Test
+	public void sum_multiple1B() {
+		sum_multiple1(0.0);
+	}
+
+	@Test
+	public void sum_multiple1C() {
+		sum_multiple1(-1.0);
+	}
+
+	@Test
+	public void sum_multiple1D() {
+		final ImmutableVector sum = sum(new ImmutableVector[] { ImmutableVector.create(1.0, 3.0) });
+
+		assertEquals("sum[0]", 1.0, sum.get(0), Double.MIN_NORMAL);
+		assertEquals("sum[1]", 3.0, sum.get(1), Double.MIN_NORMAL);
+	}
+
+	//////////////////////////
+
+	@Test
+	public void sum_multiple2A() {
+		sum_multiple2(1.0, 0.0);
+	}
+
+	@Test
+	public void sum_multiple2B() {
+		sum_multiple2(0.0, 1.0);
+	}
+
+	@Test
+	public void sum_multiple2C() {
+		sum_multiple2(1.0, 1.0);
+	}
+
+	@Test
+	public void sum_multiple2D() {
+		sum_multiple2(1.0, 2.0);
 	}
 
 	@Test

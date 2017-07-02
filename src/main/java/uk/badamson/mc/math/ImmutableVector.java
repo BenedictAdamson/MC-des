@@ -118,6 +118,55 @@ public final class ImmutableVector {
 
 	/**
 	 * <p>
+	 * Calculate the sum of several vectors that have the same
+	 * {@linkplain #getDimension() dimension}.
+	 * </p>
+	 * </ul>
+	 * <li>Always returns a (non null) sum vector.</li>
+	 * <li>The dimension of the sum equals the dimension of the summed
+	 * vectors.</li>
+	 * </ul>
+	 * 
+	 * @param x
+	 *            The vectors to sum
+	 * @return The sum; not null
+	 * 
+	 * @throws NullPointerException
+	 *             <ul>
+	 *             <li>If {@code x} is null.</li>
+	 *             <li>If {@code x} has any null elements.</li>
+	 *             </ul>
+	 * @throws IllegalArgumentException
+	 *             If the elements of {@code x} do not have the same
+	 *             {@linkplain #getDimension() dimension}.
+	 */
+	public static ImmutableVector sum(ImmutableVector... x) {
+		Objects.requireNonNull(x, "x");
+		final int n = x.length;
+		if (n == 0) {
+			throw new IllegalArgumentException("Number of vector arguments");
+		}
+		Objects.requireNonNull(x[0], "x[0]");
+
+		final int d = x[0].getDimension();
+		final double[] sum = new double[d];
+		for (int j = 0; j < n; ++j) {
+			final ImmutableVector xj = x[j];
+			Objects.requireNonNull(xj, "x[j]");
+			if (xj.getDimension() != d) {
+				throw new IllegalArgumentException("Inconsistent dimension " + d + ", " + xj.getDimension());
+			}
+
+			for (int i = 0; i < d; ++i) {
+				sum[i] += xj.get(i);
+			}
+		}
+
+		return new ImmutableVector(sum);
+	}
+
+	/**
+	 * <p>
 	 * Calculate the weighted sum of several vectors that have the same
 	 * {@linkplain #getDimension() dimension}.
 	 * </p>
@@ -446,4 +495,5 @@ public final class ImmutableVector {
 	public final String toString() {
 		return Arrays.toString(x);
 	}
+
 }
