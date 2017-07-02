@@ -254,7 +254,7 @@ public final class MomentumConservationError extends AbstractTimeStepEnergyError
 		for (int j = 0; j < nm; ++j) {
 			final double sign = massTransferInto[j] ? 1.0 : -1.0;
 			final double mdedu = -0.25 * massRate[j];
-			dedx[advectionMassRateTerm[j]] = -0.5 * dt * sign * ve.dot(vrel[j]);
+			dedx[advectionMassRateTerm[j]] += -0.5 * dt * sign * ve.dot(vrel[j]);
 			for (int i = 0; i < ns; ++i) {
 				dedx[getAdvectionVelocityTerm(j, i)] += mdedu * ve.get(i);
 			}

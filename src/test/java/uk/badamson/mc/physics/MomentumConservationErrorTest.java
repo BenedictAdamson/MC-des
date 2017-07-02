@@ -111,8 +111,8 @@ public class MomentumConservationErrorTest {
 		assertEquals("e", expectedE, e, 1E-8);
 		assertEquals("dedm", expectedDedm, dedx[0], 1E-8);
 		assertEquals("dedv", expectedDedv, dedx[1], 1E-8);
-		assertEquals("dedmrate", expectedDedmrate, dedx[3], 1E-8);
-		assertEquals("dedu", expectedDedu, dedx[4], 1E-8);
+		assertEquals("dedmrate", expectedDedmrate, dedx[2], 1E-8);
+		assertEquals("dedu", expectedDedu, dedx[3], 1E-8);
 	}
 
 	private static void evaluate_1Closed(double dedm0, double dedv0, double m0, double v0, double m, double v,
@@ -210,12 +210,12 @@ public class MomentumConservationErrorTest {
 		final boolean massTransferInto = true;
 
 		final double m0 = 1.0;
-		final double v0 = 1.0;
+		final double v0 = 0.0;
 		final double mrate0 = 1.0;
 		final double u0 = 1.0;
 
 		final double m = 1.0;
-		final double v = 1.0;
+		final double v = 0.0;
 		final double mrate = 1.0;
 		final double u = 1.0;
 
@@ -224,10 +224,10 @@ public class MomentumConservationErrorTest {
 		final double dedu0 = 0.0;
 
 		final double expectedE = 0.5;
-		final double expectedDedm = 1.0;
-		final double expectedDedv = 1.0;
-		final double expectedDedmrate = 0.0;
-		final double expectedDedu = -1.0;
+		final double expectedDedm = -0.5;
+		final double expectedDedv = -0.50;
+		final double expectedDedmrate = 0.50;
+		final double expectedDedu = 0.25;
 
 		evaluate_1Advection(massTransferInto, m0, v0, mrate0, u0, m, v, mrate, u, dt, dedmrate0, dedu0, expectedE,
 				expectedDedm, expectedDedv, expectedDedmrate, expectedDedu);
@@ -238,24 +238,24 @@ public class MomentumConservationErrorTest {
 		final boolean massTransferInto = true;
 
 		final double m0 = 1.0;
-		final double v0 = 1.0;
+		final double v0 = 0.0;
 		final double mrate0 = 1.0;
 		final double u0 = 1.0;
 
 		final double m = 1.0;
-		final double v = 1.0;
+		final double v = 0.0;
 		final double mrate = 1.0;
 		final double u = 1.0;
 
 		final double dt = 1.0;
-		final double dedmrate0 = 2.0;
+		final double dedmrate0 = 1.0;
 		final double dedu0 = 0.0;
 
 		final double expectedE = 0.5;
-		final double expectedDedm = 1.0;
-		final double expectedDedv = 1.0;
-		final double expectedDedmrate = 2.0;
-		final double expectedDedu = -1.0;
+		final double expectedDedm = -0.5;
+		final double expectedDedv = -0.50;
+		final double expectedDedmrate = 1.50;
+		final double expectedDedu = 0.25;
 
 		evaluate_1Advection(massTransferInto, m0, v0, mrate0, u0, m, v, mrate, u, dt, dedmrate0, dedu0, expectedE,
 				expectedDedm, expectedDedv, expectedDedmrate, expectedDedu);
@@ -266,24 +266,24 @@ public class MomentumConservationErrorTest {
 		final boolean massTransferInto = true;
 
 		final double m0 = 1.0;
-		final double v0 = 1.0;
+		final double v0 = 0.0;
 		final double mrate0 = 1.0;
 		final double u0 = 1.0;
 
 		final double m = 1.0;
-		final double v = 1.0;
+		final double v = 0.0;
 		final double mrate = 1.0;
 		final double u = 1.0;
 
 		final double dt = 1.0;
 		final double dedmrate0 = 0.0;
-		final double dedu0 = 2.0;
+		final double dedu0 = 1.0;
 
 		final double expectedE = 0.5;
-		final double expectedDedm = 1.0;
-		final double expectedDedv = 1.0;
-		final double expectedDedmrate = 0.0;
-		final double expectedDedu = 1.0;
+		final double expectedDedm = -0.5;
+		final double expectedDedv = -0.50;
+		final double expectedDedmrate = 0.50;
+		final double expectedDedu = 1.25;
 
 		evaluate_1Advection(massTransferInto, m0, v0, mrate0, u0, m, v, mrate, u, dt, dedmrate0, dedu0, expectedE,
 				expectedDedm, expectedDedv, expectedDedmrate, expectedDedu);
@@ -294,12 +294,12 @@ public class MomentumConservationErrorTest {
 		final boolean massTransferInto = true;
 
 		final double m0 = 1.0;
-		final double v0 = 1.0;
+		final double v0 = 0.0;
 		final double mrate0 = 1.0;
 		final double u0 = 1.0;
 
 		final double m = 1.0;
-		final double v = 1.0;
+		final double v = 0.0;
 		final double mrate = 1.0;
 		final double u = 1.0;
 
@@ -307,11 +307,11 @@ public class MomentumConservationErrorTest {
 		final double dedmrate0 = 0.0;
 		final double dedu0 = 0.0;
 
-		final double expectedE = 0.5;
-		final double expectedDedm = 1.0;
-		final double expectedDedv = 1.0;
-		final double expectedDedmrate = 0.0;
-		final double expectedDedu = -1.0;
+		final double expectedE = 2.0;
+		final double expectedDedm = -2.0;
+		final double expectedDedv = 0.0;
+		final double expectedDedmrate = 2.0;
+		final double expectedDedu = 0.5;
 
 		evaluate_1Advection(massTransferInto, m0, v0, mrate0, u0, m, v, mrate, u, dt, dedmrate0, dedu0, expectedE,
 				expectedDedm, expectedDedv, expectedDedmrate, expectedDedu);
@@ -322,12 +322,12 @@ public class MomentumConservationErrorTest {
 		final boolean massTransferInto = true;
 
 		final double m0 = 1.0;
-		final double v0 = 1.0;
+		final double v0 = 0.0;
 		final double mrate0 = 1.0;
 		final double u0 = 1.0;
 
 		final double m = 2.0;
-		final double v = 1.0;
+		final double v = 0.0;
 		final double mrate = 1.0;
 		final double u = 1.0;
 
@@ -335,39 +335,11 @@ public class MomentumConservationErrorTest {
 		final double dedmrate0 = 0.0;
 		final double dedu0 = 0.0;
 
-		final double expectedE = 2.0;
-		final double expectedDedm = 2.0;
-		final double expectedDedv = 2.0;
-		final double expectedDedmrate = 0.0;
-		final double expectedDedu = -2.0;
-
-		evaluate_1Advection(massTransferInto, m0, v0, mrate0, u0, m, v, mrate, u, dt, dedmrate0, dedu0, expectedE,
-				expectedDedm, expectedDedv, expectedDedmrate, expectedDedu);
-	}
-
-	@Test
-	public void evaluate_1AdvectionM0() {
-		final boolean massTransferInto = true;
-
-		final double m0 = 2.0;
-		final double v0 = 1.0;
-		final double mrate0 = 1.0;
-		final double u0 = 1.0;
-
-		final double m = 1.0;
-		final double v = 1.0;
-		final double mrate = 1.0;
-		final double u = 1.0;
-
-		final double dt = 1.0;
-		final double dedmrate0 = 0.0;
-		final double dedu0 = 0.0;
-
-		final double expectedE = 0.5;
-		final double expectedDedm = 1.0;
-		final double expectedDedv = 1.0;
-		final double expectedDedmrate = 0.0;
-		final double expectedDedu = -1.0;
+		final double expectedE = 0.25;
+		final double expectedDedm = -0.125;
+		final double expectedDedv = -0.75;
+		final double expectedDedmrate = 0.25;
+		final double expectedDedu = 0.125;
 
 		evaluate_1Advection(massTransferInto, m0, v0, mrate0, u0, m, v, mrate, u, dt, dedmrate0, dedu0, expectedE,
 				expectedDedm, expectedDedv, expectedDedmrate, expectedDedu);
@@ -378,12 +350,12 @@ public class MomentumConservationErrorTest {
 		final boolean massTransferInto = true;
 
 		final double m0 = 1.0;
-		final double v0 = 1.0;
+		final double v0 = 0.0;
 		final double mrate0 = 1.0;
 		final double u0 = 1.0;
 
 		final double m = 1.0;
-		final double v = 1.0;
+		final double v = 0.0;
 		final double mrate = 2.0;
 		final double u = 1.0;
 
@@ -391,11 +363,11 @@ public class MomentumConservationErrorTest {
 		final double dedmrate0 = 0.0;
 		final double dedu0 = 0.0;
 
-		final double expectedE = 0.5;
-		final double expectedDedm = 1.0;
-		final double expectedDedv = 2.0;
-		final double expectedDedmrate = 0.0;
-		final double expectedDedu = -2.0;
+		final double expectedE = 1.125;
+		final double expectedDedm = -1.125;
+		final double expectedDedv = 0.0;
+		final double expectedDedmrate = 0.75;
+		final double expectedDedu = 0.75;
 
 		evaluate_1Advection(massTransferInto, m0, v0, mrate0, u0, m, v, mrate, u, dt, dedmrate0, dedu0, expectedE,
 				expectedDedm, expectedDedv, expectedDedmrate, expectedDedu);
@@ -406,12 +378,12 @@ public class MomentumConservationErrorTest {
 		final boolean massTransferInto = true;
 
 		final double m0 = 1.0;
-		final double v0 = 1.0;
+		final double v0 = 0.0;
 		final double mrate0 = 2.0;
 		final double u0 = 1.0;
 
 		final double m = 1.0;
-		final double v = 1.0;
+		final double v = 0.0;
 		final double mrate = 1.0;
 		final double u = 1.0;
 
@@ -419,11 +391,11 @@ public class MomentumConservationErrorTest {
 		final double dedmrate0 = 0.0;
 		final double dedu0 = 0.0;
 
-		final double expectedE = 0.5;
-		final double expectedDedm = 1.0;
-		final double expectedDedv = 1.0;
-		final double expectedDedmrate = 0.0;
-		final double expectedDedu = -1.0;
+		final double expectedE = 1.125;
+		final double expectedDedm = -1.125;
+		final double expectedDedv = -0.75;
+		final double expectedDedmrate = 0.75;
+		final double expectedDedu = 0.375;
 
 		evaluate_1Advection(massTransferInto, m0, v0, mrate0, u0, m, v, mrate, u, dt, dedmrate0, dedu0, expectedE,
 				expectedDedm, expectedDedv, expectedDedmrate, expectedDedu);
@@ -434,12 +406,12 @@ public class MomentumConservationErrorTest {
 		final boolean massTransferInto = true;
 
 		final double m0 = 1.0;
-		final double v0 = 1.0;
+		final double v0 = 0.0;
 		final double mrate0 = 1.0;
 		final double u0 = 1.0;
 
 		final double m = 1.0;
-		final double v = 1.0;
+		final double v = 0.0;
 		final double mrate = 1.0;
 		final double u = 2.0;
 
@@ -447,11 +419,11 @@ public class MomentumConservationErrorTest {
 		final double dedmrate0 = 0.0;
 		final double dedu0 = 0.0;
 
-		final double expectedE = 0.0;
-		final double expectedDedm = 0.0;
-		final double expectedDedv = 0.0;
-		final double expectedDedmrate = 0.0;
-		final double expectedDedu = 0.0;
+		final double expectedE = 1.125;
+		final double expectedDedm = -1.125;
+		final double expectedDedv = -0.75;
+		final double expectedDedmrate = 1.5;
+		final double expectedDedu = 0.375;
 
 		evaluate_1Advection(massTransferInto, m0, v0, mrate0, u0, m, v, mrate, u, dt, dedmrate0, dedu0, expectedE,
 				expectedDedm, expectedDedv, expectedDedmrate, expectedDedu);
@@ -462,12 +434,12 @@ public class MomentumConservationErrorTest {
 		final boolean massTransferInto = true;
 
 		final double m0 = 1.0;
-		final double v0 = 1.0;
+		final double v0 = 0.0;
 		final double mrate0 = 1.0;
 		final double u0 = 2.0;
 
 		final double m = 1.0;
-		final double v = 1.0;
+		final double v = 0.0;
 		final double mrate = 1.0;
 		final double u = 1.0;
 
@@ -475,11 +447,11 @@ public class MomentumConservationErrorTest {
 		final double dedmrate0 = 0.0;
 		final double dedu0 = 0.0;
 
-		final double expectedE = 0.5;
-		final double expectedDedm = 1.0;
-		final double expectedDedv = 1.0;
-		final double expectedDedmrate = 0.0;
-		final double expectedDedu = -1.0;
+		final double expectedE = 1.125;
+		final double expectedDedm = -1.125;
+		final double expectedDedv = -0.75;
+		final double expectedDedmrate = 0.75;
+		final double expectedDedu = 0.375;
 
 		evaluate_1Advection(massTransferInto, m0, v0, mrate0, u0, m, v, mrate, u, dt, dedmrate0, dedu0, expectedE,
 				expectedDedm, expectedDedv, expectedDedmrate, expectedDedu);
@@ -490,35 +462,7 @@ public class MomentumConservationErrorTest {
 		final boolean massTransferInto = true;
 
 		final double m0 = 1.0;
-		final double v0 = 1.0;
-		final double mrate0 = 1.0;
-		final double u0 = 1.0;
-
-		final double m = 1.0;
-		final double v = 2.0;
-		final double mrate = 1.0;
-		final double u = 1.0;
-
-		final double dt = 1.0;
-		final double dedmrate0 = 0.0;
-		final double dedu0 = 0.0;
-
-		final double expectedE = 2.0;
-		final double expectedDedm = 2.0;
-		final double expectedDedv = 2.0;
-		final double expectedDedmrate = 2.0;
-		final double expectedDedu = -2.0;
-
-		evaluate_1Advection(massTransferInto, m0, v0, mrate0, u0, m, v, mrate, u, dt, dedmrate0, dedu0, expectedE,
-				expectedDedm, expectedDedv, expectedDedmrate, expectedDedu);
-	}
-
-	@Test
-	public void evaluate_1AdvectionV0() {
-		final boolean massTransferInto = true;
-
-		final double m0 = 1.0;
-		final double v0 = 2.0;
+		final double v0 = 0.0;
 		final double mrate0 = 1.0;
 		final double u0 = 1.0;
 
@@ -531,11 +475,39 @@ public class MomentumConservationErrorTest {
 		final double dedmrate0 = 0.0;
 		final double dedu0 = 0.0;
 
-		final double expectedE = 0.5;
-		final double expectedDedm = 1.0;
-		final double expectedDedv = 1.0;
-		final double expectedDedmrate = 0.0;
-		final double expectedDedu = -1.0;
+		final double expectedE = 0.125;
+		final double expectedDedm = 0.375;
+		final double expectedDedv = 0.25;
+		final double expectedDedmrate = 0;
+		final double expectedDedu = -0.125;
+
+		evaluate_1Advection(massTransferInto, m0, v0, mrate0, u0, m, v, mrate, u, dt, dedmrate0, dedu0, expectedE,
+				expectedDedm, expectedDedv, expectedDedmrate, expectedDedu);
+	}
+
+	@Test
+	public void evaluate_1AdvectionV0() {
+		final boolean massTransferInto = true;
+
+		final double m0 = 1.0;
+		final double v0 = 1.0;
+		final double mrate0 = 1.0;
+		final double u0 = 1.0;
+
+		final double m = 1.0;
+		final double v = 0.0;
+		final double mrate = 1.0;
+		final double u = 1.0;
+
+		final double dt = 1.0;
+		final double dedmrate0 = 0.0;
+		final double dedu0 = 0.0;
+
+		final double expectedE = 1.125;
+		final double expectedDedm = -1.125;
+		final double expectedDedv = -0.75;
+		final double expectedDedmrate = 0.75;
+		final double expectedDedu = 0.375;
 
 		evaluate_1Advection(massTransferInto, m0, v0, mrate0, u0, m, v, mrate, u, dt, dedmrate0, dedu0, expectedE,
 				expectedDedm, expectedDedv, expectedDedmrate, expectedDedu);
