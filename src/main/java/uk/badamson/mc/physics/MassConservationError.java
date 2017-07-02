@@ -292,7 +292,7 @@ public final class MassConservationError extends AbstractTimeStepEnergyErrorFunc
 		if (n <= 0) {
 			throw new IllegalArgumentException("n " + n);
 		}
-		return (n < massTerm + 1) && isValidForTerm(n, advectionMassRateTerm);
+		return (massTerm + 1 <= n) && isValidForTerm(n, advectionMassRateTerm);
 	}
 
 }

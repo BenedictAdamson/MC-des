@@ -546,9 +546,9 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
 		if (n <= 0) {
 			throw new IllegalArgumentException("n " + n);
 		}
-		return (n < massTerm + 1) && isValidForTerm(n, accelerationTerm) && isValidForTerm(n, accelerationTerm)
-				&& isValidForTerm(n, advectionMassRateTerm) && isValidForTerm(n, advectionVelocityTerm)
-				&& isValidForTerm(n, forceTerm) && isValidForTerm(n, velocityTerm);
+		return (massTerm + 1 <= n) && isValidForTerm(n, accelerationTerm) && isValidForTerm(n, velocityTerm)
+				&& isValidForTerm(n, advectionVelocityTerm) && isValidForTerm(n, advectionMassRateTerm)
+				&& isValidForTerm(n, forceTerm);
 	}
 
 	private int requireAdvectionProcess(int j) {
