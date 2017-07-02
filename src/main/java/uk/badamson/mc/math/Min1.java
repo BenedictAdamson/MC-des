@@ -348,7 +348,7 @@ public final class Min1 {
 			p1 = p2;
 			p2 = pTemp;
 		}
-		assert p2.getF() <= p1.getF();
+		assert !(p1.getF() < p2.getF());
 		/*
 		 * First guess is to step in the same direction:
 		 */
