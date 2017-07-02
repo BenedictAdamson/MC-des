@@ -109,6 +109,40 @@ public class ImmutableVectorTest {
 		return minus;
 	}
 
+	private static final ImmutableVector minus(ImmutableVector x, ImmutableVector that) {
+		final ImmutableVector diff = x.minus(that);
+
+		assertNotNull("Not null, result", diff);// guard
+		assertInvariants(diff);
+		assertInvariants(diff, x);
+		assertInvariants(diff, that);
+
+		final int dimension = diff.getDimension();
+		assertEquals("dimension", x.getDimension(), dimension);// guard
+		for (int i = 0; i < dimension; i++) {
+			assertEquals("diff[" + i + "]", x.get(i) - that.get(i), diff.get(i), Double.MIN_NORMAL);
+		}
+
+		return diff;
+	}
+
+	private static final ImmutableVector plus(ImmutableVector x, ImmutableVector that) {
+		final ImmutableVector diff = x.plus(that);
+
+		assertNotNull("Not null, result", diff);// guard
+		assertInvariants(diff);
+		assertInvariants(diff, x);
+		assertInvariants(diff, that);
+
+		final int dimension = diff.getDimension();
+		assertEquals("dimension", x.getDimension(), dimension);// guard
+		for (int i = 0; i < dimension; i++) {
+			assertEquals("plus[" + i + "]", x.get(i) + that.get(i), diff.get(i), Double.MIN_NORMAL);
+		}
+
+		return diff;
+	}
+
 	private static ImmutableVector scale(ImmutableVector x, double f) {
 		final ImmutableVector scaled = x.scale(f);
 
@@ -379,23 +413,6 @@ public class ImmutableVectorTest {
 		assertEquals("mean[1]", 3.0, mean.get(1), Double.MIN_NORMAL);
 	}
 
-	private final ImmutableVector minus(ImmutableVector x, ImmutableVector that) {
-		final ImmutableVector diff = x.minus(that);
-
-		assertNotNull("Not null, result", diff);// guard
-		assertInvariants(diff);
-		assertInvariants(diff, x);
-		assertInvariants(diff, that);
-
-		final int dimension = diff.getDimension();
-		assertEquals("dimension", x.getDimension(), dimension);// guard
-		for (int i = 0; i < dimension; i++) {
-			assertEquals("diff[" + i + "]", x.get(i) - that.get(i), diff.get(i), Double.MIN_NORMAL);
-		}
-
-		return diff;
-	}
-
 	@Test
 	public void minus_0() {
 		minus(ImmutableVector.create(0.0));
@@ -475,6 +492,54 @@ public class ImmutableVectorTest {
 	}
 
 	@Test
+	public void plus_0A() {
+		final ImmutableVector x1 = ImmutableVector.create(0);
+		final ImmutableVector x2 = ImmutableVector.create(0);
+
+		plus(x1, x2);
+	}
+
+	@Test
+	public void plus_0B() {
+		final ImmutableVector x1 = ImmutableVector.create(1);
+		final ImmutableVector x2 = ImmutableVector.create(0);
+
+		plus(x1, x2);
+	}
+
+	@Test
+	public void plus_0C() {
+		final ImmutableVector x1 = ImmutableVector.create(1, 2);
+		final ImmutableVector x2 = ImmutableVector.create(0, 0);
+
+		plus(x1, x2);
+	}
+
+	@Test
+	public void plus_A() {
+		final ImmutableVector x1 = ImmutableVector.create(2);
+		final ImmutableVector x2 = ImmutableVector.create(1);
+
+		plus(x1, x2);
+	}
+
+	@Test
+	public void plus_B() {
+		final ImmutableVector x1 = ImmutableVector.create(2);
+		final ImmutableVector x2 = ImmutableVector.create(-1);
+
+		plus(x1, x2);
+	}
+
+	@Test
+	public void plus_C() {
+		final ImmutableVector x1 = ImmutableVector.create(1, 2);
+		final ImmutableVector x2 = ImmutableVector.create(3, 4);
+
+		plus(x1, x2);
+	}
+
+	@Test
 	public void scale_1A() {
 		final ImmutableVector scaled = scale(ImmutableVector.create(1.0), 0.0);
 
@@ -487,6 +552,8 @@ public class ImmutableVectorTest {
 
 		assertEquals("scaled[0]", 0.0, scaled.get(0), Double.MIN_NORMAL);
 	}
+
+	//////////////////////////
 
 	@Test
 	public void scale_1C() {
@@ -532,8 +599,6 @@ public class ImmutableVectorTest {
 		assertEquals("sum[0]", 1.0, sum.get(0), Double.MIN_NORMAL);
 		assertEquals("sum[1]", 3.0, sum.get(1), Double.MIN_NORMAL);
 	}
-
-	//////////////////////////
 
 	@Test
 	public void sum_multiple2A() {
@@ -596,4 +661,5 @@ public class ImmutableVectorTest {
 
 		assertEquals("sum[0]", 13.0, sum.get(0), Double.MIN_NORMAL);
 	}
+
 }

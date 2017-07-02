@@ -139,6 +139,7 @@ public final class ImmutableVector {
 	 * @throws IllegalArgumentException
 	 *             If the elements of {@code x} do not have the same
 	 *             {@linkplain #getDimension() dimension}.
+	 * @see #plus(ImmutableVector)
 	 */
 	public static ImmutableVector sum(ImmutableVector... x) {
 		Objects.requireNonNull(x, "x");
@@ -441,8 +442,8 @@ public final class ImmutableVector {
 	 * <li>Always returns a (non null) vector.</li>
 	 * <li>The difference vector has the same {@linkplain #getDimension()
 	 * dimension} as this vector.</li>
-	 * <li>The {@linkplain #get(int) components} of the opposite vector are the
-	 * difference of the corresponding component of this vector.</li>
+	 * <li>The {@linkplain #get(int) components} of the difference vector are
+	 * the difference of the corresponding component of this vector.</li>
 	 * </ul>
 	 * 
 	 * @param that
@@ -463,6 +464,42 @@ public final class ImmutableVector {
 		final double[] minus = new double[n];
 		for (int i = 0; i < n; ++i) {
 			minus[i] = x[i] - that.x[i];
+		}
+		return new ImmutableVector(minus);
+	}
+
+	/**
+	 * <p>
+	 * Create the vector that is a given vector added to this vector; the sum of
+	 * this vector and another.
+	 * </p>
+	 * <ul>
+	 * <li>Always returns a (non null) vector.</li>
+	 * <li>The sum vector has the same {@linkplain #getDimension() dimension} as
+	 * this vector.</li>
+	 * <li>The {@linkplain #get(int) components} of the sum vector are the sum
+	 * with the corresponding component of this vector.</li>
+	 * </ul>
+	 * 
+	 * @param that
+	 *            The other vector
+	 * @return the sum vector
+	 * 
+	 * @throws NullPointerException
+	 *             If {@code that} is null.
+	 * @throws IllegalArgumentException
+	 *             If the {@linkplain #getDimension() dimension} of {@code that}
+	 *             is not equal to the dimension of this.
+	 * @see #sum(ImmutableVector...)
+	 */
+	public final ImmutableVector plus(ImmutableVector that) {
+		Objects.requireNonNull(that, "that");
+		requireConsistentDimensions(this, that);
+
+		final int n = x.length;
+		final double[] minus = new double[n];
+		for (int i = 0; i < n; ++i) {
+			minus[i] = x[i] + that.x[i];
 		}
 		return new ImmutableVector(minus);
 	}
