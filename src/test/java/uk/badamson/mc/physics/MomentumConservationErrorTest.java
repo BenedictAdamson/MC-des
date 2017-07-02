@@ -550,8 +550,8 @@ public class MomentumConservationErrorTest {
 		final double m = 1.0;
 		final double v = 1.0;
 		final double dt = 1.0;
-		final double expectedE = 0.5;
-		final double expectedDedm = 1.0;
+		final double expectedE = 0.0;
+		final double expectedDedm = 0.0;
 		final double expectedDedv = 0.0;
 
 		evaluate_1Closed(dedm0, dedv0, m0, v0, m, v, dt, expectedE, expectedDedm, expectedDedv);
@@ -566,8 +566,8 @@ public class MomentumConservationErrorTest {
 		final double m = 1.0;
 		final double v = 1.0;
 		final double dt = 1.0;
-		final double expectedE = 0.5;
-		final double expectedDedm = 3.0;
+		final double expectedE = 0.0;
+		final double expectedDedm = 2.0;
 		final double expectedDedv = 0.0;
 
 		evaluate_1Closed(dedm0, dedv0, m0, v0, m, v, dt, expectedE, expectedDedm, expectedDedv);
@@ -582,8 +582,8 @@ public class MomentumConservationErrorTest {
 		final double m = 1.0;
 		final double v = 1.0;
 		final double dt = 1.0;
-		final double expectedE = 0.5;
-		final double expectedDedm = 1.0;
+		final double expectedE = 0.0;
+		final double expectedDedm = 0.0;
 		final double expectedDedv = 2.0;
 
 		evaluate_1Closed(dedm0, dedv0, m0, v0, m, v, dt, expectedE, expectedDedm, expectedDedv);
@@ -598,8 +598,8 @@ public class MomentumConservationErrorTest {
 		final double m = 1.0;
 		final double v = 1.0;
 		final double dt = 2.0;
-		final double expectedE = 0.5;
-		final double expectedDedm = 1.0;
+		final double expectedE = 0.0;
+		final double expectedDedm = 0.0;
 		final double expectedDedv = 0.0;
 
 		evaluate_1Closed(dedm0, dedv0, m0, v0, m, v, dt, expectedE, expectedDedm, expectedDedv);
@@ -614,9 +614,9 @@ public class MomentumConservationErrorTest {
 		final double m = 2.0;
 		final double v = 1.0;
 		final double dt = 1.0;
-		final double expectedE = 2.0;
-		final double expectedDedm = 2.0;
-		final double expectedDedv = 0.0;
+		final double expectedE = 0.25;
+		final double expectedDedm = 0.375;
+		final double expectedDedv = 1.0;
 
 		evaluate_1Closed(dedm0, dedv0, m0, v0, m, v, dt, expectedE, expectedDedm, expectedDedv);
 	}
@@ -631,8 +631,8 @@ public class MomentumConservationErrorTest {
 		final double v = 1.0;
 		final double dt = 1.0;
 		final double expectedE = 0.5;
-		final double expectedDedm = 1.0;
-		final double expectedDedv = 0.0;
+		final double expectedDedm = -1.5;
+		final double expectedDedv = -1.0;
 
 		evaluate_1Closed(dedm0, dedv0, m0, v0, m, v, dt, expectedE, expectedDedm, expectedDedv);
 	}
@@ -647,8 +647,8 @@ public class MomentumConservationErrorTest {
 		final double v = 2.0;
 		final double dt = 1.0;
 		final double expectedE = 0.5;
-		final double expectedDedm = 1.0;
-		final double expectedDedv = 0.0;
+		final double expectedDedm = 1.5;
+		final double expectedDedv = 1.0;
 
 		evaluate_1Closed(dedm0, dedv0, m0, v0, m, v, dt, expectedE, expectedDedm, expectedDedv);
 	}
@@ -663,8 +663,8 @@ public class MomentumConservationErrorTest {
 		final double v = 1.0;
 		final double dt = 1.0;
 		final double expectedE = 0.5;
-		final double expectedDedm = 1.0;
-		final double expectedDedv = 0.0;
+		final double expectedDedm = -1.5;
+		final double expectedDedv = -1.0;
 
 		evaluate_1Closed(dedm0, dedv0, m0, v0, m, v, dt, expectedE, expectedDedm, expectedDedv);
 	}
