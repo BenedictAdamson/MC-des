@@ -98,7 +98,7 @@ public class IntegrationTest {
 		final double v0 = 2.0;
 		final double dt = 1.0;
 		final double mass = 1.0;
-		final double tolerance = 1E-3;
+		final double tolerance = 1E-6;
 		;
 		final double dx = 0.0;
 		final double dv = 0.0;
@@ -118,7 +118,7 @@ public class IntegrationTest {
 		final double v0 = 2.0;
 		final double dt = 1.0;
 		final double mass = 1.0;
-		final double tolerance = 1E-3;
+		final double tolerance = 1E-6;
 		;
 		final double dx = 0.0;
 		final double dv = 1.0;
@@ -138,7 +138,7 @@ public class IntegrationTest {
 		final double v0 = 2.0;
 		final double dt = 1.0;
 		final double mass = 1.0;
-		final double tolerance = 1E-3;
+		final double tolerance = 1E-6;
 		;
 		final double dx = 1.0;
 		final double dv = 0.0;
@@ -158,7 +158,7 @@ public class IntegrationTest {
 		final double v0 = 0.0;
 		final double dt = 1.0;
 		final double mass = 1.0;
-		final double tolerance = 1E-3;
+		final double tolerance = 1E-6;
 
 		constantVelocitySolution(x0, v0, dt, mass, tolerance);
 	}
@@ -169,7 +169,7 @@ public class IntegrationTest {
 		final double v0 = 0.0;
 		final double dt = 2.0;
 		final double mass = 1.0;
-		final double tolerance = 1E-3;
+		final double tolerance = 1E-6;
 
 		constantVelocitySolution(x0, v0, dt, mass, tolerance);
 	}
@@ -180,7 +180,7 @@ public class IntegrationTest {
 		final double v0 = 0.0;
 		final double dt = 1.0;
 		final double mass = 2.0;
-		final double tolerance = 1E-3;
+		final double tolerance = 1E-6;
 
 		constantVelocitySolution(x0, v0, dt, mass, tolerance);
 	}
@@ -191,7 +191,7 @@ public class IntegrationTest {
 		final double v0 = 2.0;
 		final double dt = 1.0;
 		final double mass = 1.0;
-		final double tolerance = 1E-3;
+		final double tolerance = 1E-6;
 
 		constantVelocitySolution(x0, v0, dt, mass, tolerance);
 	}
@@ -202,7 +202,7 @@ public class IntegrationTest {
 		final double v0 = 0.0;
 		final double dt = 1.0;
 		final double mass = 1.0;
-		final double tolerance = 1E-3;
+		final double tolerance = 1E-6;
 
 		constantVelocitySolution(x0, v0, dt, mass, tolerance);
 	}

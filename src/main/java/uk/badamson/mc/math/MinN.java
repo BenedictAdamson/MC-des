@@ -268,12 +268,25 @@ public final class MinN {
 				 */
 				break;
 			}
-			if (Math.abs(fx.getF() - fXNew.getF()) <= fx.getF() * tolerance) {
+			final double fTolerance = Math.abs(fx.getF()) * tolerance;
+			final double df = fx.getF() - fXNew.getF();
+			if (Math.abs(df) <= fTolerance) {
 				fx = fXNew;
 				break;// converged
 			}
+
 			final ImmutableVector gNew = downSlope(fXNew);
 			final double gamma = (gNew.minus(g)).dot(gNew) / g.magnitude2();
+
+			if (Math.abs(gamma) <= tolerance) {
+				/*
+				 * The gamma value is a dimensionless measure of the change in
+				 * the search vector. When that becomes very small, the search
+				 * vector is effectively zero, and we have located the minimum.
+				 */
+				fx = fXNew;
+				break;// converged
+			}
 			final ImmutableVector hNew = ImmutableVector.createOnLine(gNew, h, gamma);
 
 			g = gNew;
