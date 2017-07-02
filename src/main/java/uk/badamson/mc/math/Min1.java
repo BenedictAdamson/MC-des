@@ -683,22 +683,46 @@ public final class Min1 {
 				 */
 				if (ok1 && ok2) {
 					/*
+					 * Secant extrapolation seems to produce good results.
 					 * Prefer the smallest change
 					 */
-					if (Math.abs(xNew1 - inner.getX()) <= Math.abs(xNew2 - inner.getX())) {
+					final double dxNew1 = xNew1 - inner.getX();
+					final double dxNew2 = xNew2 - inner.getX();
+					final double dxNew;
+					if (Math.abs(dxNew1) <= Math.abs(dxNew2)) {
 						xNew = xNew1;
+						dxNew = dxNew1;
 					} else {
 						xNew = xNew2;
+						dxNew = dxNew2;
+					}
+					if (Math.abs(dxNew) <= xTolerance) {
+						/*
+						 * However, if that is a very small step, that suggests
+						 * the we have found the minimum. All we need to do now
+						 * is to narrow the bracket by making a small step into
+						 * the biggest interval.
+						 */
+						final double xr = right.getX() - inner.getX();
+						final double xl = inner.getX() - left.getX();
+						if (xl < xr) {
+							xNew = inner.getX() + Math.min(0.5 * xr, xTolerance);
+						} else {
+							xNew = inner.getX() - Math.min(0.5 * xl, xTolerance);
+						}
 					}
 				} else if (ok1) {// && !ok2
 					xNew = xNew1;
+					xNew = avoidTinyStep(xNew, xTolerance, left.getX(), inner.getX(), right.getX());
 				} else if (ok2) {// && !ok1
 					xNew = xNew2;
+					xNew = avoidTinyStep(xNew, xTolerance, left.getX(), inner.getX(), right.getX());
 				} else { // !ok1 && !ok2
 					/*
 					 * Fall back to bisection
 					 */
 					xNew = bisect(left, inner, right, xTolerance, fTolerance);
+					xNew = avoidTinyStep(xNew, xTolerance, left.getX(), inner.getX(), right.getX());
 				}
 			} else {
 				/*
@@ -706,8 +730,8 @@ public final class Min1 {
 				 * round-off error. So use bisection instead.
 				 */
 				xNew = bisect(left, inner, right, xTolerance, fTolerance);
+				xNew = avoidTinyStep(xNew, xTolerance, left.getX(), inner.getX(), right.getX());
 			}
-			xNew = avoidTinyStep(xNew, xTolerance, left.getX(), inner.getX(), right.getX());
 			final double dx = xNew - inner.getX();
 			assert left.getX() < xNew && xNew < right.getX();
 			final Function1WithGradientValue pNew = f.value(xNew);
