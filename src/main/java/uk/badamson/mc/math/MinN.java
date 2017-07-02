@@ -258,7 +258,16 @@ public final class MinN {
 
 		while (true) {
 			final ImmutableVector x = fx.getX();
-			final FunctionNWithGradientValue fXNew = minimiseAlongLine(f, x, dx);
+			FunctionNWithGradientValue fXNew;
+			try {
+				fXNew = minimiseAlongLine(f, x, dx);
+			} catch (PoorlyConditionedFunctionException e) {
+				/*
+				 * Can indicate that g has become a zero vector because we have
+				 * reached the minimum.
+				 */
+				break;
+			}
 			if (Math.abs(fx.getF() - fXNew.getF()) <= fx.getF() * tolerance) {
 				fx = fXNew;
 				break;// converged

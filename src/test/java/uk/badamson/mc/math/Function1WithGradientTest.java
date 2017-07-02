@@ -36,9 +36,9 @@ public class Function1WithGradientTest {
 	}
 
 	private static int sign(double x) {
-		if (x < 0.0) {
+		if (x < -Double.MIN_NORMAL) {
 			return -1;
-		} else if (0.0 < x) {
+		} else if (Double.MIN_NORMAL < x) {
 			return 1;
 		} else {
 			return 0;

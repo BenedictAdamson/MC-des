@@ -49,7 +49,7 @@ public class IntegrationTest {
 			final double e = 0.5 * mMean * ve * ve;
 
 			final double dedf = ve * dt / mMean;
-			dedx[forceTerm[0]] += dedf * sign;
+			dedx[forceTerm[0]] += dedf;
 
 			return e;
 		}
@@ -60,6 +60,7 @@ public class IntegrationTest {
 		}
 
 	}// class
+
 	private static final int massTerm = 0;
 	private static final int[] positionTerm = { 1 };
 	private static final int[] velocityTerm = { 2 };
@@ -81,7 +82,7 @@ public class IntegrationTest {
 		FunctionNWithGradientTest.assertValueConsistentWithGradientAlongLine(errorFunction, w1, w2, n, s0, ds);
 	}
 
-	private static void constantVelocitySolution(boolean forceOn, double massReference, double timeReference,
+	private static void constantForceSolution(boolean forceOn, double massReference, double timeReference,
 			double specificEnergyReference, double m0, double x0, double v0, double a0, double dt, double tolerance) {
 		final TimeStepEnergyErrorFunction errorFunction = create1DConstantForceErrorFunction(forceOn, massReference,
 				timeReference, specificEnergyReference, m0, x0, v0, a0, dt);
@@ -158,8 +159,37 @@ public class IntegrationTest {
 	}
 
 	@Test
-	public void constantForceErrorFunctionConsitentWithGradientAlongLine_df() {
+	public void constantForceErrorFunctionConsitentWithGradientAlongLine_dfA() {
 		final boolean forceOn = true;
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final double specificEnergyReference = 1.0;
+
+		final double m0 = 1.0;
+		final double x0 = 1.0;
+		final double v0 = 1.0;
+		final double a0 = 1.0;
+
+		final double dt = 1.0;
+
+		final double dm = 0.0;
+		final double dx = 0.0;
+		final double dv = 0.0;
+		final double da = 0.0;
+		final double df = 1.0;
+
+		final double tolerance = 0.0;
+		final double w1 = -2.0;
+		final double w2 = 2.0;
+		final int n = 20;
+
+		assert1DConstantForceErrorFunctionConsitentWithGradientAlongLine(forceOn, massReference, timeReference,
+				specificEnergyReference, m0, x0, v0, a0, dt, dm, dx, dv, da, df, tolerance, w1, w2, n);
+	}
+
+	@Test
+	public void constantForceErrorFunctionConsitentWithGradientAlongLine_dfB() {
+		final boolean forceOn = false;
 		final double massReference = 1.0;
 		final double timeReference = 1.0;
 		final double specificEnergyReference = 1.0;
@@ -272,4 +302,100 @@ public class IntegrationTest {
 		assert1DConstantForceErrorFunctionConsitentWithGradientAlongLine(forceOn, massReference, timeReference,
 				specificEnergyReference, m0, x0, v0, a0, dt, dm, dx, dv, da, df, tolerance, w1, w2, n);
 	}
+
+	@Test
+	public void constantForceSolution_0() {
+		final boolean forceOn = true;
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final double specificEnergyReference = 1.0;
+
+		final double m0 = 1.0;
+		final double x0 = 0.0;
+		final double v0 = 0.0;
+		final double a0 = 0.0;
+
+		final double dt = 1.0;
+		final double tolerance = 1.0E-6;
+
+		constantForceSolution(forceOn, massReference, timeReference, specificEnergyReference, m0, x0, v0, a0, dt,
+				tolerance);
+	}
+
+	@Test
+	public void constantForceSolution_a() {
+		final boolean forceOn = true;
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final double specificEnergyReference = 1.0;
+
+		final double m0 = 1.0;
+		final double x0 = 0.0;
+		final double v0 = 0.0;
+		final double a0 = 1.0;
+
+		final double dt = 1.0;
+		final double tolerance = 1.0E-6;
+
+		constantForceSolution(forceOn, massReference, timeReference, specificEnergyReference, m0, x0, v0, a0, dt,
+				tolerance);
+	}
+
+	@Test
+	public void constantForceSolution_v() {
+		final boolean forceOn = true;
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final double specificEnergyReference = 1.0;
+
+		final double m0 = 1.0;
+		final double x0 = 0.0;
+		final double v0 = 1.0;
+		final double a0 = 0.0;
+
+		final double dt = 1.0;
+		final double tolerance = 1.0E-6;
+
+		constantForceSolution(forceOn, massReference, timeReference, specificEnergyReference, m0, x0, v0, a0, dt,
+				tolerance);
+	}
+
+	@Test
+	public void constantForceSolution_va() {
+		final boolean forceOn = true;
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final double specificEnergyReference = 1.0;
+
+		final double m0 = 1.0;
+		final double x0 = 0.0;
+		final double v0 = 1.0;
+		final double a0 = 1.0;
+
+		final double dt = 1.0;
+		final double tolerance = 1.0E-6;
+
+		constantForceSolution(forceOn, massReference, timeReference, specificEnergyReference, m0, x0, v0, a0, dt,
+				tolerance);
+	}
+
+	@Test
+	public void constantForceSolution_x() {
+		final boolean forceOn = true;
+		final double massReference = 1.0;
+		final double timeReference = 1.0;
+		final double specificEnergyReference = 1.0;
+
+		final double m0 = 1.0;
+		final double x0 = 1.0;
+		final double v0 = 0.0;
+		final double a0 = 0.0;
+
+		final double dt = 1.0;
+		final double tolerance = 1.0E-6;
+
+		constantForceSolution(forceOn, massReference, timeReference, specificEnergyReference, m0, x0, v0, a0, dt,
+				tolerance);
+	}
+
 }
