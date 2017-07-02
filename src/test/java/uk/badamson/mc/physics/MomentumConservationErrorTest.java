@@ -160,7 +160,7 @@ public class MomentumConservationErrorTest {
 		assertEquals("e", expectedE, e, 1E-8);
 		assertEquals("dedm", expectedDedm, dedx[0], 1E-8);
 		assertEquals("dedv", expectedDedv, dedx[1], 1E-8);
-		assertEquals("dedf", expectedDedf, dedx[3], 1E-8);
+		assertEquals("dedf", expectedDedf, dedx[2], 1E-8);
 	}
 
 	@Test
@@ -675,19 +675,19 @@ public class MomentumConservationErrorTest {
 
 		final double m0 = 1.0;
 		final double v0 = 1.0;
-		final double f0 = 1.0;
+		final double f0 = 0.0;
 
 		final double m = 1.0;
 		final double v = 1.0;
-		final double f = 2.0;
+		final double f = 1.0;
 
 		final double dt = 1.0;
 		final double dedf0 = 0.0;
 
-		final double expectedE = 0.5;
-		final double expectedDedm = -1.0;
-		final double expectedDedv = 0.0;
-		final double expectedDedf = 1.0;
+		final double expectedE = 0.125;
+		final double expectedDedm = -0.625;
+		final double expectedDedv = -0.5;
+		final double expectedDedf = 0.25;
 
 		evaluate_1Force(forceOn, m0, v0, f0, m, v, f, dt, dedf0, expectedE, expectedDedm, expectedDedv, expectedDedf);
 	}
@@ -698,19 +698,19 @@ public class MomentumConservationErrorTest {
 
 		final double m0 = 1.0;
 		final double v0 = 1.0;
-		final double f0 = 1.0;
+		final double f0 = 0.0;
 
 		final double m = 1.0;
 		final double v = 1.0;
-		final double f = 2.0;
+		final double f = 1.0;
 
 		final double dt = 1.0;
 		final double dedf0 = 1.0;
 
-		final double expectedE = 0.5;
-		final double expectedDedm = -1.0;
-		final double expectedDedv = 0.0;
-		final double expectedDedf = 2.0;
+		final double expectedE = 0.125;
+		final double expectedDedm = -0.625;
+		final double expectedDedv = -0.5;
+		final double expectedDedf = 1.25;
 
 		evaluate_1Force(forceOn, m0, v0, f0, m, v, f, dt, dedf0, expectedE, expectedDedm, expectedDedv, expectedDedf);
 	}
@@ -721,18 +721,18 @@ public class MomentumConservationErrorTest {
 
 		final double m0 = 1.0;
 		final double v0 = 1.0;
-		final double f0 = 1.0;
+		final double f0 = 0.0;
 
 		final double m = 1.0;
 		final double v = 1.0;
-		final double f = 2.0;
+		final double f = 1.0;
 
 		final double dt = 2.0;
 		final double dedf0 = 0.0;
 
 		final double expectedE = 0.5;
-		final double expectedDedm = -1.0;
-		final double expectedDedv = 0.0;
+		final double expectedDedm = -1.5;
+		final double expectedDedv = -1.0;
 		final double expectedDedf = 1.0;
 
 		evaluate_1Force(forceOn, m0, v0, f0, m, v, f, dt, dedf0, expectedE, expectedDedm, expectedDedv, expectedDedf);
@@ -744,19 +744,19 @@ public class MomentumConservationErrorTest {
 
 		final double m0 = 1.0;
 		final double v0 = 1.0;
-		final double f0 = 1.0;
+		final double f0 = 0.0;
 
 		final double m = 1.0;
 		final double v = 1.0;
-		final double f = 3.0;
+		final double f = 2.0;
 
 		final double dt = 1.0;
 		final double dedf0 = 0.0;
 
-		final double expectedE = 2.0;
-		final double expectedDedm = -2.0;
-		final double expectedDedv = 0.0;
-		final double expectedDedf = 2.0;
+		final double expectedE = 0.5;
+		final double expectedDedm = -1.5;
+		final double expectedDedv = -1.0;
+		final double expectedDedf = 0.5;
 
 		evaluate_1Force(forceOn, m0, v0, f0, m, v, f, dt, dedf0, expectedE, expectedDedm, expectedDedv, expectedDedf);
 	}
@@ -767,19 +767,19 @@ public class MomentumConservationErrorTest {
 
 		final double m0 = 1.0;
 		final double v0 = 1.0;
-		final double f0 = 2.0;
+		final double f0 = 1.0;
 
 		final double m = 1.0;
 		final double v = 1.0;
-		final double f = 2.0;
+		final double f = 1.0;
 
 		final double dt = 1.0;
 		final double dedf0 = 0.0;
 
 		final double expectedE = 0.5;
-		final double expectedDedm = -1.0;
-		final double expectedDedv = 0.0;
-		final double expectedDedf = 1.0;
+		final double expectedDedm = -1.5;
+		final double expectedDedv = -1.0;
+		final double expectedDedf = 0.5;
 
 		evaluate_1Force(forceOn, m0, v0, f0, m, v, f, dt, dedf0, expectedE, expectedDedm, expectedDedv, expectedDedf);
 	}
@@ -790,19 +790,19 @@ public class MomentumConservationErrorTest {
 
 		final double m0 = 1.0;
 		final double v0 = 1.0;
-		final double f0 = 1.0;
+		final double f0 = 0.0;
 
 		final double m = 1.0;
 		final double v = 1.0;
-		final double f = 2.0;
+		final double f = 1.0;
 
 		final double dt = 1.0;
 		final double dedf0 = 0.0;
 
-		final double expectedE = 4.5;
-		final double expectedDedm = 3.0;
-		final double expectedDedv = 0.0;
-		final double expectedDedf = 3.0;
+		final double expectedE = 0.125;
+		final double expectedDedm = 0.375;
+		final double expectedDedv = 0.5;
+		final double expectedDedf = 0.25;
 
 		evaluate_1Force(forceOn, m0, v0, f0, m, v, f, dt, dedf0, expectedE, expectedDedm, expectedDedv, expectedDedf);
 	}
@@ -813,19 +813,42 @@ public class MomentumConservationErrorTest {
 
 		final double m0 = 1.0;
 		final double v0 = 1.0;
-		final double f0 = 1.0;
+		final double f0 = 0.0;
 
 		final double m = 2.0;
 		final double v = 1.0;
-		final double f = 2.0;
+		final double f = 1.0;
 
 		final double dt = 1.0;
 		final double dedf0 = 0.0;
 
-		final double expectedE = 0.0;
-		final double expectedDedm = 0.0;
-		final double expectedDedv = 0.0;
-		final double expectedDedf = 0.0;
+		final double expectedE = 0.0625;
+		final double expectedDedm = 0.21875;
+		final double expectedDedv = 0.5;
+		final double expectedDedf = -0.125;
+
+		evaluate_1Force(forceOn, m0, v0, f0, m, v, f, dt, dedf0, expectedE, expectedDedm, expectedDedv, expectedDedf);
+	}
+
+	@Test
+	public void evaluate_1ForceM0() {
+		final boolean forceOn = true;
+
+		final double m0 = 2.0;
+		final double v0 = 1.0;
+		final double f0 = 0.0;
+
+		final double m = 1.0;
+		final double v = 1.0;
+		final double f = 1.0;
+
+		final double dt = 1.0;
+		final double dedf0 = 0.0;
+
+		final double expectedE = 1.125;
+		final double expectedDedm = -2.625;
+		final double expectedDedv = -1.5;
+		final double expectedDedf = 0.75;
 
 		evaluate_1Force(forceOn, m0, v0, f0, m, v, f, dt, dedf0, expectedE, expectedDedm, expectedDedv, expectedDedf);
 	}
@@ -836,19 +859,19 @@ public class MomentumConservationErrorTest {
 
 		final double m0 = 1.0;
 		final double v0 = 1.0;
-		final double f0 = 1.0;
+		final double f0 = 0.0;
 
 		final double m = 1.0;
 		final double v = 2.0;
-		final double f = 2.0;
+		final double f = 1.0;
 
 		final double dt = 1.0;
 		final double dedf0 = 0.0;
 
-		final double expectedE = 0.5;
-		final double expectedDedm = -1.0;
-		final double expectedDedv = 0.0;
-		final double expectedDedf = 1.0;
+		final double expectedE = 0.125;
+		final double expectedDedm = 0.875;
+		final double expectedDedv = 0.5;
+		final double expectedDedf = -0.25;
 
 		evaluate_1Force(forceOn, m0, v0, f0, m, v, f, dt, dedf0, expectedE, expectedDedm, expectedDedv, expectedDedf);
 	}
@@ -859,60 +882,21 @@ public class MomentumConservationErrorTest {
 
 		final double m0 = 1.0;
 		final double v0 = 2.0;
-		final double f0 = 1.0;
+		final double f0 = 0.0;
 
 		final double m = 1.0;
 		final double v = 1.0;
-		final double f = 2.0;
+		final double f = 1.0;
 
 		final double dt = 1.0;
 		final double dedf0 = 0.0;
 
-		final double expectedE = 0.5;
-		final double expectedDedm = -1.0;
-		final double expectedDedv = 0.0;
-		final double expectedDedf = 1.0;
+		final double expectedE = 1.125;
+		final double expectedDedm = -2.625;
+		final double expectedDedv = -1.5;
+		final double expectedDedf = 0.75;
 
 		evaluate_1Force(forceOn, m0, v0, f0, m, v, f, dt, dedf0, expectedE, expectedDedm, expectedDedv, expectedDedf);
-	}
-
-	@Test
-	public void evaluate_1M0() {
-		final boolean forceOn = true;
-
-		final double m0 = 2.0;
-		final double v0 = 1.0;
-		final double f0 = 1.0;
-
-		final double m = 1.0;
-		final double v = 1.0;
-		final double f = 2.0;
-
-		final double dt = 1.0;
-		final double dedf0 = 0.0;
-
-		final double expectedE = 0.5;
-		final double expectedDedm = -1.0;
-		final double expectedDedv = 0.0;
-		final double expectedDedf = 1.0;
-
-		evaluate_1Force(forceOn, m0, v0, f0, m, v, f, dt, dedf0, expectedE, expectedDedm, expectedDedv, expectedDedf);
-	}
-
-	@Test
-	public void evaluate_1MassReference() {
-		final double dedm0 = 0.0;
-		final double dedv0 = 0.0;
-		final double m0 = 1.0;
-		final double v0 = 1.0;
-		final double m = 1.0;
-		final double v = 1.0;
-		final double dt = 1.0;
-		final double expectedE = 0.0625;
-		final double expectedDedm = 0.25;
-		final double expectedDedv = 0.0;
-
-		evaluate_1Closed(dedm0, dedv0, m0, v0, m, v, dt, expectedE, expectedDedm, expectedDedv);
 	}
 
 }

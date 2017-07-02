@@ -241,7 +241,7 @@ public final class MomentumConservationError extends AbstractTimeStepEnergyError
 		final ImmutableVector p = v.scale(m);
 		final ImmutableVector pRate = pRateAdvectionTotal.plus(fTotal);
 
-		final ImmutableVector pe = p.minus(p0).minus(pRate.scale(dt));
+		final ImmutableVector pe = (p.minus(p0)).minus(pRate.scale(dt));
 		final ImmutableVector ve = pe.scale(1.0 / m);
 		final double e = 0.5 * pe.dot(ve);
 
