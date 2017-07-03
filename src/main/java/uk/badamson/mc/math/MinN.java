@@ -214,9 +214,9 @@ public final class MinN {
 	 * @param x0
 	 *            A point at which to start the search.
 	 * @param tolerance
-	 *            The convergence tolerance; the minimum fractional change in
-	 *            the value of the minimum for which continuing to iterate is
-	 *            worthwhile.
+	 *            The convergence tolerance; the dimensionless measure of the
+	 *            maximum error of the position of the minimum (the returned
+	 *            {@linkplain FunctionNWithGradientValue#getX() x} value).
 	 * @return a minimum of the function; not null.
 	 * 
 	 * @throws NullPointerException
@@ -255,6 +255,7 @@ public final class MinN {
 		ImmutableVector g = downSlope(fx);
 		ImmutableVector dx = g;
 		ImmutableVector h = g;
+		double fScale = 0.0;
 
 		while (true) {
 			final ImmutableVector x = fx.getX();
@@ -268,9 +269,12 @@ public final class MinN {
 				 */
 				break;
 			}
-			final double fTolerance = Math.abs(fx.getF()) * tolerance;
 			final double df = fx.getF() - fXNew.getF();
-			if (Math.abs(df) <= fTolerance) {
+			assert 0.0 <= df;
+			fScale = Math.max(fScale, df);
+			final double fTolerance = fScale * tolerance * tolerance * 0.5;
+			;
+			if (df <= fTolerance) {
 				fx = fXNew;
 				break;// converged
 			}
