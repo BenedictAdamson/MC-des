@@ -1,4 +1,4 @@
-package uk.badamson.mc.physics.kinematics;
+package uk.badamson.mc.math;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -6,7 +6,6 @@ import static org.junit.Assert.assertNotNull;
 import org.junit.Test;
 
 import uk.badamson.mc.ObjectTest;
-import uk.badamson.mc.math.ImmutableVector;
 
 /**
  * <p>

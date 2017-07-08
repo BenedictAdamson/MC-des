@@ -1,9 +1,8 @@
-package uk.badamson.mc.physics.kinematics;
+package uk.badamson.mc.math;
 
 import java.util.Objects;
 
 import net.jcip.annotations.Immutable;
-import uk.badamson.mc.math.ImmutableVector;
 
 /**
  * <p>
@@ -81,11 +80,13 @@ public final class Orientation3 {
 
 		return new Orientation3(e1, e2, e3);
 	}
+
 	private static void requireOrthogonal(ImmutableVector e1, String name1, ImmutableVector e2, String name2) {
 		if (0.0 < Math.abs(e1.dot(e2))) {
 			throw new IllegalArgumentException("Not orthogonal " + name1 + " " + e1 + " " + name2 + " " + e1);
 		}
 	}
+
 	private static ImmutableVector requireUnit3Vector(ImmutableVector e, String message) {
 		Objects.requireNonNull(e, message);
 		final double m = e.magnitude2();
