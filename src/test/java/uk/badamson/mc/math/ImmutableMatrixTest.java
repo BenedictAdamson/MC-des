@@ -88,6 +88,48 @@ public class ImmutableMatrixTest {
 		return create(elements.length, 1, elements);
 	}
 
+	private static final ImmutableVector multiply(ImmutableMatrix a, ImmutableVector x) {
+		final ImmutableVector ax = a.multiply(x);
+
+		assertNotNull("Not null, result", ax);// guard
+		ImmutableVectorTest.assertInvariants(ax);
+		assertInvariants(a, ax);
+		ImmutableVectorTest.assertInvariants(x, ax);
+
+		assertEquals("The number of rows of the product is equal to the number of rows of this matrix.", a.getRows(),
+				ax.getRows());
+
+		return ax;
+	}
+
+	private static void multiply_1x1(double a11, double x11) {
+		final ImmutableMatrix a = ImmutableMatrix.create(1, 1, new double[] { a11 });
+		final ImmutableVector x = ImmutableVector.create(x11);
+
+		final ImmutableVector ax = multiply(a, x);
+
+		assertEquals("product element", a11 * x11, ax.get(0), Double.MIN_NORMAL);
+	}
+
+	private static void multiply_1x2(double a11, double a12, double x11, double x21) {
+		final ImmutableMatrix a = ImmutableMatrix.create(1, 2, new double[] { a11, a12 });
+		final ImmutableVector x = ImmutableVector.create(x11, x21);
+
+		final ImmutableVector ax = multiply(a, x);
+
+		assertEquals("product element", a11 * x11 + a12 * x21, ax.get(0), Double.MIN_NORMAL);
+	}
+
+	private static void multiply_2x1(double a11, double a21, double x11) {
+		final ImmutableMatrix a = ImmutableMatrix.create(2, 1, new double[] { a11, a21 });
+		final ImmutableVector x = ImmutableVector.create(x11);
+
+		final ImmutableVector ax = multiply(a, x);
+
+		assertEquals("ax[0]", a11 * x11, ax.get(0), Double.MIN_NORMAL);
+		assertEquals("ax[1]", a21 * x11, ax.get(1), Double.MIN_NORMAL);
+	}
+
 	@Test
 	public void create_1x1_0() {
 		create_1x1(0.0);
@@ -169,5 +211,40 @@ public class ImmutableMatrixTest {
 	@Test
 	public void create_vector_3() {
 		create_vector(1.0, 2.0, 3.0);
+	}
+
+	@Test
+	public void multiply_1x1A() {
+		multiply_1x1(0.0, 0.0);
+	}
+
+	@Test
+	public void multiply_1x1B() {
+		multiply_1x1(1.0, 2.0);
+	}
+
+	@Test
+	public void multiply_1x1C() {
+		multiply_1x1(-2.0, 3.0);
+	}
+
+	@Test
+	public void multiply_1x2A() {
+		multiply_1x2(1.0, 2.0, 3.0, 4.0);
+	}
+
+	@Test
+	public void multiply_1x2B() {
+		multiply_1x2(2.0, 3.0, 5.0, 7.0);
+	}
+
+	@Test
+	public void multiply_2x1A() {
+		multiply_2x1(1.0, 2.0, 3.0);
+	}
+
+	@Test
+	public void multiply_2x1B() {
+		multiply_2x1(2.0, 3.0, 5.0);
 	}
 }

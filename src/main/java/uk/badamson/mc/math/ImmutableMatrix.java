@@ -155,4 +155,45 @@ public class ImmutableMatrix {
 		result = prime * result + Arrays.hashCode(elements);
 		return result;
 	}
+
+	/**
+	 * <p>
+	 * Calculate the result of multiplying a vector by this matrix.
+	 * </p>
+	 * <ul>
+	 * <li>Always returns a (non null) vector.</li>
+	 * <li>The {@linkplain ImmutableVector#getRows() number of rows} of the
+	 * product is equal to the number of rows of this matrix.</li>
+	 * </ul>
+	 * 
+	 * @param x
+	 *            The vector to multiply
+	 * @return the product of this and the given vector.
+	 * 
+	 * @throws NullPointerException
+	 *             If {@code x} is null.
+	 * @throws IllegalArgumentException
+	 *             If the {@linkplain ImmutableVector#getRows() number of rows}
+	 *             of {@code x} is not equal to the {@linkplain #getColumns()
+	 *             number of columns} of this.
+	 */
+	public final ImmutableVector multiply(ImmutableVector x) {
+		Objects.requireNonNull(x, "x");
+		final int columns = getColumns();
+		if (columns != x.getRows()) {
+			throw new IllegalArgumentException("Inconsistent numbers of columns and rows");
+		}
+		final int n = getRows();
+		final double[] ax = new double[n];
+		for (int i = 0; i < n; ++i) {
+			double dot = 0.0;
+			final int j0 = i * columns;
+			for (int j = 0; j < columns; ++j) {
+				dot += elements[j0 + j] * x.elements[j];
+			}
+			ax[i] = dot;
+		}
+		return new ImmutableVector(ax);
+	}
+
 }

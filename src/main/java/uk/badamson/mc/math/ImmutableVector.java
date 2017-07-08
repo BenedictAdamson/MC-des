@@ -232,7 +232,7 @@ public final class ImmutableVector extends ImmutableMatrix {
 		return new ImmutableVector(sum);
 	}
 
-	private ImmutableVector(double... x) {
+	ImmutableVector(double... x) {
 		super(x.length, 1, x);
 	}
 
