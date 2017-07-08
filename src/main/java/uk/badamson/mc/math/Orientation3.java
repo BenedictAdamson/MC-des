@@ -17,6 +17,23 @@ import net.jcip.annotations.Immutable;
 @Immutable
 public final class Orientation3 {
 
+	/**
+	 * <p>
+	 * The orientation corresponding to the global coordinate system.
+	 * </p>
+	 * <ul>
+	 * <li>The global basis is a (non null) orientation.</li>
+	 * <li>The {@linkplain Orientation3#getE1() e1} vector of the global basis
+	 * is the global x axis.</li>
+	 * <li>The {@linkplain Orientation3#getE2() e2} vector of the global basis
+	 * is the global y axis.</li>
+	 * <li>The {@linkplain Orientation3#getE3() e3} vector of the global basis
+	 * is the global z axis.</li>
+	 * </ul>
+	 */
+	public static final Orientation3 GLOBAL_BASIS = new Orientation3(ImmutableVector.create(1, 0, 0),
+			ImmutableVector.create(0, 1, 0), ImmutableVector.create(0, 0, 1));
+
 	private static final double TOLERANCE = Math.max(Math.nextAfter(1.0, 2.0) - 1.0, 1.0 - Math.nextAfter(1.0, 0.0));
 
 	/**

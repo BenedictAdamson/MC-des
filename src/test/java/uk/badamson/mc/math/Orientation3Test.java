@@ -91,4 +91,13 @@ public class Orientation3Test {
 
 		createFromOrthogonalUnitBasisVectors(e1, e2, e3);
 	}
+
+	@Test
+	public void statics() {
+		assertNotNull("Not null, blobal basis", Orientation3.GLOBAL_BASIS);// guard
+		assertInvariants(Orientation3.GLOBAL_BASIS);
+		assertEquals("Global basis e1 x.", 1.0, Orientation3.GLOBAL_BASIS.getE1().get(0), Double.MIN_NORMAL);
+		assertEquals("Global basis e2 y.", 1.0, Orientation3.GLOBAL_BASIS.getE2().get(1), Double.MIN_NORMAL);
+		assertEquals("Global basis e3 z.", 1.0, Orientation3.GLOBAL_BASIS.getE3().get(2), Double.MIN_NORMAL);
+	}
 }
