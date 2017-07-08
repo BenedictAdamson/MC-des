@@ -11,7 +11,7 @@ import net.jcip.annotations.Immutable;
  * </p>
  */
 @Immutable
-public final class ImmutableMatrix {
+public class ImmutableMatrix {
 
 	/**
 	 * <p>
@@ -57,15 +57,37 @@ public final class ImmutableMatrix {
 		}
 		return new ImmutableMatrix(rows, columns, Arrays.copyOf(elements, elements.length));
 	}
+
 	private final int rows;
 	private final int columns;
+	protected final double[] elements;
 
-	private final double[] elements;
-
-	private ImmutableMatrix(int rows, int columns, double[] elements) {
+	ImmutableMatrix(int rows, int columns, double[] elements) {
 		this.rows = rows;
 		this.columns = columns;
 		this.elements = elements;
+	}
+
+	/**
+	 * <p>
+	 * Whether this object is <dfn>equivalent</dfn> to another object.
+	 * </p>
+	 * <p>
+	 * The {@link ImmutableMatrix} class has <i>value semantics</i>: this object
+	 * is equivalent to another if, and only if, the other object is also an
+	 * {@link ImmutableMatrix} and they have equivalent attribtues.
+	 * </p>
+	 */
+	@Override
+	public final boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (!(obj instanceof ImmutableMatrix))
+			return false;
+		ImmutableMatrix other = (ImmutableMatrix) obj;
+		return Arrays.equals(elements, other.elements);// FIXME
 	}
 
 	/**
@@ -119,5 +141,10 @@ public final class ImmutableMatrix {
 	 */
 	public final int getRows() {
 		return rows;
+	}
+
+	@Override
+	public final int hashCode() {
+		return Arrays.hashCode(elements);
 	}
 }

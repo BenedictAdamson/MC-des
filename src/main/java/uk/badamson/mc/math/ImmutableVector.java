@@ -7,11 +7,15 @@ import net.jcip.annotations.Immutable;
 
 /**
  * <p>
- * A constant (immutable) mathematical vector or pseudo vector
+ * A constant (immutable) mathematical vector or pseudo vector.
  * </p>
+ * <ul>
+ * <li>A vector is a {@linkplain ImmutableMatrix matrix} that has only one
+ * {@linkplain #getColumns() column}.</li>
+ * </ul>
  */
 @Immutable
-public final class ImmutableVector {
+public final class ImmutableVector extends ImmutableMatrix {
 
 	/**
 	 * <p>
@@ -104,7 +108,7 @@ public final class ImmutableVector {
 
 		final double[] x = new double[n];
 		for (int i = 0; i < n; i++) {
-			x[i] = x0.x[i] + w * dx.x[i];
+			x[i] = x0.elements[i] + w * dx.elements[i];
 		}
 		return new ImmutableVector(x);
 	}
@@ -228,10 +232,8 @@ public final class ImmutableVector {
 		return new ImmutableVector(sum);
 	}
 
-	private final double[] x;
-
 	private ImmutableVector(double... x) {
-		this.x = x;
+		super(x.length, 1, x);
 	}
 
 	/**
@@ -254,32 +256,10 @@ public final class ImmutableVector {
 		requireConsistentDimensions(this, that);
 
 		double d = 0.0;
-		for (int i = 0, n = x.length; i < n; ++i) {
-			d += x[i] * that.x[i];
+		for (int i = 0, n = elements.length; i < n; ++i) {
+			d += elements[i] * that.elements[i];
 		}
 		return d;
-	}
-
-	/**
-	 * <p>
-	 * Whether this object is <dfn>equivalent</dfn> to another object.
-	 * </p>
-	 * <p>
-	 * The {@link ImmutableVector} class has <i>value semantics</i>: this object
-	 * is equivalent to another if, and only if, the other object is also an
-	 * {@link ImmutableVector} and they have equivalent attribtues.
-	 * </p>
-	 */
-	@Override
-	public final boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		ImmutableVector other = (ImmutableVector) obj;
-		return Arrays.equals(x, other.x);
 	}
 
 	/**
@@ -297,7 +277,7 @@ public final class ImmutableVector {
 	 *             vector.
 	 */
 	public final double get(int i) {
-		return x[i];
+		return elements[i];
 	}
 
 	/**
@@ -311,20 +291,15 @@ public final class ImmutableVector {
 	 * @return the number of dimensions
 	 */
 	public final int getDimension() {
-		return x.length;
+		return elements.length;
 	}
 
 	private double getScale() {
 		double scale = 0.0;
-		for (double xI : x) {
+		for (double xI : elements) {
 			scale = Math.max(scale, Math.abs(xI));
 		}
 		return scale;
-	}
-
-	@Override
-	public final int hashCode() {
-		return Arrays.hashCode(x);
 	}
 
 	/**
@@ -341,7 +316,7 @@ public final class ImmutableVector {
 		} else {
 			final double r = 1.0 / scale;
 			double m2 = 0.0;
-			for (double xI : x) {
+			for (double xI : elements) {
 				final double xIScaled = xI * r;
 				m2 += xIScaled * xIScaled;
 			}
@@ -371,7 +346,7 @@ public final class ImmutableVector {
 		} else {
 			final double r = 1.0 / scale;
 			double m2 = 0.0;
-			for (double xI : x) {
+			for (double xI : elements) {
 				final double xIScaled = xI * r;
 				m2 += xIScaled * xIScaled;
 			}
@@ -402,10 +377,10 @@ public final class ImmutableVector {
 	public final ImmutableVector mean(ImmutableVector that) {
 		Objects.requireNonNull(that, "that");
 		requireConsistentDimensions(this, that);
-		final int n = x.length;
+		final int n = elements.length;
 		final double[] mean = new double[n];
 		for (int i = 0; i < n; i++) {
-			mean[i] = (x[i] + that.x[i]) * 0.5;
+			mean[i] = (elements[i] + that.elements[i]) * 0.5;
 		}
 		return new ImmutableVector(mean);
 	}
@@ -425,10 +400,10 @@ public final class ImmutableVector {
 	 * @return the opposite vector; not null
 	 */
 	public final ImmutableVector minus() {
-		final int n = x.length;
+		final int n = elements.length;
 		final double[] minus = new double[n];
 		for (int i = 0; i < n; ++i) {
-			minus[i] = -x[i];
+			minus[i] = -elements[i];
 		}
 		return new ImmutableVector(minus);
 	}
@@ -460,10 +435,10 @@ public final class ImmutableVector {
 		Objects.requireNonNull(that, "that");
 		requireConsistentDimensions(this, that);
 
-		final int n = x.length;
+		final int n = elements.length;
 		final double[] minus = new double[n];
 		for (int i = 0; i < n; ++i) {
-			minus[i] = x[i] - that.x[i];
+			minus[i] = elements[i] - that.elements[i];
 		}
 		return new ImmutableVector(minus);
 	}
@@ -496,10 +471,10 @@ public final class ImmutableVector {
 		Objects.requireNonNull(that, "that");
 		requireConsistentDimensions(this, that);
 
-		final int n = x.length;
+		final int n = elements.length;
 		final double[] minus = new double[n];
 		for (int i = 0; i < n; ++i) {
-			minus[i] = x[i] + that.x[i];
+			minus[i] = elements[i] + that.elements[i];
 		}
 		return new ImmutableVector(minus);
 	}
@@ -520,17 +495,17 @@ public final class ImmutableVector {
 	 * @return the scaled vector
 	 */
 	public final ImmutableVector scale(double f) {
-		final int n = x.length;
+		final int n = elements.length;
 		final double[] s = new double[n];
 		for (int i = 0; i < n; ++i) {
-			s[i] = x[i] * f;
+			s[i] = elements[i] * f;
 		}
 		return new ImmutableVector(s);
 	}
 
 	@Override
 	public final String toString() {
-		return Arrays.toString(x);
+		return Arrays.toString(elements);
 	}
 
 }
