@@ -87,7 +87,7 @@ public class ImmutableMatrix {
 		if (!(obj instanceof ImmutableMatrix))
 			return false;
 		ImmutableMatrix other = (ImmutableMatrix) obj;
-		return Arrays.equals(elements, other.elements);// FIXME
+		return rows == other.rows && Arrays.equals(elements, other.elements);
 	}
 
 	/**
@@ -145,6 +145,10 @@ public class ImmutableMatrix {
 
 	@Override
 	public final int hashCode() {
-		return Arrays.hashCode(elements);
+		final int prime = 37;
+		int result = columns;
+		result = prime * result + rows;
+		result = prime * result + Arrays.hashCode(elements);
+		return result;
 	}
 }

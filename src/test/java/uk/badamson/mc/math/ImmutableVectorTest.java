@@ -7,8 +7,6 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import uk.badamson.mc.ObjectTest;
-
 /**
  * <p>
  * Unit tests of the class {@link ImmutableVector}.
@@ -17,14 +15,15 @@ import uk.badamson.mc.ObjectTest;
 public class ImmutableVectorTest {
 
 	public static void assertInvariants(ImmutableVector x) {
-		ObjectTest.assertInvariants(x);// inherited
+		ImmutableMatrixTest.assertInvariants(x);// inherited
 
+		assertEquals("columns", 1, x.getColumns());
 		final int dimensions = x.getDimension();
 		assertTrue("The number of dimensions <" + dimensions + "> is positive", 0 < dimensions);
 	}
 
 	public static void assertInvariants(ImmutableVector x1, ImmutableVector x2) {
-		ObjectTest.assertInvariants(x1, x2);// inherited
+		ImmutableMatrixTest.assertInvariants(x1, x2);// inherited
 
 		if (x1.equals(x2)) {
 			final int dimensions1 = x1.getDimension();
