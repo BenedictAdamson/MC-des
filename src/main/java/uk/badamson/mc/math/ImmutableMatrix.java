@@ -55,7 +55,11 @@ public class ImmutableMatrix {
 			throw new IllegalArgumentException(
 					"Inconsistent rows " + rows + " columns " + columns + " elements.length " + elements.length);
 		}
-		return new ImmutableMatrix(rows, columns, Arrays.copyOf(elements, elements.length));
+		if (columns == 1) {
+			return ImmutableVector.create(elements);
+		} else {
+			return new ImmutableMatrix(rows, columns, Arrays.copyOf(elements, elements.length));
+		}
 	}
 
 	private final int rows;

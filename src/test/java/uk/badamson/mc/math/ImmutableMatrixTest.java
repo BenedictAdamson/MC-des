@@ -84,6 +84,10 @@ public class ImmutableMatrixTest {
 		assertNotEquals("Not equivalent", matrix1, matrix2);
 	}
 
+	private static ImmutableMatrix create_vector(double... elements) {
+		return create(elements.length, 1, elements);
+	}
+
 	@Test
 	public void create_1x1_0() {
 		create_1x1(0.0);
@@ -150,5 +154,20 @@ public class ImmutableMatrixTest {
 
 		assertInvariants(matrix1, matrix2);
 		assertNotEquals("Not equivalent", matrix1, matrix2);
+	}
+
+	@Test
+	public void create_vector_2A() {
+		create_vector(1.0, 2.0);
+	}
+
+	@Test
+	public void create_vector_2B() {
+		create_vector(3.0, 5.0);
+	}
+
+	@Test
+	public void create_vector_3() {
+		create_vector(1.0, 2.0, 3.0);
 	}
 }
