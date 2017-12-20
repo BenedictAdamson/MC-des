@@ -1,6 +1,7 @@
 
 package uk.badamson.mc.actor;
 
+import java.util.Collections;
 import java.util.Set;
 
 /**
@@ -13,14 +14,24 @@ public interface ActorInterface {
 
 	/**
 	 * <p>
-	 * Indicate that the {@linkplain #getActor() actor} begins transmitting a
-	 * message through a given transmission medium.
+	 * Indicate that the {@linkplain #getActor() actor} begins sending a message
+	 * through a given transmission medium.
 	 * </p>
 	 * <p>
-	 * The message may be a command, and the medium may enable the intended
-	 * recipient of that command to receive the comand. This method is therefore the
-	 * means by which actors can issue orders to sub-ordinates.
+	 * The message may be a {@linkplain Command command}, and the medium may enable
+	 * the intended recipient of that command to receive the command. This method is
+	 * therefore the means by which actors can issue orders to sub-ordinates.
 	 * </p>
+	 * 
+	 * <section>
+	 * <h1>Post Conditions</h1>
+	 * <ul>
+	 * <li>The given medium is the current {@linkplain #getSendingMedium() sending
+	 * medium}.</li>
+	 * <li>The given message is the current {@linkplain #getSendingMessage() sending
+	 * message}.</li>
+	 * </ul>
+	 * </section>
 	 * 
 	 * @param medium
 	 *            The transmission medium (or means) through which to send the
@@ -58,9 +69,44 @@ public interface ActorInterface {
 	 * <li>The set of media does not contain an null element.</li>
 	 * <li>The set of media may change as means of communication become available
 	 * and cease to be available.
+	 * <li>The set of media is {@linkplain Collections#unmodifiableSet(Set)
+	 * unmodifiable}.
+	 * <li>
 	 * </ul>
 	 * 
 	 * @return the media.
 	 */
 	public Set<Medium> getMedia();
+
+	/**
+	 * <p>
+	 * The transmission medium that the {@linkplain #getActor() actor} is currently
+	 * using to send a {@linkplain #getSendingMessage() message}.
+	 * </p>
+	 * <ul>
+	 * <li>A null value indicates that the actor is not currently sending a
+	 * message.</li>
+	 * <li>A non null value is one of the {@linkplain #getMedia() media} that the
+	 * actor can use.</i>
+	 * </ul>
+	 * 
+	 * @return the medium
+	 */
+	public Medium getSendingMedium();
+
+	/**
+	 * <p>
+	 * The message that the {@linkplain #getActor() actor} is currently using to
+	 * sending.
+	 * </p>
+	 * <ul>
+	 * <li>A null value indicates that the actor is not currently sending a
+	 * message.</li>
+	 * <li>The sending message is null if, and only if, the
+	 * {@linkplain #getSendingMedium() sending medium} is null.</li>
+	 * </ul>
+	 * 
+	 * @return the medium
+	 */
+	public Message getSendingMessage();
 }
