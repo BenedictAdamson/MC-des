@@ -61,6 +61,32 @@ public interface ActorInterface {
 
 	/**
 	 * <p>
+	 * How much of the {@linkplain #getSendingMessage() message that this actor is
+	 * sending} has been sent through the {@linkplain #getSendingMedium()
+	 * transmission medium}.
+	 * </p>
+	 * <ul>
+	 * <li>The amount of message sent is never negative.</li>
+	 * <li>The amount of message sent is zero if the actor is not currently sending
+	 * a message.</li>
+	 * <li>The amount of message sent is measured in bits of information.</li>
+	 * <li>The amount of message sent is less than the
+	 * {@linkplain Message#getLength() length} of the message being sent, if a
+	 * message is being sent.</li>
+	 * </ul>
+	 * <p>
+	 * The simulation should arrange that, when the actor is sending a message, the
+	 * amount of message sent increases with time, at a rate similar to the
+	 * {@linkplain Medium#getTypicalTransmissionRate() typical transmission rate} of
+	 * the {@linkplain #getSendingMedium() sending medium}.
+	 * </p>
+	 * 
+	 * @return the amount sent
+	 */
+	public double getAmountOfMessageSent();
+
+	/**
+	 * <p>
 	 * The current set of transmission media (or means) through which the
 	 * {@linkplain #getActor() actor} can send {@linkplain Message messages}.
 	 * </p>

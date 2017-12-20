@@ -1,7 +1,9 @@
 package uk.badamson.mc.actor;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit tests for classes that implement the {@link ActorInterface} interface
@@ -11,9 +13,16 @@ public class ActorInterfaceTest {
 	public static void assertInvariants(ActorInterface actorInterface) {
 		final Medium sendingMedium = actorInterface.getSendingMedium();
 		final Message sendingMessage = actorInterface.getSendingMessage();
+		final double amountOfMessageSent = actorInterface.getAmountOfMessageSent();
 
 		assertEquals("The sending message is null if, and only if, the sending medium is null.", sendingMessage == null,
 				sendingMedium == null);
+		assertTrue("The amount of message sent is never negative.", 0.0 <= amountOfMessageSent);
+		assertFalse("The amount of message sent is zero if the actor is not currently sending a message.",
+				0.0 < amountOfMessageSent && sendingMessage == null);
+		assertTrue(
+				"The amount of message sent is less than the length of the message being sent, if a message is being sent.",
+				sendingMessage == null || amountOfMessageSent < sendingMessage.getLength());
 	}
 
 	public static void beginSendingMessage(ActorInterface actorInterface, Medium medium, Message message)
