@@ -14,54 +14,6 @@ public interface ActorInterface {
 
     /**
      * <p>
-     * A task to perform when sending of a message ends.
-     * </p>
-     * <p>
-     * The task may be executed when sending of the message completes, or when
-     * sending is halted for other reasons.
-     * </p>
-     */
-    public static interface MessageSendingEndCallback {
-
-	/**
-	 * <p>
-	 * Perform the task.
-	 * </p>
-	 * 
-	 * @param actorInterface
-	 *            The service interface that is making the callback.
-	 * @param medium
-	 *            The transmission medium (or means) through which the message was
-	 *            being sent.
-	 * @param message
-	 *            The message that was being sent, measured in bits of information.
-	 * @param amountSent
-	 *            How much of the message had been sent through the transmission
-	 *            medium when sending ended. This will be less than the
-	 *            {@linkplain Message#getLength() length} of the message if, and
-	 *            only if, sending was halted before it could be completed.
-	 * @throws NullPointerException
-	 *             <ul>
-	 *             <li>If {@code actorInterface} is null.</li>
-	 *             <li>If {@code medium} is null.</li>
-	 *             <li>If {@code message} is null.</li>
-	 *             </ul>
-	 * @throws IllegalArgumentException
-	 *             <ul>
-	 *             <li>If {@code amountSent} is negative.</li>
-	 *             <li>If the {@code amountSent} exceeds the
-	 *             {@linkplain Message#getLength() length} of the
-	 *             {@code message}.</li>
-	 *             </ul>
-	 * @throws IllegalStateException
-	 *             If the {@linkplain ActorInterface#getSendingMessage() currently
-	 *             sending message} of teh {@code actorInterface} is not null.
-	 */
-	public void run(ActorInterface actorInterface, Medium medium, Message message, double amountSent);
-    };
-
-    /**
-     * <p>
      * Indicate that the {@linkplain #getActor() actor} begins sending a message
      * through a given transmission medium.
      * </p>
@@ -78,6 +30,10 @@ public interface ActorInterface {
      * medium}.</li>
      * <li>The given message is the current {@linkplain #getSendingMessage() sending
      * message}.</li>
+     * <li>The simulation guarantees that it will eventually
+     * {@linkplain Actor#tellMessageSendingEnded(Medium, Message, double) call back}
+     * to the {@linkplain #getActor() actor} of this interface, to report completion
+     * or halting of sending of the message.
      * </ul>
      * </section>
      * 
@@ -93,21 +49,27 @@ public interface ActorInterface {
      *            interrupted. When the callback is executed, the
      * @throws NullPointerException
      *             <ul>
-     *             <ul>
      *             <li>If {@code medium} is null.</li>
      *             <li>If {@code message} is null.</li>
      *             </ul>
+     * @throws IllegalStateException
+     *             If this is already {@linkplain #getSendingMessage() sending a
+     *             message}.
      * @throws MediumUnavailableException
      *             If the {@code medium} is not one of the {@linkplain #getMedia()
      *             currently available media}.
      */
-    public void beginSendingMessage(Medium medium, Message message, MessageSendingEndCallback sendingEndCallBack)
-	    throws MediumUnavailableException;
+    public void beginSendingMessage(Medium medium, Message message) throws MediumUnavailableException;
 
     /**
      * <p>
      * The actor for which this is the service interface.
      * </p>
+     * <ul>
+     * <li>Always have an (non null) actor.</li>
+     * <li>This is the {@linkplain Actor#getActorInterface() actor interface} of the
+     * actor of this actor interface.</li>
+     * </ul>
      * 
      * @return The actor; not null.
      */
