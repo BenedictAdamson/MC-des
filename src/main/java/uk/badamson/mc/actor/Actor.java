@@ -55,9 +55,10 @@ public interface Actor {
      *             {@code message}.</li>
      *             </ul>
      * @throws IllegalStateException
-     *             If the {@linkplain ActorInterface#getSendingMessage() currently
-     *             sending message} of the {@linkplain #getActorInterface() actor
-     *             interface} of this actor is not null.
+     *             If the {@linkplain ActorInterface#getTransmittingMessage()
+     *             currently sending message} of the
+     *             {@linkplain #getActorInterface() actor interface} of this actor
+     *             is not null.
      */
     public void tellMessageSendingEnded(Medium medium, Message message, double amountSent);
 }

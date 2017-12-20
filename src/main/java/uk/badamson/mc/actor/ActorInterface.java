@@ -26,10 +26,14 @@ public interface ActorInterface {
      * <section>
      * <h1>Post Conditions</h1>
      * <ul>
-     * <li>The given medium is the current {@linkplain #getSendingMedium() sending
-     * medium}.</li>
-     * <li>The given message is the current {@linkplain #getSendingMessage() sending
-     * message}.</li>
+     * <li>This has a (non null) {@linkplain #getTransmissionInProgress()
+     * transmission in progress}.</li>
+     * <li>The {@linkplain MessageTransferInProgress#getMedium() medium} of the
+     * transmission in progress is the given medium.</li>
+     * <li>The {@linkplain MessageTransferInProgress#getMessageSofar() message
+     * transmitted so far} is null.</li>
+     * <li>The given message is the current {@linkplain #getTransmittingMessage()
+     * transmitting message}.</li>
      * <li>The simulation guarantees that it will eventually
      * {@linkplain Actor#tellMessageSendingEnded(Medium, Message, double) call back}
      * to the {@linkplain #getActor() actor} of this interface, to report completion
@@ -53,8 +57,8 @@ public interface ActorInterface {
      *             <li>If {@code message} is null.</li>
      *             </ul>
      * @throws IllegalStateException
-     *             If this is already {@linkplain #getSendingMessage() sending a
-     *             message}.
+     *             If this is already {@linkplain #getTransmittingMessage() sending
+     *             a message}.
      * @throws MediumUnavailableException
      *             If the {@code medium} is not one of the {@linkplain #getMedia()
      *             currently available media}.
@@ -77,35 +81,6 @@ public interface ActorInterface {
 
     /**
      * <p>
-     * How much of the {@linkplain #getSendingMessage() message that this actor is
-     * sending} has been sent through the {@linkplain #getSendingMedium()
-     * transmission medium}.
-     * </p>
-     * <ul>
-     * <li>The amount of message sent is never negative.</li>
-     * <li>The amount of message sent is zero if the actor is not currently sending
-     * a message.</li>
-     * <li>The amount of message sent is measured in bits of information.</li>
-     * <li>The amount of message sent is less than or equal to the
-     * {@linkplain Message#getLength() length} of the message being sent, if a
-     * message is being sent.</li>
-     * <li>The amount of message sent is equal to the length of the message being
-     * sent (if a message is being sent) only for the instance that sending of the
-     * message is completed.</li>
-     * </ul>
-     * <p>
-     * The simulation should arrange that, when the actor is sending a message, the
-     * amount of message sent increases with time, at a rate similar to the
-     * {@linkplain Medium#getTypicalTransmissionRate() typical transmission rate} of
-     * the {@linkplain #getSendingMedium() sending medium}.
-     * </p>
-     * 
-     * @return the amount sent
-     */
-    public double getAmountOfMessageSent();
-
-    /**
-     * <p>
      * The current set of transmission media (or means) through which the
      * {@linkplain #getActor() actor} can send {@linkplain Message messages}.
      * </p>
@@ -125,33 +100,49 @@ public interface ActorInterface {
 
     /**
      * <p>
-     * The transmission medium that the {@linkplain #getActor() actor} is currently
-     * using to send a {@linkplain #getSendingMessage() message}.
+     * Information about the progress of the current transmission that the
+     * {@linkplain #getActor() actor} is making.
      * </p>
      * <ul>
-     * <li>A null value indicates that the actor is not currently sending a
-     * message.</li>
-     * <li>A non null value is one of the {@linkplain #getMedia() media} that the
-     * actor can use.</i>
+     * <li>A null transmission in progress indicates that the
+     * {@linkplain #getActor() actor} is not currently transmitting.</li>
+     * <li>This has a transmission in progress if, and only if, this has a
+     * {@linkplain transmitting message}.</li>
+     * <li>If there is a (non null) transmission in progress, its
+     * {@linkplain MessageTransferInProgress#getMedium() medium} is one of the
+     * {@linkplain #getMedia() media} that the actor can use.</li>
+     * <li>If there is a (non null) transmission in progress, the
+     * {@linkplain Message#getLength() length} of the
+     * {@linkplain MessageTransferInProgress#getMessageSofar() message sent so far}
+     * is less than or equal to the length of the
+     * {@linkplain #getTransmittingMessage() message being sent}.</li>
+     * <li>If there is a (non null) transmission in progress, the length of the
+     * message sent so far equals the length of the message being sent at the
+     * instant that transmission completes. At that instant, the message sent so far
+     * is the same as the message being sent.</li>
      * </ul>
-     * 
-     * @return the medium
+     * <p>
+     * The simulation should arrange that, while the actor has a transmission in
+     * progress, the message sent so far continually changes, such that its length
+     * continually increases at a rate similar to the
+     * {@linkplain Medium#getTypicalTransmissionRate() typical transmission rate} of
+     * the {@linkplain MessageTransferInProgress#getMedium() transmitting medium}.
+     * </p>
+     * </ul>
      */
-    public Medium getSendingMedium();
+    public MessageTransferInProgress getTransmissionInProgress();
 
     /**
      * <p>
-     * The message that the {@linkplain #getActor() actor} is currently using to
-     * sending.
+     * The message that the {@linkplain #getActor() actor} is currently transmitting
+     * (sending).
      * </p>
      * <ul>
      * <li>A null value indicates that the actor is not currently sending a
      * message.</li>
-     * <li>The sending message is null if, and only if, the
-     * {@linkplain #getSendingMedium() sending medium} is null.</li>
      * </ul>
      * 
      * @return the medium
      */
-    public Message getSendingMessage();
+    public Message getTransmittingMessage();
 }
