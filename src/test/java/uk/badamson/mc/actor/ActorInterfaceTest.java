@@ -12,6 +12,19 @@ import uk.badamson.mc.actor.ActorInterface.MessageSendingEndCallback;
  */
 public class ActorInterfaceTest {
 
+    public static class MessageSendingEndCallbackTest {
+
+	public static void assertInvariants(MessageSendingEndCallback callback) {
+	    // Do nothing
+	}
+
+	public static void run(MessageSendingEndCallback callback, ActorInterface actorInterface, Medium medium,
+		Message message, double amountSent) {
+	    callback.run(actorInterface, medium, message, amountSent);
+	    assertInvariants(callback);
+	}
+    }// class
+
     public static void assertInvariants(ActorInterface actorInterface) {
 	final Medium sendingMedium = actorInterface.getSendingMedium();
 	final Message sendingMessage = actorInterface.getSendingMessage();
