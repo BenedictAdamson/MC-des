@@ -19,30 +19,30 @@ package uk.badamson.mc.actor;
  */
 public final class MediumUnavailableException extends ImpossibleActionException {
 
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-	/**
-	 * <p>
-	 * Construct an exception object for indicating that a {@linkplain Medium
-	 * communication medium} currently can not be used.
-	 * </p>
-	 */
-	public MediumUnavailableException() {
-		super("Medium unavailable");
-	}
+    /**
+     * <p>
+     * Construct an exception object for indicating that a {@linkplain Medium
+     * communication medium} currently can not be used.
+     * </p>
+     */
+    public MediumUnavailableException() {
+	super("Medium unavailable");
+    }
 
-	/**
-	 * <p>
-	 * Construct an exception object for indicating that a {@linkplain Medium
-	 * communication medium} currently can not be used. , which is due to an
-	 * underlying {@linkplain #getCause() cause}.
-	 * </p>
-	 * 
-	 * @param cause
-	 *            The cause of the exception.
-	 */
-	public MediumUnavailableException(Throwable cause) {
-		super("Medium unavailable", cause);
-	}
+    /**
+     * <p>
+     * Construct an exception object for indicating that a {@linkplain Medium
+     * communication medium} currently can not be used. , which is due to an
+     * underlying {@linkplain #getCause() cause}.
+     * </p>
+     * 
+     * @param cause
+     *            The cause of the exception.
+     */
+    public MediumUnavailableException(Throwable cause) {
+	super("Medium unavailable", cause);
+    }
 
 }

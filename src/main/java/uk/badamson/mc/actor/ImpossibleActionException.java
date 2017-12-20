@@ -20,57 +20,57 @@ package uk.badamson.mc.actor;
  */
 public class ImpossibleActionException extends Exception {
 
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-	/**
-	 * <p>
-	 * Construct an exception object for indicating an impossible action.
-	 * </p>
-	 */
-	public ImpossibleActionException() {
-		super("Impossible action");
-	}
+    /**
+     * <p>
+     * Construct an exception object for indicating an impossible action.
+     * </p>
+     */
+    public ImpossibleActionException() {
+	super("Impossible action");
+    }
 
-	/**
-	 * <p>
-	 * Construct an exception object for indicating an impossible action, with a
-	 * given {@linkplain #getMessage() detail message}.
-	 * </p>
-	 * 
-	 * @param message
-	 *            The detail message
-	 */
-	public ImpossibleActionException(String message) {
-		super(message);
-	}
+    /**
+     * <p>
+     * Construct an exception object for indicating an impossible action, with a
+     * given {@linkplain #getMessage() detail message}.
+     * </p>
+     * 
+     * @param message
+     *            The detail message
+     */
+    public ImpossibleActionException(String message) {
+	super(message);
+    }
 
-	/**
-	 * <p>
-	 * Construct an exception object for indicating an impossible action, with a
-	 * given {@linkplain #getMessage() detail message} and underlying
-	 * {@linkplain #getCause() cause}.
-	 * </p>
-	 * 
-	 * @param message
-	 *            The detail message
-	 * @param cause
-	 *            The cause of the exception.
-	 */
-	public ImpossibleActionException(String message, Throwable cause) {
-		super(message, cause);
-	}
+    /**
+     * <p>
+     * Construct an exception object for indicating an impossible action, with a
+     * given {@linkplain #getMessage() detail message} and underlying
+     * {@linkplain #getCause() cause}.
+     * </p>
+     * 
+     * @param message
+     *            The detail message
+     * @param cause
+     *            The cause of the exception.
+     */
+    public ImpossibleActionException(String message, Throwable cause) {
+	super(message, cause);
+    }
 
-	/**
-	 * <p>
-	 * Construct an exception object for indicating an impossible action, which has
-	 * an underlying {@linkplain #getCause() cause}.
-	 * </p>
-	 * 
-	 * @param cause
-	 *            The cause of the exception.
-	 */
-	public ImpossibleActionException(Throwable cause) {
-		super("Impossible action", cause);
-	}
+    /**
+     * <p>
+     * Construct an exception object for indicating an impossible action, which has
+     * an underlying {@linkplain #getCause() cause}.
+     * </p>
+     * 
+     * @param cause
+     *            The cause of the exception.
+     */
+    public ImpossibleActionException(Throwable cause) {
+	super("Impossible action", cause);
+    }
 
 }

@@ -17,17 +17,22 @@ import net.jcip.annotations.Immutable;
 @Immutable
 public interface Message {
 
-	/**
-	 * <p>
-	 * The length of this message.
-	 * </p>
-	 * <ul>
-	 * <li>The length of a message is positive.</li>
-	 * <li>The length of a message is {@linkplain Double#isFinite() finite}.</li>
-	 * <li>The unit of message length is bits of information.</li>
-	 * </ul>
-	 * 
-	 * @return the length
-	 */
-	public double getLength();
+    /**
+     * <p>
+     * The length of this message.
+     * </p>
+     * <ul>
+     * <li>The length of a message is positive.</li>
+     * <li>The length of a message is {@linkplain Double#isFinite() finite}.</li>
+     * <li>The unit of message length is bits of information.</li>
+     * </ul>
+     * <p>
+     * Longer messages take longer to transmit. Actors must therefore be judicious
+     * in sending long, detailed and comprehensive messages rather than short, vague
+     * and limited messages.
+     * </p>
+     * 
+     * @return the length
+     */
+    public double getLength();
 }
