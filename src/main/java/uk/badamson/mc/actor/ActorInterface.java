@@ -100,6 +100,24 @@ public interface ActorInterface {
 
     /**
      * <p>
+     * The set of messages that the {@linkplain #getActor() actor} is currently
+     * receiving through its {@linkplain #getMedia() communication media}.
+     * </p>
+     * <ul>
+     * <li>Always have a (non null) set of messages being received.</li>
+     * <li>The set of messages being received does not contain a null element.</li>
+     * <li>The set of messages being received is
+     * {@linkplain Collections#unmodifiableSet(Set) unmodifiable}.</li>
+     * <li>The {@linkplain MessageTransferInProgress#getMedium() medium} of each
+     * message being received is one of the communication media of the actor.</li>
+     * </ul>
+     * 
+     * @return the messages currently being received.
+     */
+    public Set<MessageTransferInProgress> getMessagesBeingReceived();
+
+    /**
+     * <p>
      * Information about the progress of the current transmission that the
      * {@linkplain #getActor() actor} is making.
      * </p>
@@ -129,6 +147,8 @@ public interface ActorInterface {
      * the {@linkplain MessageTransferInProgress#getMedium() transmitting medium}.
      * </p>
      * </ul>
+     * 
+     * @return the transmission currently in progress.
      */
     public MessageTransferInProgress getTransmissionInProgress();
 
