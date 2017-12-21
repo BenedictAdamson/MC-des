@@ -34,25 +34,25 @@ public interface Actor {
      * @param medium
      *            The transmission medium (or means) through which the message was
      *            being sent.
-     * @param message
-     *            The message that was being sent.
-     * @param amountSent
-     *            How much of the message had been sent through the transmission
-     *            medium when sending ended, measured in bits of information. This
-     *            will be less than the {@linkplain Message#getLength() length} of
-     *            the message if, and only if, sending was halted before it could be
-     *            completed.
+     * @param fullMessage
+     *            The message that was wanted to be sent.
+     * @param messageSent
+     *            The actual message sent. This will be the same as the full message
+     *            if sending of the mesage was completed.
      * @throws NullPointerException
      *             <ul>
      *             <li>If {@code medium} is null.</li>
-     *             <li>If {@code message} is null.</li>
+     *             <li>If {@code fullMessage} is null.</li>
+     *             <li>If {@code messageSent} is null.</li>
      *             </ul>
      * @throws IllegalArgumentException
      *             <ul>
-     *             <li>If {@code amountSent} is negative.</li>
-     *             <li>If the {@code amountSent} exceeds the
-     *             {@linkplain Message#getLength() length} of the
-     *             {@code message}.</li>
+     *             <li>If the {@linkplain Message#getLength() length} of the
+     *             {@code messageSent} exceeds the length of the
+     *             {@code fullMessage}.</li>
+     *             <li>If the length of the {@code messageSent} equals the length of
+     *             the {@code fullMessage}, but the {@code messageSent} is not the
+     *             same as the {@code fullMessage}.
      *             </ul>
      * @throws IllegalStateException
      *             If the {@linkplain ActorInterface#getTransmittingMessage()
@@ -60,5 +60,5 @@ public interface Actor {
      *             {@linkplain #getActorInterface() actor interface} of this actor
      *             is not null.
      */
-    public void tellMessageSendingEnded(Medium medium, Message message, double amountSent);
+    public void tellMessageSendingEnded(Medium medium, Message fullMessage, Message messageSent);
 }
