@@ -61,4 +61,27 @@ public interface Actor {
      *             is not null.
      */
     public void tellMessageSendingEnded(Medium medium, Message fullMessage, Message messageSent);
+
+    /**
+     * <p>
+     * React to the start of a message being received.
+     * </p>
+     * 
+     * @param receptionStarted
+     *            The message transfer that has just started.
+     * 
+     * @throws NullPointerException
+     *             If {@code messageBeingReceived} is null.
+     * @throws IllegalArgumentException
+     *             <ul>
+     *             <li>If {@code messageBeingReceived} is not one of the
+     *             {@linkplain ActorInterface#getMessagesBeingReceived() messages
+     *             being received} according to the {@linkplain #getActorInterface()
+     *             actor interface} of this actor.</li>
+     *             <li>If the
+     *             {@linkplain MessageTransferInProgress#getMessageSofar() message
+     *             received so far} of the reception start is non null.</li>
+     *             </ul>
+     */
+    public void tellBeginReceivingMessage(MessageTransferInProgress receptionStarted);
 }

@@ -1,5 +1,6 @@
-
 package uk.badamson.mc.actor;
+
+import net.jcip.annotations.Immutable;
 
 /**
  * <p>
@@ -11,6 +12,7 @@ package uk.badamson.mc.actor;
  * perspective of a message sender and the perspective of a message receiver.
  * </p>
  */
+@Immutable
 public interface MessageTransferInProgress {
 
     /**
@@ -28,7 +30,7 @@ public interface MessageTransferInProgress {
      * The message that has been sent so far.
      * </p>
      * <ul>
-     * <li>A null message so far indicates that transmission has not yet
+     * <li>A null message so far indicates that transmission has only just
      * started.</li>
      * <li>This might be an {@link UnusableIncompleteMessage}, if no comprehensible
      * information has been transmitted so far.

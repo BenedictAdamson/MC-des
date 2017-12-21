@@ -17,6 +17,11 @@ public class ActorTest {
 	assertSame("This is the actor of the actor interface of this actor", actor, actorInterface.getActor());
     }
 
+    public static void tellBeginReceivingMessage(Actor actor, MessageTransferInProgress receptionStarted) {
+	actor.tellBeginReceivingMessage(receptionStarted);
+	assertInvariants(actor);
+    }
+
     public static void tellMessageSendingEnded(Actor actor, Medium medium, Message fullMessage, Message messageSent) {
 	actor.tellMessageSendingEnded(medium, fullMessage, messageSent);
 	assertInvariants(actor);
