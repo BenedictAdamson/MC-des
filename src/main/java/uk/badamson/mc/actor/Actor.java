@@ -24,46 +24,6 @@ public interface Actor {
 
     /**
      * <p>
-     * React to the ending of sending a message.
-     * </p>
-     * <p>
-     * This method may be executed when sending of a message completes, or when
-     * sending is halted for other reasons.
-     * </p>
-     * 
-     * @param medium
-     *            The transmission medium (or means) through which the message was
-     *            being sent.
-     * @param fullMessage
-     *            The message that was wanted to be sent.
-     * @param messageSent
-     *            The actual message sent. This will be the same as the full message
-     *            if sending of the mesage was completed.
-     * @throws NullPointerException
-     *             <ul>
-     *             <li>If {@code medium} is null.</li>
-     *             <li>If {@code fullMessage} is null.</li>
-     *             <li>If {@code messageSent} is null.</li>
-     *             </ul>
-     * @throws IllegalArgumentException
-     *             <ul>
-     *             <li>If the {@linkplain Message#getLength() length} of the
-     *             {@code messageSent} exceeds the length of the
-     *             {@code fullMessage}.</li>
-     *             <li>If the length of the {@code messageSent} equals the length of
-     *             the {@code fullMessage}, but the {@code messageSent} is not the
-     *             same as the {@code fullMessage}.
-     *             </ul>
-     * @throws IllegalStateException
-     *             If the {@linkplain ActorInterface#getTransmittingMessage()
-     *             currently sending message} of the
-     *             {@linkplain #getActorInterface() actor interface} of this actor
-     *             is not null.
-     */
-    public void tellMessageSendingEnded(Medium medium, Message fullMessage, Message messageSent);
-
-    /**
-     * <p>
      * React to the start of a message being received.
      * </p>
      * 
@@ -84,4 +44,45 @@ public interface Actor {
      *             </ul>
      */
     public void tellBeginReceivingMessage(MessageTransferInProgress receptionStarted);
+
+    /**
+     * <p>
+     * React to the ending of sending a message.
+     * </p>
+     * <p>
+     * This method may be executed when sending of a message completes, or when
+     * sending is halted for other reasons.
+     * </p>
+     * 
+     * @param transmissionProgress
+     *            The state of the transmission when sending ended. The
+     *            {@linkplain MessageTransferInProgress#getMessageSofar() message
+     *            sent so far} of the transmission progress is actual message sent.
+     *            This will be the same as the full message if sending of the
+     *            message was completed.
+     * @param fullMessage
+     *            The message that was wanted to be sent.
+     * @throws NullPointerException
+     *             <ul>
+     *             <li>If {@code transmissionProgress} is null.</li>
+     *             <li>If {@code fullMessage} is null.</li>
+     *             </ul>
+     * @throws IllegalArgumentException
+     *             <ul>
+     *             <li>If the {@linkplain Message#getLength() length} of the
+     *             {@linkplain MessageTransferInProgress#getMessageSofar() message
+     *             sent so far} of the {@code transmissionProgress} exceeds the
+     *             length of the {@code fullMessage}.</li>
+     *             <li>If the length of the message sent so far of the
+     *             {@code messageSent} equals the length of the {@code fullMessage},
+     *             but that message sent so far is not the same as the
+     *             {@code fullMessage}.
+     *             </ul>
+     * @throws IllegalStateException
+     *             If the {@linkplain ActorInterface#getTransmittingMessage()
+     *             currently sending message} of the
+     *             {@linkplain #getActorInterface() actor interface} of this actor
+     *             is not null.
+     */
+    public void tellMessageSendingEnded(MessageTransferInProgress transmissionProgress, Message fullMessage);
 }

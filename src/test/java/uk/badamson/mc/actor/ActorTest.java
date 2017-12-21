@@ -22,8 +22,9 @@ public class ActorTest {
 	assertInvariants(actor);
     }
 
-    public static void tellMessageSendingEnded(Actor actor, Medium medium, Message fullMessage, Message messageSent) {
-	actor.tellMessageSendingEnded(medium, fullMessage, messageSent);
+    public static void tellMessageSendingEnded(Actor actor, MessageTransferInProgress transmissionProgress,
+	    Message fullMessage) {
+	actor.tellMessageSendingEnded(transmissionProgress, fullMessage);
 	assertInvariants(actor);
     }
 }
