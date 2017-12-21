@@ -19,6 +19,23 @@ public interface Message {
 
     /**
      * <p>
+     * Whether this object is <em>equivalent</em> to another object.
+     * </p>
+     * <p>
+     * {@link Message} objects have <i>value semantics</i>: this object is
+     * equivalent to another object if, and only if, they have the same type and
+     * their attributes are equivalent.
+     * </p>
+     * 
+     * @param that
+     *            The other object.
+     * @return whether equivalent
+     */
+    @Override
+    public boolean equals(Object that);
+
+    /**
+     * <p>
      * The length of this message.
      * </p>
      * <ul>

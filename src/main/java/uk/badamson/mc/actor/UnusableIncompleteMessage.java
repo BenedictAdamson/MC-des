@@ -30,6 +30,33 @@ public final class UnusableIncompleteMessage implements Message {
 	this.length = length;
     }
 
+    /**
+     * <p>
+     * Whether this object is <em>equivalent</em> to another object.
+     * </p>
+     * <p>
+     * {@link UnusableIncompleteMessage} objects have <i>value semantics</i>: this
+     * object is equivalent to another object if, and only if, the other object is
+     * also an {@link UnusableIncompleteMessage} and they have equivalent
+     * {@linkplain #getLength() lengths}.
+     * </p>
+     * 
+     * @param that
+     *            The other object.
+     * @return whether equivalent
+     */
+    @Override
+    public final boolean equals(Object that) {
+	if (this == that)
+	    return true;
+	if (that == null)
+	    return false;
+	if (!(that instanceof UnusableIncompleteMessage))
+	    return false;
+	final UnusableIncompleteMessage other = (UnusableIncompleteMessage) that;
+	return length == other.length;
+    }
+
     @Override
     public final double getLength() {
 	return length;
@@ -51,6 +78,20 @@ public final class UnusableIncompleteMessage implements Message {
 		    + "> is not less than the length of this message <" + getLength() + ">.");
 	}
 	return new UnusableIncompleteMessage(partLength);
+    }
+
+    @Override
+    public final int hashCode() {
+	final int prime = 31;
+	int result = 1;
+	final long temp = Double.doubleToLongBits(length);
+	result = prime * result + (int) (temp ^ (temp >>> 32));
+	return result;
+    }
+
+    @Override
+    public final String toString() {
+	return "UnusableIncompleteMessage [length=" + length + "]";
     }
 
 }
