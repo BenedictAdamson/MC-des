@@ -35,4 +35,22 @@ public final class UnusableIncompleteMessage implements Message {
 	return length;
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @param partLength
+     *            {@inheritDoc}
+     * @return {@inheritDoc}
+     * @throws IllegalArgumentException
+     *             {@inheritDoc}
+     */
+    @Override
+    public final UnusableIncompleteMessage getPartialMessage(double partLength) {
+	if (getLength() <= partLength) {
+	    throw new IllegalArgumentException("partLength <" + partLength
+		    + "> is not less than the length of this message <" + getLength() + ">.");
+	}
+	return new UnusableIncompleteMessage(partLength);
+    }
+
 }

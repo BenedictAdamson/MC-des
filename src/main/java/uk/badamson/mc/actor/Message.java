@@ -35,4 +35,29 @@ public interface Message {
      * @return the length
      */
     public double getLength();
+
+    /**
+     * <p>
+     * Retrieve or create a {@link Message} object that represents partial
+     * transmission of reception of this message.
+     * </p>
+     * <ul>
+     * <li>Always returns a (non null) message.</li>
+     * <li>The {@linkplain #getLength() length} of the returned message is equal to
+     * the given part length.</li>
+     * <li>The returned message is never equivalent to this message.</li>
+     * </ul>
+     * 
+     * @param partLength
+     *            The amount of this message that has been transmitted or received.
+     *            Measured in bits of information.
+     * @return the partial message
+     * @throws IllegalArgumentException
+     *             <ul>
+     *             <li>If {@code partLength} is not positive.</li>
+     *             <li>If {@code partLength} is not less than the length of this
+     *             message.</li>
+     *             </ul>
+     */
+    public Message getPartialMessage(double partLength);
 }
