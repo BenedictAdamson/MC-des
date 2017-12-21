@@ -37,7 +37,10 @@ public interface ActorInterface {
      * <li>The simulation guarantees that it will eventually
      * {@linkplain Actor#tellMessageSendingEnded(Medium, Message, double) call back}
      * to the {@linkplain #getActor() actor} of this interface, to report completion
-     * or halting of sending of the message.
+     * or halting of sending of the message.</li></li>Other actors that can receive
+     * through the medium of the message had an additional entry in their
+     * {@linkplain #getMessagesBeingReceived() set of messages being received},
+     * representing the start of them receiving the message.</li>
      * </ul>
      * </section>
      * 
@@ -46,11 +49,6 @@ public interface ActorInterface {
      *            message.
      * @param message
      *            The message to begin sending.
-     * @param sendingEndCallBack
-     *            An operation to perform when sending of the message ends; or null
-     *            for no callback. The call back will be called when sending the
-     *            message is complete, or when sending the message has been
-     *            interrupted. When the callback is executed, the
      * @throws NullPointerException
      *             <ul>
      *             <li>If {@code medium} is null.</li>
@@ -86,7 +84,7 @@ public interface ActorInterface {
      * </p>
      * <ul>
      * <li>Always have a (non null) set of media.</li>
-     * <li>The set of media does not contain an null element.</li>
+     * <li>The set of media does not contain a null element.</li>
      * <li>The set of media may change as means of communication become available
      * and cease to be available.
      * <li>The set of media is {@linkplain Collections#unmodifiableSet(Set)
