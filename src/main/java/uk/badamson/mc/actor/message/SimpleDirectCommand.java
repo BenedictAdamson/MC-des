@@ -90,12 +90,26 @@ public final class SimpleDirectCommand implements Command {
      * </p>
      * <ul>
      * <li>The {@linkplain #getVerb() verb} is {@linkplain SimpleVerb#RUSH
-     * change-formation}.</li>
+     * rush}.</li>
      * <li>There is only one {@linkplain #getObjects() object}, which is
      * {@linkplain Pronoun#IT it}.</li>
      * </ul>
      */
     public static final SimpleDirectCommand RUSH = new SimpleDirectCommand(SimpleVerb.RUSH, Pronoun.IT);
+
+    /**
+     * <p>
+     * A command by a leader to indicate an individual, team or squad should fix
+     * their bayonet(s0 to their gun(s).
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getVerb() verb} is {@linkplain SimpleVerb#FIX_BAYONET
+     * fix-bayonet}.</li>
+     * <li>There is only one {@linkplain #getObjects() object}, which is
+     * {@linkplain Pronoun#IT it} (meaning, the subjects own bayonet).</li>
+     * </ul>
+     */
+    public static final SimpleDirectCommand FIX_BAYONET = new SimpleDirectCommand(SimpleVerb.FIX_BAYONET, Pronoun.IT);
 
     /**
      * <p>

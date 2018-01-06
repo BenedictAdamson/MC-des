@@ -110,6 +110,14 @@ public class SimpleDirectCommandTest {
     }
 
     @Test
+    public void static_FIX_BAYONET() {
+	final SimpleDirectCommand command = SimpleDirectCommand.FIX_BAYONET;
+	assertInvariants(command);
+	assertSame("verb", SimpleVerb.FIX_BAYONET, command.getVerb());
+	assertEquals("object", Collections.singleton(Pronoun.IT), command.getObjects());
+    }
+
+    @Test
     public void static_JOIN_ME() {
 	final SimpleDirectCommand command = SimpleDirectCommand.JOIN_ME;
 	assertInvariants(command);

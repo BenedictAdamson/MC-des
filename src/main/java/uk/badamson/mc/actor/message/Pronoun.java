@@ -32,8 +32,8 @@ public enum Pronoun implements Noun {
      * Something other than the sender or receiver of the message.
      * </p>
      * <p>
-     * Depending on the context, this corresponds to English it, this, that, him or
-     * her.
+     * Depending on the context, this corresponds to English it, this, that, him,
+     * her or your.
      * </p>
      */
     IT;

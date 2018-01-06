@@ -67,7 +67,17 @@ public enum SimpleVerb implements Verb {
      * {@linkplain Command command} that the subject performs the battle drill.
      * </p>
      */
-    PERFORM_BATTLE_DRILL;
+    PERFORM_BATTLE_DRILL,
+
+    /**
+     * <p>
+     * A verb for declaring that the {@linkplain Sentence#getSubject() subject} of
+     * the {@linkplain Sentence sentence} has fixed a bayonet to their gun, or to
+     * {@linkplain Command command} that the subject fixes their bayonet to their
+     * gun.
+     * </p>
+     */
+    FIX_BAYONET;
 
     public static final double INFORMATION_CONTENT = Math.log(values().length) / Math.log(2);
 
