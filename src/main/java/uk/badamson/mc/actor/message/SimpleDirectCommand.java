@@ -109,6 +109,21 @@ public final class SimpleDirectCommand implements Command {
 
     /**
      * <p>
+     * A command by a leader to indicate movement of an team or squad into a
+     * {@linkplain SimpleFormationName#LINE line formation}.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getVerb() verb} is
+     * {@linkplain SimpleVerb#CHANGE_FORMATION change-formation}.</li>
+     * <li>There is only one {@linkplain #getObjects() object}, which is the
+     * {@linkplain SimpleFormationName#LINE line formation}.</li>
+     * </ul>
+     */
+    public static final SimpleDirectCommand FORM_LINE = new SimpleDirectCommand(SimpleVerb.CHANGE_FORMATION,
+	    SimpleFormationName.LINE);
+
+    /**
+     * <p>
      * The extra information content of a {@link SimpleDirectCommand}, over the
      * information content of its constituent {@linkplain MessageElement elements}.
      * </p>

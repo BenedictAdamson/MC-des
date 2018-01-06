@@ -25,6 +25,13 @@ public enum SimpleFormationName implements Noun {
 
     /**
      * <p>
+     * A formation with the centre neither forward nor rearward of the flanks.
+     * </p>
+     */
+    LINE,
+
+    /**
+     * <p>
      * A formation with the centre rearward of the flanks.
      * </p>
      */
@@ -37,7 +44,7 @@ public enum SimpleFormationName implements Noun {
      */
     WEDGE;
 
-    public static final double INFORMATION_CONTENT = 1.5;
+    public static final double INFORMATION_CONTENT = 2.0;
 
     /**
      * {@inheritDoc}

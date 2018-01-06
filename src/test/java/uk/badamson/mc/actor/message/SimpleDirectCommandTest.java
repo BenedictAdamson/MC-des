@@ -74,11 +74,11 @@ public class SimpleDirectCommandTest {
     }
 
     @Test
-    public void static_FORM_WEDGE() {
-	final SimpleDirectCommand command = SimpleDirectCommand.FORM_WEDGE;
+    public void static_FORM_LINE() {
+	final SimpleDirectCommand command = SimpleDirectCommand.FORM_LINE;
 	assertInvariants(command);
 	assertSame("verb", SimpleVerb.CHANGE_FORMATION, command.getVerb());
-	assertEquals("object", Collections.singleton(SimpleFormationName.WEDGE), command.getObjects());
+	assertEquals("object", Collections.singleton(SimpleFormationName.LINE), command.getObjects());
     }
 
     @Test
@@ -87,6 +87,14 @@ public class SimpleDirectCommandTest {
 	assertInvariants(command);
 	assertSame("verb", SimpleVerb.CHANGE_FORMATION, command.getVerb());
 	assertEquals("object", Collections.singleton(SimpleFormationName.VEE), command.getObjects());
+    }
+
+    @Test
+    public void static_FORM_WEDGE() {
+	final SimpleDirectCommand command = SimpleDirectCommand.FORM_WEDGE;
+	assertInvariants(command);
+	assertSame("verb", SimpleVerb.CHANGE_FORMATION, command.getVerb());
+	assertEquals("object", Collections.singleton(SimpleFormationName.WEDGE), command.getObjects());
     }
 
     @Test
