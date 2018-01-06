@@ -38,7 +38,7 @@ public class SentenceTest {
 		+ totalInformationContentOfElements + ">.", totalInformationContentOfElements < informationContent);
     }
 
-    private static double totalInformationContent(Set<Noun> nouns) {
+    static double totalInformationContent(Set<Noun> nouns) {
 	double total = 0.0;
 	for (final Noun noun : nouns) {
 	    total += noun.getInformationContent();
