@@ -2,6 +2,7 @@ package uk.badamson.mc.actor;
 
 import net.jcip.annotations.Immutable;
 import uk.badamson.mc.actor.message.Message;
+import uk.badamson.mc.actor.message.UnusableIncompleteMessage;
 
 /**
  * <p>
