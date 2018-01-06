@@ -48,7 +48,16 @@ public enum SimpleVerb implements Verb {
      * that the subject joins or follows the object.
      * </p>
      */
-    JOIN;
+    JOIN,
+
+    /**
+     * <p>
+     * A verb for declaring that the {@linkplain Sentence#getSubject() subject} of
+     * the {@linkplain Sentence sentence} is moving rushing (moving quickly), or to {@linkplain Command command}
+     * that the subject to rush, increase speed, or move at double time.
+     * </p>
+     */
+    RUSH;
 
     public static final double INFORMATION_CONTENT = 1.5;
 

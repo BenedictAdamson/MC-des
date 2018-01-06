@@ -80,4 +80,12 @@ public class SimpleDirectCommandTest {
 	assertSame("verb", SimpleVerb.JOIN, command.getVerb());
 	assertEquals("object", Collections.singleton(Pronoun.ME), command.getObjects());
     }
+
+    @Test
+    public void static_RUSH() {
+	final SimpleDirectCommand command = SimpleDirectCommand.RUSH;
+	assertInvariants(command);
+	assertSame("verb", SimpleVerb.RUSH, command.getVerb());
+	assertEquals("object", Collections.singleton(Pronoun.IT), command.getObjects());
+    }
 }

@@ -57,11 +57,25 @@ public final class SimpleDirectCommand implements Command {
      * <ul>
      * <li>The {@linkplain #getVerb() verb} is {@linkplain SimpleVerb#JOIN
      * change-formation}.</li>
-     * <li>There is only one {@linkplain #getObjects() object}, which is the
+     * <li>There is only one {@linkplain #getObjects() object}, which is
      * {@linkplain Pronoun#ME me}.</li>
      * </ul>
      */
     public static final SimpleDirectCommand JOIN_ME = new SimpleDirectCommand(SimpleVerb.JOIN, Pronoun.ME);
+
+    /**
+     * <p>
+     * A command by a leader to indicate an individual, team or squad should
+     * increase speed, double time, or rush.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getVerb() verb} is {@linkplain SimpleVerb#RUSH
+     * change-formation}.</li>
+     * <li>There is only one {@linkplain #getObjects() object}, which is
+     * {@linkplain Pronoun#IT it}.</li>
+     * </ul>
+     */
+    public static final SimpleDirectCommand RUSH = new SimpleDirectCommand(SimpleVerb.RUSH, Pronoun.IT);
 
     /**
      * <p>
