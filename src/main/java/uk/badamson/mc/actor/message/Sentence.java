@@ -2,13 +2,16 @@ package uk.badamson.mc.actor.message;
 
 import java.util.Set;
 
+import net.jcip.annotations.Immutable;
+
 /**
  * <p>
  * A simple message, or part of a complex message, stating a single
  * {@linkplain #getVerb() action} by one actor ({@linkplain #getSubject()
- * subject}.
+ * subject}).
  * </p>
  */
+@Immutable
 public interface Sentence extends Message {
 
     /**
