@@ -17,44 +17,7 @@ import uk.badamson.mc.actor.Medium;
  * </p>
  */
 @Immutable
-public interface Message {
-
-    /**
-     * <p>
-     * Whether this object is <em>equivalent</em> to another object.
-     * </p>
-     * <p>
-     * {@link Message} objects have <i>value semantics</i>: this object is
-     * equivalent to another object if, and only if, they have the same type and
-     * their attributes are equivalent.
-     * </p>
-     * 
-     * @param that
-     *            The other object.
-     * @return whether equivalent
-     */
-    @Override
-    public boolean equals(Object that);
-
-    /**
-     * <p>
-     * The information content of this message; its length in a notional essential
-     * compact form.
-     * </p>
-     * <ul>
-     * <li>The length of a message is positive.</li>
-     * <li>The length of a message is {@linkplain Double#isFinite() finite}.</li>
-     * <li>The unit of message length is bits of information.</li>
-     * </ul>
-     * <p>
-     * Longer messages take longer to transmit. Actors must therefore be judicious
-     * in sending long, detailed and comprehensive messages rather than short, vague
-     * and limited messages.
-     * </p>
-     * 
-     * @return the length
-     */
-    public double getInformationContent();
+public interface Message extends MessageElement {
 
     /**
      * <p>

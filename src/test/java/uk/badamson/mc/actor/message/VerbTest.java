@@ -8,6 +8,7 @@ package uk.badamson.mc.actor.message;
 public class VerbTest {
 
     public static void assertInvariants(Verb verb) {
+	MessageElementTest.assertInvariants(verb);// inherited
 	// Do nothing
     }
 }

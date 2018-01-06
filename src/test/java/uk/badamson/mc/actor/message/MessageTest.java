@@ -3,7 +3,6 @@ package uk.badamson.mc.actor.message;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 /**
  * <p>
@@ -13,10 +12,7 @@ import static org.junit.Assert.assertTrue;
 public class MessageTest {
 
     public static void assertInvariants(Message message) {
-	final double length = message.getInformationContent();
-
-	assertTrue("The length of a message is positive.", 0.0 < length);
-	assertTrue("The length of a message is finite.", Double.isFinite(length));
+	MessageElementTest.assertInvariants(message);// inherited
     }
 
     public static Message getPartialMessage(Message message, double partLength) {
