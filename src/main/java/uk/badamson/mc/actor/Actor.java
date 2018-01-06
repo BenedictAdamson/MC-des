@@ -1,5 +1,7 @@
 package uk.badamson.mc.actor;
 
+import uk.badamson.mc.actor.message.Message;
+
 /**
  * <p>
  * A human or AI player of the Mission Command game.

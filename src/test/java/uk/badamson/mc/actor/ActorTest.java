@@ -3,6 +3,8 @@ package uk.badamson.mc.actor;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 
+import uk.badamson.mc.actor.message.Message;
+
 /**
  * <p>
  * Unit tests for objects that implement the {@link Actor} interface.

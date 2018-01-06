@@ -8,6 +8,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Set;
 
+import uk.badamson.mc.actor.message.Message;
+
 /**
  * Unit tests for classes that implement the {@link ActorInterface} interface
  */

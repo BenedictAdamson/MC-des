@@ -1,6 +1,8 @@
-package uk.badamson.mc.actor;
+package uk.badamson.mc.actor.message;
 
 import net.jcip.annotations.Immutable;
+import uk.badamson.mc.actor.Actor;
+import uk.badamson.mc.actor.Medium;
 
 /**
  * <p>

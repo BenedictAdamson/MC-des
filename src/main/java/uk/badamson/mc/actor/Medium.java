@@ -1,5 +1,7 @@
 package uk.badamson.mc.actor;
 
+import uk.badamson.mc.actor.message.Message;
+
 /**
  * <p>
  * A transmission medium (or means) through {@linkplain Actor actors} can send

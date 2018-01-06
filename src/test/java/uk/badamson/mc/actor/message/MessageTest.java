@@ -1,4 +1,4 @@
-package uk.badamson.mc.actor;
+package uk.badamson.mc.actor.message;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;

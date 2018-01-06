@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNotEquals;
 import org.junit.Test;
 
 import uk.badamson.mc.ObjectTest;
+import uk.badamson.mc.actor.message.MessageTest;
 
 /**
  * <p>
