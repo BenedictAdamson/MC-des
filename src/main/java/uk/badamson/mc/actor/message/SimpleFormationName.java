@@ -25,6 +25,13 @@ public enum SimpleFormationName implements Noun {
 
     /**
      * <p>
+     * A formation with a the minimum width and maximum depth.
+     * </p>
+     */
+    COLUMN,
+
+    /**
+     * <p>
      * A formation with the right flank forward of the centre and the left flank
      * rearward of the centre.
      * </p>
@@ -60,7 +67,7 @@ public enum SimpleFormationName implements Noun {
      */
     WEDGE;
 
-    public static final double INFORMATION_CONTENT = 2.3;
+    public static final double INFORMATION_CONTENT = 2.7;
 
     /**
      * {@inheritDoc}

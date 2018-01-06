@@ -74,6 +74,15 @@ public class SimpleDirectCommandTest {
     }
 
     @Test
+
+    public void static_FORM_COLUMN() {
+	final SimpleDirectCommand command = SimpleDirectCommand.FORM_COLUMN;
+	assertInvariants(command);
+	assertSame("verb", SimpleVerb.CHANGE_FORMATION, command.getVerb());
+	assertEquals("object", Collections.singleton(SimpleFormationName.COLUMN), command.getObjects());
+    }
+
+    @Test
     public void static_FORM_ECHELON_LEFT() {
 	final SimpleDirectCommand command = SimpleDirectCommand.FORM_ECHELON_LEFT;
 	assertInvariants(command);
