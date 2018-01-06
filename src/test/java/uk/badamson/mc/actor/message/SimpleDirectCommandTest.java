@@ -82,6 +82,14 @@ public class SimpleDirectCommandTest {
     }
 
     @Test
+    public void static_FORM_VEE() {
+	final SimpleDirectCommand command = SimpleDirectCommand.FORM_VEE;
+	assertInvariants(command);
+	assertSame("verb", SimpleVerb.CHANGE_FORMATION, command.getVerb());
+	assertEquals("object", Collections.singleton(SimpleFormationName.VEE), command.getObjects());
+    }
+
+    @Test
     public void static_JOIN_ME() {
 	final SimpleDirectCommand command = SimpleDirectCommand.JOIN_ME;
 	assertInvariants(command);
