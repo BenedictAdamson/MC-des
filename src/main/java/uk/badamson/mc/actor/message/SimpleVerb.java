@@ -25,7 +25,20 @@ public enum SimpleVerb implements Verb {
      * {@linkplain FormationName name of the formation}.
      * </p>
      */
-    CHANGE_FORMATION;
+    CHANGE_FORMATION,
+
+    /**
+     * <p>
+     * A verb for declaring that the {@linkplain Sentence#getSubject() subject} of
+     * the {@linkplain Sentence sentence} has assembled or rallied, or to
+     * {@linkplain Command command} that the subject assembles or rallies.
+     * </p>
+     * <p>
+     * The {@linkplain Sentence#getSubject() subject} of the sentence should be the
+     * {@linkplain SimpleRelativeLocation location} at which the subject assembled.
+     * </p>
+     */
+    ASSEMBLE;
 
     public static final double INFORMATION_CONTENT = 1.0;
 

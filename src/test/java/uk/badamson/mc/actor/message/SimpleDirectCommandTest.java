@@ -1,6 +1,7 @@
 package uk.badamson.mc.actor.message;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 
 import java.util.Collections;
@@ -26,6 +27,17 @@ public class SimpleDirectCommandTest {
 	assertSame("subject", Pronoun.YOU, command.getSubject());
     }
 
+    public static final SimpleDirectCommand getAssembleInstance(SimpleRelativeLocation location) {
+	final SimpleDirectCommand command = SimpleDirectCommand.getAssembleInstance(location);
+
+	assertNotNull("Always returns an instance", command);// guard
+	assertInvariants(command);
+	assertSame("verb", SimpleVerb.ASSEMBLE, command.getVerb());
+	assertEquals("object", Collections.singleton(location), command.getObjects());
+
+	return command;
+    }
+
     public static UnusableIncompleteMessage getPartialMessage(SimpleDirectCommand message, double partLength) {
 	final UnusableIncompleteMessage partialMessage = (UnusableIncompleteMessage) MessageTest
 		.getPartialMessage(message, partLength);
@@ -34,6 +46,13 @@ public class SimpleDirectCommandTest {
 	UnusableIncompleteMessageTest.assertInvariants(partialMessage);
 
 	return partialMessage;
+    }
+
+    @Test
+    public void getAssembleInstance_all() {
+	for (SimpleRelativeLocation location : SimpleRelativeLocation.values()) {
+	    getAssembleInstance(location);
+	}
     }
 
     @Test
