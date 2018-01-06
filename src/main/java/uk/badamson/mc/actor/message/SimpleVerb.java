@@ -59,7 +59,7 @@ public enum SimpleVerb implements Verb {
      */
     RUSH;
 
-    public static final double INFORMATION_CONTENT = 1.5;
+    public static final double INFORMATION_CONTENT = Math.log(values().length) / Math.log(2);
 
     /**
      * {@inheritDoc}

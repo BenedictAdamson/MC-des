@@ -82,7 +82,7 @@ public enum SimpleFormationName implements Noun {
      */
     WEDGE;
 
-    public static final double INFORMATION_CONTENT = 3.3;
+    public static final double INFORMATION_CONTENT = Math.log(values().length) / Math.log(2);
 
     /**
      * {@inheritDoc}
