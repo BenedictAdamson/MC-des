@@ -2,7 +2,8 @@ package uk.badamson.mc.actor.message;
 
 /**
  * <p>
- * An action that can be named in a {@linkplain Message message}.
+ * An {@linkplain Sentence#getVerb()} action that can be named in a
+ * {@linkplain Sentence sentence}.
  * </p>
  */
 public interface Verb extends MessageElement {
