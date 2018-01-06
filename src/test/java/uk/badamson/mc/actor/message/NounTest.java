@@ -1,0 +1,14 @@
+package uk.badamson.mc.actor.message;
+
+/**
+ * <p>
+ * Unit tests of classes that implement the {@link Noun} interface.
+ * </p>
+ */
+public class NounTest {
+
+    public static void assertInvariants(Noun noun) {
+	// Do nothing
+    }
+
+}

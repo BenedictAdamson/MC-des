@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * <p>
  * Unit tests of classes that implement the {@link Message} interface.
+ * </p>
  */
 public class MessageTest {
 
