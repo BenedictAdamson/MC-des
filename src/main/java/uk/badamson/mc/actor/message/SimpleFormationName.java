@@ -26,7 +26,13 @@ public enum SimpleFormationName implements Noun {
     public static final double INFORMATION_CONTENT = 3.0;
 
     /**
-     * @return
+     * {@inheritDoc}
+     * 
+     * <p>
+     * Objects of the {@link SimpleFormationName} type have the additional
+     * constraint that their information content is the
+     * {@linkplain #INFORMATION_CONTENT same}.
+     * </p>
      */
     @Override
     public double getInformationContent() {
