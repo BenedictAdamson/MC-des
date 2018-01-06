@@ -12,6 +12,28 @@ import java.util.Set;
 public interface Sentence extends Message {
 
     /**
+     * {@inheritDoc}
+     * 
+     * <p>
+     * The information content of a sentenc has the following constraints in
+     * addition to the constraints on a
+     * {@linkplain MessageElement#getInformationContent() message element}.
+     * </p>
+     * <ul>
+     * <li>The information content of a sentence exceeds the total
+     * {@linkplain MessageElement#getInformationContent() information content} of
+     * the {@linkplain #getSubject() subject}, {@linkplain #getVerb() verb} and
+     * {@linkplain #getObjects() objects} elements of the message. The extra
+     * information content provides information about the relationship of the
+     * message elements.</li>
+     * </ul>
+     * 
+     * @return the information content
+     */
+    @Override
+    public double getInformationContent();
+
+    /**
      * <p>
      * The things that the {@linkplain #getSubject() subject} is
      * {@linkplain #getVerb() acting} upon, or is being commanded to act upon.
