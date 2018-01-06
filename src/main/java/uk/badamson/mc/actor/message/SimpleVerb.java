@@ -53,11 +53,21 @@ public enum SimpleVerb implements Verb {
     /**
      * <p>
      * A verb for declaring that the {@linkplain Sentence#getSubject() subject} of
-     * the {@linkplain Sentence sentence} is moving rushing (moving quickly), or to {@linkplain Command command}
-     * that the subject to rush, increase speed, or move at double time.
+     * the {@linkplain Sentence sentence} is moving rushing (moving quickly), or to
+     * {@linkplain Command command} that the subject to rush, increase speed, or
+     * move at double time.
      * </p>
      */
-    RUSH;
+    RUSH,
+
+    /**
+     * <p>
+     * A verb for declaring that the {@linkplain Sentence#getSubject() subject} of
+     * the {@linkplain Sentence sentence} is performing a battle drill, or to
+     * {@linkplain Command command} that the subject performs the battle drill.
+     * </p>
+     */
+    PERFORM_BATTLE_DRILL;
 
     public static final double INFORMATION_CONTENT = Math.log(values().length) / Math.log(2);
 

@@ -59,6 +59,17 @@ public class SimpleDirectCommandTest {
 	return partialMessage;
     }
 
+    public static SimpleDirectCommand getPerformBattleDrillInstance(BattleDrillName drill) {
+	final SimpleDirectCommand command = SimpleDirectCommand.getPerformBattleDrillInstance(drill);
+
+	assertNotNull("Always returns a command", command);// guard
+	assertInvariants(command);
+	assertSame("verb", SimpleVerb.PERFORM_BATTLE_DRILL, command.getVerb());
+	assertEquals("object", Collections.singleton(drill), command.getObjects());
+
+	return command;
+    }
+
     @Test
     public void getAssembleInstance_all() {
 	for (SimpleRelativeLocation location : SimpleRelativeLocation.values()) {
@@ -67,7 +78,7 @@ public class SimpleDirectCommandTest {
     }
 
     @Test
-    public void getChangeFormationInstances() {
+    public void getChangeFormationInstance_all() {
 	for (SimpleFormationName formation : SimpleFormationName.values()) {
 	    getChangeFormationInstance(formation);
 	}
@@ -81,6 +92,13 @@ public class SimpleDirectCommandTest {
     @Test
     public void getPartialMessage_DISPERSE_B() {
 	getPartialMessage(SimpleDirectCommand.DISPERSE, SimpleDirectCommand.DISPERSE.getInformationContent() * 0.25);
+    }
+
+    @Test
+    public void getPerformBattleDrillInstance_all() {
+	for (BattleDrillName drill : BattleDrillName.values()) {
+	    getPerformBattleDrillInstance(drill);
+	}
     }
 
     @Test

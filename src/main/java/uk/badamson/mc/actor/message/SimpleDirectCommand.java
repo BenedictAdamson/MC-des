@@ -44,6 +44,16 @@ public final class SimpleDirectCommand implements Command {
 	CHANGE_FORMATION_INSTANCES = map;
     }
 
+    private static final Map<BattleDrillName, SimpleDirectCommand> PERFORM_BATTLE_DRILL_INSTANCES;
+    static {
+	final Map<BattleDrillName, SimpleDirectCommand> map = new EnumMap<>(BattleDrillName.class);
+	for (BattleDrillName drill : BattleDrillName.values()) {
+	    final SimpleDirectCommand command = new SimpleDirectCommand(SimpleVerb.PERFORM_BATTLE_DRILL, drill);
+	    map.put(drill, command);
+	}
+	PERFORM_BATTLE_DRILL_INSTANCES = map;
+    }
+
     /**
      * <p>
      * A command by a leader to indicate movement of an team or squad into a
@@ -138,6 +148,29 @@ public final class SimpleDirectCommand implements Command {
     public static SimpleDirectCommand getChangeFormationInstance(SimpleFormationName formation) {
 	Objects.requireNonNull(formation, "formation");
 	return CHANGE_FORMATION_INSTANCES.get(formation);
+    }
+
+    /**
+     * <p>
+     * A command by a leader to indicate that a team or squad should perform a
+     * {@linkplain BattleDrillName battle drill}.
+     * </p>
+     * <ul>
+     * <li>Always returns a (non null) command.</li>
+     * <li>The {@linkplain #getVerb() verb} is
+     * {@linkplain SimpleVerb#PERFORM_BATTLE_DRILL perform-battle-drill}.</li>
+     * <li>There is only one {@linkplain #getObjects() object}, which is the given
+     * drill.</li>
+     * </ul>
+     * 
+     * @param drill
+     *            The drill to perform.
+     * @throws NullPointerException
+     *             If {@code drill} is null
+     */
+    public static SimpleDirectCommand getPerformBattleDrillInstance(BattleDrillName drill) {
+	Objects.requireNonNull(drill, "drill");
+	return PERFORM_BATTLE_DRILL_INSTANCES.get(drill);
     }
 
     private final SimpleVerb verb;

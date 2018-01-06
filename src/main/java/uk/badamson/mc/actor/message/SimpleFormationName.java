@@ -82,6 +82,12 @@ public enum SimpleFormationName implements Noun {
      */
     WEDGE;
 
+    /**
+     * <p>
+     * The {@linkplain #getInformationContent() information content} of a
+     * {@link SimpleFormationName}.
+     * </p>
+     */
     public static final double INFORMATION_CONTENT = Math.log(values().length) / Math.log(2);
 
     /**
