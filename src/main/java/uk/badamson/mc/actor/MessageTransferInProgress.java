@@ -43,8 +43,9 @@ public interface MessageTransferInProgress {
      * been sent so far.</li>
      * <li>From the perspective of a receiver, this indicates the content that has
      * been received so far.</li>
-     * <li>The {@linkplain Message#getLength() length} of this message indicates how
-     * much of the message being sent has been sent or received.</li>
+     * <li>The {@linkplain Message#getInformationContent() length (information
+     * content)} of this message indicates how much of the message being sent has
+     * been sent or received.</li>
      * </ul>
      * 
      * @return the message sent so far.

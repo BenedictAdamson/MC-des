@@ -131,9 +131,9 @@ public interface ActorInterface {
      * {@linkplain MessageTransferInProgress#getMedium() medium} is one of the
      * {@linkplain #getMedia() media} that the actor can use.</li>
      * <li>If there is a (non null) transmission in progress, the
-     * {@linkplain Message#getLength() length} of the
-     * {@linkplain MessageTransferInProgress#getMessageSofar() message sent so far}
-     * is less than or equal to the length of the
+     * {@linkplain Message#getInformationContent() length (information content)} of
+     * the {@linkplain MessageTransferInProgress#getMessageSofar() message sent so
+     * far} is less than or equal to the length of the
      * {@linkplain #getTransmittingMessage() message being sent}.</li>
      * <li>If there is a (non null) transmission in progress, the length of the
      * message sent so far equals the length of the message being sent at the

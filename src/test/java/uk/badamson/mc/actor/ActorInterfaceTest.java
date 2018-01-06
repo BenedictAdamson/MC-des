@@ -23,9 +23,9 @@ public class ActorInterfaceTest {
 	final Set<MessageTransferInProgress> messagesBeingReceived = actorInterface.getMessagesBeingReceived();
 
 	final Message messageSofar = transmissionInProgress == null ? null : transmissionInProgress.getMessageSofar();
-	final double messageSofarLength = messageSofar == null ? Double.NaN : messageSofar.getLength();
+	final double messageSofarLength = messageSofar == null ? Double.NaN : messageSofar.getInformationContent();
 	final double transmittingMessageLength = transmittingMessage == null ? Double.NaN
-		: transmittingMessage.getLength();
+		: transmittingMessage.getInformationContent();
 
 	assertNotNull("Always have an actor", actor);// guard
 	assertNotNull("Always have a set of media.", media);// guard

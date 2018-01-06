@@ -38,7 +38,8 @@ public interface Message {
 
     /**
      * <p>
-     * The length of this message.
+     * The information content of this message; its length in a notional essential
+     * compact form.
      * </p>
      * <ul>
      * <li>The length of a message is positive.</li>
@@ -53,7 +54,7 @@ public interface Message {
      * 
      * @return the length
      */
-    public double getLength();
+    public double getInformationContent();
 
     /**
      * <p>
@@ -62,8 +63,8 @@ public interface Message {
      * </p>
      * <ul>
      * <li>Always returns a (non null) message.</li>
-     * <li>The {@linkplain #getLength() length} of the returned message is equal to
-     * the given part length.</li>
+     * <li>The {@linkplain #getInformationContent() length (information content)} of
+     * the returned message is equal to the given part length.</li>
      * <li>The returned message is never equivalent to this message.</li>
      * </ul>
      * 

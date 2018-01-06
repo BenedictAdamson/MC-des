@@ -13,7 +13,7 @@ import static org.junit.Assert.assertTrue;
 public class MessageTest {
 
     public static void assertInvariants(Message message) {
-	final double length = message.getLength();
+	final double length = message.getInformationContent();
 
 	assertTrue("The length of a message is positive.", 0.0 < length);
 	assertTrue("The length of a message is finite.", Double.isFinite(length));
@@ -26,7 +26,7 @@ public class MessageTest {
 	assertInvariants(message);
 	assertInvariants(partialMessage);
 	assertEquals("The length of the returned message is equal to the given part length.", partLength,
-		partialMessage.getLength(), 1E-3);
+		partialMessage.getInformationContent(), 1E-3);
 	assertNotEquals("The returned message is never equivalent to this message.", partialMessage, message);
 
 	return partialMessage;

@@ -26,14 +26,15 @@ public class UnusableIncompleteMessageTest {
     public static void assertInvariants(UnusableIncompleteMessage message1, UnusableIncompleteMessage message2) {
 	ObjectTest.assertInvariants(message1, message2);// inherited
 	final boolean equals = message1.equals(message2);
-	assertFalse("Equality require equivalent lengths", equals && message1.getLength() != message2.getLength());
+	assertFalse("Equality require equivalent lengths",
+		equals && message1.getInformationContent() != message2.getInformationContent());
     }
 
     private static UnusableIncompleteMessage constructor(double length) {
 	final UnusableIncompleteMessage message = new UnusableIncompleteMessage(length);
 
 	assertInvariants(message);
-	assertEquals("length", length, message.getLength(), 1E-3);
+	assertEquals("length", length, message.getInformationContent(), 1E-3);
 
 	return message;
     }

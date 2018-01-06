@@ -18,8 +18,8 @@ public final class UnusableIncompleteMessage implements Message {
      * </p>
      * 
      * @param length
-     *            The {@linkplain #getLength() length} of this message, in bits of
-     *            information.
+     *            The {@linkplain #getInformationContent() length} of this message,
+     *            in bits of information.
      * @throws IllegalArgumentException
      *             If {@code length} is not positive.
      */
@@ -38,7 +38,7 @@ public final class UnusableIncompleteMessage implements Message {
      * {@link UnusableIncompleteMessage} objects have <i>value semantics</i>: this
      * object is equivalent to another object if, and only if, the other object is
      * also an {@link UnusableIncompleteMessage} and they have equivalent
-     * {@linkplain #getLength() lengths}.
+     * {@linkplain #getInformationContent() lengths}.
      * </p>
      * 
      * @param that
@@ -58,7 +58,7 @@ public final class UnusableIncompleteMessage implements Message {
     }
 
     @Override
-    public final double getLength() {
+    public final double getInformationContent() {
 	return length;
     }
 
@@ -73,9 +73,9 @@ public final class UnusableIncompleteMessage implements Message {
      */
     @Override
     public final UnusableIncompleteMessage getPartialMessage(double partLength) {
-	if (getLength() <= partLength) {
+	if (getInformationContent() <= partLength) {
 	    throw new IllegalArgumentException("partLength <" + partLength
-		    + "> is not less than the length of this message <" + getLength() + ">.");
+		    + "> is not less than the length of this message <" + getInformationContent() + ">.");
 	}
 	return new UnusableIncompleteMessage(partLength);
     }
