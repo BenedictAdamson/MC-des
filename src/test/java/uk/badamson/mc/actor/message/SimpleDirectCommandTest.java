@@ -67,9 +67,17 @@ public class SimpleDirectCommandTest {
 
     @Test
     public void static_DISPERSE() {
-	assertInvariants(SimpleDirectCommand.DISPERSE);
-	assertSame("verb", SimpleVerb.CHANGE_FORMATION, SimpleDirectCommand.DISPERSE.getVerb());
-	assertEquals("object", Collections.singleton(SimpleFormationName.DISPERSE),
-		SimpleDirectCommand.DISPERSE.getObjects());
+	final SimpleDirectCommand command = SimpleDirectCommand.DISPERSE;
+	assertInvariants(command);
+	assertSame("verb", SimpleVerb.CHANGE_FORMATION, command.getVerb());
+	assertEquals("object", Collections.singleton(SimpleFormationName.DISPERSE), command.getObjects());
+    }
+
+    @Test
+    public void static_JOIN_ME() {
+	final SimpleDirectCommand command = SimpleDirectCommand.JOIN_ME;
+	assertInvariants(command);
+	assertSame("verb", SimpleVerb.JOIN, command.getVerb());
+	assertEquals("object", Collections.singleton(Pronoun.ME), command.getObjects());
     }
 }

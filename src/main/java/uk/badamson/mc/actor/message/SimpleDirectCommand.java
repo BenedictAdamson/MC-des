@@ -23,6 +23,17 @@ import net.jcip.annotations.Immutable;
  */
 @Immutable
 public final class SimpleDirectCommand implements Command {
+
+    private static final Map<SimpleRelativeLocation, SimpleDirectCommand> ASSEMBLE_INSTANCES;
+    static {
+	final Map<SimpleRelativeLocation, SimpleDirectCommand> map = new EnumMap<>(SimpleRelativeLocation.class);
+	for (SimpleRelativeLocation location : SimpleRelativeLocation.values()) {
+	    final SimpleDirectCommand command = new SimpleDirectCommand(SimpleVerb.ASSEMBLE, location);
+	    map.put(location, command);
+	}
+	ASSEMBLE_INSTANCES = map;
+    }
+
     /**
      * <p>
      * A command by a leader to indicate movement of an team or squad into a
@@ -37,16 +48,20 @@ public final class SimpleDirectCommand implements Command {
      */
     public static final SimpleDirectCommand DISPERSE = new SimpleDirectCommand(SimpleVerb.CHANGE_FORMATION,
 	    SimpleFormationName.DISPERSE);
-    private static final Map<SimpleRelativeLocation, SimpleDirectCommand> ASSEMBLE_INSTANCES;
 
-    static {
-	final Map<SimpleRelativeLocation, SimpleDirectCommand> map = new EnumMap<>(SimpleRelativeLocation.class);
-	for (SimpleRelativeLocation location : SimpleRelativeLocation.values()) {
-	    final SimpleDirectCommand command = new SimpleDirectCommand(SimpleVerb.ASSEMBLE, location);
-	    map.put(location, command);
-	}
-	ASSEMBLE_INSTANCES = map;
-    }
+    /**
+     * <p>
+     * A command by a leader to indicate an individual, team or squad should join,
+     * follow, or come forwards to, the leader.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getVerb() verb} is {@linkplain SimpleVerb#JOIN
+     * change-formation}.</li>
+     * <li>There is only one {@linkplain #getObjects() object}, which is the
+     * {@linkplain Pronoun#ME me}.</li>
+     * </ul>
+     */
+    public static final SimpleDirectCommand JOIN_ME = new SimpleDirectCommand(SimpleVerb.JOIN, Pronoun.ME);
 
     /**
      * <p>
@@ -77,6 +92,7 @@ public final class SimpleDirectCommand implements Command {
 	Objects.requireNonNull(location, "location");
 	return ASSEMBLE_INSTANCES.get(location);
     }
+
     private final SimpleVerb verb;
 
     private final Set<Noun> objects;

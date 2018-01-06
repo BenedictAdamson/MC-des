@@ -27,7 +27,7 @@ public enum Pronoun implements Noun {
      */
     YOU;
 
-    public static final double INFORMATION_CONTENT = 3.0;
+    public static final double INFORMATION_CONTENT = 1.0;
 
     /**
      * {@inheritDoc}

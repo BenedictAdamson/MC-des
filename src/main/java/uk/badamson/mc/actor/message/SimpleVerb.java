@@ -38,9 +38,19 @@ public enum SimpleVerb implements Verb {
      * {@linkplain SimpleRelativeLocation location} at which the subject assembled.
      * </p>
      */
-    ASSEMBLE;
+    ASSEMBLE,
 
-    public static final double INFORMATION_CONTENT = 1.0;
+    /**
+     * <p>
+     * A verb for declaring that the {@linkplain Sentence#getSubject() subject} of
+     * the {@linkplain Sentence sentence} has joined or follows the
+     * {@linkplain Sentence#getObjects() object}, or to {@linkplain Command command}
+     * that the subject joins or follows the object.
+     * </p>
+     */
+    JOIN;
+
+    public static final double INFORMATION_CONTENT = 1.5;
 
     /**
      * {@inheritDoc}
