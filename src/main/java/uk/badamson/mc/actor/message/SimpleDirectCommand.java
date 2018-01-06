@@ -43,11 +43,11 @@ public final class SimpleDirectCommand implements Command {
      * <li>The {@linkplain #getVerb() verb} is
      * {@linkplain SimpleVerb#CHANGE_FORMATION change-formation}.</li>
      * <li>There is only one {@linkplain #getObjects() object}, which is the
-     * {@linkplain SimpleFormationName#DISPERSE disperse formation}.</li>
+     * {@linkplain SimpleFormationName#DISPERSED disperse formation}.</li>
      * </ul>
      */
     public static final SimpleDirectCommand DISPERSE = new SimpleDirectCommand(SimpleVerb.CHANGE_FORMATION,
-	    SimpleFormationName.DISPERSE);
+	    SimpleFormationName.DISPERSED);
 
     /**
      * <p>
@@ -76,6 +76,21 @@ public final class SimpleDirectCommand implements Command {
      * </ul>
      */
     public static final SimpleDirectCommand RUSH = new SimpleDirectCommand(SimpleVerb.RUSH, Pronoun.IT);
+
+    /**
+     * <p>
+     * A command by a leader to indicate movement of an team or squad into a
+     * {@linkplain SimpleFormationName#WEDGE wedge formation}.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getVerb() verb} is
+     * {@linkplain SimpleVerb#CHANGE_FORMATION change-formation}.</li>
+     * <li>There is only one {@linkplain #getObjects() object}, which is the
+     * {@linkplain SimpleFormationName#WEDGE wedge formation}.</li>
+     * </ul>
+     */
+    public static final SimpleDirectCommand FORM_WEDGE = new SimpleDirectCommand(SimpleVerb.CHANGE_FORMATION,
+	    SimpleFormationName.WEDGE);
 
     /**
      * <p>

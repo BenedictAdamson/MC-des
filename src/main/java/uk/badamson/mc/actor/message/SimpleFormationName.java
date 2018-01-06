@@ -21,9 +21,16 @@ public enum SimpleFormationName implements Noun {
      * A non specific formation.
      * </p>
      */
-    DISPERSE;
+    DISPERSED,
 
-    public static final double INFORMATION_CONTENT = 3.0;
+    /**
+     * <p>
+     * A formation with the centre forwards of the flanks.
+     * </p>
+     */
+    WEDGE;
+
+    public static final double INFORMATION_CONTENT = 1.0;
 
     /**
      * {@inheritDoc}
