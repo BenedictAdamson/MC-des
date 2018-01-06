@@ -48,10 +48,25 @@ public enum SimpleFormationName implements Noun {
 
     /**
      * <p>
+     * A staggered column formation with elements facing forward and outwards
+     * </p>
+     */
+    HERRINGBONE,
+
+    /**
+     * <p>
      * A formation with the centre neither forward nor rearward of the flanks.
      * </p>
      */
     LINE,
+
+    /**
+     * <p>
+     * A formation with two columns next to each other, with column column slightly
+     * further forwards.
+     * </p>
+     */
+    STAGGERED_COLUMN,
 
     /**
      * <p>
@@ -67,7 +82,7 @@ public enum SimpleFormationName implements Noun {
      */
     WEDGE;
 
-    public static final double INFORMATION_CONTENT = 2.7;
+    public static final double INFORMATION_CONTENT = 3.3;
 
     /**
      * {@inheritDoc}

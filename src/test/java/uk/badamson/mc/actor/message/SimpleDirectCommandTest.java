@@ -38,6 +38,17 @@ public class SimpleDirectCommandTest {
 	return command;
     }
 
+    public static SimpleDirectCommand getChangeFormationInstance(SimpleFormationName formation) {
+	final SimpleDirectCommand command = SimpleDirectCommand.getChangeFormationInstance(formation);
+
+	assertNotNull("Always returns a command", command);// guard
+	assertInvariants(command);
+	assertSame("verb", SimpleVerb.CHANGE_FORMATION, command.getVerb());
+	assertEquals("object", Collections.singleton(formation), command.getObjects());
+
+	return command;
+    }
+
     public static UnusableIncompleteMessage getPartialMessage(SimpleDirectCommand message, double partLength) {
 	final UnusableIncompleteMessage partialMessage = (UnusableIncompleteMessage) MessageTest
 		.getPartialMessage(message, partLength);
@@ -52,6 +63,13 @@ public class SimpleDirectCommandTest {
     public void getAssembleInstance_all() {
 	for (SimpleRelativeLocation location : SimpleRelativeLocation.values()) {
 	    getAssembleInstance(location);
+	}
+    }
+
+    @Test
+    public void getChangeFormationInstances() {
+	for (SimpleFormationName formation : SimpleFormationName.values()) {
+	    getChangeFormationInstance(formation);
 	}
     }
 
@@ -71,55 +89,6 @@ public class SimpleDirectCommandTest {
 	assertInvariants(command);
 	assertSame("verb", SimpleVerb.CHANGE_FORMATION, command.getVerb());
 	assertEquals("object", Collections.singleton(SimpleFormationName.DISPERSED), command.getObjects());
-    }
-
-    @Test
-
-    public void static_FORM_COLUMN() {
-	final SimpleDirectCommand command = SimpleDirectCommand.FORM_COLUMN;
-	assertInvariants(command);
-	assertSame("verb", SimpleVerb.CHANGE_FORMATION, command.getVerb());
-	assertEquals("object", Collections.singleton(SimpleFormationName.COLUMN), command.getObjects());
-    }
-
-    @Test
-    public void static_FORM_ECHELON_LEFT() {
-	final SimpleDirectCommand command = SimpleDirectCommand.FORM_ECHELON_LEFT;
-	assertInvariants(command);
-	assertSame("verb", SimpleVerb.CHANGE_FORMATION, command.getVerb());
-	assertEquals("object", Collections.singleton(SimpleFormationName.ECHELON_LEFT), command.getObjects());
-    }
-
-    @Test
-    public void static_FORM_ECHELON_RIGHT() {
-	final SimpleDirectCommand command = SimpleDirectCommand.FORM_ECHELON_RIGHT;
-	assertInvariants(command);
-	assertSame("verb", SimpleVerb.CHANGE_FORMATION, command.getVerb());
-	assertEquals("object", Collections.singleton(SimpleFormationName.ECHELON_RIGHT), command.getObjects());
-    }
-
-    @Test
-    public void static_FORM_LINE() {
-	final SimpleDirectCommand command = SimpleDirectCommand.FORM_LINE;
-	assertInvariants(command);
-	assertSame("verb", SimpleVerb.CHANGE_FORMATION, command.getVerb());
-	assertEquals("object", Collections.singleton(SimpleFormationName.LINE), command.getObjects());
-    }
-
-    @Test
-    public void static_FORM_VEE() {
-	final SimpleDirectCommand command = SimpleDirectCommand.FORM_VEE;
-	assertInvariants(command);
-	assertSame("verb", SimpleVerb.CHANGE_FORMATION, command.getVerb());
-	assertEquals("object", Collections.singleton(SimpleFormationName.VEE), command.getObjects());
-    }
-
-    @Test
-    public void static_FORM_WEDGE() {
-	final SimpleDirectCommand command = SimpleDirectCommand.FORM_WEDGE;
-	assertInvariants(command);
-	assertSame("verb", SimpleVerb.CHANGE_FORMATION, command.getVerb());
-	assertEquals("object", Collections.singleton(SimpleFormationName.WEDGE), command.getObjects());
     }
 
     @Test

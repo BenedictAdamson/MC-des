@@ -34,6 +34,16 @@ public final class SimpleDirectCommand implements Command {
 	ASSEMBLE_INSTANCES = map;
     }
 
+    private static final Map<SimpleFormationName, SimpleDirectCommand> CHANGE_FORMATION_INSTANCES;
+    static {
+	final Map<SimpleFormationName, SimpleDirectCommand> map = new EnumMap<>(SimpleFormationName.class);
+	for (SimpleFormationName formation : SimpleFormationName.values()) {
+	    final SimpleDirectCommand command = new SimpleDirectCommand(SimpleVerb.CHANGE_FORMATION, formation);
+	    map.put(formation, command);
+	}
+	CHANGE_FORMATION_INSTANCES = map;
+    }
+
     /**
      * <p>
      * A command by a leader to indicate movement of an team or squad into a
@@ -79,96 +89,6 @@ public final class SimpleDirectCommand implements Command {
 
     /**
      * <p>
-     * A command by a leader to indicate movement of an team or squad into a
-     * {@linkplain SimpleFormationName#WEDGE wedge formation}.
-     * </p>
-     * <ul>
-     * <li>The {@linkplain #getVerb() verb} is
-     * {@linkplain SimpleVerb#CHANGE_FORMATION change-formation}.</li>
-     * <li>There is only one {@linkplain #getObjects() object}, which is the
-     * {@linkplain SimpleFormationName#WEDGE wedge formation}.</li>
-     * </ul>
-     */
-    public static final SimpleDirectCommand FORM_WEDGE = new SimpleDirectCommand(SimpleVerb.CHANGE_FORMATION,
-	    SimpleFormationName.WEDGE);
-
-    /**
-     * <p>
-     * A command by a leader to indicate movement of an team or squad into a
-     * {@linkplain SimpleFormationName#VEE vee formation}.
-     * </p>
-     * <ul>
-     * <li>The {@linkplain #getVerb() verb} is
-     * {@linkplain SimpleVerb#CHANGE_FORMATION change-formation}.</li>
-     * <li>There is only one {@linkplain #getObjects() object}, which is the
-     * {@linkplain SimpleFormationName#VEE vee formation}.</li>
-     * </ul>
-     */
-    public static final SimpleDirectCommand FORM_VEE = new SimpleDirectCommand(SimpleVerb.CHANGE_FORMATION,
-	    SimpleFormationName.VEE);
-
-    /**
-     * <p>
-     * A command by a leader to indicate movement of an team or squad into a
-     * {@linkplain SimpleFormationName#LINE line formation}.
-     * </p>
-     * <ul>
-     * <li>The {@linkplain #getVerb() verb} is
-     * {@linkplain SimpleVerb#CHANGE_FORMATION change-formation}.</li>
-     * <li>There is only one {@linkplain #getObjects() object}, which is the
-     * {@linkplain SimpleFormationName#LINE line formation}.</li>
-     * </ul>
-     */
-    public static final SimpleDirectCommand FORM_LINE = new SimpleDirectCommand(SimpleVerb.CHANGE_FORMATION,
-	    SimpleFormationName.LINE);
-
-    /**
-     * <p>
-     * A command by a leader to indicate movement of an team or squad into a
-     * {@linkplain SimpleFormationName#ECHELON_LEFT echelon-left formation}.
-     * </p>
-     * <ul>
-     * <li>The {@linkplain #getVerb() verb} is
-     * {@linkplain SimpleVerb#CHANGE_FORMATION change-formation}.</li>
-     * <li>There is only one {@linkplain #getObjects() object}, which is the
-     * {@linkplain SimpleFormationName#ECHELON_LEFT echelon-left formation}.</li>
-     * </ul>
-     */
-    public static final SimpleDirectCommand FORM_ECHELON_LEFT = new SimpleDirectCommand(SimpleVerb.CHANGE_FORMATION,
-	    SimpleFormationName.ECHELON_LEFT);
-
-    /**
-     * <p>
-     * A command by a leader to indicate movement of an team or squad into a
-     * {@linkplain SimpleFormationName#ECHELON_RIGHT echelon-right formation}.
-     * </p>
-     * <ul>
-     * <li>The {@linkplain #getVerb() verb} is
-     * {@linkplain SimpleVerb#CHANGE_FORMATION change-formation}.</li>
-     * <li>There is only one {@linkplain #getObjects() object}, which is the
-     * {@linkplain SimpleFormationName#ECHELON_RIGHT echelon-right formation}.</li>
-     * </ul>
-     */
-    public static final SimpleDirectCommand FORM_ECHELON_RIGHT = new SimpleDirectCommand(SimpleVerb.CHANGE_FORMATION,
-	    SimpleFormationName.ECHELON_RIGHT);
-
-    /**
-     * <p>
-     * A command by a leader to indicate movement of an team or squad into a
-     * {@linkplain SimpleFormationName#COLUMN column formation}.
-     * </p>
-     * <ul>
-     * <li>The {@linkplain #getVerb() verb} is
-     * {@linkplain SimpleVerb#CHANGE_FORMATION change-formation}.</li>
-     * <li>There is only one {@linkplain #getObjects() object}, which is the
-     * {@linkplain SimpleFormationName#COLUMN column formation}.</li>
-     * </ul>
-     */
-    public static final SimpleDirectCommand FORM_COLUMN = new SimpleDirectCommand(SimpleVerb.CHANGE_FORMATION,
-	    SimpleFormationName.COLUMN);
-
-    /**
-     * <p>
      * The extra information content of a {@link SimpleDirectCommand}, over the
      * information content of its constituent {@linkplain MessageElement elements}.
      * </p>
@@ -195,6 +115,29 @@ public final class SimpleDirectCommand implements Command {
     public static final SimpleDirectCommand getAssembleInstance(SimpleRelativeLocation location) {
 	Objects.requireNonNull(location, "location");
 	return ASSEMBLE_INSTANCES.get(location);
+    }
+
+    /**
+     * <p>
+     * A command by a leader to indicate movement of an team or squad into a
+     * {@linkplain SimpleFormationName formation}.
+     * </p>
+     * <ul>
+     * <li>Always returns a (non null) command.</li>
+     * <li>The {@linkplain #getVerb() verb} is
+     * {@linkplain SimpleVerb#CHANGE_FORMATION change-formation}.</li>
+     * <li>There is only one {@linkplain #getObjects() object}, which is the given
+     * formation.</li>
+     * </ul>
+     * 
+     * @param formation
+     *            The formation to move into.
+     * @throws NullPointerException
+     *             If {@code formation} is null
+     */
+    public static SimpleDirectCommand getChangeFormationInstance(SimpleFormationName formation) {
+	Objects.requireNonNull(formation, "formation");
+	return CHANGE_FORMATION_INSTANCES.get(formation);
     }
 
     private final SimpleVerb verb;
