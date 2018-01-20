@@ -84,4 +84,13 @@ public class SimpleStatementTest {
 	final SimpleStatement statement = SimpleStatement.getEnemyInSight(SimpleRelativeLocation.FRONT_NEAR);
 	getPartialMessage(statement, statement.getInformationContent() * 0.25);
     }
+
+    @Test
+    public void static_DANGER_AREA() {
+	final SimpleStatement statement = SimpleStatement.DANGER_AREA;
+	assertNotNull("Not null", statement);// guard
+	assertInvariants(statement);
+	assertSame("subject", Pronoun.IT, statement.getSubject());
+	assertSame("predicate", SimpleStatement.SimplePredicate.IS_DANGER_AREA, statement.getPredicate());
+    }
 }

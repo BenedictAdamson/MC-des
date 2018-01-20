@@ -34,7 +34,15 @@ public class SimpleStatement extends AbstractMessage {
 	 * The subject (a location) is the location where an enemy is visible.
 	 * </p>
 	 */
-	HAS_ENEMY_IN_SIGHT;
+	HAS_ENEMY_IN_SIGHT,
+
+	/**
+	 * <p>
+	 * The subject (a location) is a <dfn>danger area</dfn>, which is (or might be)
+	 * exposed to enemy observation or fire.
+	 * </p>
+	 */
+	IS_DANGER_AREA;
 
 	public static final double INFORMATION_CONTENT = Math.log(values().length) / Math.log(2);
 
@@ -71,6 +79,19 @@ public class SimpleStatement extends AbstractMessage {
      * </p>
      */
     public static final double EXTRA_INFORMATION_CONTENT = 5.0;
+
+    /**
+     * <p>
+     * A statement to indicate that the area is a <dfn>danger area</dfn>, which is
+     * (or might be) exposed to enemy observation or fire.
+     * </p>
+     * <li>The {@linkplain #getSubject() subject} is {@linkplain Pronoun#IT
+     * it}.</li>
+     * <li>The {@linkplain #getPredicate() predicate} is that the location
+     * {@linkplain SimplePredicate#IS_DANGER_AREA is a danger area}.</li>
+     * </ul>
+     */
+    public static final SimpleStatement DANGER_AREA = new SimpleStatement(Pronoun.IT, SimplePredicate.IS_DANGER_AREA);
 
     /**
      * <p>
