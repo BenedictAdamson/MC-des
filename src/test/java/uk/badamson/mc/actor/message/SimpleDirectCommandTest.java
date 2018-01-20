@@ -24,14 +24,13 @@ public class SimpleDirectCommandTest {
 	ObjectTest.assertInvariants(command);// inherited
 	CommandTest.assertInvariants(command);// inherited
 
-	final Pronoun subject = command.getSubject();
+	final Noun subject = command.getSubject();
 
 	assertEquals("The information content exceeds the total for the message elements by the same extra amount.",
 		SimpleDirectCommand.EXTRA_INFORMATION_CONTENT + subject.getInformationContent()
 			+ command.getVerb().getInformationContent()
 			+ SentenceTest.totalInformationContent(command.getObjects()),
 		command.getInformationContent(), 1.0E-3);
-	assertTrue("The subject is either you or we.", subject == Pronoun.YOU || subject == Pronoun.WE);
 	assertTrue("One of the finite array of values of the type",
 		Arrays.asList(SimpleDirectCommand.values()).indexOf(command) != -1);
     }
@@ -86,6 +85,18 @@ public class SimpleDirectCommandTest {
 	return command;
     }
 
+    public static SimpleDirectCommand getRoleForwardInstance(MilitaryRole role) {
+	final SimpleDirectCommand command = SimpleDirectCommand.getRoleForwardInstance(role);
+
+	assertNotNull("Always returns a command", command);// guard
+	assertInvariants(command);
+	assertSame("subject", role, command.getSubject());
+	assertSame("verb", SimpleVerb.JOIN, command.getVerb());
+	assertEquals("object", Collections.singleton(Pronoun.ME), command.getObjects());
+
+	return command;
+    }
+
     @Test
     public void getAssembleInstance_all() {
 	for (SimpleRelativeLocation location : SimpleRelativeLocation.values()) {
@@ -114,6 +125,13 @@ public class SimpleDirectCommandTest {
     public void getPerformBattleDrillInstance_all() {
 	for (BattleDrillName drill : BattleDrillName.values()) {
 	    getPerformBattleDrillInstance(drill);
+	}
+    }
+
+    @Test
+    public void getRoleForwardInstance_all() {
+	for (MilitaryRole role : MilitaryRole.values()) {
+	    getRoleForwardInstance(role);
 	}
     }
 

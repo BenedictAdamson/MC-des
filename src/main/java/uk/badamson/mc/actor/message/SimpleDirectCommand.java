@@ -59,6 +59,16 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
 	PERFORM_BATTLE_DRILL_INSTANCES = map;
     }
 
+    private static final Map<MilitaryRole, SimpleDirectCommand> ROLE_FORWARD_INSTANCES;
+    static {
+	final Map<MilitaryRole, SimpleDirectCommand> map = new EnumMap<>(MilitaryRole.class);
+	for (MilitaryRole role : MilitaryRole.values()) {
+	    final SimpleDirectCommand command = new SimpleDirectCommand(role, SimpleVerb.JOIN, Pronoun.ME);
+	    map.put(role, command);
+	}
+	ROLE_FORWARD_INSTANCES = map;
+    }
+
     /**
      * <p>
      * A command by a leader to indicate an individual, team or squad should join,
@@ -250,6 +260,7 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
 	list.addAll(ASSEMBLE_INSTANCES.values());
 	list.addAll(CHANGE_FORMATION_INSTANCES.values());
 	list.addAll(PERFORM_BATTLE_DRILL_INSTANCES.values());
+	list.addAll(ROLE_FORWARD_INSTANCES.values());
 	list.add(CHECK_MAP);
 	list.add(CHECK_PACES);
 	list.add(FIX_BAYONET);
@@ -347,6 +358,30 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
 
     /**
      * <p>
+     * A command by a leader to indicate that a person in a given
+     * {@linkplain MilitaryRole role} should come forward to the leader's location.
+     * </p>
+     * <ul>
+     * <li>Always returns a (non null) command.</li>
+     * <li>The {@linkplain #getSubject() subject} is the given role.</li>
+     * <li>The {@linkplain #getVerb() verb} is {@linkplain SimpleVerb#JOIN
+     * join}.</li>
+     * <li>There is only one {@linkplain #getObjects() object}, which is
+     * {@linkplain Pronoun#ME me}.</li>
+     * </ul>
+     * 
+     * @param role
+     *            The role of the person who should come forward.
+     * @throws NullPointerException
+     *             If {@code role} is null
+     */
+    public static SimpleDirectCommand getRoleForwardInstance(MilitaryRole role) {
+	Objects.requireNonNull(role, "role");
+	return ROLE_FORWARD_INSTANCES.get(role);
+    }
+
+    /**
+     * <p>
      * An array holding each of the permitted values of the
      * {@link SimpleDirectCommand} type.
      * </p>
@@ -362,13 +397,13 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
 	return Arrays.copyOf(ALL, ALL.length);
     }
 
-    private final Pronoun subject;
+    private final Noun subject;
 
     private final SimpleVerb verb;
 
     private final Set<Noun> objects;
 
-    private SimpleDirectCommand(Pronoun subject, SimpleVerb verb, Noun object) {
+    private SimpleDirectCommand(Noun subject, SimpleVerb verb, Noun object) {
 	this.subject = subject;
 	this.verb = verb;
 	this.objects = Collections.singleton(object);
@@ -420,12 +455,12 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      * {@inheritDoc}
      * 
      * <p>
-     * The subject is either {@linkplain Pronoun#YOU you} or {@linkplain Pronoun#WE
-     * we}.
+     * The subject is often either {@linkplain Pronoun#YOU you} or
+     * {@linkplain Pronoun#WE we}.
      * </p>
      */
     @Override
-    public final Pronoun getSubject() {
+    public final Noun getSubject() {
 	return subject;
     }
 
