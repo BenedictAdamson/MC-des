@@ -127,6 +127,15 @@ public class SimpleDirectCommandTest {
     }
 
     @Test
+    public void static_CHECK_PACES() {
+	final SimpleDirectCommand command = SimpleDirectCommand.CHECK_PACES;
+	assertInvariants(command);
+	assertSame("subject", Pronoun.WE, command.getSubject());
+	assertSame("verb", SimpleVerb.CHECK_PACES, command.getVerb());
+	assertEquals("object", Collections.singleton(Pronoun.IT), command.getObjects());
+    }
+
+    @Test
     public void static_FIX_BAYONET() {
 	final SimpleDirectCommand command = SimpleDirectCommand.FIX_BAYONET;
 	assertInvariants(command);

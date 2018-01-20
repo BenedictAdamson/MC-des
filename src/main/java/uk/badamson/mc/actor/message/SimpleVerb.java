@@ -147,8 +147,22 @@ public enum SimpleVerb implements Verb {
      * the {@linkplain Sentence sentence} is checking their map, or to
      * {@linkplain Command command} that the subject checks their map.
      * </p>
+     * 
+     * @see #CHECK_PACES
      */
-    CHECK_MAP;
+    CHECK_MAP,
+
+    /**
+     * <p>
+     * A verb for declaring that the {@linkplain Sentence#getSubject() subject} of
+     * the {@linkplain Sentence sentence} is checking the number of paces (distance)
+     * they have travelled, or to {@linkplain Command command} that the subject
+     * checks their number of paces.
+     * </p>
+     * 
+     * @see #CHECK_MAP
+     */
+    CHECK_PACES;
 
     public static final double INFORMATION_CONTENT = MessageElement.getInformationContent(values().length);
 
