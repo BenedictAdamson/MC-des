@@ -28,7 +28,7 @@ public final class SimpleDirectCommand implements Command {
     static {
 	final Map<SimpleRelativeLocation, SimpleDirectCommand> map = new EnumMap<>(SimpleRelativeLocation.class);
 	for (SimpleRelativeLocation location : SimpleRelativeLocation.values()) {
-	    final SimpleDirectCommand command = new SimpleDirectCommand(SimpleVerb.ASSEMBLE, location);
+	    final SimpleDirectCommand command = new SimpleDirectCommand(Pronoun.YOU, SimpleVerb.ASSEMBLE, location);
 	    map.put(location, command);
 	}
 	ASSEMBLE_INSTANCES = map;
@@ -38,7 +38,8 @@ public final class SimpleDirectCommand implements Command {
     static {
 	final Map<SimpleFormationName, SimpleDirectCommand> map = new EnumMap<>(SimpleFormationName.class);
 	for (SimpleFormationName formation : SimpleFormationName.values()) {
-	    final SimpleDirectCommand command = new SimpleDirectCommand(SimpleVerb.CHANGE_FORMATION, formation);
+	    final SimpleDirectCommand command = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.CHANGE_FORMATION,
+		    formation);
 	    map.put(formation, command);
 	}
 	CHANGE_FORMATION_INSTANCES = map;
@@ -48,7 +49,8 @@ public final class SimpleDirectCommand implements Command {
     static {
 	final Map<BattleDrillName, SimpleDirectCommand> map = new EnumMap<>(BattleDrillName.class);
 	for (BattleDrillName drill : BattleDrillName.values()) {
-	    final SimpleDirectCommand command = new SimpleDirectCommand(SimpleVerb.PERFORM_BATTLE_DRILL, drill);
+	    final SimpleDirectCommand command = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.PERFORM_BATTLE_DRILL,
+		    drill);
 	    map.put(drill, command);
 	}
 	PERFORM_BATTLE_DRILL_INSTANCES = map;
@@ -60,13 +62,15 @@ public final class SimpleDirectCommand implements Command {
      * dispersed formation.
      * </p>
      * <ul>
+     * <li>The {@linkplain #getSubject() subject} is {@linkplain Pronoun#WE
+     * we}.</li>
      * <li>The {@linkplain #getVerb() verb} is
      * {@linkplain SimpleVerb#CHANGE_FORMATION change-formation}.</li>
      * <li>There is only one {@linkplain #getObjects() object}, which is the
      * {@linkplain SimpleFormationName#DISPERSED disperse formation}.</li>
      * </ul>
      */
-    public static final SimpleDirectCommand DISPERSE = new SimpleDirectCommand(SimpleVerb.CHANGE_FORMATION,
+    public static final SimpleDirectCommand DISPERSE = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.CHANGE_FORMATION,
 	    SimpleFormationName.DISPERSED);
 
     /**
@@ -75,13 +79,15 @@ public final class SimpleDirectCommand implements Command {
      * follow, or come forwards to, the leader.
      * </p>
      * <ul>
+     * <li>The {@linkplain #getSubject() subject} is {@linkplain Pronoun#YOU
+     * you}.</li>
      * <li>The {@linkplain #getVerb() verb} is {@linkplain SimpleVerb#JOIN
      * change-formation}.</li>
      * <li>There is only one {@linkplain #getObjects() object}, which is
      * {@linkplain Pronoun#ME me}.</li>
      * </ul>
      */
-    public static final SimpleDirectCommand JOIN_ME = new SimpleDirectCommand(SimpleVerb.JOIN, Pronoun.ME);
+    public static final SimpleDirectCommand JOIN_ME = new SimpleDirectCommand(Pronoun.YOU, SimpleVerb.JOIN, Pronoun.ME);
 
     /**
      * <p>
@@ -89,13 +95,15 @@ public final class SimpleDirectCommand implements Command {
      * increase speed, double time, or rush.
      * </p>
      * <ul>
+     * <li>The {@linkplain #getSubject() subject} is {@linkplain Pronoun#YOU
+     * you}.</li>
      * <li>The {@linkplain #getVerb() verb} is {@linkplain SimpleVerb#RUSH
      * rush}.</li>
      * <li>There is only one {@linkplain #getObjects() object}, which is
      * {@linkplain Pronoun#IT it}.</li>
      * </ul>
      */
-    public static final SimpleDirectCommand RUSH = new SimpleDirectCommand(SimpleVerb.RUSH, Pronoun.IT);
+    public static final SimpleDirectCommand RUSH = new SimpleDirectCommand(Pronoun.YOU, SimpleVerb.RUSH, Pronoun.IT);
 
     /**
      * <p>
@@ -103,13 +111,16 @@ public final class SimpleDirectCommand implements Command {
      * their bayonet(s0 to their gun(s).
      * </p>
      * <ul>
+     * <li>The {@linkplain #getSubject() subject} is {@linkplain Pronoun#WE
+     * we}.</li>
      * <li>The {@linkplain #getVerb() verb} is {@linkplain SimpleVerb#FIX_BAYONET
      * fix-bayonet}.</li>
      * <li>There is only one {@linkplain #getObjects() object}, which is
      * {@linkplain Pronoun#IT it} (meaning, the subjects own bayonet).</li>
      * </ul>
      */
-    public static final SimpleDirectCommand FIX_BAYONET = new SimpleDirectCommand(SimpleVerb.FIX_BAYONET, Pronoun.IT);
+    public static final SimpleDirectCommand FIX_BAYONET = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.FIX_BAYONET,
+	    Pronoun.IT);
 
     /**
      * <p>
@@ -126,8 +137,10 @@ public final class SimpleDirectCommand implements Command {
      * </p>
      * <ul>
      * <li>Always returns a (non null) instance.</li>
+     * <li>The {@linkplain #getSubject() subject} is {@linkplain Pronoun#YOU
+     * you}.</li>
      * <li>The {@linkplain #getVerb() verb} is {@linkplain SimpleVerb#ASSEMBLE
-     * change-formation}.</li>
+     * assemble}.</li>
      * <li>There is only one {@linkplain #getObjects() object}, which is the given
      * location.</li>
      * </ul>
@@ -148,6 +161,8 @@ public final class SimpleDirectCommand implements Command {
      * </p>
      * <ul>
      * <li>Always returns a (non null) command.</li>
+     * <li>The {@linkplain #getSubject() subject} is {@linkplain Pronoun#WE
+     * we}.</li>
      * <li>The {@linkplain #getVerb() verb} is
      * {@linkplain SimpleVerb#CHANGE_FORMATION change-formation}.</li>
      * <li>There is only one {@linkplain #getObjects() object}, which is the given
@@ -171,6 +186,8 @@ public final class SimpleDirectCommand implements Command {
      * </p>
      * <ul>
      * <li>Always returns a (non null) command.</li>
+     * <li>The {@linkplain #getSubject() subject} is {@linkplain Pronoun#WE
+     * we}.</li>
      * <li>The {@linkplain #getVerb() verb} is
      * {@linkplain SimpleVerb#PERFORM_BATTLE_DRILL perform-battle-drill}.</li>
      * <li>There is only one {@linkplain #getObjects() object}, which is the given
@@ -187,11 +204,14 @@ public final class SimpleDirectCommand implements Command {
 	return PERFORM_BATTLE_DRILL_INSTANCES.get(drill);
     }
 
+    private final Pronoun subject;
+
     private final SimpleVerb verb;
 
     private final Set<Noun> objects;
 
-    private SimpleDirectCommand(SimpleVerb verb, Noun object) {
+    private SimpleDirectCommand(Pronoun subject, SimpleVerb verb, Noun object) {
+	this.subject = subject;
 	this.verb = verb;
 	this.objects = Collections.singleton(object);
     }
@@ -234,12 +254,13 @@ public final class SimpleDirectCommand implements Command {
      * {@inheritDoc}
      * 
      * <p>
-     * The subject is always {@linkplain Pronoun#YOU you}.
+     * The subject is either {@linkplain Pronoun#YOU you} or {@linkplain Pronoun#WE
+     * we}.
      * </p>
      */
     @Override
     public final Pronoun getSubject() {
-	return Pronoun.YOU;
+	return subject;
     }
 
     /**

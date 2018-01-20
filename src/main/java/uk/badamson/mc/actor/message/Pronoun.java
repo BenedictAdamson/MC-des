@@ -36,7 +36,17 @@ public enum Pronoun implements Noun {
      * her or your.
      * </p>
      */
-    IT;
+    IT,
+
+    /**
+     * <p>
+     * The sender and receiver(s) of a message.
+     * </p>
+     * <p>
+     * Semantically equivalent to {@linkplain #ME me} and {@linkplain #YOU you}.
+     * </p>
+     */
+    WE;
 
     public static final double INFORMATION_CONTENT = Math.log(values().length) / Math.log(2);
 
