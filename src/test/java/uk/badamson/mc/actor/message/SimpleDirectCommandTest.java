@@ -145,6 +145,15 @@ public class SimpleDirectCommandTest {
     }
 
     @Test
+    public void static_CHECK_NUMER_PRESENT() {
+	final SimpleDirectCommand command = SimpleDirectCommand.CHECK_NUMER_PRESENT;
+	assertInvariants(command);
+	assertSame("subject", Pronoun.WE, command.getSubject());
+	assertSame("verb", SimpleVerb.CHECK_NUMER_PRESENT, command.getVerb());
+	assertEquals("object", Collections.singleton(Pronoun.IT), command.getObjects());
+    }
+
+    @Test
     public void static_CHECK_PACES() {
 	final SimpleDirectCommand command = SimpleDirectCommand.CHECK_PACES;
 	assertInvariants(command);

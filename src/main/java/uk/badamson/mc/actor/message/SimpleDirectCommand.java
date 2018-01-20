@@ -254,6 +254,25 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
     public static final SimpleDirectCommand CHECK_PACES = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.CHECK_PACES,
 	    Pronoun.IT);
 
+    /**
+     * <p>
+     * A command by a leader to indicate the element, team, squad or platoon will
+     * check the number of people present (perform a head-count).
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getSubject() subject} is {@linkplain Pronoun#WE
+     * we}.</li>
+     * <li>The {@linkplain #getVerb() verb} is
+     * {@linkplain SimpleVerb#CHECK_NUMER_PRESENT check number present}.</li>
+     * <li>There is only one {@linkplain #getObjects() object}, which is
+     * {@linkplain Pronoun#IT it} (meaning, the subjects own bayonet).</li>
+     * <li>This is one of the {@linkplain #values() array of finite values} of the
+     * {@link SimpleDirectCommand} type.
+     * </ul>
+     */
+    public static final SimpleDirectCommand CHECK_NUMER_PRESENT = new SimpleDirectCommand(Pronoun.WE,
+	    SimpleVerb.CHECK_NUMER_PRESENT, Pronoun.IT);
+
     private static final SimpleDirectCommand[] ALL;
     static {
 	final List<SimpleDirectCommand> list = new ArrayList<>();
@@ -262,6 +281,7 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
 	list.addAll(PERFORM_BATTLE_DRILL_INSTANCES.values());
 	list.addAll(ROLE_FORWARD_INSTANCES.values());
 	list.add(CHECK_MAP);
+	list.add(CHECK_NUMER_PRESENT);
 	list.add(CHECK_PACES);
 	list.add(FIX_BAYONET);
 	list.add(HALT);

@@ -162,7 +162,17 @@ public enum SimpleVerb implements Verb {
      * 
      * @see #CHECK_MAP
      */
-    CHECK_PACES;
+    CHECK_PACES,
+
+    /**
+     * <p>
+     * A verb for declaring that the {@linkplain Sentence#getSubject() subject} of
+     * the {@linkplain Sentence sentence} is checking the number of people present
+     * (is performing a head-count), or to {@linkplain Command command} that the
+     * subject checks the number of people they have present.
+     * </p>
+     */
+    CHECK_NUMER_PRESENT;
 
     public static final double INFORMATION_CONTENT = MessageElement.getInformationContent(values().length);
 
