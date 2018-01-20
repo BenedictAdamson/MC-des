@@ -18,10 +18,10 @@ package uk.badamson.mc.math;
  */
 public final class PoorlyConditionedFunctionException extends IllegalArgumentException {
 
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-	PoorlyConditionedFunctionException(Function1 f) {
-		super("Poorly conditioned function " + f);
-	}
+    PoorlyConditionedFunctionException(Function1 f) {
+	super("Poorly conditioned function " + f);
+    }
 
 }// class

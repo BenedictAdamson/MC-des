@@ -12,7 +12,7 @@ package uk.badamson.mc.math;
  */
 public final class Rotation3 extends ImmutableMatrix {
 
-	Rotation3(double[] elements) {
-		super(3, 3, elements);
-	}
+    Rotation3(double[] elements) {
+	super(3, 3, elements);
+    }
 }

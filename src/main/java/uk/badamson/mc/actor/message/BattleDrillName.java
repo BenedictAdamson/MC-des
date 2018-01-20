@@ -16,7 +16,9 @@ package uk.badamson.mc.actor.message;
  * </p>
  */
 public enum BattleDrillName implements Noun {
-    CONTACT_LEFT, CONTACT_RIGHT, AIR_ATTACK,
+    CONTACT_LEFT,
+    CONTACT_RIGHT,
+    AIR_ATTACK,
 
     /**
      * <p>

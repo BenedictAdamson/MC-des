@@ -11,40 +11,40 @@ import net.jcip.annotations.Immutable;
 @Immutable
 public interface FunctionNWithGradient {
 
-	/**
-	 * <p>
-	 * The number of independent variables of the function.
-	 * </p>
-	 * <p>
-	 * This attribute must be <dfn>constant</dfn>: the value for a given object
-	 * must always be the same value.
-	 * </p>
-	 * 
-	 * @return the number of dimensions; positive.
-	 */
-	public int getDimension();
+    /**
+     * <p>
+     * The number of independent variables of the function.
+     * </p>
+     * <p>
+     * This attribute must be <dfn>constant</dfn>: the value for a given object must
+     * always be the same value.
+     * </p>
+     * 
+     * @return the number of dimensions; positive.
+     */
+    public int getDimension();
 
-	/**
-	 * <p>
-	 * The value of the function and its gradient for a given value of the
-	 * continuous variable.
-	 * </p>
-	 * <ul>
-	 * <li>Always returns a (non null) value.</li>
-	 * <li>The {@linkplain Function1WithGradientValue#getX() domain value} of
-	 * the returned object is the given domain value.</li>
-	 * </ul>
-	 * 
-	 * @param x
-	 *            The domain value
-	 * @return The value of the function.
-	 * 
-	 * @throws NullPointerException
-	 *             If {@code x} is null.
-	 * @throws IllegalArgumentException
-	 *             If the {@linkplain ImmutableVector#getDimension() dimension}
-	 *             of {@code x} does not equal the {@linkplain #getDimension()
-	 *             dimension} of this functor.
-	 */
-	public FunctionNWithGradientValue value(ImmutableVector x);
+    /**
+     * <p>
+     * The value of the function and its gradient for a given value of the
+     * continuous variable.
+     * </p>
+     * <ul>
+     * <li>Always returns a (non null) value.</li>
+     * <li>The {@linkplain Function1WithGradientValue#getX() domain value} of the
+     * returned object is the given domain value.</li>
+     * </ul>
+     * 
+     * @param x
+     *            The domain value
+     * @return The value of the function.
+     * 
+     * @throws NullPointerException
+     *             If {@code x} is null.
+     * @throws IllegalArgumentException
+     *             If the {@linkplain ImmutableVector#getDimension() dimension} of
+     *             {@code x} does not equal the {@linkplain #getDimension()
+     *             dimension} of this functor.
+     */
+    public FunctionNWithGradientValue value(ImmutableVector x);
 }

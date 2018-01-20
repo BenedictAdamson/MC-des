@@ -9,14 +9,14 @@ import static org.junit.Assert.assertEquals;
  */
 public class Rotation3Test {
 
-	public static void assertInvariants(Rotation3 rotation) {
-		ImmutableMatrixTest.assertInvariants(rotation);// inherited
+    public static void assertInvariants(Rotation3 rotation) {
+	ImmutableMatrixTest.assertInvariants(rotation);// inherited
 
-		assertEquals("rows", 3, rotation.getRows());
-		assertEquals("columns", 3, rotation.getColumns());
-	}
+	assertEquals("rows", 3, rotation.getRows());
+	assertEquals("columns", 3, rotation.getColumns());
+    }
 
-	public static void assertInvariants(Rotation3 rotation1, Rotation3 rotation2) {
-		ImmutableMatrixTest.assertInvariants(rotation1, rotation2);// inherited
-	}
+    public static void assertInvariants(Rotation3 rotation1, Rotation3 rotation2) {
+	ImmutableMatrixTest.assertInvariants(rotation1, rotation2);// inherited
+    }
 }

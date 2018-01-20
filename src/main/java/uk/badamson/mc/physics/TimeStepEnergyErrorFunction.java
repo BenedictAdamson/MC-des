@@ -55,170 +55,170 @@ import uk.badamson.mc.math.MinN;
 @Immutable
 public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient {
 
-	private final ImmutableVector x0;
-	private final double dt;
-	private final List<TimeStepEnergyErrorFunctionTerm> terms;
+    private final ImmutableVector x0;
+    private final double dt;
+    private final List<TimeStepEnergyErrorFunctionTerm> terms;
 
-	/**
-	 * <p>
-	 * Construct a functor that calculates the physical modelling error of a
-	 * system at a future point in time.
-	 * </p>
-	 *
-	 * <section>
-	 * <h1>Post Conditions</h1>
-	 * <ul>
-	 * <li>The constructed object has attribute and aggregate values equal to
-	 * the given values.</li>
-	 * </ul>
-	 * </section>
-	 *
-	 * @param x0
-	 *            The state vector of the physical system at the current point
-	 *            in time.
-	 * @param dt
-	 *            The size of the time-step; the difference between the future
-	 *            point in time and the current point in time.
-	 * @param terms
-	 *            The terms that contribute to the
-	 *            {@linkplain #value(ImmutableVector) value} of this function.
-	 * 
-	 * @throws NullPointerException
-	 *             <ul>
-	 *             <li>If {@code x0} is null.</li>
-	 *             <li>If {@code terms} is null.</li>
-	 *             <li>If {@code terms} contains any null references.</li>
-	 *             </ul>
-	 * @throws IllegalArgumentException
-	 *             <ul>
-	 *             <li>If {@code dt} is not positive and
-	 *             {@linkplain Double#isInfinite() finite}.</li>
-	 *             <li>If and of the {@code terms} is not
-	 *             {@linkplain TimeStepEnergyErrorFunctionTerm#isValidForDimension(int)
-	 *             valid} for the {@linkplain ImmutableVector#getDimension()
-	 *             dimension} of {@code x0}.</li>
-	 *             </ul>
-	 */
-	public TimeStepEnergyErrorFunction(ImmutableVector x0, double dt, List<TimeStepEnergyErrorFunctionTerm> terms) {
-		Objects.requireNonNull(x0, "x0");
-		Objects.requireNonNull(terms, "terms");
-		if (dt <= 0.0 || !Double.isFinite(dt)) {
-			throw new IllegalArgumentException("dt " + dt);
-		}
-
-		this.x0 = x0;
-		this.dt = dt;
-		this.terms = Collections.unmodifiableList(new ArrayList<>(terms));
-
-		/* Check precondition after construction to avoid race hazards. */
-		final int dimension = x0.getDimension();
-		for (TimeStepEnergyErrorFunctionTerm term : this.terms) {
-			Objects.requireNonNull(term, "term");
-			if (!term.isValidForDimension(dimension)) {
-				throw new IllegalArgumentException("term <" + term + "> not valid for " + dimension + " dimensions");
-			}
-		}
+    /**
+     * <p>
+     * Construct a functor that calculates the physical modelling error of a system
+     * at a future point in time.
+     * </p>
+     *
+     * <section>
+     * <h1>Post Conditions</h1>
+     * <ul>
+     * <li>The constructed object has attribute and aggregate values equal to the
+     * given values.</li>
+     * </ul>
+     * </section>
+     *
+     * @param x0
+     *            The state vector of the physical system at the current point in
+     *            time.
+     * @param dt
+     *            The size of the time-step; the difference between the future point
+     *            in time and the current point in time.
+     * @param terms
+     *            The terms that contribute to the
+     *            {@linkplain #value(ImmutableVector) value} of this function.
+     * 
+     * @throws NullPointerException
+     *             <ul>
+     *             <li>If {@code x0} is null.</li>
+     *             <li>If {@code terms} is null.</li>
+     *             <li>If {@code terms} contains any null references.</li>
+     *             </ul>
+     * @throws IllegalArgumentException
+     *             <ul>
+     *             <li>If {@code dt} is not positive and
+     *             {@linkplain Double#isInfinite() finite}.</li>
+     *             <li>If and of the {@code terms} is not
+     *             {@linkplain TimeStepEnergyErrorFunctionTerm#isValidForDimension(int)
+     *             valid} for the {@linkplain ImmutableVector#getDimension()
+     *             dimension} of {@code x0}.</li>
+     *             </ul>
+     */
+    public TimeStepEnergyErrorFunction(ImmutableVector x0, double dt, List<TimeStepEnergyErrorFunctionTerm> terms) {
+	Objects.requireNonNull(x0, "x0");
+	Objects.requireNonNull(terms, "terms");
+	if (dt <= 0.0 || !Double.isFinite(dt)) {
+	    throw new IllegalArgumentException("dt " + dt);
 	}
 
-	/**
-	 * <p>
-	 * The number of independent variables of this function; the number of
-	 * variables of the physical model.
-	 * </p>
-	 * <ul>
-	 * <li>The dimension equals the {@linkplain ImmutableVector#getDimension()
-	 * dimension} of the {@linkplain #getX0() state vector of the physical
-	 * system at the current point in time}.</li>
-	 * </ul>
-	 * 
-	 * @return the number of dimensions; positive.
-	 */
-	@Override
-	public final int getDimension() {
-		return x0.getDimension();
-	}
+	this.x0 = x0;
+	this.dt = dt;
+	this.terms = Collections.unmodifiableList(new ArrayList<>(terms));
 
-	/**
-	 * <p>
-	 * The size of the time-step; the difference between the future point in
-	 * time and the current point in time.
-	 * </p>
-	 * <ul>
-	 * <li>The time-step is positive and {@linkplain Double#isInfinite()
-	 * finite}.</li>
-	 * </ul>
-	 *
-	 * @return the dt
-	 */
-	public final double getDt() {
-		return dt;
+	/* Check precondition after construction to avoid race hazards. */
+	final int dimension = x0.getDimension();
+	for (TimeStepEnergyErrorFunctionTerm term : this.terms) {
+	    Objects.requireNonNull(term, "term");
+	    if (!term.isValidForDimension(dimension)) {
+		throw new IllegalArgumentException("term <" + term + "> not valid for " + dimension + " dimensions");
+	    }
 	}
+    }
 
-	/**
-	 * <p>
-	 * The terms that contribute to the {@linkplain #value(ImmutableVector)
-	 * value} of this function.
-	 * </p>
-	 * <ul>
-	 * <li>Always have a (non null) collection of terms.</li>
-	 * <li>The collection of terms does not
-	 * {@linkplain Collection#contains(Object) contain} any null elements.</li>
-	 * <li>The collection of terms may include duplicates.</li>
-	 * <li>The collection of terms may be
-	 * {@linkplain Collections#unmodifiableCollection(Collection)
-	 * unmodifiable}.</li>
-	 * </ul>
-	 *
-	 * @return the terms
-	 */
-	public final List<TimeStepEnergyErrorFunctionTerm> getTerms() {
-		return terms;
-	}
+    /**
+     * <p>
+     * The number of independent variables of this function; the number of variables
+     * of the physical model.
+     * </p>
+     * <ul>
+     * <li>The dimension equals the {@linkplain ImmutableVector#getDimension()
+     * dimension} of the {@linkplain #getX0() state vector of the physical system at
+     * the current point in time}.</li>
+     * </ul>
+     * 
+     * @return the number of dimensions; positive.
+     */
+    @Override
+    public final int getDimension() {
+	return x0.getDimension();
+    }
 
-	/**
-	 * <p>
-	 * The state vector of the physical system at the current point in time.
-	 * </p>
-	 * <ul>
-	 * <li>Always have a (non null) state vector of the physical system at the
-	 * current point in time.</li>
-	 * </ul>
-	 *
-	 * @return the state vector; not null.
-	 */
-	public final ImmutableVector getX0() {
-		return x0;
-	}
+    /**
+     * <p>
+     * The size of the time-step; the difference between the future point in time
+     * and the current point in time.
+     * </p>
+     * <ul>
+     * <li>The time-step is positive and {@linkplain Double#isInfinite()
+     * finite}.</li>
+     * </ul>
+     *
+     * @return the dt
+     */
+    public final double getDt() {
+	return dt;
+    }
 
-	/**
-	 * <p>
-	 * Calculate the physical modelling error of the system at the
-	 * {@linkplain #getDt() future point in time}.
-	 * </p>
-	 * <ul>
-	 * <li>Always returns a (non null) value.</li>
-	 * <li>The {@linkplain Function1WithGradientValue#getX() domain value} of
-	 * the returned object is the given domain value.</li>
-	 * </ul>
-	 * 
-	 * @param state
-	 *            The state of the physical system at the future point in time
-	 * @return The error.
-	 * @throws NullPointerException
-	 *             If {@code state} is null.
-	 * @throws IllegalArgumentException
-	 *             If the {@linkplain ImmutableVector#getDimension() dimension}
-	 *             of {@code state} does not equal the
-	 *             {@linkplain #getDimension() dimension} of this functor.
-	 */
-	@Override
-	public final FunctionNWithGradientValue value(ImmutableVector state) {
-		double e = 0.0;
-		double[] dedx = new double[getDimension()];
-		for (TimeStepEnergyErrorFunctionTerm term : terms) {
-			e += term.evaluate(dedx, x0, state, dt);
-		}
-		return new FunctionNWithGradientValue(state, e, ImmutableVector.create(dedx));
+    /**
+     * <p>
+     * The terms that contribute to the {@linkplain #value(ImmutableVector) value}
+     * of this function.
+     * </p>
+     * <ul>
+     * <li>Always have a (non null) collection of terms.</li>
+     * <li>The collection of terms does not {@linkplain Collection#contains(Object)
+     * contain} any null elements.</li>
+     * <li>The collection of terms may include duplicates.</li>
+     * <li>The collection of terms may be
+     * {@linkplain Collections#unmodifiableCollection(Collection)
+     * unmodifiable}.</li>
+     * </ul>
+     *
+     * @return the terms
+     */
+    public final List<TimeStepEnergyErrorFunctionTerm> getTerms() {
+	return terms;
+    }
+
+    /**
+     * <p>
+     * The state vector of the physical system at the current point in time.
+     * </p>
+     * <ul>
+     * <li>Always have a (non null) state vector of the physical system at the
+     * current point in time.</li>
+     * </ul>
+     *
+     * @return the state vector; not null.
+     */
+    public final ImmutableVector getX0() {
+	return x0;
+    }
+
+    /**
+     * <p>
+     * Calculate the physical modelling error of the system at the
+     * {@linkplain #getDt() future point in time}.
+     * </p>
+     * <ul>
+     * <li>Always returns a (non null) value.</li>
+     * <li>The {@linkplain Function1WithGradientValue#getX() domain value} of the
+     * returned object is the given domain value.</li>
+     * </ul>
+     * 
+     * @param state
+     *            The state of the physical system at the future point in time
+     * @return The error.
+     * @throws NullPointerException
+     *             If {@code state} is null.
+     * @throws IllegalArgumentException
+     *             If the {@linkplain ImmutableVector#getDimension() dimension} of
+     *             {@code state} does not equal the {@linkplain #getDimension()
+     *             dimension} of this functor.
+     */
+    @Override
+    public final FunctionNWithGradientValue value(ImmutableVector state) {
+	double e = 0.0;
+	double[] dedx = new double[getDimension()];
+	for (TimeStepEnergyErrorFunctionTerm term : terms) {
+	    e += term.evaluate(dedx, x0, state, dt);
 	}
+	return new FunctionNWithGradientValue(state, e, ImmutableVector.create(dedx));
+    }
 
 }

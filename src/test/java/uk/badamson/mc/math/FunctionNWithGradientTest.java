@@ -11,24 +11,24 @@ import static org.junit.Assert.assertTrue;
  */
 public class FunctionNWithGradientTest {
 
-	public static void assertInvariants(FunctionNWithGradient f) {
-		// Do nothing
-	}
+    public static void assertInvariants(FunctionNWithGradient f) {
+	// Do nothing
+    }
 
-	public static void assertValueConsistentWithGradientAlongLine(final FunctionNWithGradient f, final double w1,
-			final double w2, final int n, final ImmutableVector x0, final ImmutableVector dx) {
-		final Function1WithGradient fLine = MinN.createLineFunction(f, x0, dx);
-		Function1WithGradientTest.assertValueConsistentWithGradient(fLine, w1, w2, n);
-	}
+    public static void assertValueConsistentWithGradientAlongLine(final FunctionNWithGradient f, final double w1,
+	    final double w2, final int n, final ImmutableVector x0, final ImmutableVector dx) {
+	final Function1WithGradient fLine = MinN.createLineFunction(f, x0, dx);
+	Function1WithGradientTest.assertValueConsistentWithGradient(fLine, w1, w2, n);
+    }
 
-	public static FunctionNWithGradientValue value(FunctionNWithGradient f, ImmutableVector x) {
-		final FunctionNWithGradientValue v = f.value(x);
+    public static FunctionNWithGradientValue value(FunctionNWithGradient f, ImmutableVector x) {
+	final FunctionNWithGradientValue v = f.value(x);
 
-		assertNotNull("Not null, result", v);// guard
-		FunctionNWithGradientValueTest.assertInvariants(v);
-		assertTrue("x <expected " + x + ", actual " + v.getX() + ">",
-				x.minus(v.getX()).magnitude2() <= Double.MIN_NORMAL);
+	assertNotNull("Not null, result", v);// guard
+	FunctionNWithGradientValueTest.assertInvariants(v);
+	assertTrue("x <expected " + x + ", actual " + v.getX() + ">",
+		x.minus(v.getX()).magnitude2() <= Double.MIN_NORMAL);
 
-		return v;
-	}
+	return v;
+    }
 }

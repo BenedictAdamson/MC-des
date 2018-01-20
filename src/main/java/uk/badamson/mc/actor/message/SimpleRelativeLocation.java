@@ -16,33 +16,30 @@ import java.util.Objects;
  */
 public enum SimpleRelativeLocation implements Noun {
 
-    FRONT_NEAR(Direction.FRONT, Range.NEAR), FRONT_MEDIUM(Direction.FRONT, Range.MEDIUM), FRONT_FAR(Direction.FRONT,
-	    Range.FAR), FRONT_RIGHT_NEAR(Direction.FRONT_RIGHT, Range.NEAR), FRONT_RIGHT_MEDIUM(Direction.FRONT_RIGHT,
-		    Range.MEDIUM), FRONT_RIGHT_FAR(Direction.FRONT_RIGHT, Range.FAR), RIGHT_NEAR(Direction.RIGHT,
-			    Range.NEAR), RIGHT_MEDIUM(Direction.RIGHT, Range.MEDIUM), RIGHT_FAR(Direction.RIGHT,
-				    Range.FAR), RIGHT_BACK_NEAR(Direction.RIGHT_BACK, Range.NEAR), RIGHT_BACK_MEDIUM(
-					    Direction.RIGHT_BACK,
-					    Range.MEDIUM), RIGHT_BACK_FAR(Direction.RIGHT_BACK, Range.FAR), BACK_NEAR(
-						    Direction.BACK,
-						    Range.NEAR), BACK_MEDIUM(Direction.BACK, Range.MEDIUM), BACK_FAR(
-							    Direction.BACK,
-							    Range.FAR), BACK_LEFT_NEAR(Direction.BACK_LEFT,
-								    Range.NEAR), BACK_LEFT_MEDIUM(Direction.BACK_LEFT,
-									    Range.MEDIUM), BACK_LEFT_FAR(
-										    Direction.BACK_LEFT,
-										    Range.FAR), LEFT_NEAR(
-											    Direction.LEFT,
-											    Range.NEAR), LEFT_MEDIUM(
-												    Direction.LEFT,
-												    Range.MEDIUM), LEFT_FAR(
-													    Direction.LEFT,
-													    Range.FAR), LEFT_FRONT_NEAR(
-														    Direction.LEFT_FRONT,
-														    Range.NEAR), LEFT_FRONT_MEDIUM(
-															    Direction.LEFT_FRONT,
-															    Range.MEDIUM), LEFT_FRONT_FAR(
-																    Direction.LEFT_FRONT,
-																    Range.FAR);
+    FRONT_NEAR(Direction.FRONT, Range.NEAR),
+    FRONT_MEDIUM(Direction.FRONT, Range.MEDIUM),
+    FRONT_FAR(Direction.FRONT, Range.FAR),
+    FRONT_RIGHT_NEAR(Direction.FRONT_RIGHT, Range.NEAR),
+    FRONT_RIGHT_MEDIUM(Direction.FRONT_RIGHT, Range.MEDIUM),
+    FRONT_RIGHT_FAR(Direction.FRONT_RIGHT, Range.FAR),
+    RIGHT_NEAR(Direction.RIGHT, Range.NEAR),
+    RIGHT_MEDIUM(Direction.RIGHT, Range.MEDIUM),
+    RIGHT_FAR(Direction.RIGHT, Range.FAR),
+    RIGHT_BACK_NEAR(Direction.RIGHT_BACK, Range.NEAR),
+    RIGHT_BACK_MEDIUM(Direction.RIGHT_BACK, Range.MEDIUM),
+    RIGHT_BACK_FAR(Direction.RIGHT_BACK, Range.FAR),
+    BACK_NEAR(Direction.BACK, Range.NEAR),
+    BACK_MEDIUM(Direction.BACK, Range.MEDIUM),
+    BACK_FAR(Direction.BACK, Range.FAR),
+    BACK_LEFT_NEAR(Direction.BACK_LEFT, Range.NEAR),
+    BACK_LEFT_MEDIUM(Direction.BACK_LEFT, Range.MEDIUM),
+    BACK_LEFT_FAR(Direction.BACK_LEFT, Range.FAR),
+    LEFT_NEAR(Direction.LEFT, Range.NEAR),
+    LEFT_MEDIUM(Direction.LEFT, Range.MEDIUM),
+    LEFT_FAR(Direction.LEFT, Range.FAR),
+    LEFT_FRONT_NEAR(Direction.LEFT_FRONT, Range.NEAR),
+    LEFT_FRONT_MEDIUM(Direction.LEFT_FRONT, Range.MEDIUM),
+    LEFT_FRONT_FAR(Direction.LEFT_FRONT, Range.FAR);
 
     /**
      * <p>
