@@ -137,7 +137,7 @@ public class SimpleDirectCommandTest {
     public void static_RUSH() {
 	final SimpleDirectCommand command = SimpleDirectCommand.RUSH;
 	assertInvariants(command);
-	assertSame("subject", Pronoun.YOU, command.getSubject());
+	assertSame("subject", Pronoun.WE, command.getSubject());
 	assertSame("verb", SimpleVerb.RUSH, command.getVerb());
 	assertEquals("object", Collections.singleton(Pronoun.IT), command.getObjects());
     }

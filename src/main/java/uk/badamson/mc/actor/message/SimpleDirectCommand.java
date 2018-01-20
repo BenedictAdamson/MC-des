@@ -95,15 +95,15 @@ public final class SimpleDirectCommand implements Command {
      * increase speed, double time, or rush.
      * </p>
      * <ul>
-     * <li>The {@linkplain #getSubject() subject} is {@linkplain Pronoun#YOU
-     * you}.</li>
+     * <li>The {@linkplain #getSubject() subject} is {@linkplain Pronoun#WE
+     * we}.</li>
      * <li>The {@linkplain #getVerb() verb} is {@linkplain SimpleVerb#RUSH
      * rush}.</li>
      * <li>There is only one {@linkplain #getObjects() object}, which is
      * {@linkplain Pronoun#IT it}.</li>
      * </ul>
      */
-    public static final SimpleDirectCommand RUSH = new SimpleDirectCommand(Pronoun.YOU, SimpleVerb.RUSH, Pronoun.IT);
+    public static final SimpleDirectCommand RUSH = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.RUSH, Pronoun.IT);
 
     /**
      * <p>
