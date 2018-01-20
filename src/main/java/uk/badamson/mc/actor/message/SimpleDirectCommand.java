@@ -107,6 +107,23 @@ public final class SimpleDirectCommand implements Command {
 
     /**
      * <p>
+     * A command by a leader to indicate an individual, team or squad should move
+     * fast.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getSubject() subject} is {@linkplain Pronoun#WE
+     * we}.</li>
+     * <li>The {@linkplain #getVerb() verb} is {@linkplain SimpleVerb#QUICK_TIME
+     * quick time}.</li>
+     * <li>There is only one {@linkplain #getObjects() object}, which is
+     * {@linkplain Pronoun#IT it}.</li>
+     * </ul>
+     */
+    public static final SimpleDirectCommand QUICK_TIME = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.QUICK_TIME,
+	    Pronoun.IT);
+
+    /**
+     * <p>
      * A command by a leader to indicate an individual, team or squad should fix
      * their bayonet(s0 to their gun(s).
      * </p>

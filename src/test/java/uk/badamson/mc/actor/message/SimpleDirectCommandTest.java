@@ -134,6 +134,15 @@ public class SimpleDirectCommandTest {
     }
 
     @Test
+    public void static_QUICK_TIME() {
+	final SimpleDirectCommand command = SimpleDirectCommand.QUICK_TIME;
+	assertInvariants(command);
+	assertSame("subject", Pronoun.WE, command.getSubject());
+	assertSame("verb", SimpleVerb.QUICK_TIME, command.getVerb());
+	assertEquals("object", Collections.singleton(Pronoun.IT), command.getObjects());
+    }
+
+    @Test
     public void static_RUSH() {
 	final SimpleDirectCommand command = SimpleDirectCommand.RUSH;
 	assertInvariants(command);
