@@ -53,6 +53,15 @@ public enum SimpleVerb implements Verb {
     /**
      * <p>
      * A verb for declaring that the {@linkplain Sentence#getSubject() subject} of
+     * the {@linkplain Sentence sentence} is not moving, or to {@linkplain Command
+     * command} that the subject halts.
+     * </p>
+     */
+    HALT,
+
+    /**
+     * <p>
+     * A verb for declaring that the {@linkplain Sentence#getSubject() subject} of
      * the {@linkplain Sentence sentence} is moving moving quickly, or to
      * {@linkplain Command command} that the subject to move quickly.
      * </p>

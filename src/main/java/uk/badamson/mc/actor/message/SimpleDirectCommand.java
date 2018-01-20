@@ -79,8 +79,8 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
 
     /**
      * <p>
-     * A command by a leader to indicate an individual, team or squad should
-     * increase speed, double time, or rush.
+     * A command by a leader to indicate an element, team or squad should increase
+     * speed, double time, or rush.
      * </p>
      * <ul>
      * <li>The {@linkplain #getSubject() subject} is {@linkplain Pronoun#WE
@@ -97,7 +97,24 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
 
     /**
      * <p>
-     * A command by a leader to indicate an individual, team or squad should take
+     * A command by a leader to indicate an element, team or squad should halt.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getSubject() subject} is {@linkplain Pronoun#WE
+     * we}.</li>
+     * <li>The {@linkplain #getVerb() verb} is {@linkplain SimpleVerb#HALT
+     * halt}.</li>
+     * <li>There is only one {@linkplain #getObjects() object}, which is
+     * {@linkplain Pronoun#IT it}.</li>
+     * <li>This is one of the {@linkplain #values() array of finite values} of the
+     * {@link SimpleDirectCommand} type.
+     * </ul>
+     */
+    public static final SimpleDirectCommand HALT = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.HALT, Pronoun.IT);// FIXME
+
+    /**
+     * <p>
+     * A command by a leader to indicate an element, team or squad should take
      * cover.
      * </p>
      * <ul>
@@ -116,8 +133,7 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
 
     /**
      * <p>
-     * A command by a leader to indicate an individual, team or squad should move
-     * fast.
+     * A command by a leader to indicate an element, team or squad should move fast.
      * </p>
      * <ul>
      * <li>The {@linkplain #getSubject() subject} is {@linkplain Pronoun#WE
@@ -135,8 +151,8 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
 
     /**
      * <p>
-     * A command by a leader to indicate an individual, team or squad should fix
-     * their bayonet(s0 to their gun(s).
+     * A command by a leader to indicate an element, team or squad should fix their
+     * bayonet(s0 to their gun(s).
      * </p>
      * <ul>
      * <li>The {@linkplain #getSubject() subject} is {@linkplain Pronoun#WE
@@ -154,8 +170,8 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
 
     /**
      * <p>
-     * A command by a leader to indicate the team, squad or platoon will stop to
-     * check the map.
+     * A command by a leader to indicate the element, team, squad or platoon will
+     * stop to check the map.
      * </p>
      * <ul>
      * <li>The {@linkplain #getSubject() subject} is {@linkplain Pronoun#WE
@@ -179,6 +195,7 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
 	list.addAll(PERFORM_BATTLE_DRILL_INSTANCES.values());
 	list.add(CHECK_MAP);
 	list.add(FIX_BAYONET);
+	list.add(HALT);
 	list.add(JOIN_ME);
 	list.add(QUICK_TIME);
 	list.add(RUSH);
