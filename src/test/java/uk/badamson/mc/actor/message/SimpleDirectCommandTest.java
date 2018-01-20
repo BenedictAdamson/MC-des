@@ -107,6 +107,15 @@ public class SimpleDirectCommandTest {
     }
 
     @Test
+    public void static_CHECK_MAP() {
+	final SimpleDirectCommand command = SimpleDirectCommand.CHECK_MAP;
+	assertInvariants(command);
+	assertSame("subject", Pronoun.WE, command.getSubject());
+	assertSame("verb", SimpleVerb.CHECK_MAP, command.getVerb());
+	assertEquals("object", Collections.singleton(Pronoun.IT), command.getObjects());
+    }
+
+    @Test
     public void static_DISPERSE() {
 	final SimpleDirectCommand command = SimpleDirectCommand.DISPERSE;
 	assertInvariants(command);

@@ -104,7 +104,16 @@ public enum SimpleVerb implements Verb {
      * gun.
      * </p>
      */
-    FIX_BAYONET;
+    FIX_BAYONET,
+
+    /**
+     * <p>
+     * A verb for declaring that the {@linkplain Sentence#getSubject() subject} of
+     * the {@linkplain Sentence sentence} is checking their map, or to
+     * {@linkplain Command command} that the subject checks their map.
+     * </p>
+     */
+    CHECK_MAP;
 
     public static final double INFORMATION_CONTENT = MessageElement.getInformationContent(values().length);
 

@@ -158,6 +158,23 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
 
     /**
      * <p>
+     * A command by a leader to indicate the team, squad or platoon will stop to
+     * check the map.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getSubject() subject} is {@linkplain Pronoun#WE
+     * we}.</li>
+     * <li>The {@linkplain #getVerb() verb} is {@linkplain SimpleVerb#CHECK_MAP
+     * check map}.</li>
+     * <li>There is only one {@linkplain #getObjects() object}, which is
+     * {@linkplain Pronoun#IT it} (meaning, the subjects own bayonet).</li>
+     * </ul>
+     */
+    public static final SimpleDirectCommand CHECK_MAP = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.CHECK_MAP,
+	    Pronoun.IT);
+
+    /**
+     * <p>
      * The extra information content of a {@link SimpleDirectCommand}, over the
      * information content of its constituent {@linkplain MessageElement elements}.
      * </p>
