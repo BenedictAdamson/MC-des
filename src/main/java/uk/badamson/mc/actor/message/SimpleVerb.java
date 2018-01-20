@@ -70,8 +70,20 @@ public enum SimpleVerb implements Verb {
      * </p>
      * 
      * @see #HALT
+     * @see #HALT_AND_GO_PRONE
      */
     HALT_AND_TAKE_A_KNEE,
+
+    /**
+     * <p>
+     * A verb for declaring that the {@linkplain Sentence#getSubject() subject} of
+     * the {@linkplain Sentence sentence} is not moving and is prone, or to
+     * {@linkplain Command command} that the subject halts and goes prone.
+     * </p>
+     * 
+     * @see #HALT_AND_TAKE_A_KNEE
+     */
+    HALT_AND_GO_PRONE,
 
     /**
      * <p>
