@@ -181,6 +181,15 @@ public class SimpleDirectCommandTest {
     }
 
     @Test
+    public void static_HALT_AND_FREEZE() {
+	final SimpleDirectCommand command = SimpleDirectCommand.HALT_AND_FREEZE;
+	assertInvariants(command);
+	assertSame("subject", Pronoun.WE, command.getSubject());
+	assertSame("verb", SimpleVerb.HALT_AND_FREEZE, command.getVerb());
+	assertEquals("object", Collections.singleton(Pronoun.IT), command.getObjects());
+    }
+
+    @Test
     public void static_HALT_AND_GO_PRONE() {
 	final SimpleDirectCommand command = SimpleDirectCommand.HALT_AND_GO_PRONE;
 	assertInvariants(command);

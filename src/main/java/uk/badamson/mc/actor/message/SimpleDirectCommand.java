@@ -119,8 +119,31 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      * <li>This is one of the {@linkplain #values() array of finite values} of the
      * {@link SimpleDirectCommand} type.
      * </ul>
+     * 
+     * @see #HALT_AND_TAKE_A_KNEE
      */
     public static final SimpleDirectCommand HALT = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.HALT, Pronoun.IT);
+
+    /**
+     * <p>
+     * A command by a leader to indicate an element, team or squad should ceases all
+     * movement.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getSubject() subject} is {@linkplain Pronoun#WE
+     * we}.</li>
+     * <li>The {@linkplain #getVerb() verb} is
+     * {@linkplain SimpleVerb#HALT_AND_FREEZE halt and freeze}.</li>
+     * <li>There is only one {@linkplain #getObjects() object}, which is
+     * {@linkplain Pronoun#IT it}.</li>
+     * <li>This is one of the {@linkplain #values() array of finite values} of the
+     * {@link SimpleDirectCommand} type.
+     * </ul>
+     * 
+     * @see #HALT_AND_TAKE_A_KNEE
+     */
+    public static final SimpleDirectCommand HALT_AND_FREEZE = new SimpleDirectCommand(Pronoun.WE,
+	    SimpleVerb.HALT_AND_FREEZE, Pronoun.IT);
 
     /**
      * <p>
@@ -285,8 +308,9 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
 	list.add(CHECK_PACES);
 	list.add(FIX_BAYONET);
 	list.add(HALT);
-	list.add(HALT_AND_TAKE_A_KNEE);
+	list.add(HALT_AND_FREEZE);
 	list.add(HALT_AND_GO_PRONE);
+	list.add(HALT_AND_TAKE_A_KNEE);
 	list.add(JOIN_ME);
 	list.add(QUICK_TIME);
 	list.add(RUSH);

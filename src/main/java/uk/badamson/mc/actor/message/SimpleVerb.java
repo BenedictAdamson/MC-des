@@ -58,8 +58,20 @@ public enum SimpleVerb implements Verb {
      * </p>
      * 
      * @see #HALT_AND_TAKE_A_KNEE
+     * @see #HALT_AND_FREEZE
      */
     HALT,
+
+    /**
+     * <p>
+     * A verb for declaring that the {@linkplain Sentence#getSubject() subject} of
+     * the {@linkplain Sentence sentence} is not moving at all, or to {@linkplain Command
+     * command} that the subject ceases all movement.
+     * </p>
+     * 
+     * @see #HALT
+     */
+    HALT_AND_FREEZE,
 
     /**
      * <p>
