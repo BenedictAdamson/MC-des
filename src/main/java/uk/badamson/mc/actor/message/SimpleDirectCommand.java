@@ -107,6 +107,27 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
 
     /**
      * <p>
+     * A command by a leader to indicate an element, team or squad should
+     * temporarily stop and scan around.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getSubject() subject} is {@linkplain Pronoun#WE
+     * we}.</li>
+     * <li>The {@linkplain #getVerb() verb} is {@linkplain SimpleVerb#STOP_AND_SCAN
+     * stop and scan}.</li>
+     * <li>There is only one {@linkplain #getObjects() object}, which is
+     * {@linkplain Pronoun#IT it}.</li>
+     * <li>This is one of the {@linkplain #values() array of finite values} of the
+     * {@link SimpleDirectCommand} type.
+     * </ul>
+     * 
+     * @see #HALT
+     */
+    public static final SimpleDirectCommand STOP_AND_SCAN = new SimpleDirectCommand(Pronoun.WE,
+	    SimpleVerb.STOP_AND_SCAN, Pronoun.IT);
+
+    /**
+     * <p>
      * A command by a leader to indicate an element, team or squad should halt.
      * </p>
      * <ul>
@@ -121,6 +142,7 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      * </ul>
      * 
      * @see #HALT_AND_TAKE_A_KNEE
+     * @see STOP_AND_SCAN
      */
     public static final SimpleDirectCommand HALT = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.HALT, Pronoun.IT);
 
@@ -307,6 +329,7 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
 	list.add(CHECK_NUMER_PRESENT);
 	list.add(CHECK_PACES);
 	list.add(FIX_BAYONET);
+	list.add(STOP_AND_SCAN);
 	list.add(HALT);
 	list.add(HALT_AND_FREEZE);
 	list.add(HALT_AND_GO_PRONE);

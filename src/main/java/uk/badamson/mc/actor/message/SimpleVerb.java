@@ -53,20 +53,37 @@ public enum SimpleVerb implements Verb {
     /**
      * <p>
      * A verb for declaring that the {@linkplain Sentence#getSubject() subject} of
+     * the {@linkplain Sentence sentence} is scanning around (and has stopped,
+     * presumably temporarily), or to {@linkplain Command command} that the subject
+     * temporarily stops and scans around.
+     * </p>
+     * <p>
+     * In US Army contexts, this specifically means &ldquo;stop, look, listen,
+     * smell&rdquo; (SLLS).
+     * </p>
+     * 
+     * @see #HALT
+     */
+    STOP_AND_SCAN,
+
+    /**
+     * <p>
+     * A verb for declaring that the {@linkplain Sentence#getSubject() subject} of
      * the {@linkplain Sentence sentence} is not moving, or to {@linkplain Command
      * command} that the subject halts.
      * </p>
      * 
      * @see #HALT_AND_TAKE_A_KNEE
      * @see #HALT_AND_FREEZE
+     * @see STOP_AND_SCAN
      */
     HALT,
 
     /**
      * <p>
      * A verb for declaring that the {@linkplain Sentence#getSubject() subject} of
-     * the {@linkplain Sentence sentence} is not moving at all, or to {@linkplain Command
-     * command} that the subject ceases all movement.
+     * the {@linkplain Sentence sentence} is not moving at all, or to
+     * {@linkplain Command command} that the subject ceases all movement.
      * </p>
      * 
      * @see #HALT

@@ -235,6 +235,15 @@ public class SimpleDirectCommandTest {
     }
 
     @Test
+    public void static_STOP_AND_SCAN() {
+	final SimpleDirectCommand command = SimpleDirectCommand.STOP_AND_SCAN;
+	assertInvariants(command);
+	assertSame("subject", Pronoun.WE, command.getSubject());
+	assertSame("verb", SimpleVerb.STOP_AND_SCAN, command.getVerb());
+	assertEquals("object", Collections.singleton(Pronoun.IT), command.getObjects());
+    }
+
+    @Test
     public void static_TAKE_COVER() {
 	final SimpleDirectCommand command = SimpleDirectCommand.TAKE_COVER;
 	assertInvariants(command);
