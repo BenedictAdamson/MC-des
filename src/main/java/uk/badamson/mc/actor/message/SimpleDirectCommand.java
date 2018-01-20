@@ -22,7 +22,7 @@ import net.jcip.annotations.Immutable;
  * </p>
  */
 @Immutable
-public final class SimpleDirectCommand implements Command {
+public final class SimpleDirectCommand extends AbstractMessage implements Command {
 
     private static final Map<SimpleRelativeLocation, SimpleDirectCommand> ASSEMBLE_INSTANCES;
     static {

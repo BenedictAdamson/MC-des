@@ -20,7 +20,7 @@ import net.jcip.annotations.Immutable;
  * </p>
  */
 @Immutable
-public class SimpleStatement implements Message {
+public class SimpleStatement extends AbstractMessage {
 
     /**
      * <p>

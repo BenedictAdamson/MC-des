@@ -8,7 +8,7 @@ import net.jcip.annotations.Immutable;
  * </p>
  */
 @Immutable
-public final class UnusableIncompleteMessage implements Message {
+public final class UnusableIncompleteMessage extends AbstractMessage {
 
     private final double length;
 
