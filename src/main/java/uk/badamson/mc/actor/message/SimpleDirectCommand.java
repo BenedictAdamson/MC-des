@@ -243,12 +243,8 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      */
     @Override
     public final double getInformationContent() {
-	double information = EXTRA_INFORMATION_CONTENT + getSubject().getInformationContent()
-		+ getVerb().getInformationContent();
-	for (Noun object : getObjects()) {
-	    information += object.getInformationContent();
-	}
-	return information;
+	return EXTRA_INFORMATION_CONTENT + getSubject().getInformationContent() + getVerb().getInformationContent()
+		+ MessageElement.getInformationContent(getObjects());
     }
 
     /**

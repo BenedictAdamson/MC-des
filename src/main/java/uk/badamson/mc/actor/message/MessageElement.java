@@ -1,5 +1,8 @@
 package uk.badamson.mc.actor.message;
 
+import java.util.Collection;
+import java.util.Objects;
+
 import net.jcip.annotations.Immutable;
 
 /**
@@ -10,6 +13,54 @@ import net.jcip.annotations.Immutable;
  */
 @Immutable
 public interface MessageElement {
+
+    /**
+     * <p>
+     * The total {@linkplain #getInformationContent() information content} of a
+     * collection of message elements; their total length in a notional essential
+     * compact form.
+     * </p>
+     * <p>
+     * The method treats a null element as having no (zero) information content
+     * 
+     * @return the information content
+     * @throws NullPointerException
+     *             If {@code elements} is null.
+     */
+    public static double getInformationContent(Collection<? extends MessageElement> elements) {
+	Objects.requireNonNull(elements, "elements");
+	double information = 0.0;
+	for (MessageElement element : elements) {
+	    if (element != null) {
+		information += element.getInformationContent();
+	    }
+	}
+	return information;
+    }
+
+    /**
+     * <p>
+     * The total {@linkplain #getInformationContent() information content} of some
+     * (an array of) message elements; their total length in a notional essential
+     * compact form.
+     * </p>
+     * <p>
+     * The method treats a null element as having no (zero) information content
+     * 
+     * @return the information content
+     * @throws NullPointerException
+     *             If {@code elements} is null.
+     */
+    public static double getInformationContent(MessageElement... elements) {
+	Objects.requireNonNull(elements, "elements");
+	double information = 0.0;
+	for (MessageElement element : elements) {
+	    if (element != null) {
+		information += element.getInformationContent();
+	    }
+	}
+	return information;
+    }
 
     /**
      * <p>
