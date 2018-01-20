@@ -1,6 +1,9 @@
 package uk.badamson.mc.actor.message;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -113,6 +116,15 @@ public class SimpleStatement extends AbstractMessage {
     public static final SimpleStatement ACKNOWLEDGE_MESSAGE = new SimpleStatement(Pronoun.ME,
 	    SimplePredicate.ACKNOWLEDGE_MESSAGE);
 
+    private static final SimpleStatement[] ALL;
+    static {
+	final List<SimpleStatement> list = new ArrayList<>();
+	list.addAll(ENEMY_IN_SIGHT_INSTANCES.values());
+	list.add(ACKNOWLEDGE_MESSAGE);
+	list.add(DANGER_AREA);
+	ALL = list.toArray(new SimpleStatement[0]);
+    }
+
     /**
      * <p>
      * A statement to indicate that an enemy (or enemies) have been seen in a
@@ -132,6 +144,23 @@ public class SimpleStatement extends AbstractMessage {
     public static final SimpleStatement getEnemyInSight(SimpleRelativeLocation location) {
 	Objects.requireNonNull(location, "location");
 	return ENEMY_IN_SIGHT_INSTANCES.get(location);
+    }
+
+    /**
+     * <p>
+     * An array holding each of the permitted values of the {@link SimpleStatement}
+     * type.
+     * </p>
+     * <ul>
+     * <li>Always returns a (non null) array of values.</li>
+     * <li>The array of values has no null elements.</li>
+     * <li>The array of values has no duplicate elements.</li>
+     * </ul>
+     * 
+     * @return the values
+     */
+    public static final SimpleStatement[] values() {
+	return Arrays.copyOf(ALL, ALL.length);
     }
 
     private final Noun subject;
@@ -193,5 +222,4 @@ public class SimpleStatement extends AbstractMessage {
     public final Noun getSubject() {
 	return subject;
     }
-
 }

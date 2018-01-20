@@ -4,7 +4,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
 import java.util.Objects;
 
 import org.junit.Test;
@@ -33,6 +35,9 @@ public class SimpleStatementTest {
 		statement.getInformationContent(), 1.0E-3);
 
 	NounTest.assertInvariants(subject);
+
+	assertTrue("One of the finite array of values of the type",
+		Arrays.asList(SimpleStatement.values()).indexOf(statement) != -1);
     }
 
     public static void assertInvariants(SimpleStatement statement1, SimpleStatement statement2) {
@@ -40,9 +45,9 @@ public class SimpleStatementTest {
 
 	final boolean equals = statement1.equals(statement2);
 	assertFalse("Value semantics (subject)",
-		equals && Objects.equals(statement1.getSubject(), statement2.getSubject()));
+		equals && !Objects.equals(statement1.getSubject(), statement2.getSubject()));
 	assertFalse("Value semantics (predicate)",
-		equals && Objects.equals(statement1.getPredicate(), statement2.getPredicate()));
+		equals && !Objects.equals(statement1.getPredicate(), statement2.getPredicate()));
     }
 
     public static final SimpleStatement getEnemyInSight(SimpleRelativeLocation location) {
@@ -101,5 +106,23 @@ public class SimpleStatementTest {
 	assertInvariants(statement);
 	assertSame("subject", Pronoun.IT, statement.getSubject());
 	assertSame("predicate", SimpleStatement.SimplePredicate.IS_DANGER_AREA, statement.getPredicate());
+    }
+
+    @Test
+    public void values() {
+	final SimpleStatement[] values = SimpleStatement.values();
+
+	assertNotNull("Always returns an array of values.", values);// guard
+	for (int i = 0; i < values.length; ++i) {
+	    final SimpleStatement value = values[i];
+	    assertNotNull("The array of values has no null elements.", value);// guard
+	    assertInvariants(value);
+	    for (int j = i; j < values.length; ++j) {
+		final SimpleStatement value2 = values[j];
+		assertInvariants(value, value2);
+		assertEquals("The array of values has no duplicate elements<" + value + ", " + value2 + ">.", i == j,
+			value.equals(value2));
+	    }
+	}
     }
 }
