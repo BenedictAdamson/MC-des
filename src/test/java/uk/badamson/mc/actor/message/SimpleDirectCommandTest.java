@@ -7,7 +7,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 
 import org.junit.Test;
 
@@ -102,13 +101,13 @@ public class SimpleDirectCommandTest {
     }
 
     @Test
-    public void getPartialMessage_DISPERSE_A() {
-	getPartialMessage(SimpleDirectCommand.DISPERSE, SimpleDirectCommand.DISPERSE.getInformationContent() * 0.5);
+    public void getPartialMessage_A() {
+	getPartialMessage(SimpleDirectCommand.RUSH, SimpleDirectCommand.RUSH.getInformationContent() * 0.5);
     }
 
     @Test
-    public void getPartialMessage_DISPERSE_B() {
-	getPartialMessage(SimpleDirectCommand.DISPERSE, SimpleDirectCommand.DISPERSE.getInformationContent() * 0.25);
+    public void getPartialMessage_B() {
+	getPartialMessage(SimpleDirectCommand.RUSH, SimpleDirectCommand.RUSH.getInformationContent() * 0.25);
     }
 
     @Test
@@ -125,15 +124,6 @@ public class SimpleDirectCommandTest {
 	assertSame("subject", Pronoun.WE, command.getSubject());
 	assertSame("verb", SimpleVerb.CHECK_MAP, command.getVerb());
 	assertEquals("object", Collections.singleton(Pronoun.IT), command.getObjects());
-    }
-
-    @Test
-    public void static_DISPERSE() {
-	final SimpleDirectCommand command = SimpleDirectCommand.DISPERSE;
-	assertInvariants(command);
-	assertSame("subject", Pronoun.WE, command.getSubject());
-	assertSame("verb", SimpleVerb.CHANGE_FORMATION, command.getVerb());
-	assertEquals("object", Collections.singleton(SimpleFormationName.DISPERSED), command.getObjects());
     }
 
     @Test
@@ -186,13 +176,15 @@ public class SimpleDirectCommandTest {
 	final SimpleDirectCommand[] values = SimpleDirectCommand.values();
 
 	assertNotNull("Always returns an array of values.", values);// guard
-	assertEquals("The array of values has no duplicate elements.",
-		new HashSet<SimpleDirectCommand>(Arrays.asList(values)).size(), values.length);
-	for (SimpleDirectCommand value : values) {
+	for (int i = 0; i < values.length; ++i) {
+	    final SimpleDirectCommand value = values[i];
 	    assertNotNull("The array of values has no null elements.", value);// guard
 	    assertInvariants(value);
-	    for (SimpleDirectCommand value2 : values) {
+	    for (int j = i; j < values.length; ++j) {
+		final SimpleDirectCommand value2 = values[j];
 		assertInvariants(value, value2);
+		assertEquals("The array of values has no duplicate elements<" + value + ", " + value2 + ">.", i == j,
+			value.equals(value2));
 	    }
 	}
     }

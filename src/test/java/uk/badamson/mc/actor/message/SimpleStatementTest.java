@@ -1,8 +1,11 @@
 package uk.badamson.mc.actor.message;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
+
+import java.util.Objects;
 
 import org.junit.Test;
 
@@ -30,6 +33,16 @@ public class SimpleStatementTest {
 		statement.getInformationContent(), 1.0E-3);
 
 	NounTest.assertInvariants(subject);
+    }
+
+    public static void assertInvariants(SimpleStatement statement1, SimpleStatement statement2) {
+	MessageTest.assertInvariants(statement1, statement2);// inherited
+
+	final boolean equals = statement1.equals(statement2);
+	assertFalse("Value semantics (subject)",
+		equals && Objects.equals(statement1.getSubject(), statement2.getSubject()));
+	assertFalse("Value semantics (predicate)",
+		equals && Objects.equals(statement1.getPredicate(), statement2.getPredicate()));
     }
 
     public static final SimpleStatement getEnemyInSight(SimpleRelativeLocation location) {

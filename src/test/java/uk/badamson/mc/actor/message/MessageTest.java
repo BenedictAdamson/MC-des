@@ -15,6 +15,10 @@ public class MessageTest {
 	MessageElementTest.assertInvariants(message);// inherited
     }
 
+    public static void assertInvariants(Message message1, Message message2) {
+	MessageElementTest.assertInvariants(message1, message2);// inherited
+    }
+
     public static Message getPartialMessage(Message message, double partLength) {
 	final Message partialMessage = message.getPartialMessage(partLength);
 

@@ -1,8 +1,10 @@
 package uk.badamson.mc.actor.message;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -36,6 +38,17 @@ public class SentenceTest {
 	assertTrue("The information content of a sentence <" + informationContent
 		+ "> exceeds the total information content of the subject, verb and objects elements of the message <"
 		+ totalInformationContentOfElements + ">.", totalInformationContentOfElements < informationContent);
+    }
+
+    public static void assertInvariants(Sentence sentence1, Sentence sentence2) {
+	MessageTest.assertInvariants(sentence1, sentence2);// inherited
+
+	final boolean equals = sentence1.equals(sentence2);
+	assertFalse("Value semantics (subject)",
+		equals && Objects.equals(sentence1.getSubject(), sentence2.getSubject()));
+	assertFalse("Value semantics (verb)", equals && Objects.equals(sentence1.getVerb(), sentence2.getVerb()));
+	assertFalse("Value semantics (objects)",
+		equals && Objects.equals(sentence1.getObjects(), sentence2.getObjects()));
     }
 
     static double totalInformationContent(Set<Noun> nouns) {

@@ -61,25 +61,6 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
 
     /**
      * <p>
-     * A command by a leader to indicate movement of an team or squad into a
-     * dispersed formation.
-     * </p>
-     * <ul>
-     * <li>The {@linkplain #getSubject() subject} is {@linkplain Pronoun#WE
-     * we}.</li>
-     * <li>The {@linkplain #getVerb() verb} is
-     * {@linkplain SimpleVerb#CHANGE_FORMATION change-formation}.</li>
-     * <li>There is only one {@linkplain #getObjects() object}, which is the
-     * {@linkplain SimpleFormationName#DISPERSED disperse formation}.</li>
-     * <li>This is one of the {@linkplain #values() array of finite values} of the
-     * {@link SimpleDirectCommand} type.
-     * </ul>
-     */
-    public static final SimpleDirectCommand DISPERSE = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.CHANGE_FORMATION,
-	    SimpleFormationName.DISPERSED);
-
-    /**
-     * <p>
      * A command by a leader to indicate an individual, team or squad should join,
      * follow, or come forwards to, the leader.
      * </p>
@@ -197,7 +178,6 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
 	list.addAll(CHANGE_FORMATION_INSTANCES.values());
 	list.addAll(PERFORM_BATTLE_DRILL_INSTANCES.values());
 	list.add(CHECK_MAP);
-	list.add(DISPERSE);
 	list.add(FIX_BAYONET);
 	list.add(JOIN_ME);
 	list.add(QUICK_TIME);
@@ -317,6 +297,18 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
 	this.objects = Collections.singleton(object);
     }
 
+    @Override
+    public boolean equals(Object obj) {
+	if (this == obj)
+	    return true;
+	if (obj == null)
+	    return false;
+	if (!(obj instanceof SimpleDirectCommand))
+	    return false;
+	SimpleDirectCommand other = (SimpleDirectCommand) obj;
+	return subject.equals(other.subject) && verb.equals(other.verb) && objects.equals(other.objects);
+    }
+
     /**
      * {@inheritDoc}
      * 
@@ -366,6 +358,21 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
     @Override
     public final SimpleVerb getVerb() {
 	return verb;
+    }
+
+    @Override
+    public int hashCode() {
+	final int prime = 31;
+	int result = 1;
+	result = prime * result + subject.hashCode();
+	result = prime * result + verb.hashCode();
+	result = prime * result + objects.hashCode();
+	return result;
+    }
+
+    @Override
+    public String toString() {
+	return "SimpleDirectCommand [" + subject + " " + verb + " " + objects + "]";
     }
 
 }
