@@ -86,6 +86,15 @@ public class SimpleStatementTest {
     }
 
     @Test
+    public void static_ACKNOWLEDGE_MESSAGE() {
+	final SimpleStatement statement = SimpleStatement.ACKNOWLEDGE_MESSAGE;
+	assertNotNull("Not null", statement);// guard
+	assertInvariants(statement);
+	assertSame("subject", Pronoun.ME, statement.getSubject());
+	assertSame("predicate", SimpleStatement.SimplePredicate.ACKNOWLEDGE_MESSAGE, statement.getPredicate());
+    }
+
+    @Test
     public void static_DANGER_AREA() {
 	final SimpleStatement statement = SimpleStatement.DANGER_AREA;
 	assertNotNull("Not null", statement);// guard

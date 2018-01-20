@@ -31,6 +31,12 @@ public class SimpleStatement extends AbstractMessage {
     public static enum SimplePredicate implements MessageElement {
 	/**
 	 * <p>
+	 * The subject (a person) acknowledges a message that was sent to them.
+	 * </p>
+	 */
+	ACKNOWLEDGE_MESSAGE,
+	/**
+	 * <p>
 	 * The subject (a location) is the location where an enemy is visible.
 	 * </p>
 	 */
@@ -92,6 +98,20 @@ public class SimpleStatement extends AbstractMessage {
      * </ul>
      */
     public static final SimpleStatement DANGER_AREA = new SimpleStatement(Pronoun.IT, SimplePredicate.IS_DANGER_AREA);
+
+    /**
+     * <p>
+     * A statement to indicate that the sender acknowledges a message sent to them.
+     * </p>
+     * <li>The {@linkplain #getSubject() subject} is {@linkplain Pronoun#ME
+     * me}.</li>
+     * <li>The {@linkplain #getPredicate() predicate} is that the sender
+     * {@linkplain SimplePredicate#ACKNOWLEDGE_MESSAGE acknowledges the
+     * message}.</li>
+     * </ul>
+     */
+    public static final SimpleStatement ACKNOWLEDGE_MESSAGE = new SimpleStatement(Pronoun.ME,
+	    SimplePredicate.ACKNOWLEDGE_MESSAGE);
 
     /**
      * <p>
