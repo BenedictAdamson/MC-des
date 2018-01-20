@@ -22,6 +22,7 @@ public interface MessageElement {
      * </p>
      * <p>
      * The method treats a null element as having no (zero) information content
+     * </p>
      * 
      * @return the information content
      * @throws NullPointerException
@@ -40,12 +41,32 @@ public interface MessageElement {
 
     /**
      * <p>
+     * The {@linkplain #getInformationContent() information content} provided by
+     * having one value of a finite set of values, in a context where a value of
+     * that set is expected.
+     * </p>
+     * <p>
+     * The method treats an empty set as having no information content.
+     * </p>
+     * 
+     * @param n
+     *            the number of elements in the set
+     * 
+     * @return the information content
+     */
+    public static double getInformationContent(int n) {
+	return 0 < n ? Math.log(n) / Math.log(2) : 0.0;
+    }
+
+    /**
+     * <p>
      * The total {@linkplain #getInformationContent() information content} of some
      * (an array of) message elements; their total length in a notional essential
      * compact form.
      * </p>
      * <p>
-     * The method treats a null element as having no (zero) information content
+     * The method treats a null element as having no (zero) information content.
+     * </p>
      * 
      * @return the information content
      * @throws NullPointerException

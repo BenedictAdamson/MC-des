@@ -48,7 +48,7 @@ public enum Pronoun implements Noun {
      */
     WE;
 
-    public static final double INFORMATION_CONTENT = Math.log(values().length) / Math.log(2);
+    public static final double INFORMATION_CONTENT = MessageElement.getInformationContent(values().length);
 
     /**
      * {@inheritDoc}

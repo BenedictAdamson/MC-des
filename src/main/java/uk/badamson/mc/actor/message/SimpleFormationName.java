@@ -88,7 +88,7 @@ public enum SimpleFormationName implements Noun {
      * {@link SimpleFormationName}.
      * </p>
      */
-    public static final double INFORMATION_CONTENT = Math.log(values().length) / Math.log(2);
+    public static final double INFORMATION_CONTENT = MessageElement.getInformationContent(values().length);
 
     /**
      * {@inheritDoc}

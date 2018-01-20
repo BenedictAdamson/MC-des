@@ -65,7 +65,7 @@ public enum SimpleRelativeLocation implements Noun {
      * content} of a {@link SimpleRelativeLocation}.
      * </p>
      */
-    public static final double INFORMATION_CONTENT = Math.log(N_RANGES * Direction.values().length) / Math.log(2);
+    public static final double INFORMATION_CONTENT = MessageElement.getInformationContent(values().length);
 
     /**
      * <p>
