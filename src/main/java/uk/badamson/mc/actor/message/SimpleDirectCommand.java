@@ -1,7 +1,10 @@
 package uk.badamson.mc.actor.message;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -68,6 +71,8 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      * {@linkplain SimpleVerb#CHANGE_FORMATION change-formation}.</li>
      * <li>There is only one {@linkplain #getObjects() object}, which is the
      * {@linkplain SimpleFormationName#DISPERSED disperse formation}.</li>
+     * <li>This is one of the {@linkplain #values() array of finite values} of the
+     * {@link SimpleDirectCommand} type.
      * </ul>
      */
     public static final SimpleDirectCommand DISPERSE = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.CHANGE_FORMATION,
@@ -85,6 +90,8 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      * change-formation}.</li>
      * <li>There is only one {@linkplain #getObjects() object}, which is
      * {@linkplain Pronoun#ME me}.</li>
+     * <li>This is one of the {@linkplain #values() array of finite values} of the
+     * {@link SimpleDirectCommand} type.
      * </ul>
      */
     public static final SimpleDirectCommand JOIN_ME = new SimpleDirectCommand(Pronoun.YOU, SimpleVerb.JOIN, Pronoun.ME);
@@ -101,6 +108,8 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      * rush}.</li>
      * <li>There is only one {@linkplain #getObjects() object}, which is
      * {@linkplain Pronoun#IT it}.</li>
+     * <li>This is one of the {@linkplain #values() array of finite values} of the
+     * {@link SimpleDirectCommand} type.
      * </ul>
      */
     public static final SimpleDirectCommand RUSH = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.RUSH, Pronoun.IT);
@@ -117,6 +126,8 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      * take cover}.</li>
      * <li>There is only one {@linkplain #getObjects() object}, which is
      * {@linkplain Pronoun#IT it}.</li>
+     * <li>This is one of the {@linkplain #values() array of finite values} of the
+     * {@link SimpleDirectCommand} type.
      * </ul>
      */
     public static final SimpleDirectCommand TAKE_COVER = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.TAKE_COVER,
@@ -134,6 +145,8 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      * quick time}.</li>
      * <li>There is only one {@linkplain #getObjects() object}, which is
      * {@linkplain Pronoun#IT it}.</li>
+     * <li>This is one of the {@linkplain #values() array of finite values} of the
+     * {@link SimpleDirectCommand} type.
      * </ul>
      */
     public static final SimpleDirectCommand QUICK_TIME = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.QUICK_TIME,
@@ -151,6 +164,8 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      * fix-bayonet}.</li>
      * <li>There is only one {@linkplain #getObjects() object}, which is
      * {@linkplain Pronoun#IT it} (meaning, the subjects own bayonet).</li>
+     * <li>This is one of the {@linkplain #values() array of finite values} of the
+     * {@link SimpleDirectCommand} type.
      * </ul>
      */
     public static final SimpleDirectCommand FIX_BAYONET = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.FIX_BAYONET,
@@ -168,10 +183,28 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      * check map}.</li>
      * <li>There is only one {@linkplain #getObjects() object}, which is
      * {@linkplain Pronoun#IT it} (meaning, the subjects own bayonet).</li>
+     * <li>This is one of the {@linkplain #values() array of finite values} of the
+     * {@link SimpleDirectCommand} type.
      * </ul>
      */
     public static final SimpleDirectCommand CHECK_MAP = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.CHECK_MAP,
 	    Pronoun.IT);
+
+    private static final SimpleDirectCommand[] ALL;
+    static {
+	final List<SimpleDirectCommand> list = new ArrayList<>();
+	list.addAll(ASSEMBLE_INSTANCES.values());
+	list.addAll(CHANGE_FORMATION_INSTANCES.values());
+	list.addAll(PERFORM_BATTLE_DRILL_INSTANCES.values());
+	list.add(CHECK_MAP);
+	list.add(DISPERSE);
+	list.add(FIX_BAYONET);
+	list.add(JOIN_ME);
+	list.add(QUICK_TIME);
+	list.add(RUSH);
+	list.add(TAKE_COVER);
+	ALL = list.toArray(new SimpleDirectCommand[0]);
+    }
 
     /**
      * <p>
@@ -253,6 +286,23 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
     public static SimpleDirectCommand getPerformBattleDrillInstance(BattleDrillName drill) {
 	Objects.requireNonNull(drill, "drill");
 	return PERFORM_BATTLE_DRILL_INSTANCES.get(drill);
+    }
+
+    /**
+     * <p>
+     * An array holding each of the permitted values of the
+     * {@link SimpleDirectCommand} type.
+     * </p>
+     * <ul>
+     * <li>Always returns a (non null) array of values.</li>
+     * <li>The array of values has no null elements.</li>
+     * <li>The array of values has no duplicate elements.</li>
+     * </ul>
+     * 
+     * @return the values
+     */
+    public static final SimpleDirectCommand[] values() {
+	return Arrays.copyOf(ALL, ALL.length);
     }
 
     private final Pronoun subject;

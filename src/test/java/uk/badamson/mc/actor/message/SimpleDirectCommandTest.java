@@ -5,9 +5,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 
 import org.junit.Test;
+
+import uk.badamson.mc.ObjectTest;
 
 /**
  * <p>
@@ -18,7 +22,9 @@ import org.junit.Test;
 public class SimpleDirectCommandTest {
 
     public static void assertInvariants(SimpleDirectCommand command) {
+	ObjectTest.assertInvariants(command);// inherited
 	CommandTest.assertInvariants(command);// inherited
+
 	final Pronoun subject = command.getSubject();
 
 	assertEquals("The information content exceeds the total for the message elements by the same extra amount.",
@@ -27,6 +33,12 @@ public class SimpleDirectCommandTest {
 			+ SentenceTest.totalInformationContent(command.getObjects()),
 		command.getInformationContent(), 1.0E-3);
 	assertTrue("The subject is either you or we.", subject == Pronoun.YOU || subject == Pronoun.WE);
+	assertTrue("One of the finite array of values of the type",
+		Arrays.asList(SimpleDirectCommand.values()).indexOf(command) != -1);
+    }
+
+    public static void assertInvariants(SimpleDirectCommand command1, SimpleDirectCommand command2) {
+	ObjectTest.assertInvariants(command1, command2);// inherited
     }
 
     public static final SimpleDirectCommand getAssembleInstance(SimpleRelativeLocation location) {
@@ -167,5 +179,21 @@ public class SimpleDirectCommandTest {
 	assertSame("subject", Pronoun.WE, command.getSubject());
 	assertSame("verb", SimpleVerb.TAKE_COVER, command.getVerb());
 	assertEquals("object", Collections.singleton(Pronoun.IT), command.getObjects());
+    }
+
+    @Test
+    public void values() {
+	final SimpleDirectCommand[] values = SimpleDirectCommand.values();
+
+	assertNotNull("Always returns an array of values.", values);// guard
+	assertEquals("The array of values has no duplicate elements.",
+		new HashSet<SimpleDirectCommand>(Arrays.asList(values)).size(), values.length);
+	for (SimpleDirectCommand value : values) {
+	    assertNotNull("The array of values has no null elements.", value);// guard
+	    assertInvariants(value);
+	    for (SimpleDirectCommand value2 : values) {
+		assertInvariants(value, value2);
+	    }
+	}
     }
 }
