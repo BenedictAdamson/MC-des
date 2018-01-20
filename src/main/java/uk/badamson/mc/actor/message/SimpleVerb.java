@@ -78,6 +78,18 @@ public enum SimpleVerb implements Verb {
     /**
      * <p>
      * A verb for declaring that the {@linkplain Sentence#getSubject() subject} of
+     * the {@linkplain Sentence sentence} is taking cover, or to {@linkplain Command
+     * command} that the subject takes cover.
+     * </p>
+     * <p>
+     * This is faster movement than {@linkplain #QUICK_TIME quick time}.
+     * </p>
+     */
+    TAKE_COVER,
+
+    /**
+     * <p>
+     * A verb for declaring that the {@linkplain Sentence#getSubject() subject} of
      * the {@linkplain Sentence sentence} is performing a battle drill, or to
      * {@linkplain Command command} that the subject performs the battle drill.
      * </p>

@@ -150,4 +150,13 @@ public class SimpleDirectCommandTest {
 	assertSame("verb", SimpleVerb.RUSH, command.getVerb());
 	assertEquals("object", Collections.singleton(Pronoun.IT), command.getObjects());
     }
+
+    @Test
+    public void static_TAKE_COVER() {
+	final SimpleDirectCommand command = SimpleDirectCommand.TAKE_COVER;
+	assertInvariants(command);
+	assertSame("subject", Pronoun.WE, command.getSubject());
+	assertSame("verb", SimpleVerb.TAKE_COVER, command.getVerb());
+	assertEquals("object", Collections.singleton(Pronoun.IT), command.getObjects());
+    }
 }

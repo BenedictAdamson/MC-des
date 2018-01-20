@@ -107,6 +107,23 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
 
     /**
      * <p>
+     * A command by a leader to indicate an individual, team or squad should take
+     * cover.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getSubject() subject} is {@linkplain Pronoun#WE
+     * we}.</li>
+     * <li>The {@linkplain #getVerb() verb} is {@linkplain SimpleVerb#TAKE_COVER
+     * take cover}.</li>
+     * <li>There is only one {@linkplain #getObjects() object}, which is
+     * {@linkplain Pronoun#IT it}.</li>
+     * </ul>
+     */
+    public static final SimpleDirectCommand TAKE_COVER = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.TAKE_COVER,
+	    Pronoun.IT);
+
+    /**
+     * <p>
      * A command by a leader to indicate an individual, team or squad should move
      * fast.
      * </p>
