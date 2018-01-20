@@ -110,7 +110,26 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      * {@link SimpleDirectCommand} type.
      * </ul>
      */
-    public static final SimpleDirectCommand HALT = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.HALT, Pronoun.IT);// FIXME
+    public static final SimpleDirectCommand HALT = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.HALT, Pronoun.IT);
+
+    /**
+     * <p>
+     * A command by a leader to indicate an element, team or squad should halt and
+     * take a knee.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getSubject() subject} is {@linkplain Pronoun#WE
+     * we}.</li>
+     * <li>The {@linkplain #getVerb() verb} is
+     * {@linkplain SimpleVerb#HALT_AND_TAKE_A_KNEE halt and take a knee}.</li>
+     * <li>There is only one {@linkplain #getObjects() object}, which is
+     * {@linkplain Pronoun#IT it}.</li>
+     * <li>This is one of the {@linkplain #values() array of finite values} of the
+     * {@link SimpleDirectCommand} type.
+     * </ul>
+     */
+    public static final SimpleDirectCommand HALT_AND_TAKE_A_KNEE = new SimpleDirectCommand(Pronoun.WE,
+	    SimpleVerb.HALT_AND_TAKE_A_KNEE, Pronoun.IT);
 
     /**
      * <p>
@@ -196,6 +215,7 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
 	list.add(CHECK_MAP);
 	list.add(FIX_BAYONET);
 	list.add(HALT);
+	list.add(HALT_AND_TAKE_A_KNEE);
 	list.add(JOIN_ME);
 	list.add(QUICK_TIME);
 	list.add(RUSH);

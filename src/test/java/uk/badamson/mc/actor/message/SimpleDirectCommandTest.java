@@ -145,6 +145,15 @@ public class SimpleDirectCommandTest {
     }
 
     @Test
+    public void static_HALT_AND_TAKE_A_KNEE() {
+	final SimpleDirectCommand command = SimpleDirectCommand.HALT_AND_TAKE_A_KNEE;
+	assertInvariants(command);
+	assertSame("subject", Pronoun.WE, command.getSubject());
+	assertSame("verb", SimpleVerb.HALT_AND_TAKE_A_KNEE, command.getVerb());
+	assertEquals("object", Collections.singleton(Pronoun.IT), command.getObjects());
+    }
+
+    @Test
     public void static_JOIN_ME() {
 	final SimpleDirectCommand command = SimpleDirectCommand.JOIN_ME;
 	assertInvariants(command);
