@@ -1,12 +1,11 @@
-package uk.badamson.mc.actor;
+package uk.badamson.mc.actor.medium;
 
 import static org.junit.Assert.assertTrue;
-
-import uk.badamson.mc.actor.medium.Medium;
 
 /**
  * <p>
  * Unit tests for classes that implement the {@link Medium} interface.
+ * </p>
  */
 public class MediumTest {
 
