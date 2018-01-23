@@ -1,5 +1,7 @@
 package uk.badamson.mc.actor;
 
+import java.util.Objects;
+
 import net.jcip.annotations.Immutable;
 import uk.badamson.mc.actor.medium.Medium;
 import uk.badamson.mc.actor.message.Message;
@@ -16,17 +18,66 @@ import uk.badamson.mc.actor.message.UnusableIncompleteMessage;
  * </p>
  */
 @Immutable
-public interface MessageTransferInProgress {
+public final class MessageTransferInProgress {
+    private final Medium medium;
+    private final Message messageSofar;
+
+    /**
+     * <p>
+     * Construct an object with given values.
+     * </p>
+     * 
+     * @param medium
+     *            The transmission medium (or means) through which the transmission
+     *            is being made.
+     * @param messageSofar
+     *            The message that has been sent so far.
+     * @throws NullPointerException
+     *             If {@code medium} is null.
+     */
+    public MessageTransferInProgress(Medium medium, Message messageSofar) {
+	this.medium = Objects.requireNonNull(medium, "medium");
+	this.messageSofar = messageSofar;
+    }
+
+    /**
+     * <p>
+     * Whether this object is <dfn>equivalent</dfn> to another object.
+     * </p>
+     * <p>
+     * The {@link MessageTransferInProgress} class has <i>value semantics</i>: this
+     * object is equivalent to another if, and only if, the other object is also a
+     * {@linkplain MessageTransferInProgress} and the two obejcts have equivaletn
+     * attributes.
+     * </p>
+     * 
+     * @param obj
+     *            The other object.
+     * @return whether equivalent.
+     */
+    @Override
+    public final boolean equals(Object obj) {
+	if (this == obj)
+	    return true;
+	if (obj == null)
+	    return false;
+	if (getClass() != obj.getClass())
+	    return false;
+	MessageTransferInProgress other = (MessageTransferInProgress) obj;
+	return medium.equals(other.medium) && Objects.equals(messageSofar, other.messageSofar);
+    }
 
     /**
      * <p>
      * The transmission medium (or means) through which the transmission is being
-     * made
+     * made.
      * </p>
      * 
      * @return the medium; not null.
      */
-    public Medium getMedium();
+    public final Medium getMedium() {
+	return medium;
+    }
 
     /**
      * <p>
@@ -51,6 +102,22 @@ public interface MessageTransferInProgress {
      * 
      * @return the message sent so far.
      */
-    public Message getMessageSofar();
+    public final Message getMessageSofar() {
+	return messageSofar;
+    }
+
+    @Override
+    public final int hashCode() {
+	final int prime = 31;
+	int result = 1;
+	result = prime * result + medium.hashCode();
+	result = prime * result + ((messageSofar == null) ? 0 : messageSofar.hashCode());
+	return result;
+    }
+
+    @Override
+    public final String toString() {
+	return "MessageTransferInProgress [medium=" + medium + ", messageSofar=" + messageSofar + "]";
+    }
 
 }
