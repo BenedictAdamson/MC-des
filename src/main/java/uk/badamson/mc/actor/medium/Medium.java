@@ -1,5 +1,6 @@
 package uk.badamson.mc.actor.medium;
 
+import net.jcip.annotations.Immutable;
 import uk.badamson.mc.actor.Actor;
 import uk.badamson.mc.actor.message.Message;
 
@@ -9,6 +10,7 @@ import uk.badamson.mc.actor.message.Message;
  * {@linkplain Message messages}.
  * </p>
  */
+@Immutable
 public interface Medium {
 
     /**
