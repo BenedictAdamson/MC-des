@@ -23,4 +23,9 @@ public final class HandSignals implements Medium {
 	return 4.0;
     }
 
+    @Override
+    public final String toString() {
+	return "HandSignals";
+    }
+
 }

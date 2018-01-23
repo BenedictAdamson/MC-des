@@ -1,12 +1,14 @@
 package uk.badamson.mc.simulation;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 import uk.badamson.mc.actor.Actor;
 import uk.badamson.mc.actor.ActorInterface;
 import uk.badamson.mc.actor.MediumUnavailableException;
 import uk.badamson.mc.actor.MessageTransferInProgress;
+import uk.badamson.mc.actor.medium.HandSignals;
 import uk.badamson.mc.actor.medium.Medium;
 import uk.badamson.mc.actor.message.Message;
 
@@ -16,6 +18,24 @@ import uk.badamson.mc.actor.message.Message;
  * </p>
  */
 public final class Person implements ActorInterface, Actor {
+    private final Set<Medium> media = new HashSet<>();
+
+    /**
+     * <p>
+     * Construct a simulated person that is currently doing nothing.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getMedia() media} through which this actor can send
+     * messages consists of {@linkplain HandSignals hand signals}.</li>
+     * <li>This actor is {@linkplain #getMessagesBeingReceived() receiving} no
+     * messages.</li>
+     * <li>This actor is not {@linkplain #getTransmissionInProgress() transmitting}
+     * a message.</li>
+     * </ul>
+     */
+    public Person() {
+	media.add(HandSignals.INSTANCE);
+    }
 
     /**
      * @param medium
@@ -63,7 +83,7 @@ public final class Person implements ActorInterface, Actor {
      */
     @Override
     public final Set<Medium> getMedia() {
-	return Collections.emptySet();// TODO
+	return Collections.unmodifiableSet(media);
     }
 
     /**
