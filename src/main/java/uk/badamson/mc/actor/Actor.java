@@ -4,7 +4,8 @@ import uk.badamson.mc.actor.message.Message;
 
 /**
  * <p>
- * A human or AI player of the Mission Command game.
+ * The interface through which the simulation interacts with a human or AI
+ * player of the Mission Command game.
  * </p>
  */
 public interface Actor {
