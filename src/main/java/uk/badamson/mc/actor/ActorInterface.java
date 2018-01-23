@@ -4,7 +4,9 @@ package uk.badamson.mc.actor;
 import java.util.Collections;
 import java.util.Set;
 
+import uk.badamson.mc.actor.medium.Medium;
 import uk.badamson.mc.actor.message.Command;
+import uk.badamson.mc.actor.message.IllegalMessageException;
 import uk.badamson.mc.actor.message.Message;
 
 /**

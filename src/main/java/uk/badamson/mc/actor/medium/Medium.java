@@ -1,5 +1,6 @@
-package uk.badamson.mc.actor;
+package uk.badamson.mc.actor.medium;
 
+import uk.badamson.mc.actor.Actor;
 import uk.badamson.mc.actor.message.Message;
 
 /**

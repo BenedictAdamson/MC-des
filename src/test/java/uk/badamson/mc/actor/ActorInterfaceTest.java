@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Set;
 
+import uk.badamson.mc.actor.medium.Medium;
 import uk.badamson.mc.actor.message.Message;
 
 /**

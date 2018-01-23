@@ -1,5 +1,7 @@
 package uk.badamson.mc.actor;
 
+import uk.badamson.mc.actor.medium.Medium;
+
 /**
  * <p>
  * A {@linkplain Exception checked exception} for indicating an

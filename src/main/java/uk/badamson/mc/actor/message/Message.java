@@ -2,7 +2,7 @@ package uk.badamson.mc.actor.message;
 
 import net.jcip.annotations.Immutable;
 import uk.badamson.mc.actor.Actor;
-import uk.badamson.mc.actor.Medium;
+import uk.badamson.mc.actor.medium.Medium;
 
 /**
  * <p>
