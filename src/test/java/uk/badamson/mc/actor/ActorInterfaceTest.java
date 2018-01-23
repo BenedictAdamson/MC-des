@@ -62,6 +62,10 @@ public class ActorInterfaceTest {
 	}
     }
 
+    public static void assertInvariants(ActorInterface actorInterface1, ActorInterface actorInterface2) {
+	// Do nothing
+    }
+
     public static void beginSendingMessage(ActorInterface actorInterface, Medium medium, Message message)
 	    throws MediumUnavailableException {
 	try {
