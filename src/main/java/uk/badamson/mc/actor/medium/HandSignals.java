@@ -1,11 +1,17 @@
 package uk.badamson.mc.actor.medium;
 
 import net.jcip.annotations.Immutable;
+import uk.badamson.mc.actor.message.SimpleDirectCommand;
+import uk.badamson.mc.actor.message.SimpleStatement;
 
 /**
  * <p>
- * Hand signals, considered as a {@linkplain Medium medium} for sending
+ * Hand signals, considered as a {@linkplain Medium medium} for communicating
  * {@linkplain Message messages}.
+ * </p>
+ * <p>
+ * This medium can communicate only {@linkplain SimpleStatement simple
+ * statements} and {@linkplain SimpleDirectCommand simple direct commands}.
  * </p>
  */
 @Immutable
