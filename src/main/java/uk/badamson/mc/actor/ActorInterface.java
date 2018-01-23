@@ -57,6 +57,10 @@ public interface ActorInterface {
      *             <li>If {@code medium} is null.</li>
      *             <li>If {@code message} is null.</li>
      *             </ul>
+     * @throws IllegalMessageException
+     *             If sending the {@code message} through the {@code medium} is not
+     *             permitted because the message is of the incorrect class or type,
+     *             or has incorrect characteristics, to be sent through that medium.
      * @throws IllegalStateException
      *             If this is already {@linkplain #getTransmittingMessage() sending
      *             a message}.
