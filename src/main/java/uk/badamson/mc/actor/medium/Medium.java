@@ -6,12 +6,29 @@ import uk.badamson.mc.actor.message.Message;
 
 /**
  * <p>
- * A transmission medium (or means) through {@linkplain Actor actors} can send
- * {@linkplain Message messages}.
+ * A transmission medium (or means) through which {@linkplain Actor actors} can
+ * send {@linkplain Message messages}, from their perspective.
  * </p>
  */
 @Immutable
 public interface Medium {
+
+    /**
+     * <p>
+     * Whether this object is <em>equivalent</em> to another object.
+     * </p>
+     * <p>
+     * {@link Medium} objects have <i>value semantics</i>: this object is equivalent
+     * to another object if, and only if, they have the same type and their
+     * attributes are equivalent.
+     * </p>
+     * 
+     * @param that
+     *            The other object.
+     * @return whether equivalent
+     */
+    @Override
+    public boolean equals(Object that);
 
     /**
      * <p>
