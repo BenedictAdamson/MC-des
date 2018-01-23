@@ -11,7 +11,7 @@ import uk.badamson.mc.actor.message.Message;
 
 /**
  * <p>
- * The API (service interface) through which a human or AI players ("actors") of
+ * The API (service interface) through which a human or AI player ("actor") of
  * the Mission Command game effect changes to the simulation.
  * </p>
  */
@@ -97,8 +97,7 @@ public interface ActorInterface {
      * <li>The set of media may change as means of communication become available
      * and cease to be available.
      * <li>The set of media is {@linkplain Collections#unmodifiableSet(Set)
-     * unmodifiable}.
-     * <li>
+     * unmodifiable}.</li>
      * </ul>
      * 
      * @return the media.
