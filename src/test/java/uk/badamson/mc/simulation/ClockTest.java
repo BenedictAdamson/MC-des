@@ -49,4 +49,39 @@ public class ClockTest {
     public void constructor_B() {
         constructor(TimeUnit.MICROSECONDS, TIME_2);
     }
+
+    public static void advance(Clock clock, long amount) {
+        final long time0 = clock.getTime();
+
+        clock.advance(amount);
+
+        assertInvariants(clock);
+        assertEquals("time", time0 + amount, clock.getTime());
+    }
+
+    private static void advance(long time, long amount) {
+        final Clock clock = new Clock(TimeUnit.MILLISECONDS, time);
+
+        advance(clock, amount);
+    }
+
+    @Test
+    public void advance_0() {
+        advance(TIME_1, 0L);
+    }
+
+    @Test
+    public void advance_0AtMax() {
+        advance(Long.MAX_VALUE, 0L);
+    }
+
+    @Test
+    public void advance_1() {
+        advance(TIME_1, 1L);
+    }
+
+    @Test
+    public void advance_1ToMax() {
+        advance(Long.MAX_VALUE - 1L, 1L);
+    }
 }
