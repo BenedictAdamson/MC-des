@@ -21,27 +21,27 @@ public class ClockTest {
 
         private final Clock clock;
         private final long when;
-        private boolean ran = false;
+        private int runs = 0;
 
         public RunnableSpy(Clock clock, long when) {
             this.clock = clock;
             this.when = when;
         }
 
-        public final void assertRan(boolean expected) {
-            assertEquals("ran", expected, ran);
+        public final void assertRan(int expectedRuns) {
+            assertEquals("ran", expectedRuns, runs);
         }
 
         @Override
         public final void run() {
             assertEquals("time", when, clock.getTime());
-            ran = true;
+            runs++;
         }
     }// class
+
     private static final long TIME_1 = -123L;
     private static final long TIME_2 = 1_000L;
     private static final long TIME_3 = 60_000L;
-
     private static final long TIME_4 = 3_600_000L;
 
     public static void advance(Clock clock, long amount) {
@@ -68,7 +68,7 @@ public class ClockTest {
 
         advance(clock, timeToAdvanceTo - time0);
 
-        action.assertRan(true);
+        action.assertRan(1);
     }
 
     private static void advance_withLaterAction(long time0, long timeToAdvanceTo, long actionTime) {
@@ -80,7 +80,7 @@ public class ClockTest {
 
         advance(clock, timeToAdvanceTo - time0);
 
-        action.assertRan(false);
+        action.assertRan(0);
     }
 
     public static void assertInvariants(Clock clock) {
@@ -116,7 +116,7 @@ public class ClockTest {
 
         scheduleAction(clock, when, action);
 
-        action.assertRan(false);
+        action.assertRan(0);
     }
 
     private static void scheduleAction_immediate(long time) {
@@ -125,7 +125,7 @@ public class ClockTest {
 
         scheduleAction(clock, time, action);
 
-        action.assertRan(true);
+        action.assertRan(1);
     }
 
     @Test
@@ -146,6 +146,24 @@ public class ClockTest {
     @Test
     public void advance_1ToMax() {
         advance(Long.MAX_VALUE - 1L, 1L);
+    }
+
+    @Test
+    public void advance_afterAction() {
+        final long time0 = TIME_1;
+        final long actionTime = TIME_2;
+        final long timeToAdvanceTo2 = TIME_3;
+        final Clock clock = new Clock(TimeUnit.MILLISECONDS, time0);
+        final RunnableSpy action = new RunnableSpy(clock, actionTime);
+        clock.scheduleAction(actionTime, action);
+        clock.advance(actionTime - time0);
+
+        advance(clock, timeToAdvanceTo2 - time0);
+
+        /*
+         * Check that did not perform the actino twice.
+         */
+        action.assertRan(1);
     }
 
     @Test

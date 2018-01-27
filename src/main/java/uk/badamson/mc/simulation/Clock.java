@@ -116,6 +116,7 @@ public final class Clock {
             currentAction = scheduledAction.action;
             currentAction.run();
             currentAction = null;
+            scheduledAction = null;
         }
         time = newTime;
     }
