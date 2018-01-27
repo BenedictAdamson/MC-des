@@ -173,4 +173,24 @@ public interface ActorInterface {
      * @return the medium
      */
     public Message getTransmittingMessage();
+
+    /**
+     * <p>
+     * Indicate that the {@linkplain #getActor() actor} ceases sending a message,
+     * before completion of sending of the message.
+     * </p>
+     * 
+     * <section>
+     * <h1>Post Conditions</h1>
+     * <ul>
+     * <li>This has no {@linkplain #getTransmissionInProgress() transmission in
+     * progress}.</li>
+     * </ul>
+     * </section>
+     * 
+     * @throws IllegalStateException
+     *             If this has no {@linkplain #getTransmissionInProgress()
+     *             transmission in progress}.
+     */
+    public void haltSendingMessage();
 }

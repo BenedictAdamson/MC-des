@@ -193,6 +193,14 @@ public final class Person implements ActorInterface {
         return transmittingMessage;
     }
 
+    @Override
+    public final void haltSendingMessage() {
+        if (transmissionInProgress != null) {
+            throw new IllegalStateException("Has a transmission in progress " + transmissionInProgress);
+        }
+        // TODO
+    }
+
     /**
      * <p>
      * Change the interface through which the simulation interacts with a human or

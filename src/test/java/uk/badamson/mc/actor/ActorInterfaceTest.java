@@ -85,4 +85,12 @@ public class ActorInterfaceTest {
         assertSame("The given message is the current transmitting message.", message,
                 actorInterface.getTransmittingMessage());
     }
+    
+
+    public static void haltSendingMessage(ActorInterface actorInterface) {
+        actorInterface.haltSendingMessage();
+        
+        assertInvariants(actorInterface);
+        assertNull("This has no transmission in progress.", actorInterface.getTransmissionInProgress());
+    }
 }

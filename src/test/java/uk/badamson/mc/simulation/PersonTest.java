@@ -73,6 +73,12 @@ public class PersonTest {
         return person;
     }
 
+    public static void haltSendingMessage(Person person) {
+        ActorInterfaceTest.haltSendingMessage(person);// inherited
+
+        assertInvariants(person);
+    }
+
     public static void setActor(Person person, Actor actor) {
         person.setActor(actor);
 
