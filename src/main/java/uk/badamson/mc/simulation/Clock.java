@@ -59,8 +59,9 @@ public final class Clock {
 
     private final TimeUnit unit;
     private final PriorityQueue<ScheduledAction> scheduledActions = new PriorityQueue<>();
+
     private long time;
-    private Runnable currentAction;
+    private ScheduledAction currentScheduledAction;
 
     /**
      * <p>
@@ -113,16 +114,15 @@ public final class Clock {
         if (Long.MAX_VALUE - amount < time) {
             throw new TimeOverflowException();
         }
-        if (currentAction != null) {
+        if (currentScheduledAction != null) {
             throw new IllegalStateException("Called from the run method of a scheduled action");
         }
         final long newTime = time + amount;
         while (!scheduledActions.isEmpty() && scheduledActions.peek().when <= newTime) {
-            final ScheduledAction scheduledAction = scheduledActions.poll();
-            currentAction = scheduledAction.action;
-            time = scheduledAction.when;
-            currentAction.run();
-            currentAction = null;
+            currentScheduledAction = scheduledActions.poll();
+            time = currentScheduledAction.when;
+            currentScheduledAction.action.run();// may throw
+            currentScheduledAction = null;
         }
         time = newTime;
     }
