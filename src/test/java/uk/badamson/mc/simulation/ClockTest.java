@@ -41,8 +41,9 @@ public class ClockTest {
 
     private static final long TIME_1 = -123L;
     private static final long TIME_2 = 1_000L;
-    private static final long TIME_3 = 60_000L;
-    private static final long TIME_4 = 3_600_000L;
+    private static final long TIME_3 = 7_000L;
+    private static final long TIME_4 = 60_000L;
+    private static final long TIME_5 = 3_600_000L;
 
     public static void advance(Clock clock, long amount) {
         final long time0 = clock.getTime();
@@ -69,6 +70,23 @@ public class ClockTest {
         advance(clock, timeToAdvanceTo - time0);
 
         action.assertRan(1);
+    }
+
+    private static void advance_with2Actions(long time0, long actionTime1, long actionTime2, long timeToAdvanceTo) {
+        assert time0 < actionTime1;
+        assert time0 < actionTime2;
+        assert actionTime2 <= timeToAdvanceTo;
+        assert actionTime1 <= timeToAdvanceTo;
+        final Clock clock = new Clock(TimeUnit.MILLISECONDS, time0);
+        final RunnableSpy action1 = new RunnableSpy(clock, actionTime1);
+        final RunnableSpy action2 = new RunnableSpy(clock, actionTime2);
+        clock.scheduleAction(actionTime1, action1);
+        clock.scheduleAction(actionTime2, action2);
+
+        advance(clock, timeToAdvanceTo - time0);
+
+        action1.assertRan(1);
+        action2.assertRan(1);
     }
 
     private static void advance_withLaterAction(long time0, long timeToAdvanceTo, long actionTime) {
@@ -188,6 +206,57 @@ public class ClockTest {
         final long actionTime = TIME_3;
         final long timeToAdvanceTo = TIME_4;
         advance_with1Action(time0, actionTime, timeToAdvanceTo);
+    }
+
+    @Test
+    public void advance_with2ActionsA() {
+        final long time0 = TIME_1;
+        final long actionTime1 = TIME_2;
+        final long actionTime2 = TIME_3;
+        final long timeToAdvanceTo = TIME_4;
+
+        advance_with2Actions(time0, actionTime1, actionTime2, timeToAdvanceTo);
+    }
+
+    @Test
+    public void advance_with2ActionsAtEnd() {
+        final long time0 = TIME_1;
+        final long actionTime1 = TIME_2;
+        final long actionTime2 = actionTime1;// critical
+        final long timeToAdvanceTo = actionTime1;// critical
+
+        advance_with2Actions(time0, actionTime1, actionTime2, timeToAdvanceTo);
+    }
+
+    @Test
+    public void advance_with2ActionsB() {
+        final long time0 = TIME_2;
+        final long actionTime1 = TIME_3;
+        final long actionTime2 = TIME_4;
+        final long timeToAdvanceTo = TIME_5;
+
+        advance_with2Actions(time0, actionTime1, actionTime2, timeToAdvanceTo);
+    }
+
+    @Test
+    public void advance_with2ActionsSameTime() {
+        final long time0 = TIME_1;
+        final long actionTime1 = TIME_2;
+        final long actionTime2 = actionTime1;// critical
+        final long timeToAdvanceTo = TIME_4;
+
+        advance_with2Actions(time0, actionTime1, actionTime2, timeToAdvanceTo);
+    }
+
+    @Test
+    public void advance_with2ActionsScheduledInReverseOrder() {
+        final long time0 = TIME_1;
+        final long actionTime1 = TIME_3;
+        final long actionTime2 = TIME_2;
+        final long timeToAdvanceTo = TIME_4;
+        assert actionTime2 < actionTime1;
+
+        advance_with2Actions(time0, actionTime1, actionTime2, timeToAdvanceTo);
     }
 
     @Test

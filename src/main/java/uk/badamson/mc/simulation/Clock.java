@@ -1,6 +1,7 @@
 package uk.badamson.mc.simulation;
 
 import java.util.Objects;
+import java.util.PriorityQueue;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -24,13 +25,18 @@ import java.util.concurrent.TimeUnit;
  */
 public final class Clock {
 
-    private final class ScheduledAction {
+    private final class ScheduledAction implements Comparable<ScheduledAction> {
         final long when;
         final Runnable action;
 
         private ScheduledAction(long when, Runnable action) {
             this.when = when;
             this.action = action;
+        }
+
+        @Override
+        public int compareTo(ScheduledAction that) {
+            return Long.compare(when, that.when);
         }
 
     }// class
@@ -54,7 +60,7 @@ public final class Clock {
     private final TimeUnit unit;
     private long time;
     private Runnable currentAction;
-    private ScheduledAction scheduledAction;// FIXME
+    private final PriorityQueue<ScheduledAction> scheduledActions = new PriorityQueue<>();
 
     /**
      * <p>
@@ -111,12 +117,12 @@ public final class Clock {
             throw new IllegalStateException("Called from the run method of a scheduled action");
         }
         final long newTime = time + amount;
-        if (scheduledAction != null && scheduledAction.when <= newTime) {
-            time = scheduledAction.when;
+        while (!scheduledActions.isEmpty() && scheduledActions.peek().when <= newTime) {
+            final ScheduledAction scheduledAction = scheduledActions.poll();
             currentAction = scheduledAction.action;
+            time = scheduledAction.when;
             currentAction.run();
             currentAction = null;
-            scheduledAction = null;
         }
         time = newTime;
     }
@@ -178,7 +184,7 @@ public final class Clock {
         }
 
         if (time < when) {
-            scheduledAction = new ScheduledAction(when, action);
+            scheduledActions.add(new ScheduledAction(when, action));
         } else {// time == when
             currentAction = action;
             action.run();
