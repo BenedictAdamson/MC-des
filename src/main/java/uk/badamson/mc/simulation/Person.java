@@ -70,39 +70,19 @@ public final class Person implements ActorInterface {
         if (transmissionInProgress != null) {
             final Message messageSofar = transmissionInProgress.getMessageSofar();
             final double informationSentPreviously = messageSofar == null ? 0.0 : messageSofar.getInformationContent();
-            final double fullMessagenformation = transmittingMessage.getInformationContent();
+            final double fullMessageInformation = transmittingMessage.getInformationContent();
             final Medium medium = transmissionInProgress.getMedium();
             double informationSent = informationSentPreviously + dt * medium.getTypicalTransmissionRate();
-            informationSent = Double.min(informationSent, fullMessagenformation);
-            if (informationSent < fullMessagenformation) {
+            informationSent = Double.min(informationSent, fullMessageInformation);
+            if (informationSent < fullMessageInformation) {
                 transmissionInProgress = new MessageTransferInProgress(medium,
                         transmittingMessage.getPartialMessage(informationSent));
             } else {
-                // Completed transmission
-                if (actor != null) {
-                    final Message fullMessage = transmittingMessage;
-                    final MessageTransferInProgress finalProgress = new MessageTransferInProgress(medium, fullMessage);
-                    clearSendingMessage();
-                    actor.tellMessageSendingEnded(finalProgress, fullMessage);
-                } else {
-                    clearSendingMessage();
-                }
+                endMessageSending();
             }
         }
     }
 
-    /**
-     * {@inheritDoc}
-     * 
-     * @throws NullPointerException
-     *             {@inheritDoc}
-     * @throws IllegalMessageException
-     *             {@inheritDoc}
-     * @throws IllegalStateException
-     *             {@inheritDoc}
-     * @throws MediumUnavailableException
-     *             {@inheritDoc}
-     */
     @Override
     public final void beginSendingMessage(Medium medium, Message message) throws MediumUnavailableException {
         Objects.requireNonNull(medium, "medium");
@@ -119,25 +99,24 @@ public final class Person implements ActorInterface {
         assert medium instanceof HandSignals;
         transmittingMessage = message;
         transmissionInProgress = new MessageTransferInProgress(medium, null);
-        final double transmissionTime = message.getInformationContent() / medium.getTypicalTransmissionRate();
-        final long dt = Long.max(1, (long) (1E3 * transmissionTime / (MIN_MESSAGE_TRANSMISSION_PROGRESS_STEPS + 1)));
-        for (int i = 1; i <= MIN_MESSAGE_TRANSMISSION_PROGRESS_STEPS; ++i) {
-            clock.scheduleDelayedAction(dt * i, TimeUnit.MILLISECONDS, new Runnable() {
-
-                @Override
-                public void run() {
-                    if (actor != null && transmissionInProgress != null) {
-                        updateState();
-                        actor.tellMessageTransmissionProgress();
-                    }
-                }
-            });
-        }
+        scheduleTellMessageTransmissionProgress();
     }
 
     private void clearSendingMessage() {
         transmittingMessage = null;
         transmissionInProgress = null;
+    }
+
+    private void endMessageSending() {
+        if (actor != null) {
+            final Message fullMessage = transmittingMessage;
+            final MessageTransferInProgress finalProgress = new MessageTransferInProgress(
+                    transmissionInProgress.getMedium(), fullMessage);
+            clearSendingMessage();
+            actor.tellMessageSendingEnded(finalProgress, fullMessage);
+        } else {
+            clearSendingMessage();
+        }
     }
 
     /**
@@ -202,6 +181,24 @@ public final class Person implements ActorInterface {
             throw new IllegalStateException("No a transmission in progress");
         }
         clearSendingMessage();
+    }
+
+    private void scheduleTellMessageTransmissionProgress() {
+        final double transmissionTime = transmittingMessage.getInformationContent()
+                / transmissionInProgress.getMedium().getTypicalTransmissionRate();
+        final long dt = Long.max(1, (long) (1E3 * transmissionTime / (MIN_MESSAGE_TRANSMISSION_PROGRESS_STEPS + 1)));
+        for (int i = 1; i <= MIN_MESSAGE_TRANSMISSION_PROGRESS_STEPS; ++i) {
+            clock.scheduleDelayedAction(dt * i, TimeUnit.MILLISECONDS, new Runnable() {
+
+                @Override
+                public void run() {
+                    if (actor != null && transmissionInProgress != null) {
+                        updateState();
+                        actor.tellMessageTransmissionProgress();
+                    }
+                }
+            });
+        }
     }
 
     /**
