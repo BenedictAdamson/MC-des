@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import uk.badamson.mc.actor.Actor;
 import uk.badamson.mc.actor.ActorInterface;
@@ -20,12 +21,23 @@ import uk.badamson.mc.actor.message.Message;
  * </p>
  */
 public final class Person implements ActorInterface {
+
+    /**
+     * <p>
+     * While simulating the transmission of a message, the nominal minimum number of
+     * times to {@linkplain Actor#tellMessageTransmissionProgress(Message) tell} the
+     * {@linkplain #getActor() actor} of progress in sending the message.
+     * </p>
+     */
+    public static final int MIN_MESSAGE_TRANSMISSION_PROGRESS_STEPS = 3;
+
     private final Clock clock;
     private final Set<Medium> media = new HashSet<>();
 
     private Actor actor;
     private MessageTransferInProgress transmissionInProgress;
     private Message transmittingMessage;
+    private long previousUpdate;
 
     /**
      * <p>
@@ -50,6 +62,30 @@ public final class Person implements ActorInterface {
     public Person(Clock clock) {
         this.clock = Objects.requireNonNull(clock, "clock");
         media.add(HandSignals.INSTANCE);
+        previousUpdate = clock.getTime();
+    }
+
+    private void advance(double dt) {
+        assert 0.0 < dt;
+        if (transmissionInProgress != null) {
+            final Message messageSofar = transmissionInProgress.getMessageSofar();
+            final double informationSentPreviously = messageSofar == null ? 0.0 : messageSofar.getInformationContent();
+            final double fullMessagenformation = transmittingMessage.getInformationContent();
+            final Medium medium = transmissionInProgress.getMedium();
+            double informationSent = informationSentPreviously + dt * medium.getTypicalTransmissionRate();
+            informationSent = Double.min(informationSent, fullMessagenformation);
+            if (informationSent < fullMessagenformation) {
+                transmissionInProgress = new MessageTransferInProgress(medium,
+                        transmittingMessage.getPartialMessage(informationSent));
+            } else {
+                // Completed transmission
+                final Message fullMessage = transmittingMessage;
+                final MessageTransferInProgress finalProgress = new MessageTransferInProgress(medium, fullMessage);
+                transmittingMessage = null;
+                transmissionInProgress = null;
+                actor.tellMessageSendingEnded(finalProgress, fullMessage);
+            }
+        }
     }
 
     /**
@@ -80,6 +116,18 @@ public final class Person implements ActorInterface {
         assert medium instanceof HandSignals;
         transmittingMessage = message;
         transmissionInProgress = new MessageTransferInProgress(medium, null);
+        final double transmissionTime = message.getInformationContent() / medium.getTypicalTransmissionRate();
+        final long dt = Long.max(1, (long) (1E3 * transmissionTime / (MIN_MESSAGE_TRANSMISSION_PROGRESS_STEPS + 1)));
+        for (int i = 1; i <= MIN_MESSAGE_TRANSMISSION_PROGRESS_STEPS; ++i) {
+            clock.scheduleDelayedAction(dt * i, TimeUnit.MILLISECONDS, new Runnable() {
+
+                @Override
+                public void run() {
+                    updateState();
+                    actor.tellMessageTransmissionProgress(null);// FIXME
+                }
+            });
+        }
     }
 
     /**
@@ -129,6 +177,7 @@ public final class Person implements ActorInterface {
 
     @Override
     public final MessageTransferInProgress getTransmissionInProgress() {
+        updateState();
         return transmissionInProgress;
     }
 
@@ -155,6 +204,16 @@ public final class Person implements ActorInterface {
             throw new IllegalArgumentException("actor does not use this ActorInterface");
         }
         this.actor = actor;
+    }
+
+    private void updateState() {
+        final long time = clock.getTime();
+        final long dt = time - previousUpdate;
+        if (0 < dt) {
+            final double nanoSeconds = clock.getUnit().toNanos(dt);
+            advance(1E-9 * nanoSeconds);
+            previousUpdate = time;
+        }
     }
 
 }

@@ -4,9 +4,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -16,10 +18,12 @@ import uk.badamson.mc.actor.AbstractActor;
 import uk.badamson.mc.actor.Actor;
 import uk.badamson.mc.actor.ActorInterfaceTest;
 import uk.badamson.mc.actor.MediumUnavailableException;
+import uk.badamson.mc.actor.MessageTransferInProgress;
 import uk.badamson.mc.actor.medium.HandSignals;
 import uk.badamson.mc.actor.medium.Medium;
 import uk.badamson.mc.actor.message.Message;
 import uk.badamson.mc.actor.message.SimpleDirectCommand;
+import uk.badamson.mc.actor.message.SimpleRelativeLocation;
 import uk.badamson.mc.actor.message.SimpleStatement;
 
 /**
@@ -37,6 +41,7 @@ public class PersonTest {
 
         assertNotNull("Not null, clock", person.getClock());
     }
+
     public static void assertInvariants(Person person1, Person person2) {
         ObjectTest.assertInvariants(person1, person2);// inherited
         ActorInterfaceTest.assertInvariants(person1, person2);// inherited
@@ -122,6 +127,74 @@ public class PersonTest {
     @Test
     public void constructor_B() {
         constructor(clock2);
+    }
+
+    private void sendingMessage(final long time0, SimpleDirectCommand message, final int nSteps) {
+        assert 2 <= nSteps;
+        final Clock clock = new Clock(TimeUnit.MICROSECONDS, time0);
+        final Person person = new Person(clock);
+        final Medium medium = HandSignals.INSTANCE;
+        final double informationInMessage = message.getInformationContent();
+        final double transmissionTime = informationInMessage / medium.getTypicalTransmissionRate();
+        final long dt = (long) (transmissionTime * 1E6 / nSteps);
+
+        final AtomicInteger nProgressMessages = new AtomicInteger(0);
+        final AtomicInteger nEndMessages = new AtomicInteger(0);
+        final AbstractActor actor = new AbstractActor(person) {
+
+            @Override
+            public void tellMessageSendingEnded(MessageTransferInProgress transmissionProgress, Message fullMessage) {
+                super.tellMessageSendingEnded(transmissionProgress, fullMessage);
+                assertInvariants(person);
+                assertSame("fullMessage", message, fullMessage);
+                assertTrue("Previously called some progress messages", 0 < nProgressMessages.get());
+                assertEquals("Calls tellMessageSendingEnded only once", 0, nEndMessages.get());
+                nEndMessages.incrementAndGet();
+            }
+
+            @Override
+            public void tellMessageTransmissionProgress(Message previousMessageSoFar) {
+                super.tellMessageTransmissionProgress(previousMessageSoFar);
+                assertInvariants(person);
+                nProgressMessages.incrementAndGet();
+            }
+        };
+        person.setActor(actor);
+        try {
+            person.beginSendingMessage(medium, message);
+        } catch (MediumUnavailableException e) {
+            throw new AssertionError(e);
+        }
+        double informationSentSoFar = 0.0;
+        /*
+         * Do an extra step to ensure we advance past the end of transmission.
+         */
+        for (int i = 0; i < nSteps + 1; ++i) {
+            clock.advance(dt);
+            assertInvariants(person);
+            final MessageTransferInProgress transferInProgress = person.getTransmissionInProgress();
+            if (transferInProgress != null) {
+                final Message messageSofar = transferInProgress.getMessageSofar();
+                final double informationSent = messageSofar == null ? 0.0 : messageSofar.getInformationContent();
+                assertTrue("Amount of information sent does not decrease", informationSentSoFar <= informationSent);
+                assertTrue("At most sent all the information", informationSent <= informationInMessage);
+                informationSentSoFar = informationSent;
+            }
+        }
+
+        assertInvariants(person);
+        assertTrue("Called some progress messages", 0 < nProgressMessages.get());
+        assertEquals("Called tellMessageSendingEnded", 1, nEndMessages.get());
+    }
+
+    @Test
+    public void sendingMessageA() {
+        sendingMessage(TIME_1, SimpleDirectCommand.CHECK_MAP, 4);
+    }
+
+    @Test
+    public void sendingMessageB() {
+        sendingMessage(TIME_2, SimpleDirectCommand.getAssembleInstance(SimpleRelativeLocation.FRONT_NEAR), 8);
     }
 
     private void setActor() {
