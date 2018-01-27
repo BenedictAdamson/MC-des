@@ -222,4 +222,10 @@ public class SimpleStatement extends AbstractMessage {
     public final Noun getSubject() {
 	return subject;
     }
+
+    @Override
+    public final String toString() {
+	return "SimpleStatement [" + subject + " " + predicate + "]";
+    }
+
 }

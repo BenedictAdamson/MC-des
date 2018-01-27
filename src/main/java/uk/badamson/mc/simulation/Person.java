@@ -2,6 +2,7 @@ package uk.badamson.mc.simulation;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 import uk.badamson.mc.actor.Actor;
@@ -10,6 +11,7 @@ import uk.badamson.mc.actor.MediumUnavailableException;
 import uk.badamson.mc.actor.MessageTransferInProgress;
 import uk.badamson.mc.actor.medium.HandSignals;
 import uk.badamson.mc.actor.medium.Medium;
+import uk.badamson.mc.actor.message.IllegalMessageException;
 import uk.badamson.mc.actor.message.Message;
 
 /**
@@ -19,6 +21,9 @@ import uk.badamson.mc.actor.message.Message;
  */
 public final class Person implements ActorInterface, Actor {
     private final Set<Medium> media = new HashSet<>();
+
+    private MessageTransferInProgress transmissionInProgress;
+    private Message transmittingMessage;
 
     /**
      * <p>
@@ -38,14 +43,33 @@ public final class Person implements ActorInterface, Actor {
     }
 
     /**
-     * @param medium
-     * @param message
+     * {@inheritDoc}
+     * 
+     * @throws NullPointerException
+     *             {@inheritDoc}
+     * @throws IllegalMessageException
+     *             {@inheritDoc}
+     * @throws IllegalStateException
+     *             {@inheritDoc}
      * @throws MediumUnavailableException
+     *             {@inheritDoc}
      */
     @Override
-    public void beginSendingMessage(Medium medium, Message message) throws MediumUnavailableException {
-	// TODO Auto-generated method stub
-
+    public final void beginSendingMessage(Medium medium, Message message) throws MediumUnavailableException {
+	Objects.requireNonNull(medium, "medium");
+	Objects.requireNonNull(message, "message");
+	if (!medium.canConvey(message)) {
+	    throw new IllegalMessageException();
+	}
+	if (!media.contains(medium)) {
+	    throw new MediumUnavailableException();
+	}
+	if (transmissionInProgress != null) {
+	    throw new IllegalStateException("This is already sending a message");
+	}
+	assert medium instanceof HandSignals;
+	transmittingMessage = message;
+	transmissionInProgress = new MessageTransferInProgress(medium, null);
     }
 
     /**
@@ -94,22 +118,14 @@ public final class Person implements ActorInterface, Actor {
 	return Collections.emptySet();// TODO
     }
 
-    /**
-     * @return
-     */
     @Override
-    public MessageTransferInProgress getTransmissionInProgress() {
-	// TODO Auto-generated method stub
-	return null;
+    public final MessageTransferInProgress getTransmissionInProgress() {
+	return transmissionInProgress;
     }
 
-    /**
-     * @return
-     */
     @Override
-    public Message getTransmittingMessage() {
-	// TODO Auto-generated method stub
-	return null;
+    public final Message getTransmittingMessage() {
+	return transmittingMessage;
     }
 
     /**

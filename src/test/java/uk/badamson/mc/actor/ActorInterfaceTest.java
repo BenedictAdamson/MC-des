@@ -24,7 +24,7 @@ public class ActorInterfaceTest {
 	final Set<MessageTransferInProgress> messagesBeingReceived = actorInterface.getMessagesBeingReceived();
 
 	final Message messageSofar = transmissionInProgress == null ? null : transmissionInProgress.getMessageSofar();
-	final double messageSofarLength = messageSofar == null ? Double.NaN : messageSofar.getInformationContent();
+	final double messageSofarLength = messageSofar == null ? 0.0 : messageSofar.getInformationContent();
 	final double transmittingMessageLength = transmittingMessage == null ? Double.NaN
 		: transmittingMessage.getInformationContent();
 
@@ -44,7 +44,7 @@ public class ActorInterfaceTest {
 	assertTrue("If there is a transmission in progress, its medium is one of the media that the actor can use.",
 		transmissionInProgress == null || media.contains(transmissionInProgress.getMedium()));
 	assertTrue(
-		"If there is a transmission in progress, the length of the message sent so far is"
+		"If there is a transmission in progress, the length of the message sent so far is "
 			+ "less than or equal to the length of the message being sent.",
 		transmissionInProgress == null || messageSofarLength <= transmittingMessageLength);
 	assertTrue(

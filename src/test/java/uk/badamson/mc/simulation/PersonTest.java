@@ -16,6 +16,8 @@ import uk.badamson.mc.actor.MessageTransferInProgress;
 import uk.badamson.mc.actor.medium.HandSignals;
 import uk.badamson.mc.actor.medium.Medium;
 import uk.badamson.mc.actor.message.Message;
+import uk.badamson.mc.actor.message.SimpleDirectCommand;
+import uk.badamson.mc.actor.message.SimpleStatement;
 
 /**
  * <p>
@@ -46,6 +48,28 @@ public class PersonTest {
 	} catch (MediumUnavailableException e) {
 	    assertInvariants(person);
 	    throw e;
+	}
+	assertInvariants(person);
+    }
+
+    private static void beginSendingMessage_default(SimpleDirectCommand message) {
+	final Person person = new Person();
+	final Medium medium = HandSignals.INSTANCE;
+	try {
+	    ActorInterfaceTest.beginSendingMessage(person, medium, message);
+	} catch (MediumUnavailableException e) {
+	    throw new AssertionError(e);
+	}
+	assertInvariants(person);
+    }
+
+    private static void beginSendingMessage_default(SimpleStatement message) {
+	final Person person = new Person();
+	final Medium medium = HandSignals.INSTANCE;
+	try {
+	    ActorInterfaceTest.beginSendingMessage(person, medium, message);
+	} catch (MediumUnavailableException e) {
+	    throw new AssertionError(e);
 	}
 	assertInvariants(person);
     }
@@ -83,6 +107,20 @@ public class PersonTest {
     public static void tellMessageTransmissionProgress(Person person, Message previousMessageSoFar) {
 	ActorTest.tellMessageTransmissionProgress(person, previousMessageSoFar);// inherited
 	assertInvariants(person);
+    }
+
+    @Test
+    public void beginSendingMessage_defaultSimpleDirectCommands() {
+	for (SimpleDirectCommand message : SimpleDirectCommand.values()) {
+	    beginSendingMessage_default(message);
+	}
+    }
+
+    @Test
+    public void beginSendingMessage_defaultSimpleStatements() {
+	for (SimpleStatement message : SimpleStatement.values()) {
+	    beginSendingMessage_default(message);
+	}
     }
 
     @Test
