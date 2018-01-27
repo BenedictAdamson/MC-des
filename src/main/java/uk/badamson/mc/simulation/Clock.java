@@ -25,6 +25,36 @@ import java.util.concurrent.TimeUnit;
  */
 public final class Clock {
 
+    /**
+     * <p>
+     * An exception for indicating that the {@linkplain Runnable#run() action} of a
+     * {@linkplain Clock#scheduleAction(long, Runnable) scheduled action} threw a
+     * {@link RuntimeException}.
+     * </p>
+     */
+    public static final class ActionException extends RuntimeException {
+
+        private static final long serialVersionUID = 1L;
+
+        private ActionException(RuntimeException cause) {
+            super(cause);
+        }
+
+        /**
+         * <p>
+         * The {@link RuntimeException} that the {@linkplain Runnable#run() action} of
+         * the {@linkplain Clock#scheduleAction(long, Runnable) scheduled action} threw.
+         * </p>
+         * 
+         * @return the cause, or null if the cause is unknown.
+         */
+        @Override
+        public final RuntimeException getCause() {
+            return (RuntimeException) super.getCause();
+        }
+
+    }// class
+
     private final class ScheduledAction implements Comparable<ScheduledAction> {
         final long when;
         final Runnable action;
@@ -106,6 +136,10 @@ public final class Clock {
      * @throws IllegalStateException
      *             If the method is called from the {@link Runnable#run()} method of
      *             a {@linkplain #scheduleAction(long, Runnable) scheduled action}.
+     * @throws ActionException
+     *             If the {@link Runnable#run()} method of a
+     *             {@linkplain #scheduleAction(long, Runnable) scheduled action}
+     *             threw a {@link RuntimeException}.
      */
     public final void advance(long amount) {
         if (Long.MAX_VALUE - amount < time) {
@@ -135,6 +169,10 @@ public final class Clock {
      * @throws IllegalStateException
      *             If the method is called from the {@link Runnable#run()} method of
      *             a {@linkplain #scheduleAction(long, Runnable) scheduled action}.
+     * @throws ActionException
+     *             If the {@link Runnable#run()} method of a
+     *             {@linkplain #scheduleAction(long, Runnable) scheduled action}
+     *             threw a {@link RuntimeException}.
      */
     public final void advanceTo(long when) {
         if (when < time) {
@@ -146,8 +184,13 @@ public final class Clock {
         while (!scheduledActions.isEmpty() && scheduledActions.peek().when <= when) {
             currentScheduledAction = scheduledActions.poll();
             time = currentScheduledAction.when;
-            currentScheduledAction.action.run();// may throw
-            currentScheduledAction = null;
+            try {
+                currentScheduledAction.action.run();
+            } catch (RuntimeException e) {
+                throw new ActionException(e);
+            } finally {
+                currentScheduledAction = null;
+            }
         }
         time = when;
     }
