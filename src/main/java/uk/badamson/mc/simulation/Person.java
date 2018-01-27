@@ -79,11 +79,16 @@ public final class Person implements ActorInterface {
                         transmittingMessage.getPartialMessage(informationSent));
             } else {
                 // Completed transmission
-                final Message fullMessage = transmittingMessage;
-                final MessageTransferInProgress finalProgress = new MessageTransferInProgress(medium, fullMessage);
-                transmittingMessage = null;
-                transmissionInProgress = null;
-                actor.tellMessageSendingEnded(finalProgress, fullMessage);
+                if (actor != null) {
+                    final Message fullMessage = transmittingMessage;
+                    final MessageTransferInProgress finalProgress = new MessageTransferInProgress(medium, fullMessage);
+                    transmittingMessage = null;
+                    transmissionInProgress = null;
+                    actor.tellMessageSendingEnded(finalProgress, fullMessage);
+                } else {
+                    transmittingMessage = null;
+                    transmissionInProgress = null;
+                }
             }
         }
     }
@@ -123,8 +128,10 @@ public final class Person implements ActorInterface {
 
                 @Override
                 public void run() {
-                    updateState();
-                    actor.tellMessageTransmissionProgress();// FIXME
+                    if (actor != null) {
+                        updateState();
+                        actor.tellMessageTransmissionProgress();
+                    }
                 }
             });
         }

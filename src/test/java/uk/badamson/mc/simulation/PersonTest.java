@@ -240,6 +240,29 @@ public class PersonTest {
 
         assertInvariants(person);
         assertEquals("Called tellMessageSendingEnded", 1, nEndMessages.get());
+        assertNull("No transmission in progress.", person.getTransmissionInProgress());
+    }
+
+    @Test
+    public void sendingMessageLargeAdvanceNoActor() {
+        final long time0 = TIME_1;
+        final Message message = SimpleDirectCommand.CHECK_MAP;
+        final Clock clock = new Clock(TimeUnit.MICROSECONDS, time0);
+        final Person person = new Person(clock);
+        final Medium medium = HandSignals.INSTANCE;
+        final double informationInMessage = message.getInformationContent();
+        final double transmissionTime = informationInMessage / medium.getTypicalTransmissionRate();
+
+        try {
+            person.beginSendingMessage(medium, message);
+        } catch (MediumUnavailableException e) {
+            throw new AssertionError(e);
+        }
+
+        clock.advance(clock.getUnit().convert((long) (transmissionTime * 1E3 * 20), TimeUnit.MILLISECONDS));
+
+        assertInvariants(person);
+        assertNull("No transmission in progress.", person.getTransmissionInProgress());
     }
 
     private void setActor() {
