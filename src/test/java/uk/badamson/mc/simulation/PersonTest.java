@@ -129,7 +129,7 @@ public class PersonTest {
         constructor(clock2);
     }
 
-    private void sendingMessage(final long time0, SimpleDirectCommand message, final int nSteps) {
+    private void sendingMessageIncremental(final long time0, Message message, final int nSteps) {
         assert 2 <= nSteps;
         final Clock clock = new Clock(TimeUnit.MICROSECONDS, time0);
         final Person person = new Person(clock);
@@ -188,13 +188,55 @@ public class PersonTest {
     }
 
     @Test
-    public void sendingMessageA() {
-        sendingMessage(TIME_1, SimpleDirectCommand.CHECK_MAP, 4);
+    public void sendingMessageIncrementalA() {
+        sendingMessageIncremental(TIME_1, SimpleDirectCommand.CHECK_MAP, 4);
     }
 
     @Test
-    public void sendingMessageB() {
-        sendingMessage(TIME_2, SimpleDirectCommand.getAssembleInstance(SimpleRelativeLocation.FRONT_NEAR), 8);
+    public void sendingMessageIncrementalB() {
+        sendingMessageIncremental(TIME_2, SimpleDirectCommand.getAssembleInstance(SimpleRelativeLocation.FRONT_NEAR),
+                8);
+    }
+
+    @Test
+    public void sendingMessageLargeAdvance() {
+        final long time0 = TIME_1;
+        final Message message = SimpleDirectCommand.CHECK_MAP;
+        final Clock clock = new Clock(TimeUnit.MICROSECONDS, time0);
+        final Person person = new Person(clock);
+        final Medium medium = HandSignals.INSTANCE;
+        final double informationInMessage = message.getInformationContent();
+        final double transmissionTime = informationInMessage / medium.getTypicalTransmissionRate();
+
+        final AtomicInteger nEndMessages = new AtomicInteger(0);
+        final AbstractActor actor = new AbstractActor(person) {
+
+            @Override
+            public void tellMessageSendingEnded(MessageTransferInProgress transmissionProgress, Message fullMessage) {
+                super.tellMessageSendingEnded(transmissionProgress, fullMessage);
+                assertInvariants(person);
+                assertSame("fullMessage", message, fullMessage);
+                assertEquals("Calls tellMessageSendingEnded only once", 0, nEndMessages.get());
+                nEndMessages.incrementAndGet();
+            }
+
+            @Override
+            public void tellMessageTransmissionProgress(Message previousMessageSoFar) {
+                super.tellMessageTransmissionProgress(previousMessageSoFar);
+                assertInvariants(person);
+            }
+        };
+        person.setActor(actor);
+        try {
+            person.beginSendingMessage(medium, message);
+        } catch (MediumUnavailableException e) {
+            throw new AssertionError(e);
+        }
+
+        clock.advance(clock.getUnit().convert((long) (transmissionTime * 1E3 * 20), TimeUnit.MILLISECONDS));
+
+        assertInvariants(person);
+        assertEquals("Called tellMessageSendingEnded", 1, nEndMessages.get());
     }
 
     private void setActor() {
