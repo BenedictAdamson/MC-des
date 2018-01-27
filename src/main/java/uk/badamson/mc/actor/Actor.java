@@ -34,16 +34,18 @@ public interface Actor {
      *            The message transfer that has just started.
      * 
      * @throws NullPointerException
-     *             If {@code messageBeingReceived} is null.
+     *             If {@code receptionStarted} is null.
      * @throws IllegalArgumentException
      *             <ul>
-     *             <li>If {@code messageBeingReceived} is not one of the
+     *             <li>If the
+     *             {@linkplain MessageTransferInProgress#getMessageSofar() message
+     *             received so far} of the {@code receptionStarted} is not null,
+     *             which would indicate that reception actually started some time
+     *             ago.</li>
+     *             <li>If the {@code receptionStarted} is not one of the
      *             {@linkplain ActorInterface#getMessagesBeingReceived() messages
      *             being received} according to the {@linkplain #getActorInterface()
      *             actor interface} of this actor.</li>
-     *             <li>If the
-     *             {@linkplain MessageTransferInProgress#getMessageSofar() message
-     *             received so far} of the reception start is non null.</li>
      *             </ul>
      */
     public void tellBeginReceivingMessage(MessageTransferInProgress receptionStarted);
@@ -160,14 +162,16 @@ public interface Actor {
      *             <li>If the
      *             {@linkplain MessageTransferInProgress#getMessageSofar() message
      *             sent so far} of the current transmission in progress, according
-     *             to the actor interface, is null.</li>
+     *             to the actor interface, is null, which would indicate that has
+     *             been no progress since transmission started.</li>
      *             </ul>
      * @throws IllegalArgumentException
      *             If the {@code previousMessageSoFar} is non null and the
      *             {@linkplain Message#getInformationContent() length (information
      *             content)} of the message sent so far of the current transmission
      *             in progress, according to the actor interface, is not greater
-     *             than the length of the {@code previousMessageSoFar}.
+     *             than the length of the {@code previousMessageSoFar}, which would
+     *             indicate no progress since the previous report.
      * @throws IllegalStateException
      *             <ul>
      *             <li>If the length of the message sent so far of the current
