@@ -28,12 +28,11 @@ public class ActorInterfaceTest {
         final double transmittingMessageLength = transmittingMessage == null ? Double.NaN
                 : transmittingMessage.getInformationContent();
 
-        assertNotNull("Always have an actor", actor);// guard
         assertNotNull("Always have a set of media.", media);// guard
         assertNotNull("Always have a set of messages being received.", messagesBeingReceived);// guard
 
-        assertSame("This is the actor interface of the actor of this actor interface", actorInterface,
-                actor.getActorInterface());
+        assertTrue("If this has an actor, this actor interface is the actor interface of the actor.",
+                actor == null || actor.getActorInterface() == actorInterface);
 
         for (Medium medium : media) {
             assertNotNull("The set of media does not contain a null element.", medium);

@@ -19,9 +19,10 @@ import uk.badamson.mc.actor.message.Message;
  * A simulated person.
  * </p>
  */
-public final class Person implements ActorInterface, Actor {
+public final class Person implements ActorInterface {
     private final Set<Medium> media = new HashSet<>();
 
+    private Actor actor;
     private MessageTransferInProgress transmissionInProgress;
     private Message transmittingMessage;
 
@@ -30,6 +31,7 @@ public final class Person implements ActorInterface, Actor {
      * Construct a simulated person that is currently doing nothing.
      * </p>
      * <ul>
+     * <li>This does not have an {@linkplain #getActor() actor} (it is null).
      * <li>The {@linkplain #getMedia() media} through which this actor can send
      * messages consists of {@linkplain HandSignals hand signals}.</li>
      * <li>This actor is {@linkplain #getMessagesBeingReceived() receiving} no
@@ -73,33 +75,21 @@ public final class Person implements ActorInterface, Actor {
     }
 
     /**
-     * {@inheritDoc}
-     * 
      * <p>
-     * Additional constraints of the {@link Person} class:
+     * The interface through which the simulation interacts with a human or AI
+     * player controlling this person.
      * </p>
      * <ul>
-     * <li>This {@linkplain ActorInterface actor interface} is its own actor.</li>
+     * <li>Always have an (non null) actor.</li>
+     * <li>This is the {@linkplain Actor#getActorInterface() actor interface} of the
+     * actor of this actor interface.</li>
      * </ul>
+     * 
+     * @return The actor.
      */
     @Override
     public final Actor getActor() {
-        return this;
-    }
-
-    /**
-     * {@inheritDoc}
-     * 
-     * <p>
-     * Additional constraints of the {@link Person} class:
-     * </p>
-     * <ul>
-     * <li>This {@linkplain Actor actor} is its own actor interface.</li>
-     * </ul>
-     */
-    @Override
-    public final ActorInterface getActorInterface() {
-        return this;
+        return actor;
     }
 
     /**
@@ -129,70 +119,23 @@ public final class Person implements ActorInterface, Actor {
     }
 
     /**
-     * @param receptionStarted
+     * <p>
+     * Change the interface through which the simulation interacts with a human or
+     * AI player controlling this person.
+     * </p>
      * 
-     * @throws NullPointerException
-     *             {@inheritDoc}
+     * @param actor
+     *            the interface to use from now on
      * @throws IllegalArgumentException
-     *             {@inheritDoc}
+     *             If {@code actor} is not null and the
+     *             {@linkplain Actor#getActorInterface() actor interface} of the
+     *             {@code actor} is not this object.
      */
-    @Override
-    public void tellBeginReceivingMessage(MessageTransferInProgress receptionStarted) {
-        // TODO Auto-generated method stub
-
-    }
-
-    /**
-     * @param previousMessageSoFar
-     * @param messageBeingReceived
-     */
-    @Override
-    public void tellMessageReceptionProgress(Message previousMessageSoFar,
-            MessageTransferInProgress messageBeingReceived) {
-        // TODO Auto-generated method stub
-
-    }
-
-    /**
-     * {@inheritDoc}
-     * 
-     * @throws NullPointerException
-     *             {@inheritDoc}
-     * @throws IllegalArgumentException
-     *             {@inheritDoc}
-     * @throws IllegalStateException
-     *             {@inheritDoc}
-     */
-    @Override
-    public final void tellMessageSendingEnded(MessageTransferInProgress transmissionProgress, Message fullMessage) {
-        Objects.requireNonNull(transmissionProgress, "transmissionProgress");
-        final Message messageSofar = transmissionProgress.getMessageSofar();
-        if (messageSofar != null) {
-            final double fullInformation = fullMessage.getInformationContent();
-            final double sentInformation = messageSofar.getInformationContent();
-            if (fullInformation < sentInformation) {
-                throw new IllegalArgumentException("message sent so far is longer <" + sentInformation
-                        + "> than the full message <" + fullInformation + ">");
-            } else if (fullInformation == sentInformation && messageSofar != fullMessage) {
-                throw new IllegalArgumentException(
-                        "Information content of message so far indicates full message sent, but message so far <"
-                                + messageSofar + "> is not the full message <" + fullInformation + ">");
-            }
+    public final void setActor(Actor actor) {
+        if (actor != null && actor.getActorInterface() != this) {
+            throw new IllegalArgumentException("actor does not use this ActorInterface");
         }
-        if (getActorInterface().getTransmittingMessage() != null) {
-            throw new IllegalStateException("(still) transmitting a message");
-        }
-        // TODO Auto-generated method stub
-
-    }
-
-    /**
-     * @param previousMessageSoFar
-     */
-    @Override
-    public void tellMessageTransmissionProgress(Message previousMessageSoFar) {
-        // TODO Auto-generated method stub
-
+        this.actor = actor;
     }
 
 }

@@ -78,12 +78,13 @@ public interface ActorInterface {
      * The actor for which this is the service interface.
      * </p>
      * <ul>
-     * <li>Always have an (non null) actor.</li>
-     * <li>This is the {@linkplain Actor#getActorInterface() actor interface} of the
-     * actor of this actor interface.</li>
+     * <li>A null actor indicates that the person does not (currently) have a
+     * controlling AI or human player..</li>
+     * <li>If this has an (non null) actor, this actor interface is the
+     * {@linkplain Actor#getActorInterface() actor interface} of the actor.</li>
      * </ul>
      * 
-     * @return The actor; not null.
+     * @return The actor.
      */
     public Actor getActor();
 
