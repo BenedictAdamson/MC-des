@@ -27,9 +27,15 @@ public class MessageTransferInProgressTest {
     private static final Medium MEDIUM_2 = new Medium() {
 
 	@Override
+	public final boolean canConvey(Message message) {
+	    return message == MESSAGE_1 || message == MESSAGE_2;
+	}
+
+	@Override
 	public final double getTypicalTransmissionRate() {
 	    return 44.1 * 1024;
 	}
+
     };
     private static final Message MESSAGE_2 = SimpleDirectCommand.RUSH;
     private static final Message MESSAGE_1 = SimpleDirectCommand.HALT;
