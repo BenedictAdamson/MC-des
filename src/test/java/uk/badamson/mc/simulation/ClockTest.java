@@ -1,13 +1,10 @@
 package uk.badamson.mc.simulation;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.Test;
 
@@ -20,8 +17,32 @@ import uk.badamson.mc.ObjectTest;
  */
 public class ClockTest {
 
-    private static final long TIME_1 = 1_000L;
-    private static final long TIME_2 = -123L;
+    private static final class RunnableSpy implements Runnable {
+
+        private final Clock clock;
+        private final long when;
+        private boolean ran = false;
+
+        public RunnableSpy(Clock clock, long when) {
+            this.clock = clock;
+            this.when = when;
+        }
+
+        public final void assertRan(boolean expected) {
+            assertEquals("ran", expected, ran);
+        }
+
+        @Override
+        public final void run() {
+            assertEquals("time", when, clock.getTime());
+            ran = true;
+        }
+    }// class
+    private static final long TIME_1 = -123L;
+    private static final long TIME_2 = 1_000L;
+    private static final long TIME_3 = 60_000L;
+
+    private static final long TIME_4 = 3_600_000L;
 
     public static void advance(Clock clock, long amount) {
         final long time0 = clock.getTime();
@@ -36,6 +57,30 @@ public class ClockTest {
         final Clock clock = new Clock(TimeUnit.MILLISECONDS, time);
 
         advance(clock, amount);
+    }
+
+    private static void advance_with1Action(long time0, long actionTime, long timeToAdvanceTo) {
+        assert time0 < actionTime;
+        assert actionTime <= timeToAdvanceTo;
+        final Clock clock = new Clock(TimeUnit.MILLISECONDS, time0);
+        final RunnableSpy action = new RunnableSpy(clock, actionTime);
+        clock.scheduleAction(actionTime, action);
+
+        advance(clock, timeToAdvanceTo - time0);
+
+        action.assertRan(true);
+    }
+
+    private static void advance_withLaterAction(long time0, long timeToAdvanceTo, long actionTime) {
+        assert time0 <= timeToAdvanceTo;
+        assert timeToAdvanceTo < actionTime;
+        final Clock clock = new Clock(TimeUnit.MILLISECONDS, time0);
+        final RunnableSpy action = new RunnableSpy(clock, actionTime);
+        clock.scheduleAction(actionTime, action);
+
+        advance(clock, timeToAdvanceTo - time0);
+
+        action.assertRan(false);
     }
 
     public static void assertInvariants(Clock clock) {
@@ -67,36 +112,20 @@ public class ClockTest {
     private static void scheduleAction_future(final long time, final long when) {
         assert time < when;
         final Clock clock = new Clock(TimeUnit.MILLISECONDS, time);
-        AtomicBoolean acted = new AtomicBoolean(false);
-        final Runnable action = new Runnable() {
-
-            @Override
-            public final void run() {
-                assertEquals("time", when, clock.getTime());
-                acted.set(true);
-            }
-        };
+        final RunnableSpy action = new RunnableSpy(clock, when);
 
         scheduleAction(clock, when, action);
 
-        assertFalse("Did not perform the action", acted.get());
+        action.assertRan(false);
     }
 
     private static void scheduleAction_immediate(long time) {
         final Clock clock = new Clock(TimeUnit.MILLISECONDS, time);
-        AtomicBoolean acted = new AtomicBoolean(false);
-        final Runnable action = new Runnable() {
-
-            @Override
-            public final void run() {
-                assertEquals("time", time, clock.getTime());
-                acted.set(true);
-            }
-        };
+        final RunnableSpy action = new RunnableSpy(clock, time);
 
         scheduleAction(clock, time, action);
 
-        assertTrue("Performed the action", acted.get());
+        action.assertRan(true);
     }
 
     @Test
@@ -117,6 +146,54 @@ public class ClockTest {
     @Test
     public void advance_1ToMax() {
         advance(Long.MAX_VALUE - 1L, 1L);
+    }
+
+    @Test
+    public void advance_with1ActionA() {
+        final long time0 = TIME_1;
+        final long actionTime = TIME_2;
+        final long timeToAdvanceTo = TIME_3;
+        advance_with1Action(time0, actionTime, timeToAdvanceTo);
+    }
+
+    @Test
+    public void advance_with1ActionAtEnd() {
+        final long time0 = TIME_1;
+        final long actionTime = TIME_2;
+        final long timeToAdvanceTo = actionTime;// critical
+        advance_with1Action(time0, actionTime, timeToAdvanceTo);
+    }
+
+    @Test
+    public void advance_with1ActionB() {
+        final long time0 = TIME_2;
+        final long actionTime = TIME_3;
+        final long timeToAdvanceTo = TIME_4;
+        advance_with1Action(time0, actionTime, timeToAdvanceTo);
+    }
+
+    @Test
+    public void advance_withLaterActionA() {
+        final long time0 = TIME_1;
+        final long timeToAdvanceTo = TIME_2;
+        final long actionTime = TIME_3;
+        advance_withLaterAction(time0, timeToAdvanceTo, actionTime);
+    }
+
+    @Test
+    public void advance_withLaterActionJust() {
+        final long time0 = TIME_1;
+        final long timeToAdvanceTo = TIME_2;
+        final long actionTime = timeToAdvanceTo + 1L;// critical
+        advance_withLaterAction(time0, timeToAdvanceTo, actionTime);
+    }
+
+    @Test
+    public void advance_withLaterActionNoOp() {
+        final long time0 = TIME_1;
+        final long timeToAdvanceTo = time0;// critical
+        final long actionTime = TIME_2;
+        advance_withLaterAction(time0, timeToAdvanceTo, actionTime);
     }
 
     @Test

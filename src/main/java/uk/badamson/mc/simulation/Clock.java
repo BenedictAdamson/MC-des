@@ -24,6 +24,17 @@ import java.util.concurrent.TimeUnit;
  */
 public final class Clock {
 
+    private final class Task {
+        final long when;
+        final Runnable action;
+
+        private Task(long when, Runnable action) {
+            this.when = when;
+            this.action = action;
+        }
+
+    }// class
+
     /**
      * <p>
      * An exception for indicating that the {@linkplain Clock#getTime() time} of a
@@ -43,6 +54,7 @@ public final class Clock {
     private final TimeUnit unit;
     private long time;
     private Runnable currentAction;
+    private Task scheduledTask;// FIXME
 
     /**
      * <p>
@@ -66,6 +78,14 @@ public final class Clock {
      * Advance (increment) the {@linkplain #getTime() time} of this clock by a given
      * amount
      * </p>
+     * <ul>
+     * <li>The method advances the time to the new time implied by the given amount.
+     * <li>However, if any actions had been
+     * {@linkplain #scheduleAction(long, Runnable) scheduled} for points in time
+     * before that new time, the method first advances the clock to those scheduled
+     * times, in ascending time order, {@linkplain Runnable#run() performing} each
+     * of those actions at their scheduled time.</li>
+     * </ul>
      * 
      * @param amount
      *            The amount of time, in {@linkplain #getUnit() units} of this
@@ -90,7 +110,14 @@ public final class Clock {
         if (currentAction != null) {
             throw new IllegalStateException("Called from the run method of a scheduled action");
         }
-        time += amount;
+        final long newTime = time + amount;
+        if (scheduledTask != null && scheduledTask.when <= newTime) {
+            time = scheduledTask.when;
+            currentAction = scheduledTask.action;
+            currentAction.run();
+            currentAction = null;
+        }
+        time = newTime;
     }
 
     /**
@@ -150,7 +177,7 @@ public final class Clock {
         }
 
         if (time < when) {
-            // TODO
+            scheduledTask = new Task(when, action);
         } else {// time == when
             currentAction = action;
             action.run();
