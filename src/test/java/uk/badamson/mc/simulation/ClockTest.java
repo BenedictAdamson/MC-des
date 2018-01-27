@@ -64,7 +64,7 @@ public class ClockTest {
         assertInvariants(clock);
     }
 
-    private static void scheduleAction_future(long time, long when) {
+    private static void scheduleAction_future(final long time, final long when) {
         assert time < when;
         final Clock clock = new Clock(TimeUnit.MILLISECONDS, time);
         AtomicBoolean acted = new AtomicBoolean(false);
@@ -72,6 +72,7 @@ public class ClockTest {
 
             @Override
             public final void run() {
+                assertEquals("time", when, clock.getTime());
                 acted.set(true);
             }
         };
@@ -88,6 +89,7 @@ public class ClockTest {
 
             @Override
             public final void run() {
+                assertEquals("time", time, clock.getTime());
                 acted.set(true);
             }
         };

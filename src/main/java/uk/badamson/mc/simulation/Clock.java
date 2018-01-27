@@ -42,6 +42,7 @@ public final class Clock {
 
     private final TimeUnit unit;
     private long time;
+    private Runnable currentAction;
 
     /**
      * <p>
@@ -75,6 +76,9 @@ public final class Clock {
      *             If incrementing the time by the {@code amount} would cause the
      *             time to overflow. That is, if recording the new time would
      *             require a time value larger than {@link Long#MAX_VALUE}.
+     * @throws IllegalStateException
+     *             If the method is called from the {@link Runnable#run()} method of
+     *             a {@linkplain #scheduleAction(long, Runnable) scheduled action}.
      */
     public final void advance(long amount) {
         if (amount < 0L) {
@@ -82,6 +86,9 @@ public final class Clock {
         }
         if (Long.MAX_VALUE - amount < time) {
             throw new TimeOverflowException();
+        }
+        if (currentAction != null) {
+            throw new IllegalStateException("Called from the run method of a scheduled action");
         }
         time += amount;
     }
@@ -119,13 +126,17 @@ public final class Clock {
      * </p>
      * <p>
      * If the point in time is the current time, the method immediately performs the
-     * action.
+     * action. Otherwise, the clock records the action for future use when the clock
+     * is {@linkplain #advance(long) advanced} to (or through) the point in time
+     * when the action is to be performed. The clock guarantees that the clock time
+     * is that point in time when it performs the action.
      * </p>
      * 
      * @param when
      *            The point in time when the action should be performed
      * @param action
-     *            The action to perform.
+     *            The action to perform. The the action must not (directly or
+     *            indirectly) try to {@linkplain #advance(long) advance} this clock.
      * @throws NullPointerException
      *             If {@code action} is null
      * @throws IllegalArgumentException
@@ -141,7 +152,9 @@ public final class Clock {
         if (time < when) {
             // TODO
         } else {// time == when
+            currentAction = action;
             action.run();
+            currentAction = null;
         }
     }
 
