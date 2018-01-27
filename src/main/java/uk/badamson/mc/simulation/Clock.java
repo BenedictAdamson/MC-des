@@ -24,11 +24,11 @@ import java.util.concurrent.TimeUnit;
  */
 public final class Clock {
 
-    private final class Task {
+    private final class ScheduledAction {
         final long when;
         final Runnable action;
 
-        private Task(long when, Runnable action) {
+        private ScheduledAction(long when, Runnable action) {
             this.when = when;
             this.action = action;
         }
@@ -54,7 +54,7 @@ public final class Clock {
     private final TimeUnit unit;
     private long time;
     private Runnable currentAction;
-    private Task scheduledTask;// FIXME
+    private ScheduledAction scheduledAction;// FIXME
 
     /**
      * <p>
@@ -111,9 +111,9 @@ public final class Clock {
             throw new IllegalStateException("Called from the run method of a scheduled action");
         }
         final long newTime = time + amount;
-        if (scheduledTask != null && scheduledTask.when <= newTime) {
-            time = scheduledTask.when;
-            currentAction = scheduledTask.action;
+        if (scheduledAction != null && scheduledAction.when <= newTime) {
+            time = scheduledAction.when;
+            currentAction = scheduledAction.action;
             currentAction.run();
             currentAction = null;
         }
@@ -177,7 +177,7 @@ public final class Clock {
         }
 
         if (time < when) {
-            scheduledTask = new Task(when, action);
+            scheduledAction = new ScheduledAction(when, action);
         } else {// time == when
             currentAction = action;
             action.run();
