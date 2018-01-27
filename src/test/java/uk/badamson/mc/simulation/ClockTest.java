@@ -3,6 +3,7 @@ package uk.badamson.mc.simulation;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.TimeUnit;
 
@@ -213,10 +214,12 @@ public class ClockTest {
         action.assertRan(0);
     }
 
-    public static void scheduleDelayedAction(Clock clock, long delay, TimeUnit delayUnit, Runnable action) {
-        clock.scheduleDelayedAction(delay, delayUnit, action);
+    public static long scheduleDelayedAction(Clock clock, long delay, TimeUnit delayUnit, Runnable action) {
+        final long when = clock.scheduleDelayedAction(delay, delayUnit, action);
 
         assertInvariants(clock);
+        assertTrue("Scheduled time is at or after the current time", clock.getTime() <= when);
+        return when;
     }
 
     private static void scheduleDelayedAction_future(final long time, final long delay) {
@@ -225,8 +228,9 @@ public class ClockTest {
         final Clock clock = new Clock(timeUnit, time);
         final RunnableSpy action = new RunnableSpy(clock, delay);
 
-        scheduleDelayedAction(clock, delay, timeUnit, action);
+        final long when = scheduleDelayedAction(clock, delay, timeUnit, action);
 
+        assertEquals("Scheduled time", clock.getTime() + delay, when);
         action.assertRan(0);
     }
 
@@ -235,8 +239,9 @@ public class ClockTest {
         final long delay = 0L;
         final RunnableSpy action = new RunnableSpy(clock, time);
 
-        scheduleDelayedAction(clock, delay, delayUnit, action);
+        final long when = scheduleDelayedAction(clock, delay, delayUnit, action);
 
+        assertEquals("Scheduled for the current time", time, when);
         action.assertRan(0);
     }
 

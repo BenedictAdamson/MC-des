@@ -278,6 +278,8 @@ public final class Clock {
      * @param action
      *            The action to perform. The the action must not (directly or
      *            indirectly) try to {@linkplain #advance(long) advance} this clock.
+     * @return the clock {@linkplain #getTime() time} at which the action will be
+     *         performed. At or after teh current time.
      * @throws NullPointerException
      *             <ul>
      *             <li>If {@code delayUnit} is null</li>
@@ -295,7 +297,7 @@ public final class Clock {
      *             {@link Long#MAX_VALUE}.</li>
      *             </ul>
      */
-    public final void scheduleDelayedAction(long delay, TimeUnit delayUnit, Runnable action) {
+    public final long scheduleDelayedAction(long delay, TimeUnit delayUnit, Runnable action) {
         Objects.requireNonNull(delayUnit, "delayUnit");
         if (delay < 0) {
             throw new IllegalArgumentException("delay <" + delay + ">");
@@ -306,7 +308,9 @@ public final class Clock {
         if (convertedDelay == Long.MAX_VALUE || Long.MAX_VALUE - convertedDelay < time) {
             throw new TimeOverflowException();
         }
-        scheduleActionAt(time + convertedDelay, action);
+        final long when = time + convertedDelay;
+        scheduleActionAt(when, action);
+        return when;
     }
 
 }
