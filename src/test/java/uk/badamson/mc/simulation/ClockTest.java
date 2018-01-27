@@ -65,7 +65,7 @@ public class ClockTest {
         assert actionTime <= timeToAdvanceTo;
         final Clock clock = new Clock(TimeUnit.MILLISECONDS, time0);
         final RunnableSpy action = new RunnableSpy(clock, actionTime);
-        clock.scheduleAction(actionTime, action);
+        clock.scheduleActionAt(actionTime, action);
 
         advance(clock, timeToAdvanceTo - time0);
 
@@ -80,8 +80,8 @@ public class ClockTest {
         final Clock clock = new Clock(TimeUnit.MILLISECONDS, time0);
         final RunnableSpy action1 = new RunnableSpy(clock, actionTime1);
         final RunnableSpy action2 = new RunnableSpy(clock, actionTime2);
-        clock.scheduleAction(actionTime1, action1);
-        clock.scheduleAction(actionTime2, action2);
+        clock.scheduleActionAt(actionTime1, action1);
+        clock.scheduleActionAt(actionTime2, action2);
 
         advance(clock, timeToAdvanceTo - time0);
 
@@ -94,7 +94,7 @@ public class ClockTest {
         assert timeToAdvanceTo < actionTime;
         final Clock clock = new Clock(TimeUnit.MILLISECONDS, time0);
         final RunnableSpy action = new RunnableSpy(clock, actionTime);
-        clock.scheduleAction(actionTime, action);
+        clock.scheduleActionAt(actionTime, action);
 
         advance(clock, timeToAdvanceTo - time0);
 
@@ -119,7 +119,7 @@ public class ClockTest {
         assert actionTime <= when;
         final Clock clock = new Clock(TimeUnit.MILLISECONDS, time0);
         final RunnableSpy action = new RunnableSpy(clock, actionTime);
-        clock.scheduleAction(actionTime, action);
+        clock.scheduleActionAt(actionTime, action);
 
         advanceTo(clock, when);
 
@@ -134,8 +134,8 @@ public class ClockTest {
         final Clock clock = new Clock(TimeUnit.MILLISECONDS, time0);
         final RunnableSpy action1 = new RunnableSpy(clock, actionTime1);
         final RunnableSpy action2 = new RunnableSpy(clock, actionTime2);
-        clock.scheduleAction(actionTime1, action1);
-        clock.scheduleAction(actionTime2, action2);
+        clock.scheduleActionAt(actionTime1, action1);
+        clock.scheduleActionAt(actionTime2, action2);
 
         advanceTo(clock, when);
 
@@ -148,7 +148,7 @@ public class ClockTest {
         assert when < actionTime;
         final Clock clock = new Clock(TimeUnit.MILLISECONDS, time0);
         final RunnableSpy action = new RunnableSpy(clock, actionTime);
-        clock.scheduleAction(actionTime, action);
+        clock.scheduleActionAt(actionTime, action);
 
         advanceTo(clock, when);
 
@@ -175,27 +175,27 @@ public class ClockTest {
         return clock;
     }
 
-    public static void scheduleAction(Clock clock, long when, Runnable action) {
-        clock.scheduleAction(when, action);
+    public static void scheduleActionAt(Clock clock, long when, Runnable action) {
+        clock.scheduleActionAt(when, action);
 
         assertInvariants(clock);
     }
 
-    private static void scheduleAction_future(final long time, final long when) {
+    private static void scheduleActionAt_future(final long time, final long when) {
         assert time < when;
         final Clock clock = new Clock(TimeUnit.MILLISECONDS, time);
         final RunnableSpy action = new RunnableSpy(clock, when);
 
-        scheduleAction(clock, when, action);
+        scheduleActionAt(clock, when, action);
 
         action.assertRan(0);
     }
 
-    private static void scheduleAction_immediate(long time) {
+    private static void scheduleActionAt_immediate(long time) {
         final Clock clock = new Clock(TimeUnit.MILLISECONDS, time);
         final RunnableSpy action = new RunnableSpy(clock, time);
 
-        scheduleAction(clock, time, action);
+        scheduleActionAt(clock, time, action);
 
         action.assertRan(0);
     }
@@ -227,7 +227,7 @@ public class ClockTest {
         final long timeToAdvanceTo2 = TIME_3;
         final Clock clock = new Clock(TimeUnit.MILLISECONDS, time0);
         final RunnableSpy action = new RunnableSpy(clock, actionTime);
-        clock.scheduleAction(actionTime, action);
+        clock.scheduleActionAt(actionTime, action);
         clock.advance(actionTime - time0);
 
         advance(clock, timeToAdvanceTo2 - time0);
@@ -364,7 +364,7 @@ public class ClockTest {
         final long when = TIME_3;
         final Clock clock = new Clock(TimeUnit.MILLISECONDS, time0);
         final RunnableSpy action = new RunnableSpy(clock, actionTime);
-        clock.scheduleAction(actionTime, action);
+        clock.scheduleActionAt(actionTime, action);
         clock.advanceTo(actionTime);
 
         advanceTo(clock, when);
@@ -485,23 +485,23 @@ public class ClockTest {
     }
 
     @Test
-    public void scheduleAction_futureA() {
-        scheduleAction_future(TIME_1, TIME_1 + 1L);
+    public void scheduleActionAt_futureA() {
+        scheduleActionAt_future(TIME_1, TIME_1 + 1L);
     }
 
     @Test
-    public void scheduleAction_futureB() {
-        scheduleAction_future(TIME_2, Long.MAX_VALUE);
+    public void scheduleActionAt_futureB() {
+        scheduleActionAt_future(TIME_2, Long.MAX_VALUE);
     }
 
     @Test
-    public void scheduleAction_immediateA() {
-        scheduleAction_immediate(TIME_1);
+    public void scheduleActionAt_immediateA() {
+        scheduleActionAt_immediate(TIME_1);
     }
 
     @Test
-    public void scheduleAction_immediateB() {
-        scheduleAction_immediate(TIME_2);
+    public void scheduleActionAt_immediateB() {
+        scheduleActionAt_immediate(TIME_2);
     }
 
 }

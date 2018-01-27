@@ -28,7 +28,7 @@ public final class Clock {
     /**
      * <p>
      * An exception for indicating that the {@linkplain Runnable#run() action} of a
-     * {@linkplain Clock#scheduleAction(long, Runnable) scheduled action} threw a
+     * {@linkplain Clock#scheduleActionAt(long, Runnable) scheduled action} threw a
      * {@link RuntimeException}.
      * </p>
      */
@@ -43,7 +43,8 @@ public final class Clock {
         /**
          * <p>
          * The {@link RuntimeException} that the {@linkplain Runnable#run() action} of
-         * the {@linkplain Clock#scheduleAction(long, Runnable) scheduled action} threw.
+         * the {@linkplain Clock#scheduleActionAt(long, Runnable) scheduled action}
+         * threw.
          * </p>
          * 
          * @return the cause, or null if the cause is unknown.
@@ -118,7 +119,7 @@ public final class Clock {
      * <ul>
      * <li>The method advances the time to the new time implied by the given amount.
      * <li>However, if any actions had been
-     * {@linkplain #scheduleAction(long, Runnable) scheduled} for points in time
+     * {@linkplain #scheduleActionAt(long, Runnable) scheduled} for points in time
      * before that new time, the method first advances the clock to those scheduled
      * times, in ascending time order, {@linkplain Runnable#run() performing} each
      * of those actions at their scheduled time.</li>
@@ -135,10 +136,11 @@ public final class Clock {
      *             require a time value larger than {@link Long#MAX_VALUE}.
      * @throws IllegalStateException
      *             If the method is called from the {@link Runnable#run()} method of
-     *             a {@linkplain #scheduleAction(long, Runnable) scheduled action}.
+     *             a {@linkplain #scheduleActionAt(long, Runnable) scheduled
+     *             action}.
      * @throws ActionException
      *             If the {@link Runnable#run()} method of a
-     *             {@linkplain #scheduleAction(long, Runnable) scheduled action}
+     *             {@linkplain #scheduleActionAt(long, Runnable) scheduled action}
      *             threw a {@link RuntimeException}.
      */
     public final void advance(long amount) {
@@ -155,7 +157,7 @@ public final class Clock {
      * <ul>
      * <li>The method advances the time to the given new time.
      * <li>However, if any actions had been
-     * {@linkplain #scheduleAction(long, Runnable) scheduled} for points in time
+     * {@linkplain #scheduleActionAt(long, Runnable) scheduled} for points in time
      * before that new time, the method first advances the clock to those scheduled
      * times, in ascending time order, {@linkplain Runnable#run() performing} each
      * of those actions at their scheduled time.</li>
@@ -168,10 +170,11 @@ public final class Clock {
      *             time}.
      * @throws IllegalStateException
      *             If the method is called from the {@link Runnable#run()} method of
-     *             a {@linkplain #scheduleAction(long, Runnable) scheduled action}.
+     *             a {@linkplain #scheduleActionAt(long, Runnable) scheduled
+     *             action}.
      * @throws ActionException
      *             If the {@link Runnable#run()} method of a
-     *             {@linkplain #scheduleAction(long, Runnable) scheduled action}
+     *             {@linkplain #scheduleActionAt(long, Runnable) scheduled action}
      *             threw a {@link RuntimeException}.
      */
     public final void advanceTo(long when) {
@@ -234,7 +237,8 @@ public final class Clock {
      * </p>
      * 
      * @param when
-     *            The point in time when the action should be performed
+     *            The point in time when the action should be performed, measured in
+     *            the {@linkplain #getUnit() unit} of this clock.
      * @param action
      *            The action to perform. The the action must not (directly or
      *            indirectly) try to {@linkplain #advance(long) advance} this clock.
@@ -244,7 +248,7 @@ public final class Clock {
      *             If {@code when} is before the {@linkplain #getTime() current
      *             time}.
      */
-    public final void scheduleAction(long when, Runnable action) {
+    public final void scheduleActionAt(long when, Runnable action) {
         Objects.requireNonNull(action, "action");
         if (when < time) {
             throw new IllegalArgumentException("when <" + when + "> is before now <" + time + ">");
