@@ -197,6 +197,32 @@ public class PersonTest {
         haltSendingMessage(SimpleDirectCommand.getAssembleInstance(SimpleRelativeLocation.FRONT_NEAR), fraction);
     }
 
+    @Test
+    public void sendingMessageAdvanceToEndNoActor() {
+        final long time0 = TIME_1;
+        final Message message = SimpleDirectCommand.CHECK_MAP;
+        final Clock clock = new Clock(TimeUnit.MICROSECONDS, time0);
+        final Person person = new Person(clock);
+        final Medium medium = HandSignals.INSTANCE;
+        final double informationInMessage = message.getInformationContent();
+        final double transmissionTime = informationInMessage / medium.getTypicalTransmissionRate();
+
+        try {
+            person.beginSendingMessage(medium, message);
+        } catch (MediumUnavailableException e) {
+            throw new AssertionError(e);
+        }
+
+        clock.advance(clock.getUnit().convert((long) (transmissionTime * 1E3), TimeUnit.MILLISECONDS));
+
+        /*
+         * Check state before checking invariants, because checking the invariants might
+         * cause lazy updating.
+         */
+        assertNull("No transmission in progress.", person.getTransmissionInProgress());
+        assertInvariants(person);
+    }
+
     private void sendingMessageIncremental(final long time0, Message message, final int nSteps) {
         assert 2 <= nSteps;
         final Clock clock = new Clock(TimeUnit.MICROSECONDS, time0);
@@ -332,8 +358,12 @@ public class PersonTest {
 
         clock.advance(clock.getUnit().convert((long) (transmissionTime * 1E3 * 20), TimeUnit.MILLISECONDS));
 
-        assertInvariants(person);
+        /*
+         * Check state before checking invariants, because checking the invariants might
+         * cause lazy updating.
+         */
         assertNull("No transmission in progress.", person.getTransmissionInProgress());
+        assertInvariants(person);
     }
 
     private void setActor() {

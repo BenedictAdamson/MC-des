@@ -24,12 +24,22 @@ public final class Person implements ActorInterface {
 
     /**
      * <p>
-     * While simulating the transmission of a message, the nominal minimum number of
-     * times to {@linkplain Actor#tellMessageTransmissionProgress() tell} the
+     * While simulating the transmission of a message, the nominal number of times
+     * to {@linkplain Actor#tellMessageTransmissionProgress() telling} the
      * {@linkplain #getActor() actor} of progress in sending the message.
      * </p>
      */
-    public static final int MIN_MESSAGE_TRANSMISSION_PROGRESS_STEPS = 3;
+    public static final int MIN_MESSAGE_TRANSMISSION_PROGRESS_COUNT = 4;
+
+    /**
+     * <p>
+     * While simulating the transmission of a message, the nominal minimum time
+     * interval, in seconds, between
+     * {@linkplain Actor#tellMessageTransmissionProgress() telling} the
+     * {@linkplain #getActor() actor} of progress in sending the message.
+     * </p>
+     */
+    public static final double MIN_MESSAGE_TRANSMISSION_PROGRESS_INTERVAL = 1.0;
 
     private final Clock clock;
     private final Set<Medium> media = new HashSet<>();
@@ -99,7 +109,7 @@ public final class Person implements ActorInterface {
         assert medium instanceof HandSignals;
         transmittingMessage = message;
         transmissionInProgress = new MessageTransferInProgress(medium, null);
-        scheduleTellMessageTransmissionProgress();
+        scheduleUpdateMessageTransmissionProgress();
     }
 
     private void clearSendingMessage() {
@@ -108,15 +118,16 @@ public final class Person implements ActorInterface {
     }
 
     private void endMessageSending() {
-        if (actor != null) {
-            final Message fullMessage = transmittingMessage;
-            final MessageTransferInProgress finalProgress = new MessageTransferInProgress(
-                    transmissionInProgress.getMedium(), fullMessage);
-            clearSendingMessage();
-            actor.tellMessageSendingEnded(finalProgress, fullMessage);
-        } else {
-            clearSendingMessage();
-        }
+        final Message fullMessage = transmittingMessage;
+        final MessageTransferInProgress finalProgress = new MessageTransferInProgress(
+                transmissionInProgress.getMedium(), fullMessage);
+        clock.scheduleActionAt(clock.getTime(), new Runnable() {
+            @Override
+            public final void run() {
+                actor.tellMessageSendingEnded(finalProgress, fullMessage);
+            }
+        });
+        clearSendingMessage();
     }
 
     /**
@@ -183,34 +194,29 @@ public final class Person implements ActorInterface {
         clearSendingMessage();
     }
 
-    private void scheduleDelayedUpdate(double delay) {
+    private void scheduleUpdateMessageTransmissionProgress() {
+        final Message messageSofar = transmissionInProgress.getMessageSofar();
+        final double transmissionRate = transmissionInProgress.getMedium().getTypicalTransmissionRate();
+        final double fullInformation = transmittingMessage.getInformationContent();
+        final double sentInformation = messageSofar == null ? 0.0 : messageSofar.getInformationContent();
+        final double transmissionTime = fullInformation / transmissionRate;
+        final double remainingTime = (fullInformation - sentInformation) / transmissionRate;
+        double delay = transmissionTime / (1 + MIN_MESSAGE_TRANSMISSION_PROGRESS_COUNT);
+        delay = Double.min(delay, MIN_MESSAGE_TRANSMISSION_PROGRESS_INTERVAL);
+        delay = Double.min(delay, remainingTime);
         final long dt = Long.max(1, (long) (1E3 * delay));
         clock.scheduleDelayedAction(dt, TimeUnit.MILLISECONDS, new Runnable() {
 
             @Override
             public void run() {
                 updateState();
+                if (actor != null && transmissionInProgress != null
+                        && transmissionInProgress.getMessageSofar() != null) {
+                    actor.tellMessageTransmissionProgress();
+                    scheduleUpdateMessageTransmissionProgress();
+                }
             }
         });
-    }
-
-    private void scheduleTellMessageTransmissionProgress() {
-        final double transmissionTime = transmittingMessage.getInformationContent()
-                / transmissionInProgress.getMedium().getTypicalTransmissionRate();
-        final long dt = Long.max(1, (long) (1E3 * transmissionTime / (MIN_MESSAGE_TRANSMISSION_PROGRESS_STEPS + 1)));
-        for (int i = 1; i <= MIN_MESSAGE_TRANSMISSION_PROGRESS_STEPS; ++i) {
-            clock.scheduleDelayedAction(dt * i, TimeUnit.MILLISECONDS, new Runnable() {
-
-                @Override
-                public void run() {
-                    if (actor != null && transmissionInProgress != null) {
-                        updateState();
-                        actor.tellMessageTransmissionProgress();
-                    }
-                }
-            });
-        }
-        scheduleDelayedUpdate(transmissionTime);
     }
 
     /**
