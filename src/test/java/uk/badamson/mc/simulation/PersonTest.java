@@ -1,11 +1,14 @@
 package uk.badamson.mc.simulation;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import uk.badamson.mc.ObjectTest;
@@ -25,12 +28,15 @@ import uk.badamson.mc.actor.message.SimpleStatement;
  * </p>
  */
 public class PersonTest {
+    private static final long TIME_1 = ClockTest.TIME_1;
+    private static final long TIME_2 = ClockTest.TIME_2;
 
     public static void assertInvariants(Person person) {
         ObjectTest.assertInvariants(person);// inherited
         ActorInterfaceTest.assertInvariants(person);// inherited
-    }
 
+        assertNotNull("Not null, clock", person.getClock());
+    }
     public static void assertInvariants(Person person1, Person person2) {
         ObjectTest.assertInvariants(person1, person2);// inherited
         ActorInterfaceTest.assertInvariants(person1, person2);// inherited
@@ -47,32 +53,11 @@ public class PersonTest {
         assertInvariants(person);
     }
 
-    private static void beginSendingMessage_default(SimpleDirectCommand message) {
-        final Person person = new Person();
-        final Medium medium = HandSignals.INSTANCE;
-        try {
-            ActorInterfaceTest.beginSendingMessage(person, medium, message);
-        } catch (MediumUnavailableException e) {
-            throw new AssertionError(e);
-        }
-        assertInvariants(person);
-    }
-
-    private static void beginSendingMessage_default(SimpleStatement message) {
-        final Person person = new Person();
-        final Medium medium = HandSignals.INSTANCE;
-        try {
-            ActorInterfaceTest.beginSendingMessage(person, medium, message);
-        } catch (MediumUnavailableException e) {
-            throw new AssertionError(e);
-        }
-        assertInvariants(person);
-    }
-
-    private static Person constructor() {
-        final Person person = new Person();
+    private static Person constructor(Clock clock) {
+        final Person person = new Person(clock);
 
         assertInvariants(person);
+        assertSame("clock", clock, person.getClock());
         assertNull("actor", person.getActor());
         assertEquals("The media through which this actor can send messages consists of hand signals}.",
                 Collections.singleton(HandSignals.INSTANCE), person.getMedia());
@@ -82,18 +67,37 @@ public class PersonTest {
         return person;
     }
 
-    private static void setActor() {
-        final Person person = new Person();
-        final Actor actor = new AbstractActor(person);
-
-        setActor(person, actor);
-    }
-
     public static void setActor(Person person, Actor actor) {
         person.setActor(actor);
 
         assertInvariants(person);
         assertSame("actor", actor, person.getActor());
+    }
+
+    private Clock clock1;
+
+    private Clock clock2;
+
+    private void beginSendingMessage_default(SimpleDirectCommand message) {
+        final Person person = new Person(clock1);
+        final Medium medium = HandSignals.INSTANCE;
+        try {
+            ActorInterfaceTest.beginSendingMessage(person, medium, message);
+        } catch (MediumUnavailableException e) {
+            throw new AssertionError(e);
+        }
+        assertInvariants(person);
+    }
+
+    private void beginSendingMessage_default(SimpleStatement message) {
+        final Person person = new Person(clock1);
+        final Medium medium = HandSignals.INSTANCE;
+        try {
+            ActorInterfaceTest.beginSendingMessage(person, medium, message);
+        } catch (MediumUnavailableException e) {
+            throw new AssertionError(e);
+        }
+        assertInvariants(person);
     }
 
     @Test
@@ -111,8 +115,20 @@ public class PersonTest {
     }
 
     @Test
-    public void constructor_0() {
-        constructor();
+    public void constructor_A() {
+        constructor(clock1);
+    }
+
+    @Test
+    public void constructor_B() {
+        constructor(clock2);
+    }
+
+    private void setActor() {
+        final Person person = new Person(clock1);
+        final Actor actor = new AbstractActor(person);
+
+        setActor(person, actor);
     }
 
     @Test
@@ -123,5 +139,11 @@ public class PersonTest {
     @Test
     public void setActor_B() {
         setActor();
+    }
+
+    @Before
+    public void setup() {
+        clock1 = new Clock(TimeUnit.MILLISECONDS, TIME_1);
+        clock2 = new Clock(TimeUnit.MILLISECONDS, TIME_2);
     }
 }

@@ -20,6 +20,7 @@ import uk.badamson.mc.actor.message.Message;
  * </p>
  */
 public final class Person implements ActorInterface {
+    private final Clock clock;
     private final Set<Medium> media = new HashSet<>();
 
     private Actor actor;
@@ -31,6 +32,7 @@ public final class Person implements ActorInterface {
      * Construct a simulated person that is currently doing nothing.
      * </p>
      * <ul>
+     * <li>The {@linkplain #getClock() clock} of this person is the given clock.
      * <li>This does not have an {@linkplain #getActor() actor} (it is null).
      * <li>The {@linkplain #getMedia() media} through which this actor can send
      * messages consists of {@linkplain HandSignals hand signals}.</li>
@@ -39,8 +41,14 @@ public final class Person implements ActorInterface {
      * <li>This actor is not {@linkplain #getTransmissionInProgress() transmitting}
      * a message.</li>
      * </ul>
+     * 
+     * @param clock
+     *            The clock of the simulated world that this person is in.
+     * @throws NullPointerException
+     *             If {@code clock} is null.
      */
-    public Person() {
+    public Person(Clock clock) {
+        this.clock = Objects.requireNonNull(clock, "clock");
         media.add(HandSignals.INSTANCE);
     }
 
@@ -90,6 +98,17 @@ public final class Person implements ActorInterface {
     @Override
     public final Actor getActor() {
         return actor;
+    }
+
+    /**
+     * <p>
+     * The clock of the simulated world that this person is in.
+     * </p>
+     * 
+     * @return the clock; not null
+     */
+    public final Clock getClock() {
+        return clock;
     }
 
     /**
