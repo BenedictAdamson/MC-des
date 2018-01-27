@@ -20,12 +20,12 @@ import uk.badamson.mc.physics.TimeStepEnergyErrorFunctionTerm;
 public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm {
 
     private static boolean isValidForTerm(int n, int term[]) {
-	for (int i = 0, tn = term.length; i < tn; ++i) {
-	    if (n < term[i] + 1) {
-		return false;
-	    }
-	}
-	return true;
+        for (int i = 0, tn = term.length; i < tn; ++i) {
+            if (n < term[i] + 1) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private final double massReference;
@@ -130,36 +130,36 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
      *             </ul>
      */
     public Newton2Error(double massReference, double timeReference, int massTerm, int[] velocityTerm,
-	    int[] accelerationTerm, boolean[] massTransferInto, int[] advectionMassRateTerm,
-	    int[] advectionVelocityTerm, boolean[] forceOn, int[] forceTerm) {
-	this.massReference = requireReferenceScale(massReference, "massReference");
-	this.timeReference = requireReferenceScale(timeReference, "timeReference");
-	this.massTerm = requireTermIndex(massTerm, "massTerm");
-	this.velocityTerm = copyTermIndex(velocityTerm, "velocityTerm");
-	this.accelerationTerm = copyTermIndex(accelerationTerm, "accelerationTerm");
-	this.massTransferInto = Arrays.copyOf(massTransferInto, massTransferInto.length);
-	this.advectionMassRateTerm = copyTermIndex(advectionMassRateTerm, "advectionMassRateTerm");
-	this.advectionVelocityTerm = copyTermIndex(advectionVelocityTerm, "advectionVelocityTerm");
-	this.forceOn = Arrays.copyOf(forceOn, forceOn.length);
-	this.forceTerm = copyTermIndex(forceTerm, "forceTerm");
+            int[] accelerationTerm, boolean[] massTransferInto, int[] advectionMassRateTerm,
+            int[] advectionVelocityTerm, boolean[] forceOn, int[] forceTerm) {
+        this.massReference = requireReferenceScale(massReference, "massReference");
+        this.timeReference = requireReferenceScale(timeReference, "timeReference");
+        this.massTerm = requireTermIndex(massTerm, "massTerm");
+        this.velocityTerm = copyTermIndex(velocityTerm, "velocityTerm");
+        this.accelerationTerm = copyTermIndex(accelerationTerm, "accelerationTerm");
+        this.massTransferInto = Arrays.copyOf(massTransferInto, massTransferInto.length);
+        this.advectionMassRateTerm = copyTermIndex(advectionMassRateTerm, "advectionMassRateTerm");
+        this.advectionVelocityTerm = copyTermIndex(advectionVelocityTerm, "advectionVelocityTerm");
+        this.forceOn = Arrays.copyOf(forceOn, forceOn.length);
+        this.forceTerm = copyTermIndex(forceTerm, "forceTerm");
 
-	final int nSpace = velocityTerm.length;
-	final int nAdvection = massTransferInto.length;
-	final int nForce = forceOn.length;
-	requireConsistentLengths(velocityTerm, "velocityTerm", accelerationTerm, "accelerationTerm");
-	if (nAdvection != advectionMassRateTerm.length) {
-	    throw new IllegalArgumentException("Inconsistent massTransferInto.length " + nAdvection
-		    + " advectionMassRateTerm.length " + advectionMassRateTerm.length);
-	}
-	if (nSpace * nAdvection != advectionVelocityTerm.length) {
-	    throw new IllegalArgumentException(
-		    "Inconsistent velocityTerm.length " + nSpace + ", massTransferInto.length " + nAdvection
-			    + ", advectionVelocityTerm.length" + advectionVelocityTerm.length);
-	}
-	if (nSpace * nForce != forceTerm.length) {
-	    throw new IllegalArgumentException("Inconsistent velocityTerm.length " + nSpace + ", forceOn.length "
-		    + nForce + ", forceTerm.length" + forceTerm.length);
-	}
+        final int nSpace = velocityTerm.length;
+        final int nAdvection = massTransferInto.length;
+        final int nForce = forceOn.length;
+        requireConsistentLengths(velocityTerm, "velocityTerm", accelerationTerm, "accelerationTerm");
+        if (nAdvection != advectionMassRateTerm.length) {
+            throw new IllegalArgumentException("Inconsistent massTransferInto.length " + nAdvection
+                    + " advectionMassRateTerm.length " + advectionMassRateTerm.length);
+        }
+        if (nSpace * nAdvection != advectionVelocityTerm.length) {
+            throw new IllegalArgumentException(
+                    "Inconsistent velocityTerm.length " + nSpace + ", massTransferInto.length " + nAdvection
+                            + ", advectionVelocityTerm.length" + advectionVelocityTerm.length);
+        }
+        if (nSpace * nForce != forceTerm.length) {
+            throw new IllegalArgumentException("Inconsistent velocityTerm.length " + nSpace + ", forceOn.length "
+                    + nForce + ", forceTerm.length" + forceTerm.length);
+        }
     }
 
     /**
@@ -198,73 +198,73 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
      */
     @Override
     public final double evaluate(double[] dedx, ImmutableVector state0, ImmutableVector state, double dt) {
-	super.evaluate(dedx, state0, state, dt);// check preconditions
+        super.evaluate(dedx, state0, state, dt);// check preconditions
 
-	final int ns = getSpaceDimension();
-	final int nm = getNumberOfMassTransfers();
-	final int nf = getNumberOfForces();
-	final double mRef2 = massReference * massReference;
+        final int ns = getSpaceDimension();
+        final int nm = getNumberOfMassTransfers();
+        final int nf = getNumberOfForces();
+        final double mRef2 = massReference * massReference;
 
-	final double m = state.get(massTerm);
+        final double m = state.get(massTerm);
 
-	final ImmutableVector a = extract(state, accelerationTerm);
-	final ImmutableVector v = extract(state, velocityTerm);
+        final ImmutableVector a = extract(state, accelerationTerm);
+        final ImmutableVector v = extract(state, velocityTerm);
 
-	double massRateTotal = 0.0;
-	final double[] massRate = new double[nm];
-	final ImmutableVector[] vrel = new ImmutableVector[nm];
-	for (int j = 0; j < nm; ++j) {
-	    final double sign = massTransferInto[j] ? 1.0 : -1.0;
-	    final double massRateJ = sign * state.get(advectionMassRateTerm[j]);
-	    massRate[j] = massRateJ;
-	    massRateTotal += massRateJ;
-	    vrel[j] = extract(state, advectionVelocityTerm, j * ns, ns).minus(v);
-	}
+        double massRateTotal = 0.0;
+        final double[] massRate = new double[nm];
+        final ImmutableVector[] vrel = new ImmutableVector[nm];
+        for (int j = 0; j < nm; ++j) {
+            final double sign = massTransferInto[j] ? 1.0 : -1.0;
+            final double massRateJ = sign * state.get(advectionMassRateTerm[j]);
+            massRate[j] = massRateJ;
+            massRateTotal += massRateJ;
+            vrel[j] = extract(state, advectionVelocityTerm, j * ns, ns).minus(v);
+        }
 
-	final ImmutableVector[] f = new ImmutableVector[nf];
-	final double[] fs = new double[nf];
-	for (int k = 0; k < nf; ++k) {
-	    f[k] = extract(state, forceTerm, k * ns, ns);
-	    fs[k] = forceOn[k] ? 1.0 : -1.0;
-	}
+        final ImmutableVector[] f = new ImmutableVector[nf];
+        final double[] fs = new double[nf];
+        for (int k = 0; k < nf; ++k) {
+            f[k] = extract(state, forceTerm, k * ns, ns);
+            fs[k] = forceOn[k] ? 1.0 : -1.0;
+        }
 
-	final ImmutableVector advectionTotal = 0 < nm ? ImmutableVector.weightedSum(massRate, vrel)
-		: ImmutableVector.create0(ns);
-	final ImmutableVector fTotal = 0 < nf ? ImmutableVector.weightedSum(fs, f) : ImmutableVector.create0(ns);
+        final ImmutableVector advectionTotal = 0 < nm ? ImmutableVector.weightedSum(massRate, vrel)
+                : ImmutableVector.create0(ns);
+        final ImmutableVector fTotal = 0 < nf ? ImmutableVector.weightedSum(fs, f) : ImmutableVector.create0(ns);
 
-	final ImmutableVector fe = a.scale(m).minus(advectionTotal).minus(fTotal);
-	final ImmutableVector ve = fe.scale(getTimeReference() / mRef2);
-	final ImmutableVector xe = ve.scale(getTimeReference());
-	final double e = 0.5 * massReference * ve.magnitude2();
+        final ImmutableVector fe = a.scale(m).minus(advectionTotal).minus(fTotal);
+        final ImmutableVector ve = fe.scale(getTimeReference() / mRef2);
+        final ImmutableVector xe = ve.scale(getTimeReference());
+        final double e = 0.5 * massReference * ve.magnitude2();
 
-	dedx[massTerm] += xe.dot(a);
-	for (int i = 0; i < ns; ++i) {
-	    final double xi = xe.get(i);
-	    dedx[getVelocityTerm(i)] += massRateTotal * xi;
-	    dedx[getAccelerationTerm(i)] += m * xi;
-	}
+        dedx[massTerm] += xe.dot(a);
+        for (int i = 0; i < ns; ++i) {
+            final double xi = xe.get(i);
+            dedx[getVelocityTerm(i)] += massRateTotal * xi;
+            dedx[getAccelerationTerm(i)] += m * xi;
+        }
 
-	for (int j = 0; j < nm; ++j) {
-	    final double dedmrate = xe.dot(vrel[j]);
-	    final ImmutableVector dedu = xe.scale(-massRate[j]);
-	    if (massTransferInto[j]) {
-		dedx[advectionMassRateTerm[j]] -= dedmrate;
-	    } else {
-		dedx[advectionMassRateTerm[j]] += dedmrate;
-	    }
-	    for (int i = 0; i < ns; ++i) {
-		dedx[getAdvectionVelocityTerm(j, i)] += dedu.get(i);
-	    }
-	}
+        for (int j = 0; j < nm; ++j) {
+            final double dedmrate = xe.dot(vrel[j]);
+            final ImmutableVector dedu = xe.scale(-massRate[j]);
+            if (massTransferInto[j]) {
+                dedx[advectionMassRateTerm[j]] -= dedmrate;
+            } else {
+                dedx[advectionMassRateTerm[j]] += dedmrate;
+            }
+            for (int i = 0; i < ns; ++i) {
+                dedx[getAdvectionVelocityTerm(j, i)] += dedu.get(i);
+            }
+        }
 
-	for (int k = 0; k < nf; ++k) {
-	    final double fsk = fs[k];
-	    for (int i = 0; i < ns; ++i) {
-		dedx[getForceTerm(k, i)] -= fsk * xe.get(i);
-	    }
-	}
+        for (int k = 0; k < nf; ++k) {
+            final double fsk = fs[k];
+            for (int i = 0; i < ns; ++i) {
+                dedx[getForceTerm(k, i)] -= fsk * xe.get(i);
+            }
+        }
 
-	return e;
+        return e;
     }
 
     /**
@@ -285,7 +285,7 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
      *             </ul>
      */
     public final int getAccelerationTerm(int i) {
-	return accelerationTerm[i];
+        return accelerationTerm[i];
     }
 
     /**
@@ -308,7 +308,7 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
      *             </ul>
      */
     public final int getAdvectionMassRateTerm(int j) {
-	return advectionMassRateTerm[j];
+        return advectionMassRateTerm[j];
     }
 
     /**
@@ -336,7 +336,7 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
      *             </ul>
      */
     public final int getAdvectionVelocityTerm(int j, int i) {
-	return advectionVelocityTerm[requireAdvectionProcess(j) * getSpaceDimension() + requireVectorComponent(i)];
+        return advectionVelocityTerm[requireAdvectionProcess(j) * getSpaceDimension() + requireVectorComponent(i)];
     }
 
     /**
@@ -363,7 +363,7 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
      *             </ul>
      */
     public final int getForceTerm(int k, int i) {
-	return forceTerm[requireForce(k) * getSpaceDimension() + requireVectorComponent(i)];
+        return forceTerm[requireForce(k) * getSpaceDimension() + requireVectorComponent(i)];
     }
 
     /**
@@ -381,7 +381,7 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
      * @return the mass; positive and {@linkplain Double#isFinite(double) finite}
      */
     public final double getMassReference() {
-	return massReference;
+        return massReference;
     }
 
     /**
@@ -392,7 +392,7 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
      * @return the index of the mass; not negative
      */
     public final int getMassTerm() {
-	return massTerm;
+        return massTerm;
     }
 
     /**
@@ -403,7 +403,7 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
      * @return the number of forces; not negative.
      */
     public final int getNumberOfForces() {
-	return forceOn.length;
+        return forceOn.length;
     }
 
     /**
@@ -415,7 +415,7 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
      * @return the number of mass transfer processes; not negative.
      */
     public final int getNumberOfMassTransfers() {
-	return massTransferInto.length;
+        return massTransferInto.length;
     }
 
     /**
@@ -426,7 +426,7 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
      * @return the number of dimensions; positive.
      */
     public final int getSpaceDimension() {
-	return velocityTerm.length;
+        return velocityTerm.length;
     }
 
     /**
@@ -443,7 +443,7 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
      * @return the time; positive and {@linkplain Double#isFinite(double) finite}
      */
     public final double getTimeReference() {
-	return timeReference;
+        return timeReference;
     }
 
     /**
@@ -464,7 +464,7 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
      *             </ul>
      */
     public final int getVelocityTerm(int i) {
-	return velocityTerm[i];
+        return velocityTerm[i];
     }
 
     /**
@@ -492,7 +492,7 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
      *             </ul>
      */
     public final boolean isForceOn(int k) {
-	return forceOn[k];
+        return forceOn[k];
     }
 
     /**
@@ -519,7 +519,7 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
      *             </ul>
      */
     public final boolean isMassTransferInto(int j) {
-	return massTransferInto[j];
+        return massTransferInto[j];
     }
 
     /**
@@ -534,33 +534,33 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
      */
     @Override
     public final boolean isValidForDimension(int n) {
-	if (n <= 0) {
-	    throw new IllegalArgumentException("n " + n);
-	}
-	return (massTerm + 1 <= n) && isValidForTerm(n, accelerationTerm) && isValidForTerm(n, velocityTerm)
-		&& isValidForTerm(n, advectionVelocityTerm) && isValidForTerm(n, advectionMassRateTerm)
-		&& isValidForTerm(n, forceTerm);
+        if (n <= 0) {
+            throw new IllegalArgumentException("n " + n);
+        }
+        return (massTerm + 1 <= n) && isValidForTerm(n, accelerationTerm) && isValidForTerm(n, velocityTerm)
+                && isValidForTerm(n, advectionVelocityTerm) && isValidForTerm(n, advectionMassRateTerm)
+                && isValidForTerm(n, forceTerm);
     }
 
     private int requireAdvectionProcess(int j) {
-	if (j < 0 || getNumberOfMassTransfers() <= j) {
-	    throw new IndexOutOfBoundsException("Not an advection component " + j);
-	}
-	return j;
+        if (j < 0 || getNumberOfMassTransfers() <= j) {
+            throw new IndexOutOfBoundsException("Not an advection component " + j);
+        }
+        return j;
     }
 
     private int requireForce(int k) {
-	if (k < 0 || getNumberOfForces() <= k) {
-	    throw new IndexOutOfBoundsException("Not a force " + k);
-	}
-	return k;
+        if (k < 0 || getNumberOfForces() <= k) {
+            throw new IndexOutOfBoundsException("Not a force " + k);
+        }
+        return k;
     }
 
     private int requireVectorComponent(int i) {
-	if (i < 0 || getSpaceDimension() <= i) {
-	    throw new IndexOutOfBoundsException("Not a space vector component " + i);
-	}
-	return i;
+        if (i < 0 || getSpaceDimension() <= i) {
+            throw new IndexOutOfBoundsException("Not a space vector component " + i);
+        }
+        return i;
     }
 
 }

@@ -17,12 +17,12 @@ import uk.badamson.mc.math.ImmutableVector;
 public final class MassConservationError extends AbstractTimeStepEnergyErrorFunctionTerm {
 
     private static boolean isValidForTerm(int n, int term[]) {
-	for (int i = 0, tn = term.length; i < tn; ++i) {
-	    if (n < term[i] + 1) {
-		return false;
-	    }
-	}
-	return true;
+        for (int i = 0, tn = term.length; i < tn; ++i) {
+            if (n < term[i] + 1) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private final double massReference;
@@ -80,18 +80,18 @@ public final class MassConservationError extends AbstractTimeStepEnergyErrorFunc
      *             </ul>
      */
     public MassConservationError(double massReference, double specificEnergyReference, int massTerm,
-	    boolean[] massTransferInto, int[] advectionMassRateTerm) {
-	this.massReference = requireReferenceScale(massReference, "massReference");
-	this.specificEnergyReference = requireReferenceScale(specificEnergyReference, "specificEnergyReference");
-	this.massTerm = requireTermIndex(massTerm, "massTerm");
-	this.massTransferInto = Arrays.copyOf(massTransferInto, massTransferInto.length);
-	this.advectionMassRateTerm = copyTermIndex(advectionMassRateTerm, "advectionMassRateTerm");
+            boolean[] massTransferInto, int[] advectionMassRateTerm) {
+        this.massReference = requireReferenceScale(massReference, "massReference");
+        this.specificEnergyReference = requireReferenceScale(specificEnergyReference, "specificEnergyReference");
+        this.massTerm = requireTermIndex(massTerm, "massTerm");
+        this.massTransferInto = Arrays.copyOf(massTransferInto, massTransferInto.length);
+        this.advectionMassRateTerm = copyTermIndex(advectionMassRateTerm, "advectionMassRateTerm");
 
-	final int nAdvection = massTransferInto.length;
-	if (nAdvection != advectionMassRateTerm.length) {
-	    throw new IllegalArgumentException("Inconsistent massTransferInto.length " + nAdvection
-		    + " advectionMassRateTerm.length " + advectionMassRateTerm.length);
-	}
+        final int nAdvection = massTransferInto.length;
+        if (nAdvection != advectionMassRateTerm.length) {
+            throw new IllegalArgumentException("Inconsistent massTransferInto.length " + nAdvection
+                    + " advectionMassRateTerm.length " + advectionMassRateTerm.length);
+        }
     }
 
     /**
@@ -130,37 +130,37 @@ public final class MassConservationError extends AbstractTimeStepEnergyErrorFunc
      */
     @Override
     public final double evaluate(double[] dedx, ImmutableVector state0, ImmutableVector state, double dt) {
-	super.evaluate(dedx, state0, state, dt);// check preconditions
+        super.evaluate(dedx, state0, state, dt);// check preconditions
 
-	final int nm = getNumberOfMassTransfers();
+        final int nm = getNumberOfMassTransfers();
 
-	final double m0 = state0.get(massTerm);
-	final double m = state.get(massTerm);
+        final double m0 = state0.get(massTerm);
+        final double m = state.get(massTerm);
 
-	double massRateMean = 0.0;
-	for (int j = 0; j < nm; ++j) {
-	    final double sign = massTransferInto[j] ? 1.0 : -1.0;
-	    final double massRate0 = state0.get(advectionMassRateTerm[j]);
-	    final double massRate = state.get(advectionMassRateTerm[j]);
-	    massRateMean += 0.5 * sign * (massRate0 + massRate);
-	}
+        double massRateMean = 0.0;
+        for (int j = 0; j < nm; ++j) {
+            final double sign = massTransferInto[j] ? 1.0 : -1.0;
+            final double massRate0 = state0.get(advectionMassRateTerm[j]);
+            final double massRate = state.get(advectionMassRateTerm[j]);
+            massRateMean += 0.5 * sign * (massRate0 + massRate);
+        }
 
-	final double me = (m - m0) + dt * massRateMean;
-	final double ce = specificEnergyReference * (me / massReference);
-	// ce may be negative
-	final double e = ce * me;
+        final double me = (m - m0) + dt * massRateMean;
+        final double ce = specificEnergyReference * (me / massReference);
+        // ce may be negative
+        final double e = ce * me;
 
-	dedx[massTerm] += 2.0 * ce;
-	final double dedmrate = ce * dt;
-	for (int j = 0; j < nm; ++j) {
-	    if (massTransferInto[j]) {
-		dedx[advectionMassRateTerm[j]] += dedmrate;
-	    } else {
-		dedx[advectionMassRateTerm[j]] -= dedmrate;
-	    }
-	}
+        dedx[massTerm] += 2.0 * ce;
+        final double dedmrate = ce * dt;
+        for (int j = 0; j < nm; ++j) {
+            if (massTransferInto[j]) {
+                dedx[advectionMassRateTerm[j]] += dedmrate;
+            } else {
+                dedx[advectionMassRateTerm[j]] -= dedmrate;
+            }
+        }
 
-	return e;
+        return e;
     }
 
     /**
@@ -183,7 +183,7 @@ public final class MassConservationError extends AbstractTimeStepEnergyErrorFunc
      *             </ul>
      */
     public final int getAdvectionMassRateTerm(int j) {
-	return advectionMassRateTerm[j];
+        return advectionMassRateTerm[j];
     }
 
     /**
@@ -201,7 +201,7 @@ public final class MassConservationError extends AbstractTimeStepEnergyErrorFunc
      * @return the mass; positive and {@linkplain Double#isFinite(double) finite}
      */
     public final double getMassReference() {
-	return massReference;
+        return massReference;
     }
 
     /**
@@ -212,7 +212,7 @@ public final class MassConservationError extends AbstractTimeStepEnergyErrorFunc
      * @return the index of the mass; not negative
      */
     public final int getMassTerm() {
-	return massTerm;
+        return massTerm;
     }
 
     /**
@@ -224,7 +224,7 @@ public final class MassConservationError extends AbstractTimeStepEnergyErrorFunc
      * @return the number of mass transfer processes; not negative.
      */
     public final int getNumberOfMassTransfers() {
-	return massTransferInto.length;
+        return massTransferInto.length;
     }
 
     /**
@@ -242,7 +242,7 @@ public final class MassConservationError extends AbstractTimeStepEnergyErrorFunc
      * @return the time; positive and {@linkplain Double#isFinite(double) finite}
      */
     public final double getSpecificEnergyReference() {
-	return specificEnergyReference;
+        return specificEnergyReference;
     }
 
     /**
@@ -269,7 +269,7 @@ public final class MassConservationError extends AbstractTimeStepEnergyErrorFunc
      *             </ul>
      */
     public final boolean isMassTransferInto(int j) {
-	return massTransferInto[j];
+        return massTransferInto[j];
     }
 
     /**
@@ -284,10 +284,10 @@ public final class MassConservationError extends AbstractTimeStepEnergyErrorFunc
      */
     @Override
     public final boolean isValidForDimension(int n) {
-	if (n <= 0) {
-	    throw new IllegalArgumentException("n " + n);
-	}
-	return (massTerm + 1 <= n) && isValidForTerm(n, advectionMassRateTerm);
+        if (n <= 0) {
+            throw new IllegalArgumentException("n " + n);
+        }
+        return (massTerm + 1 <= n) && isValidForTerm(n, advectionMassRateTerm);
     }
 
 }

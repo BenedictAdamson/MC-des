@@ -47,7 +47,7 @@ public enum SimpleRelativeLocation implements Noun {
      * </p>
      */
     public enum Direction {
-	FRONT, FRONT_RIGHT, RIGHT, RIGHT_BACK, BACK, BACK_LEFT, LEFT, LEFT_FRONT
+        FRONT, FRONT_RIGHT, RIGHT, RIGHT_BACK, BACK, BACK_LEFT, LEFT, LEFT_FRONT
     }// enum
 
     /**
@@ -55,7 +55,7 @@ public enum SimpleRelativeLocation implements Noun {
      * How far away a {@link SimpleRelativeLocation} is. </p
      */
     public enum Range {
-	NEAR, MEDIUM, FAR;
+        NEAR, MEDIUM, FAR;
     }// enum
 
     private static final int N_RANGES = Range.values().length;
@@ -84,10 +84,10 @@ public enum SimpleRelativeLocation implements Noun {
      *             </ul>
      */
     public static SimpleRelativeLocation getInstance(Direction direction, Range range) {
-	Objects.requireNonNull(direction, "direction");
-	Objects.requireNonNull(range, "range");
+        Objects.requireNonNull(direction, "direction");
+        Objects.requireNonNull(range, "range");
 
-	return values()[range.ordinal() + direction.ordinal() * N_RANGES];
+        return values()[range.ordinal() + direction.ordinal() * N_RANGES];
     }
 
     private final Direction direction;
@@ -95,8 +95,8 @@ public enum SimpleRelativeLocation implements Noun {
     private final Range range;
 
     private SimpleRelativeLocation(Direction direction, Range range) {
-	this.direction = direction;
-	this.range = range;
+        this.direction = direction;
+        this.range = range;
     }
 
     /**
@@ -107,7 +107,7 @@ public enum SimpleRelativeLocation implements Noun {
      * @return the direction; not null.
      */
     public final Direction getDirection() {
-	return direction;
+        return direction;
     }
 
     /**
@@ -121,7 +121,7 @@ public enum SimpleRelativeLocation implements Noun {
      */
     @Override
     public final double getInformationContent() {
-	return INFORMATION_CONTENT;
+        return INFORMATION_CONTENT;
     }
 
     /**
@@ -132,6 +132,6 @@ public enum SimpleRelativeLocation implements Noun {
      * @return the range; not null.
      */
     public final Range getRange() {
-	return range;
+        return range;
     }
 }

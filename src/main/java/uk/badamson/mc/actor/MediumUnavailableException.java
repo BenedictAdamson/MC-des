@@ -30,7 +30,7 @@ public final class MediumUnavailableException extends ImpossibleActionException 
      * </p>
      */
     public MediumUnavailableException() {
-	super("Medium unavailable");
+        super("Medium unavailable");
     }
 
     /**
@@ -44,7 +44,7 @@ public final class MediumUnavailableException extends ImpossibleActionException 
      *            The cause of the exception.
      */
     public MediumUnavailableException(Throwable cause) {
-	super("Medium unavailable", cause);
+        super("Medium unavailable", cause);
     }
 
 }

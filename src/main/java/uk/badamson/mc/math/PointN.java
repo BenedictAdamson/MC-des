@@ -38,17 +38,17 @@ public final class PointN {
      *             If the length of {@code x} is 0.
      */
     public static final PointN create(double[] x) {
-	Objects.requireNonNull(x, "x");
-	if (x.length == 0) {
-	    throw new IllegalArgumentException("x.length == 0");
-	}
-	return new PointN(Arrays.copyOf(x, x.length));
+        Objects.requireNonNull(x, "x");
+        if (x.length == 0) {
+            throw new IllegalArgumentException("x.length == 0");
+        }
+        return new PointN(Arrays.copyOf(x, x.length));
     }
 
     private final double[] x;
 
     private PointN(double[] x) {
-	this.x = x;
+        this.x = x;
     }
 
     /**
@@ -64,14 +64,14 @@ public final class PointN {
      */
     @Override
     public final boolean equals(Object obj) {
-	if (this == obj)
-	    return true;
-	if (obj == null)
-	    return false;
-	if (getClass() != obj.getClass())
-	    return false;
-	PointN other = (PointN) obj;
-	return Arrays.equals(x, other.x);
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        PointN other = (PointN) obj;
+        return Arrays.equals(x, other.x);
     }
 
     /**
@@ -82,7 +82,7 @@ public final class PointN {
      * @return the number of dimensions; positive.
      */
     public int getDimensions() {
-	return x.length;
+        return x.length;
     }
 
     /**
@@ -101,17 +101,17 @@ public final class PointN {
      *             </ul>
      */
     public final double getX(int i) {
-	return x[i];
+        return x[i];
     }
 
     @Override
     public final int hashCode() {
-	return Arrays.hashCode(x);
+        return Arrays.hashCode(x);
     }
 
     @Override
     public final String toString() {
-	return Arrays.toString(x);
+        return Arrays.toString(x);
     }
 
 }

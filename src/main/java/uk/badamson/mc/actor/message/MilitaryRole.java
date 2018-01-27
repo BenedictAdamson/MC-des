@@ -58,7 +58,7 @@ public enum MilitaryRole implements Noun {
     PLATOON_LEADER;
 
     private static final MilitaryRole[] SQUAD_LEADER = { SQUAD_LEADER_1, SQUAD_LEADER_2, SQUAD_LEADER_3,
-	    SQUAD_LEADER_4 };
+            SQUAD_LEADER_4 };
 
     public static final double INFORMATION_CONTENT = MessageElement.getInformationContent(values().length);
 
@@ -74,7 +74,7 @@ public enum MilitaryRole implements Noun {
      *             If {@code squad} is outside the range [1,4].
      */
     public static MilitaryRole getSquadLeader(int squad) {
-	return SQUAD_LEADER[squad - 1];
+        return SQUAD_LEADER[squad - 1];
     }
 
     /**
@@ -87,7 +87,7 @@ public enum MilitaryRole implements Noun {
      */
     @Override
     public final double getInformationContent() {
-	return INFORMATION_CONTENT;
+        return INFORMATION_CONTENT;
     }
 
 }

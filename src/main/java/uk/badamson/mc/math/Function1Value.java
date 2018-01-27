@@ -26,8 +26,8 @@ public final class Function1Value {
      *            The codomain value.
      */
     public Function1Value(double x, double f) {
-	this.x = x;
-	this.f = f;
+        this.x = x;
+        this.f = f;
     }
 
     /**
@@ -43,15 +43,15 @@ public final class Function1Value {
      */
     @Override
     public boolean equals(Object obj) {
-	if (this == obj)
-	    return true;
-	if (obj == null)
-	    return false;
-	if (getClass() != obj.getClass())
-	    return false;
-	Function1Value other = (Function1Value) obj;
-	return Double.doubleToLongBits(x) == Double.doubleToLongBits(other.x)
-		&& Double.doubleToLongBits(f) == Double.doubleToLongBits(other.f);
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        Function1Value other = (Function1Value) obj;
+        return Double.doubleToLongBits(x) == Double.doubleToLongBits(other.x)
+                && Double.doubleToLongBits(f) == Double.doubleToLongBits(other.f);
     }
 
     /**
@@ -60,7 +60,7 @@ public final class Function1Value {
      * </p>
      */
     public final double getF() {
-	return f;
+        return f;
     }
 
     /**
@@ -69,23 +69,23 @@ public final class Function1Value {
      * </p>
      */
     public final double getX() {
-	return x;
+        return x;
     }
 
     @Override
     public int hashCode() {
-	final int prime = 31;
-	int result = 1;
-	final long xBits = Double.doubleToLongBits(x);
-	final long fBits = Double.doubleToLongBits(f);
-	result = prime * result + (int) (xBits ^ (xBits >>> 32));
-	result = prime * result + (int) (fBits ^ (fBits >>> 32));
-	return result;
+        final int prime = 31;
+        int result = 1;
+        final long xBits = Double.doubleToLongBits(x);
+        final long fBits = Double.doubleToLongBits(f);
+        result = prime * result + (int) (xBits ^ (xBits >>> 32));
+        result = prime * result + (int) (fBits ^ (fBits >>> 32));
+        return result;
     }
 
     @Override
     public String toString() {
-	return "(" + x + ", " + f + ")";
+        return "(" + x + ", " + f + ")";
     }
 
 }

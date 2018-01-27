@@ -60,7 +60,7 @@ public enum Pronoun implements Noun {
      */
     @Override
     public final double getInformationContent() {
-	return INFORMATION_CONTENT;
+        return INFORMATION_CONTENT;
     }
 
 }

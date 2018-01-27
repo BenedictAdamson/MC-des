@@ -215,6 +215,6 @@ public enum SimpleVerb implements Verb {
      */
     @Override
     public double getInformationContent() {
-	return INFORMATION_CONTENT;
+        return INFORMATION_CONTENT;
     }
 }

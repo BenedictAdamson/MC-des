@@ -12,19 +12,19 @@ import uk.badamson.mc.math.ImmutableVector;
 public class TimeStepEnergyErrorFunctionTermTest {
 
     public static void assertInvariants(TimeStepEnergyErrorFunctionTerm t) {
-	ObjectTest.assertInvariants(t);// inherited
+        ObjectTest.assertInvariants(t);// inherited
     }
 
     public static void assertInvariants(TimeStepEnergyErrorFunctionTerm t1, TimeStepEnergyErrorFunctionTerm t2) {
-	ObjectTest.assertInvariants(t1, t2);// inherited
+        ObjectTest.assertInvariants(t1, t2);// inherited
     }
 
     public static double evaluate(TimeStepEnergyErrorFunctionTerm term, double[] dedx, ImmutableVector x0,
-	    ImmutableVector x, double dt) {
-	final double e = term.evaluate(dedx, x0, x, dt);
+            ImmutableVector x, double dt) {
+        final double e = term.evaluate(dedx, x0, x, dt);
 
-	assertInvariants(term);
+        assertInvariants(term);
 
-	return e;
+        return e;
     }
 }

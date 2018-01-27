@@ -31,7 +31,7 @@ public final class IllegalMessageException extends IllegalArgumentException {
      * </p>
      */
     public IllegalMessageException() {
-	super(MESSAGE);
+        super(MESSAGE);
     }
 
     /**
@@ -50,7 +50,7 @@ public final class IllegalMessageException extends IllegalArgumentException {
      *            </p>
      */
     public IllegalMessageException(Throwable cause) {
-	super(MESSAGE, cause);
+        super(MESSAGE, cause);
     }
 
 }

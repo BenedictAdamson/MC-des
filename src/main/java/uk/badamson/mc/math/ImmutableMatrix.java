@@ -43,22 +43,22 @@ public class ImmutableMatrix {
      *             </ul>
      */
     public static ImmutableMatrix create(int rows, int columns, double[] elements) {
-	Objects.requireNonNull(elements, "elements");
-	if (rows < 1) {
-	    throw new IllegalArgumentException("rows " + rows);
-	}
-	if (columns < 1) {
-	    throw new IllegalArgumentException("columns " + columns);
-	}
-	if (elements.length != rows * columns) {
-	    throw new IllegalArgumentException(
-		    "Inconsistent rows " + rows + " columns " + columns + " elements.length " + elements.length);
-	}
-	if (columns == 1) {
-	    return ImmutableVector.create(elements);
-	} else {
-	    return new ImmutableMatrix(rows, columns, Arrays.copyOf(elements, elements.length));
-	}
+        Objects.requireNonNull(elements, "elements");
+        if (rows < 1) {
+            throw new IllegalArgumentException("rows " + rows);
+        }
+        if (columns < 1) {
+            throw new IllegalArgumentException("columns " + columns);
+        }
+        if (elements.length != rows * columns) {
+            throw new IllegalArgumentException(
+                    "Inconsistent rows " + rows + " columns " + columns + " elements.length " + elements.length);
+        }
+        if (columns == 1) {
+            return ImmutableVector.create(elements);
+        } else {
+            return new ImmutableMatrix(rows, columns, Arrays.copyOf(elements, elements.length));
+        }
     }
 
     private final int rows;
@@ -66,9 +66,9 @@ public class ImmutableMatrix {
     protected final double[] elements;
 
     ImmutableMatrix(int rows, int columns, double[] elements) {
-	this.rows = rows;
-	this.columns = columns;
-	this.elements = elements;
+        this.rows = rows;
+        this.columns = columns;
+        this.elements = elements;
     }
 
     /**
@@ -83,14 +83,14 @@ public class ImmutableMatrix {
      */
     @Override
     public final boolean equals(Object obj) {
-	if (this == obj)
-	    return true;
-	if (obj == null)
-	    return false;
-	if (!(obj instanceof ImmutableMatrix))
-	    return false;
-	ImmutableMatrix other = (ImmutableMatrix) obj;
-	return rows == other.rows && Arrays.equals(elements, other.elements);
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (!(obj instanceof ImmutableMatrix))
+            return false;
+        ImmutableMatrix other = (ImmutableMatrix) obj;
+        return rows == other.rows && Arrays.equals(elements, other.elements);
     }
 
     /**
@@ -116,13 +116,13 @@ public class ImmutableMatrix {
      *             </ul>
      */
     public final double get(int i, int j) {
-	if (i < 0 || rows <= i) {
-	    throw new IndexOutOfBoundsException("i " + i);
-	}
-	if (j < 0 || columns <= j) {
-	    throw new IndexOutOfBoundsException("j " + j);
-	}
-	return elements[i * columns + j];
+        if (i < 0 || rows <= i) {
+            throw new IndexOutOfBoundsException("i " + i);
+        }
+        if (j < 0 || columns <= j) {
+            throw new IndexOutOfBoundsException("j " + j);
+        }
+        return elements[i * columns + j];
     }
 
     /**
@@ -133,7 +133,7 @@ public class ImmutableMatrix {
      * @return the columns of rows; positive.
      */
     public final int getColumns() {
-	return columns;
+        return columns;
     }
 
     /**
@@ -143,16 +143,16 @@ public class ImmutableMatrix {
      * @return the number of rows; positive.
      */
     public final int getRows() {
-	return rows;
+        return rows;
     }
 
     @Override
     public final int hashCode() {
-	final int prime = 37;
-	int result = columns;
-	result = prime * result + rows;
-	result = prime * result + Arrays.hashCode(elements);
-	return result;
+        final int prime = 37;
+        int result = columns;
+        result = prime * result + rows;
+        result = prime * result + Arrays.hashCode(elements);
+        return result;
     }
 
     /**
@@ -177,22 +177,22 @@ public class ImmutableMatrix {
      *             columns} of this.
      */
     public final ImmutableVector multiply(ImmutableVector x) {
-	Objects.requireNonNull(x, "x");
-	final int columns = getColumns();
-	if (columns != x.getRows()) {
-	    throw new IllegalArgumentException("Inconsistent numbers of columns and rows");
-	}
-	final int n = getRows();
-	final double[] ax = new double[n];
-	for (int i = 0; i < n; ++i) {
-	    double dot = 0.0;
-	    final int j0 = i * columns;
-	    for (int j = 0; j < columns; ++j) {
-		dot += elements[j0 + j] * x.elements[j];
-	    }
-	    ax[i] = dot;
-	}
-	return new ImmutableVector(ax);
+        Objects.requireNonNull(x, "x");
+        final int columns = getColumns();
+        if (columns != x.getRows()) {
+            throw new IllegalArgumentException("Inconsistent numbers of columns and rows");
+        }
+        final int n = getRows();
+        final double[] ax = new double[n];
+        for (int i = 0; i < n; ++i) {
+            double dot = 0.0;
+            final int j0 = i * columns;
+            for (int j = 0; j < columns; ++j) {
+                dot += elements[j0 + j] * x.elements[j];
+            }
+            ax[i] = dot;
+        }
+        return new ImmutableVector(ax);
     }
 
 }

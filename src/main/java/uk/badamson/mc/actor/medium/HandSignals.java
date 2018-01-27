@@ -38,18 +38,18 @@ public final class HandSignals implements Medium {
      */
     @Override
     public final boolean canConvey(Message message) {
-	Objects.requireNonNull(message, "message");
-	return message instanceof SimpleDirectCommand || message instanceof SimpleStatement;
+        Objects.requireNonNull(message, "message");
+        return message instanceof SimpleDirectCommand || message instanceof SimpleStatement;
     }
 
     @Override
     public final double getTypicalTransmissionRate() {
-	return 4.0;
+        return 4.0;
     }
 
     @Override
     public final String toString() {
-	return "HandSignals";
+        return "HandSignals";
     }
 
 }

@@ -21,7 +21,7 @@ public final class PoorlyConditionedFunctionException extends IllegalArgumentExc
     private static final long serialVersionUID = 1L;
 
     PoorlyConditionedFunctionException(Function1 f) {
-	super("Poorly conditioned function " + f);
+        super("Poorly conditioned function " + f);
     }
 
 }// class

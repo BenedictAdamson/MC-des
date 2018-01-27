@@ -62,10 +62,10 @@ public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm
      *             </ul>
      */
     public PositionError(double mass, int[] positionTerm, int[] velocityTerm) {
-	this.mass = requireReferenceScale(mass, "mass");
-	this.positionTerm = copyTermIndex(positionTerm, "positionTerm");
-	this.velocityTerm = copyTermIndex(velocityTerm, "velocityTerm");
-	requireConsistentLengths(positionTerm, "positionTerm", velocityTerm, "velocityTerm");
+        this.mass = requireReferenceScale(mass, "mass");
+        this.positionTerm = copyTermIndex(positionTerm, "positionTerm");
+        this.velocityTerm = copyTermIndex(velocityTerm, "velocityTerm");
+        requireConsistentLengths(positionTerm, "positionTerm", velocityTerm, "velocityTerm");
     }
 
     /**
@@ -110,42 +110,42 @@ public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm
      */
     @Override
     public final double evaluate(double[] dedState, ImmutableVector state0, ImmutableVector state, double dt) {
-	Objects.requireNonNull(dedState, "dedState");
-	Objects.requireNonNull(state0, "state0");
-	Objects.requireNonNull(state, "state");
-	if (!(0.0 < dt && Double.isFinite(dt))) {
-	    throw new IllegalArgumentException("dt " + dt);
-	}
-	final int nState = state0.getDimension();
-	if (state.getDimension() != nState) {
-	    throw new IllegalArgumentException(
-		    "Inconsistent dimensions x0 " + nState + " and x " + state.getDimension());
-	}
-	if (dedState.length != nState) {
-	    throw new IllegalArgumentException(
-		    "Inconsistent length of dedx " + dedState.length + " and dimension of x0 " + nState);
-	}
+        Objects.requireNonNull(dedState, "dedState");
+        Objects.requireNonNull(state0, "state0");
+        Objects.requireNonNull(state, "state");
+        if (!(0.0 < dt && Double.isFinite(dt))) {
+            throw new IllegalArgumentException("dt " + dt);
+        }
+        final int nState = state0.getDimension();
+        if (state.getDimension() != nState) {
+            throw new IllegalArgumentException(
+                    "Inconsistent dimensions x0 " + nState + " and x " + state.getDimension());
+        }
+        if (dedState.length != nState) {
+            throw new IllegalArgumentException(
+                    "Inconsistent length of dedx " + dedState.length + " and dimension of x0 " + nState);
+        }
 
-	final double rate = 1.0 / dt;
+        final double rate = 1.0 / dt;
 
-	final ImmutableVector x0 = extract(state0, positionTerm);
-	final ImmutableVector v0 = extract(state0, velocityTerm);
-	final ImmutableVector x = extract(state, positionTerm);
-	final ImmutableVector v = extract(state, velocityTerm);
+        final ImmutableVector x0 = extract(state0, positionTerm);
+        final ImmutableVector v0 = extract(state0, velocityTerm);
+        final ImmutableVector x = extract(state, positionTerm);
+        final ImmutableVector v = extract(state, velocityTerm);
 
-	final ImmutableVector dx = x.minus(x0);
-	final ImmutableVector vMean = v.mean(v0);
-	final ImmutableVector ve = dx.scale(rate).minus(vMean);
+        final ImmutableVector dx = x.minus(x0);
+        final ImmutableVector vMean = v.mean(v0);
+        final ImmutableVector ve = dx.scale(rate).minus(vMean);
 
-	final double e = 0.5 * mass * ve.magnitude2();
-	final ImmutableVector dedx = ve.scale(mass * rate);
-	final ImmutableVector dedv = ve.scale(-0.5 * mass);
+        final double e = 0.5 * mass * ve.magnitude2();
+        final ImmutableVector dedx = ve.scale(mass * rate);
+        final ImmutableVector dedv = ve.scale(-0.5 * mass);
 
-	for (int i = 0, n = positionTerm.length; i < n; ++i) {
-	    dedState[positionTerm[i]] += dedx.get(i);
-	    dedState[velocityTerm[i]] += dedv.get(i);
-	}
-	return e;
+        for (int i = 0, n = positionTerm.length; i < n; ++i) {
+            dedState[positionTerm[i]] += dedx.get(i);
+            dedState[velocityTerm[i]] += dedv.get(i);
+        }
+        return e;
     }
 
     /**
@@ -164,7 +164,7 @@ public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm
      * @return the mass; positive and {@linkplain Double#isFinite(double) finite}
      */
     public final double getMass() {
-	return mass;
+        return mass;
     }
 
     /**
@@ -185,7 +185,7 @@ public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm
      *             </ul>
      */
     public final int getPositionTerm(int i) {
-	return positionTerm[i];
+        return positionTerm[i];
     }
 
     /**
@@ -196,7 +196,7 @@ public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm
      * @return
      */
     public final int getSpaceDimension() {
-	return positionTerm.length;
+        return positionTerm.length;
     }
 
     /**
@@ -217,7 +217,7 @@ public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm
      *             </ul>
      */
     public final int getVelocityTerm(int i) {
-	return velocityTerm[i];
+        return velocityTerm[i];
     }
 
     /**
@@ -238,12 +238,12 @@ public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm
      */
     @Override
     public boolean isValidForDimension(int n) {
-	for (int i = 0, pn = positionTerm.length; i < pn; ++i) {
-	    if (n < positionTerm[i] + 1 || n < velocityTerm[i] + 1) {
-		return false;
-	    }
-	}
-	return true;
+        for (int i = 0, pn = positionTerm.length; i < pn; ++i) {
+            if (n < positionTerm[i] + 1 || n < velocityTerm[i] + 1) {
+                return false;
+            }
+        }
+        return true;
     }
 
 }

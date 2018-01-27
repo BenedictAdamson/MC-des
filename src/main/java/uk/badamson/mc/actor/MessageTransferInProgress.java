@@ -36,8 +36,8 @@ public final class MessageTransferInProgress {
      *             If {@code medium} is null.
      */
     public MessageTransferInProgress(Medium medium, Message messageSofar) {
-	this.medium = Objects.requireNonNull(medium, "medium");
-	this.messageSofar = messageSofar;
+        this.medium = Objects.requireNonNull(medium, "medium");
+        this.messageSofar = messageSofar;
     }
 
     /**
@@ -57,14 +57,14 @@ public final class MessageTransferInProgress {
      */
     @Override
     public final boolean equals(Object obj) {
-	if (this == obj)
-	    return true;
-	if (obj == null)
-	    return false;
-	if (getClass() != obj.getClass())
-	    return false;
-	MessageTransferInProgress other = (MessageTransferInProgress) obj;
-	return medium.equals(other.medium) && Objects.equals(messageSofar, other.messageSofar);
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        MessageTransferInProgress other = (MessageTransferInProgress) obj;
+        return medium.equals(other.medium) && Objects.equals(messageSofar, other.messageSofar);
     }
 
     /**
@@ -76,7 +76,7 @@ public final class MessageTransferInProgress {
      * @return the medium; not null.
      */
     public final Medium getMedium() {
-	return medium;
+        return medium;
     }
 
     /**
@@ -103,21 +103,21 @@ public final class MessageTransferInProgress {
      * @return the message sent so far.
      */
     public final Message getMessageSofar() {
-	return messageSofar;
+        return messageSofar;
     }
 
     @Override
     public final int hashCode() {
-	final int prime = 31;
-	int result = 1;
-	result = prime * result + medium.hashCode();
-	result = prime * result + ((messageSofar == null) ? 0 : messageSofar.hashCode());
-	return result;
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + medium.hashCode();
+        result = prime * result + ((messageSofar == null) ? 0 : messageSofar.hashCode());
+        return result;
     }
 
     @Override
     public final String toString() {
-	return "MessageTransferInProgress [medium=" + medium + ", messageSofar=" + messageSofar + "]";
+        return "MessageTransferInProgress [medium=" + medium + ", messageSofar=" + messageSofar + "]";
     }
 
 }

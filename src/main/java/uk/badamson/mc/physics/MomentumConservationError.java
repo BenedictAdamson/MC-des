@@ -33,12 +33,12 @@ import uk.badamson.mc.physics.dynamics.Newton2Error;
 public final class MomentumConservationError extends AbstractTimeStepEnergyErrorFunctionTerm {
 
     private static boolean isValidForTerm(int n, int term[]) {
-	for (int i = 0, tn = term.length; i < tn; ++i) {
-	    if (n < term[i] + 1) {
-		return false;
-	    }
-	}
-	return true;
+        for (int i = 0, tn = term.length; i < tn; ++i) {
+            if (n < term[i] + 1) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private final int massTerm;
@@ -124,31 +124,31 @@ public final class MomentumConservationError extends AbstractTimeStepEnergyError
      *             </ul>
      */
     public MomentumConservationError(int massTerm, int[] velocityTerm, boolean[] massTransferInto,
-	    int[] advectionMassRateTerm, int[] advectionVelocityTerm, boolean[] forceOn, int[] forceTerm) {
-	this.massTerm = requireTermIndex(massTerm, "massTerm");
-	this.velocityTerm = copyTermIndex(velocityTerm, "velocityTerm");
-	this.massTransferInto = Arrays.copyOf(massTransferInto, massTransferInto.length);
-	this.advectionMassRateTerm = copyTermIndex(advectionMassRateTerm, "advectionMassRateTerm");
-	this.advectionVelocityTerm = copyTermIndex(advectionVelocityTerm, "advectionVelocityTerm");
-	this.forceOn = Arrays.copyOf(forceOn, forceOn.length);
-	this.forceTerm = copyTermIndex(forceTerm, "forceTerm");
+            int[] advectionMassRateTerm, int[] advectionVelocityTerm, boolean[] forceOn, int[] forceTerm) {
+        this.massTerm = requireTermIndex(massTerm, "massTerm");
+        this.velocityTerm = copyTermIndex(velocityTerm, "velocityTerm");
+        this.massTransferInto = Arrays.copyOf(massTransferInto, massTransferInto.length);
+        this.advectionMassRateTerm = copyTermIndex(advectionMassRateTerm, "advectionMassRateTerm");
+        this.advectionVelocityTerm = copyTermIndex(advectionVelocityTerm, "advectionVelocityTerm");
+        this.forceOn = Arrays.copyOf(forceOn, forceOn.length);
+        this.forceTerm = copyTermIndex(forceTerm, "forceTerm");
 
-	final int nSpace = velocityTerm.length;
-	final int nAdvection = massTransferInto.length;
-	final int nForce = forceOn.length;
-	if (nAdvection != advectionMassRateTerm.length) {
-	    throw new IllegalArgumentException("Inconsistent massTransferInto.length " + nAdvection
-		    + " advectionMassRateTerm.length " + advectionMassRateTerm.length);
-	}
-	if (nSpace * nAdvection != advectionVelocityTerm.length) {
-	    throw new IllegalArgumentException(
-		    "Inconsistent velocityTerm.length " + nSpace + ", massTransferInto.length " + nAdvection
-			    + ", advectionVelocityTerm.length" + advectionVelocityTerm.length);
-	}
-	if (nSpace * nForce != forceTerm.length) {
-	    throw new IllegalArgumentException("Inconsistent velocityTerm.length " + nSpace + ", forceOn.length "
-		    + nForce + ", forceTerm.length" + forceTerm.length);
-	}
+        final int nSpace = velocityTerm.length;
+        final int nAdvection = massTransferInto.length;
+        final int nForce = forceOn.length;
+        if (nAdvection != advectionMassRateTerm.length) {
+            throw new IllegalArgumentException("Inconsistent massTransferInto.length " + nAdvection
+                    + " advectionMassRateTerm.length " + advectionMassRateTerm.length);
+        }
+        if (nSpace * nAdvection != advectionVelocityTerm.length) {
+            throw new IllegalArgumentException(
+                    "Inconsistent velocityTerm.length " + nSpace + ", massTransferInto.length " + nAdvection
+                            + ", advectionVelocityTerm.length" + advectionVelocityTerm.length);
+        }
+        if (nSpace * nForce != forceTerm.length) {
+            throw new IllegalArgumentException("Inconsistent velocityTerm.length " + nSpace + ", forceOn.length "
+                    + nForce + ", forceTerm.length" + forceTerm.length);
+        }
     }
 
     /**
@@ -186,85 +186,85 @@ public final class MomentumConservationError extends AbstractTimeStepEnergyError
      */
     @Override
     public final double evaluate(double[] dedx, ImmutableVector state0, ImmutableVector state, double dt) {
-	super.evaluate(dedx, state0, state, dt);// check preconditions
+        super.evaluate(dedx, state0, state, dt);// check preconditions
 
-	final int ns = getSpaceDimension();
-	final int nm = getNumberOfMassTransfers();
-	final int nf = getNumberOfForces();
-	final ImmutableVector zero = ImmutableVector.create0(ns);
+        final int ns = getSpaceDimension();
+        final int nm = getNumberOfMassTransfers();
+        final int nf = getNumberOfForces();
+        final ImmutableVector zero = ImmutableVector.create0(ns);
 
-	final double m0 = state0.get(massTerm);
-	final ImmutableVector v0 = extract(state0, velocityTerm);
+        final double m0 = state0.get(massTerm);
+        final ImmutableVector v0 = extract(state0, velocityTerm);
 
-	final double m = state.get(massTerm);
-	final ImmutableVector v = extract(state, velocityTerm);
+        final double m = state.get(massTerm);
+        final ImmutableVector v = extract(state, velocityTerm);
 
-	double massRateTotal = 0.0;
-	final double[] massRate = new double[nm];
-	final ImmutableVector[] vrel = new ImmutableVector[nm];
-	final ImmutableVector[] pRateAdvection = new ImmutableVector[nm];
-	for (int j = 0; j < nm; ++j) {
-	    final double sign = massTransferInto[j] ? 1.0 : -1.0;
-	    final double massRate0J = sign * state0.get(advectionMassRateTerm[j]);
-	    final double massRateJ = sign * state.get(advectionMassRateTerm[j]);
-	    final ImmutableVector vrel0j = extract(state0, advectionVelocityTerm, j * ns, ns).minus(v0);
-	    final ImmutableVector vrelj = extract(state, advectionVelocityTerm, j * ns, ns).minus(v);
-	    massRate[j] = massRateJ;
-	    vrel[j] = vrelj;
-	    pRateAdvection[j] = vrel0j.scale(massRate0J).mean(vrelj.scale(massRateJ));
-	    massRateTotal += massRateJ;
-	}
+        double massRateTotal = 0.0;
+        final double[] massRate = new double[nm];
+        final ImmutableVector[] vrel = new ImmutableVector[nm];
+        final ImmutableVector[] pRateAdvection = new ImmutableVector[nm];
+        for (int j = 0; j < nm; ++j) {
+            final double sign = massTransferInto[j] ? 1.0 : -1.0;
+            final double massRate0J = sign * state0.get(advectionMassRateTerm[j]);
+            final double massRateJ = sign * state.get(advectionMassRateTerm[j]);
+            final ImmutableVector vrel0j = extract(state0, advectionVelocityTerm, j * ns, ns).minus(v0);
+            final ImmutableVector vrelj = extract(state, advectionVelocityTerm, j * ns, ns).minus(v);
+            massRate[j] = massRateJ;
+            vrel[j] = vrelj;
+            pRateAdvection[j] = vrel0j.scale(massRate0J).mean(vrelj.scale(massRateJ));
+            massRateTotal += massRateJ;
+        }
 
-	final ImmutableVector pRateAdvectionTotal = 0 < nm ? ImmutableVector.sum(pRateAdvection) : zero;
+        final ImmutableVector pRateAdvectionTotal = 0 < nm ? ImmutableVector.sum(pRateAdvection) : zero;
 
-	final ImmutableVector[] fMean = new ImmutableVector[nf];
-	final double[] fs = new double[nf];
-	for (int k = 0; k < nf; ++k) {
-	    double sign = 1.0;
-	    ImmutableVector f0k = extract(state0, forceTerm, k * ns, ns);
-	    ImmutableVector fk = extract(state, forceTerm, k * ns, ns);
-	    ImmutableVector mean = f0k.mean(fk);
-	    if (!forceOn[k]) {
-		sign = -1.0;
-		mean = mean.minus();
-	    }
-	    fs[k] = sign;
-	    fMean[k] = mean;
-	}
+        final ImmutableVector[] fMean = new ImmutableVector[nf];
+        final double[] fs = new double[nf];
+        for (int k = 0; k < nf; ++k) {
+            double sign = 1.0;
+            ImmutableVector f0k = extract(state0, forceTerm, k * ns, ns);
+            ImmutableVector fk = extract(state, forceTerm, k * ns, ns);
+            ImmutableVector mean = f0k.mean(fk);
+            if (!forceOn[k]) {
+                sign = -1.0;
+                mean = mean.minus();
+            }
+            fs[k] = sign;
+            fMean[k] = mean;
+        }
 
-	final ImmutableVector fTotal = 0 < nf ? ImmutableVector.sum(fMean) : zero;
+        final ImmutableVector fTotal = 0 < nf ? ImmutableVector.sum(fMean) : zero;
 
-	final ImmutableVector p0 = v0.scale(m0);
-	final ImmutableVector p = v.scale(m);
-	final ImmutableVector pRate = pRateAdvectionTotal.plus(fTotal);
+        final ImmutableVector p0 = v0.scale(m0);
+        final ImmutableVector p = v.scale(m);
+        final ImmutableVector pRate = pRateAdvectionTotal.plus(fTotal);
 
-	final ImmutableVector pe = (p.minus(p0)).minus(pRate.scale(dt));
-	final ImmutableVector ve = pe.scale(1.0 / m);
-	final double e = 0.5 * pe.dot(ve);
+        final ImmutableVector pe = (p.minus(p0)).minus(pRate.scale(dt));
+        final ImmutableVector ve = pe.scale(1.0 / m);
+        final double e = 0.5 * pe.dot(ve);
 
-	dedx[massTerm] += ve
-		.dot(ImmutableVector.weightedSum(new double[] { 1.0, -0.5 }, new ImmutableVector[] { v, ve }));
-	final double mdedv = m - 0.5 * dt * massRateTotal;
-	for (int i = 0; i < ns; ++i) {
-	    dedx[getVelocityTerm(i)] += ve.get(i) * mdedv;
-	}
-	for (int j = 0; j < nm; ++j) {
-	    final double sign = massTransferInto[j] ? 1.0 : -1.0;
-	    final double mdedu = -0.25 * massRate[j];
-	    dedx[advectionMassRateTerm[j]] += -0.5 * dt * sign * ve.dot(vrel[j]);
-	    for (int i = 0; i < ns; ++i) {
-		dedx[getAdvectionVelocityTerm(j, i)] += mdedu * ve.get(i);
-	    }
-	}
+        dedx[massTerm] += ve
+                .dot(ImmutableVector.weightedSum(new double[] { 1.0, -0.5 }, new ImmutableVector[] { v, ve }));
+        final double mdedv = m - 0.5 * dt * massRateTotal;
+        for (int i = 0; i < ns; ++i) {
+            dedx[getVelocityTerm(i)] += ve.get(i) * mdedv;
+        }
+        for (int j = 0; j < nm; ++j) {
+            final double sign = massTransferInto[j] ? 1.0 : -1.0;
+            final double mdedu = -0.25 * massRate[j];
+            dedx[advectionMassRateTerm[j]] += -0.5 * dt * sign * ve.dot(vrel[j]);
+            for (int i = 0; i < ns; ++i) {
+                dedx[getAdvectionVelocityTerm(j, i)] += mdedu * ve.get(i);
+            }
+        }
 
-	for (int k = 0; k < nf; ++k) {
-	    final double fsk = fs[k];
-	    for (int i = 0; i < ns; ++i) {
-		dedx[getForceTerm(k, i)] += -0.5 * dt * fsk * ve.get(i);
-	    }
-	}
+        for (int k = 0; k < nf; ++k) {
+            final double fsk = fs[k];
+            for (int i = 0; i < ns; ++i) {
+                dedx[getForceTerm(k, i)] += -0.5 * dt * fsk * ve.get(i);
+            }
+        }
 
-	return e;
+        return e;
     }
 
     /**
@@ -287,7 +287,7 @@ public final class MomentumConservationError extends AbstractTimeStepEnergyError
      *             </ul>
      */
     public final int getAdvectionMassRateTerm(int j) {
-	return advectionMassRateTerm[j];
+        return advectionMassRateTerm[j];
     }
 
     /**
@@ -315,7 +315,7 @@ public final class MomentumConservationError extends AbstractTimeStepEnergyError
      *             </ul>
      */
     public final int getAdvectionVelocityTerm(int j, int i) {
-	return advectionVelocityTerm[requireAdvectionProcess(j) * getSpaceDimension() + requireVectorComponent(i)];
+        return advectionVelocityTerm[requireAdvectionProcess(j) * getSpaceDimension() + requireVectorComponent(i)];
     }
 
     /**
@@ -342,7 +342,7 @@ public final class MomentumConservationError extends AbstractTimeStepEnergyError
      *             </ul>
      */
     public final int getForceTerm(int k, int i) {
-	return forceTerm[requireForce(k) * getSpaceDimension() + requireVectorComponent(i)];
+        return forceTerm[requireForce(k) * getSpaceDimension() + requireVectorComponent(i)];
     }
 
     /**
@@ -353,7 +353,7 @@ public final class MomentumConservationError extends AbstractTimeStepEnergyError
      * @return the index of the mass; not negative
      */
     public final int getMassTerm() {
-	return massTerm;
+        return massTerm;
     }
 
     /**
@@ -364,7 +364,7 @@ public final class MomentumConservationError extends AbstractTimeStepEnergyError
      * @return the number of forces; not negative.
      */
     public final int getNumberOfForces() {
-	return forceOn.length;
+        return forceOn.length;
     }
 
     /**
@@ -376,7 +376,7 @@ public final class MomentumConservationError extends AbstractTimeStepEnergyError
      * @return the number of mass transfer processes; not negative.
      */
     public final int getNumberOfMassTransfers() {
-	return massTransferInto.length;
+        return massTransferInto.length;
     }
 
     /**
@@ -387,7 +387,7 @@ public final class MomentumConservationError extends AbstractTimeStepEnergyError
      * @return the number of dimensions; positive.
      */
     public final int getSpaceDimension() {
-	return velocityTerm.length;
+        return velocityTerm.length;
     }
 
     /**
@@ -408,7 +408,7 @@ public final class MomentumConservationError extends AbstractTimeStepEnergyError
      *             </ul>
      */
     public final int getVelocityTerm(int i) {
-	return velocityTerm[i];
+        return velocityTerm[i];
     }
 
     /**
@@ -436,7 +436,7 @@ public final class MomentumConservationError extends AbstractTimeStepEnergyError
      *             </ul>
      */
     public final boolean isForceOn(int k) {
-	return forceOn[k];
+        return forceOn[k];
     }
 
     /**
@@ -463,7 +463,7 @@ public final class MomentumConservationError extends AbstractTimeStepEnergyError
      *             </ul>
      */
     public final boolean isMassTransferInto(int j) {
-	return massTransferInto[j];
+        return massTransferInto[j];
     }
 
     /**
@@ -478,32 +478,32 @@ public final class MomentumConservationError extends AbstractTimeStepEnergyError
      */
     @Override
     public final boolean isValidForDimension(int n) {
-	if (n <= 0) {
-	    throw new IllegalArgumentException("n " + n);
-	}
-	return (massTerm + 1 <= n) && isValidForTerm(n, velocityTerm) && isValidForTerm(n, advectionVelocityTerm)
-		&& isValidForTerm(n, advectionMassRateTerm) && isValidForTerm(n, forceTerm);
+        if (n <= 0) {
+            throw new IllegalArgumentException("n " + n);
+        }
+        return (massTerm + 1 <= n) && isValidForTerm(n, velocityTerm) && isValidForTerm(n, advectionVelocityTerm)
+                && isValidForTerm(n, advectionMassRateTerm) && isValidForTerm(n, forceTerm);
     }
 
     private int requireAdvectionProcess(int j) {
-	if (j < 0 || getNumberOfMassTransfers() <= j) {
-	    throw new IndexOutOfBoundsException("Not an advection component " + j);
-	}
-	return j;
+        if (j < 0 || getNumberOfMassTransfers() <= j) {
+            throw new IndexOutOfBoundsException("Not an advection component " + j);
+        }
+        return j;
     }
 
     private int requireForce(int k) {
-	if (k < 0 || getNumberOfForces() <= k) {
-	    throw new IndexOutOfBoundsException("Not a force " + k);
-	}
-	return k;
+        if (k < 0 || getNumberOfForces() <= k) {
+            throw new IndexOutOfBoundsException("Not a force " + k);
+        }
+        return k;
     }
 
     private int requireVectorComponent(int i) {
-	if (i < 0 || getSpaceDimension() <= i) {
-	    throw new IndexOutOfBoundsException("Not a space vector component " + i);
-	}
-	return i;
+        if (i < 0 || getSpaceDimension() <= i) {
+            throw new IndexOutOfBoundsException("Not a space vector component " + i);
+        }
+        return i;
     }
 
 }

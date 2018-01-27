@@ -8,6 +8,6 @@ package uk.badamson.mc.actor.message;
 public class RelationshipTest {
 
     public static void assertInvariants(Relationship relationship) {
-	MessageElementTest.assertInvariants(relationship);// inherited
+        MessageElementTest.assertInvariants(relationship);// inherited
     }
 }

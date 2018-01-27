@@ -32,53 +32,53 @@ public class SimpleStatement extends AbstractMessage {
      * </p>
      */
     public static enum SimplePredicate implements MessageElement {
-	/**
-	 * <p>
-	 * The subject (a person) acknowledges a message that was sent to them.
-	 * </p>
-	 */
-	ACKNOWLEDGE_MESSAGE,
-	/**
-	 * <p>
-	 * The subject (a location) is the location where an enemy is visible.
-	 * </p>
-	 */
-	HAS_ENEMY_IN_SIGHT,
+        /**
+         * <p>
+         * The subject (a person) acknowledges a message that was sent to them.
+         * </p>
+         */
+        ACKNOWLEDGE_MESSAGE,
+        /**
+         * <p>
+         * The subject (a location) is the location where an enemy is visible.
+         * </p>
+         */
+        HAS_ENEMY_IN_SIGHT,
 
-	/**
-	 * <p>
-	 * The subject (a location) is a <dfn>danger area</dfn>, which is (or might be)
-	 * exposed to enemy observation or fire.
-	 * </p>
-	 */
-	IS_DANGER_AREA;
+        /**
+         * <p>
+         * The subject (a location) is a <dfn>danger area</dfn>, which is (or might be)
+         * exposed to enemy observation or fire.
+         * </p>
+         */
+        IS_DANGER_AREA;
 
-	public static final double INFORMATION_CONTENT = Math.log(values().length) / Math.log(2);
+        public static final double INFORMATION_CONTENT = Math.log(values().length) / Math.log(2);
 
-	/**
-	 * {@inheritDoc}
-	 * 
-	 * <p>
-	 * Objects of the {@link SimpleStatement.SimplePredicate} type have the
-	 * additional constraint that their information content is the
-	 * {@linkplain #INFORMATION_CONTENT same}.
-	 * </p>
-	 */
-	@Override
-	public final double getInformationContent() {
-	    return INFORMATION_CONTENT;
-	}
+        /**
+         * {@inheritDoc}
+         * 
+         * <p>
+         * Objects of the {@link SimpleStatement.SimplePredicate} type have the
+         * additional constraint that their information content is the
+         * {@linkplain #INFORMATION_CONTENT same}.
+         * </p>
+         */
+        @Override
+        public final double getInformationContent() {
+            return INFORMATION_CONTENT;
+        }
     }// enum
 
     private static final Map<SimpleRelativeLocation, SimpleStatement> ENEMY_IN_SIGHT_INSTANCES;
 
     static {
-	final Map<SimpleRelativeLocation, SimpleStatement> map = new EnumMap<>(SimpleRelativeLocation.class);
-	for (SimpleRelativeLocation location : SimpleRelativeLocation.values()) {
-	    final SimpleStatement statement = new SimpleStatement(location, SimplePredicate.HAS_ENEMY_IN_SIGHT);
-	    map.put(location, statement);
-	}
-	ENEMY_IN_SIGHT_INSTANCES = map;
+        final Map<SimpleRelativeLocation, SimpleStatement> map = new EnumMap<>(SimpleRelativeLocation.class);
+        for (SimpleRelativeLocation location : SimpleRelativeLocation.values()) {
+            final SimpleStatement statement = new SimpleStatement(location, SimplePredicate.HAS_ENEMY_IN_SIGHT);
+            map.put(location, statement);
+        }
+        ENEMY_IN_SIGHT_INSTANCES = map;
     }
 
     /**
@@ -114,15 +114,15 @@ public class SimpleStatement extends AbstractMessage {
      * </ul>
      */
     public static final SimpleStatement ACKNOWLEDGE_MESSAGE = new SimpleStatement(Pronoun.ME,
-	    SimplePredicate.ACKNOWLEDGE_MESSAGE);
+            SimplePredicate.ACKNOWLEDGE_MESSAGE);
 
     private static final SimpleStatement[] ALL;
     static {
-	final List<SimpleStatement> list = new ArrayList<>();
-	list.addAll(ENEMY_IN_SIGHT_INSTANCES.values());
-	list.add(ACKNOWLEDGE_MESSAGE);
-	list.add(DANGER_AREA);
-	ALL = list.toArray(new SimpleStatement[0]);
+        final List<SimpleStatement> list = new ArrayList<>();
+        list.addAll(ENEMY_IN_SIGHT_INSTANCES.values());
+        list.add(ACKNOWLEDGE_MESSAGE);
+        list.add(DANGER_AREA);
+        ALL = list.toArray(new SimpleStatement[0]);
     }
 
     /**
@@ -142,8 +142,8 @@ public class SimpleStatement extends AbstractMessage {
      *             If {@code location} is null.
      */
     public static final SimpleStatement getEnemyInSight(SimpleRelativeLocation location) {
-	Objects.requireNonNull(location, "location");
-	return ENEMY_IN_SIGHT_INSTANCES.get(location);
+        Objects.requireNonNull(location, "location");
+        return ENEMY_IN_SIGHT_INSTANCES.get(location);
     }
 
     /**
@@ -160,7 +160,7 @@ public class SimpleStatement extends AbstractMessage {
      * @return the values
      */
     public static final SimpleStatement[] values() {
-	return Arrays.copyOf(ALL, ALL.length);
+        return Arrays.copyOf(ALL, ALL.length);
     }
 
     private final Noun subject;
@@ -168,8 +168,8 @@ public class SimpleStatement extends AbstractMessage {
     private final SimplePredicate predicate;
 
     private SimpleStatement(Noun subject, SimplePredicate predicate) {
-	this.subject = subject;
-	this.predicate = predicate;
+        this.subject = subject;
+        this.predicate = predicate;
     }
 
     /**
@@ -186,7 +186,7 @@ public class SimpleStatement extends AbstractMessage {
      */
     @Override
     public final double getInformationContent() {
-	return EXTRA_INFORMATION_CONTENT + subject.getInformationContent() + predicate.getInformationContent();
+        return EXTRA_INFORMATION_CONTENT + subject.getInformationContent() + predicate.getInformationContent();
     }
 
     /**
@@ -194,7 +194,7 @@ public class SimpleStatement extends AbstractMessage {
      */
     @Override
     public final UnusableIncompleteMessage getPartialMessage(double partLength) {
-	return new UnusableIncompleteMessage(partLength);
+        return new UnusableIncompleteMessage(partLength);
     }
 
     /**
@@ -209,7 +209,7 @@ public class SimpleStatement extends AbstractMessage {
      * @return the subject; not null.
      */
     public final SimplePredicate getPredicate() {
-	return predicate;
+        return predicate;
     }
 
     /**
@@ -220,12 +220,12 @@ public class SimpleStatement extends AbstractMessage {
      * @return the subject; not null.
      */
     public final Noun getSubject() {
-	return subject;
+        return subject;
     }
 
     @Override
     public final String toString() {
-	return "SimpleStatement [" + subject + " " + predicate + "]";
+        return "SimpleStatement [" + subject + " " + predicate + "]";
     }
 
 }

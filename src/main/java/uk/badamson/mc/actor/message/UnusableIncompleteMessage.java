@@ -24,10 +24,10 @@ public final class UnusableIncompleteMessage extends AbstractMessage {
      *             If {@code length} is not positive.
      */
     public UnusableIncompleteMessage(double length) {
-	if (length <= 0.0) {
-	    throw new IllegalArgumentException("length " + length);
-	}
-	this.length = length;
+        if (length <= 0.0) {
+            throw new IllegalArgumentException("length " + length);
+        }
+        this.length = length;
     }
 
     /**
@@ -47,19 +47,19 @@ public final class UnusableIncompleteMessage extends AbstractMessage {
      */
     @Override
     public final boolean equals(Object that) {
-	if (this == that)
-	    return true;
-	if (that == null)
-	    return false;
-	if (!(that instanceof UnusableIncompleteMessage))
-	    return false;
-	final UnusableIncompleteMessage other = (UnusableIncompleteMessage) that;
-	return length == other.length;
+        if (this == that)
+            return true;
+        if (that == null)
+            return false;
+        if (!(that instanceof UnusableIncompleteMessage))
+            return false;
+        final UnusableIncompleteMessage other = (UnusableIncompleteMessage) that;
+        return length == other.length;
     }
 
     @Override
     public final double getInformationContent() {
-	return length;
+        return length;
     }
 
     /**
@@ -73,25 +73,25 @@ public final class UnusableIncompleteMessage extends AbstractMessage {
      */
     @Override
     public final UnusableIncompleteMessage getPartialMessage(double partLength) {
-	if (getInformationContent() <= partLength) {
-	    throw new IllegalArgumentException("partLength <" + partLength
-		    + "> is not less than the length of this message <" + getInformationContent() + ">.");
-	}
-	return new UnusableIncompleteMessage(partLength);
+        if (getInformationContent() <= partLength) {
+            throw new IllegalArgumentException("partLength <" + partLength
+                    + "> is not less than the length of this message <" + getInformationContent() + ">.");
+        }
+        return new UnusableIncompleteMessage(partLength);
     }
 
     @Override
     public final int hashCode() {
-	final int prime = 31;
-	int result = 1;
-	final long temp = Double.doubleToLongBits(length);
-	result = prime * result + (int) (temp ^ (temp >>> 32));
-	return result;
+        final int prime = 31;
+        int result = 1;
+        final long temp = Double.doubleToLongBits(length);
+        result = prime * result + (int) (temp ^ (temp >>> 32));
+        return result;
     }
 
     @Override
     public final String toString() {
-	return "UnusableIncompleteMessage [length=" + length + "]";
+        return "UnusableIncompleteMessage [length=" + length + "]";
     }
 
 }

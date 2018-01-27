@@ -88,7 +88,7 @@ public interface Actor {
      *             </ul>
      */
     public void tellMessageReceptionProgress(Message previousMessageSoFar,
-	    MessageTransferInProgress messageBeingReceived);
+            MessageTransferInProgress messageBeingReceived);
 
     /**
      * <p>

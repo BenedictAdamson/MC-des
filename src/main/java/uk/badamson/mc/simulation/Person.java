@@ -39,7 +39,7 @@ public final class Person implements ActorInterface, Actor {
      * </ul>
      */
     public Person() {
-	media.add(HandSignals.INSTANCE);
+        media.add(HandSignals.INSTANCE);
     }
 
     /**
@@ -56,20 +56,20 @@ public final class Person implements ActorInterface, Actor {
      */
     @Override
     public final void beginSendingMessage(Medium medium, Message message) throws MediumUnavailableException {
-	Objects.requireNonNull(medium, "medium");
-	Objects.requireNonNull(message, "message");
-	if (!medium.canConvey(message)) {
-	    throw new IllegalMessageException();
-	}
-	if (!media.contains(medium)) {
-	    throw new MediumUnavailableException();
-	}
-	if (transmissionInProgress != null) {
-	    throw new IllegalStateException("This is already sending a message");
-	}
-	assert medium instanceof HandSignals;
-	transmittingMessage = message;
-	transmissionInProgress = new MessageTransferInProgress(medium, null);
+        Objects.requireNonNull(medium, "medium");
+        Objects.requireNonNull(message, "message");
+        if (!medium.canConvey(message)) {
+            throw new IllegalMessageException();
+        }
+        if (!media.contains(medium)) {
+            throw new MediumUnavailableException();
+        }
+        if (transmissionInProgress != null) {
+            throw new IllegalStateException("This is already sending a message");
+        }
+        assert medium instanceof HandSignals;
+        transmittingMessage = message;
+        transmissionInProgress = new MessageTransferInProgress(medium, null);
     }
 
     /**
@@ -84,7 +84,7 @@ public final class Person implements ActorInterface, Actor {
      */
     @Override
     public final Actor getActor() {
-	return this;
+        return this;
     }
 
     /**
@@ -99,7 +99,7 @@ public final class Person implements ActorInterface, Actor {
      */
     @Override
     public final ActorInterface getActorInterface() {
-	return this;
+        return this;
     }
 
     /**
@@ -107,7 +107,7 @@ public final class Person implements ActorInterface, Actor {
      */
     @Override
     public final Set<Medium> getMedia() {
-	return Collections.unmodifiableSet(media);
+        return Collections.unmodifiableSet(media);
     }
 
     /**
@@ -115,17 +115,17 @@ public final class Person implements ActorInterface, Actor {
      */
     @Override
     public final Set<MessageTransferInProgress> getMessagesBeingReceived() {
-	return Collections.emptySet();// TODO
+        return Collections.emptySet();// TODO
     }
 
     @Override
     public final MessageTransferInProgress getTransmissionInProgress() {
-	return transmissionInProgress;
+        return transmissionInProgress;
     }
 
     @Override
     public final Message getTransmittingMessage() {
-	return transmittingMessage;
+        return transmittingMessage;
     }
 
     /**
@@ -133,7 +133,7 @@ public final class Person implements ActorInterface, Actor {
      */
     @Override
     public void tellBeginReceivingMessage(MessageTransferInProgress receptionStarted) {
-	// TODO Auto-generated method stub
+        // TODO Auto-generated method stub
 
     }
 
@@ -143,8 +143,8 @@ public final class Person implements ActorInterface, Actor {
      */
     @Override
     public void tellMessageReceptionProgress(Message previousMessageSoFar,
-	    MessageTransferInProgress messageBeingReceived) {
-	// TODO Auto-generated method stub
+            MessageTransferInProgress messageBeingReceived) {
+        // TODO Auto-generated method stub
 
     }
 
@@ -154,7 +154,7 @@ public final class Person implements ActorInterface, Actor {
      */
     @Override
     public void tellMessageSendingEnded(MessageTransferInProgress transmissionProgress, Message fullMessage) {
-	// TODO Auto-generated method stub
+        // TODO Auto-generated method stub
 
     }
 
@@ -163,7 +163,7 @@ public final class Person implements ActorInterface, Actor {
      */
     @Override
     public void tellMessageTransmissionProgress(Message previousMessageSoFar) {
-	// TODO Auto-generated method stub
+        // TODO Auto-generated method stub
 
     }
 

@@ -41,16 +41,16 @@ public final class FunctionNWithGradientValue {
      *             {@linkplain ImmutableVector#getDimension() dimensions}.
      */
     public FunctionNWithGradientValue(ImmutableVector x, double f, ImmutableVector dfdx) {
-	Objects.requireNonNull(x, "x");
-	Objects.requireNonNull(dfdx, "dfdx");
-	if (x.getDimension() != dfdx.getDimension()) {
-	    throw new IllegalArgumentException(
-		    "Inconsistent dimensions x<" + x.getDimension() + ">, dfdx <" + dfdx.getDimension() + ">");
-	}
+        Objects.requireNonNull(x, "x");
+        Objects.requireNonNull(dfdx, "dfdx");
+        if (x.getDimension() != dfdx.getDimension()) {
+            throw new IllegalArgumentException(
+                    "Inconsistent dimensions x<" + x.getDimension() + ">, dfdx <" + dfdx.getDimension() + ">");
+        }
 
-	this.f = f;
-	this.x = x;
-	this.dfdx = dfdx;
+        this.f = f;
+        this.x = x;
+        this.dfdx = dfdx;
     }
 
     /**
@@ -66,15 +66,15 @@ public final class FunctionNWithGradientValue {
      */
     @Override
     public boolean equals(Object obj) {
-	if (this == obj)
-	    return true;
-	if (obj == null)
-	    return false;
-	if (getClass() != obj.getClass())
-	    return false;
-	FunctionNWithGradientValue other = (FunctionNWithGradientValue) obj;
-	return Double.doubleToLongBits(f) == Double.doubleToLongBits(other.f) && x.equals(other.x)
-		&& dfdx.equals(other.dfdx);
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        FunctionNWithGradientValue other = (FunctionNWithGradientValue) obj;
+        return Double.doubleToLongBits(f) == Double.doubleToLongBits(other.f) && x.equals(other.x)
+                && dfdx.equals(other.dfdx);
     }
 
     /**
@@ -89,7 +89,7 @@ public final class FunctionNWithGradientValue {
      * </ul>
      */
     public final ImmutableVector getDfDx() {
-	return dfdx;
+        return dfdx;
     }
 
     /**
@@ -98,7 +98,7 @@ public final class FunctionNWithGradientValue {
      * </p>
      */
     public final double getF() {
-	return f;
+        return f;
     }
 
     /**
@@ -111,23 +111,23 @@ public final class FunctionNWithGradientValue {
      * </ul>
      */
     public final ImmutableVector getX() {
-	return x;
+        return x;
     }
 
     @Override
     public int hashCode() {
-	final int prime = 31;
-	int result = 1;
-	final long fBits = Double.doubleToLongBits(f);
-	result = prime * result + (int) (fBits ^ (fBits >>> 32));
-	result = prime * result + x.hashCode();
-	result = prime * result + dfdx.hashCode();
-	return result;
+        final int prime = 31;
+        int result = 1;
+        final long fBits = Double.doubleToLongBits(f);
+        result = prime * result + (int) (fBits ^ (fBits >>> 32));
+        result = prime * result + x.hashCode();
+        result = prime * result + dfdx.hashCode();
+        return result;
     }
 
     @Override
     public String toString() {
-	return "[" + x + "->" + f + ", dfdx=" + dfdx + "]";
+        return "[" + x + "->" + f + ", dfdx=" + dfdx + "]";
     }
 
 }

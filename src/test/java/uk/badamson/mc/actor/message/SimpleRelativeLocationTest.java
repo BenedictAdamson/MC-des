@@ -16,38 +16,38 @@ import uk.badamson.mc.actor.message.SimpleRelativeLocation.Range;
 public class SimpleRelativeLocationTest {
 
     public static void assertInvariants(SimpleRelativeLocation location) {
-	NounTest.assertInvariants(location);// inherited
+        NounTest.assertInvariants(location);// inherited
 
-	assertNotNull("Not null, direction", location.getDirection());
-	assertNotNull("Not null, range", location.getRange());
-	assertEquals("informtationContent", SimpleRelativeLocation.INFORMATION_CONTENT,
-		location.getInformationContent(), 1.0E-3);
+        assertNotNull("Not null, direction", location.getDirection());
+        assertNotNull("Not null, range", location.getRange());
+        assertEquals("informtationContent", SimpleRelativeLocation.INFORMATION_CONTENT,
+                location.getInformationContent(), 1.0E-3);
     }
 
     private static SimpleRelativeLocation getInstance(Direction direction, Range range) {
-	final SimpleRelativeLocation location = SimpleRelativeLocation.getInstance(direction, range);
+        final SimpleRelativeLocation location = SimpleRelativeLocation.getInstance(direction, range);
 
-	assertNotNull("Not null, instance", location);// guard
-	assertInvariants(location);
-	assertSame("direction", direction, location.getDirection());
-	assertSame("range", range, location.getRange());
+        assertNotNull("Not null, instance", location);// guard
+        assertInvariants(location);
+        assertSame("direction", direction, location.getDirection());
+        assertSame("range", range, location.getRange());
 
-	return location;
+        return location;
     }
 
     @Test
     public void instances() {
-	for (SimpleRelativeLocation.Direction direction : SimpleRelativeLocation.Direction.values()) {
-	    for (SimpleRelativeLocation.Range range : SimpleRelativeLocation.Range.values()) {
-		getInstance(direction, range);
-	    }
-	}
+        for (SimpleRelativeLocation.Direction direction : SimpleRelativeLocation.Direction.values()) {
+            for (SimpleRelativeLocation.Range range : SimpleRelativeLocation.Range.values()) {
+                getInstance(direction, range);
+            }
+        }
     }
 
     @Test
     public void values() {
-	for (SimpleRelativeLocation location : SimpleRelativeLocation.values()) {
-	    assertInvariants(location);
-	}
+        for (SimpleRelativeLocation location : SimpleRelativeLocation.values()) {
+            assertInvariants(location);
+        }
     }
 }

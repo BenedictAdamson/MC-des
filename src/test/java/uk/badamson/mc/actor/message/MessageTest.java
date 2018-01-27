@@ -12,23 +12,23 @@ import static org.junit.Assert.assertNotNull;
 public class MessageTest {
 
     public static void assertInvariants(Message message) {
-	MessageElementTest.assertInvariants(message);// inherited
+        MessageElementTest.assertInvariants(message);// inherited
     }
 
     public static void assertInvariants(Message message1, Message message2) {
-	MessageElementTest.assertInvariants(message1, message2);// inherited
+        MessageElementTest.assertInvariants(message1, message2);// inherited
     }
 
     public static Message getPartialMessage(Message message, double partLength) {
-	final Message partialMessage = message.getPartialMessage(partLength);
+        final Message partialMessage = message.getPartialMessage(partLength);
 
-	assertNotNull("Always returns a message.", partialMessage);// guard
-	assertInvariants(message);
-	assertInvariants(partialMessage);
-	assertEquals("The length of the returned message is equal to the given part length.", partLength,
-		partialMessage.getInformationContent(), 1E-3);
-	assertNotEquals("The returned message is never equivalent to this message.", partialMessage, message);
+        assertNotNull("Always returns a message.", partialMessage);// guard
+        assertInvariants(message);
+        assertInvariants(partialMessage);
+        assertEquals("The length of the returned message is equal to the given part length.", partLength,
+                partialMessage.getInformationContent(), 1E-3);
+        assertNotEquals("The returned message is never equivalent to this message.", partialMessage, message);
 
-	return partialMessage;
+        return partialMessage;
     }
 }

@@ -30,9 +30,9 @@ public final class Function1WithGradientValue {
      *            The gradient value
      */
     public Function1WithGradientValue(double x, double f, double dfdx) {
-	this.x = x;
-	this.f = f;
-	this.dfdx = dfdx;
+        this.x = x;
+        this.f = f;
+        this.dfdx = dfdx;
     }
 
     /**
@@ -48,16 +48,16 @@ public final class Function1WithGradientValue {
      */
     @Override
     public boolean equals(Object obj) {
-	if (this == obj)
-	    return true;
-	if (obj == null)
-	    return false;
-	if (getClass() != obj.getClass())
-	    return false;
-	Function1WithGradientValue other = (Function1WithGradientValue) obj;
-	return Double.doubleToLongBits(x) == Double.doubleToLongBits(other.x)
-		&& Double.doubleToLongBits(f) == Double.doubleToLongBits(other.f)
-		&& Double.doubleToLongBits(dfdx) == Double.doubleToLongBits(other.dfdx);
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        Function1WithGradientValue other = (Function1WithGradientValue) obj;
+        return Double.doubleToLongBits(x) == Double.doubleToLongBits(other.x)
+                && Double.doubleToLongBits(f) == Double.doubleToLongBits(other.f)
+                && Double.doubleToLongBits(dfdx) == Double.doubleToLongBits(other.dfdx);
     }
 
     /**
@@ -66,7 +66,7 @@ public final class Function1WithGradientValue {
      * </p>
      */
     public final double getDfDx() {
-	return dfdx;
+        return dfdx;
     }
 
     /**
@@ -75,7 +75,7 @@ public final class Function1WithGradientValue {
      * </p>
      */
     public final double getF() {
-	return f;
+        return f;
     }
 
     /**
@@ -84,25 +84,25 @@ public final class Function1WithGradientValue {
      * </p>
      */
     public final double getX() {
-	return x;
+        return x;
     }
 
     @Override
     public int hashCode() {
-	final int prime = 31;
-	int result = 1;
-	final long xBits = Double.doubleToLongBits(x);
-	final long fBits = Double.doubleToLongBits(f);
-	final long dfdxBits = Double.doubleToLongBits(dfdx);
-	result = prime * result + (int) (xBits ^ (xBits >>> 32));
-	result = prime * result + (int) (fBits ^ (fBits >>> 32));
-	result = prime * result + (int) (dfdxBits ^ (dfdxBits >>> 32));
-	return result;
+        final int prime = 31;
+        int result = 1;
+        final long xBits = Double.doubleToLongBits(x);
+        final long fBits = Double.doubleToLongBits(f);
+        final long dfdxBits = Double.doubleToLongBits(dfdx);
+        result = prime * result + (int) (xBits ^ (xBits >>> 32));
+        result = prime * result + (int) (fBits ^ (fBits >>> 32));
+        result = prime * result + (int) (dfdxBits ^ (dfdxBits >>> 32));
+        return result;
     }
 
     @Override
     public String toString() {
-	return "(" + x + ", " + f + ", dfdx " + dfdx + ")";
+        return "(" + x + ", " + f + ", dfdx " + dfdx + ")";
     }
 
 }

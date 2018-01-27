@@ -26,116 +26,116 @@ public class MessageTransferInProgressTest {
     private static final Medium MEDIUM_1 = HandSignals.INSTANCE;
     private static final Medium MEDIUM_2 = new Medium() {
 
-	@Override
-	public final boolean canConvey(Message message) {
-	    return message == MESSAGE_1 || message == MESSAGE_2;
-	}
+        @Override
+        public final boolean canConvey(Message message) {
+            return message == MESSAGE_1 || message == MESSAGE_2;
+        }
 
-	@Override
-	public final double getTypicalTransmissionRate() {
-	    return 44.1 * 1024;
-	}
+        @Override
+        public final double getTypicalTransmissionRate() {
+            return 44.1 * 1024;
+        }
 
     };
     private static final Message MESSAGE_2 = SimpleDirectCommand.RUSH;
     private static final Message MESSAGE_1 = SimpleDirectCommand.HALT;
 
     public static void assertInvariants(MessageTransferInProgress progress) {
-	ObjectTest.assertInvariants(progress);// inherited
+        ObjectTest.assertInvariants(progress);// inherited
 
-	assertNotNull("Not null, medium", progress.getMedium());
+        assertNotNull("Not null, medium", progress.getMedium());
     }
 
     public static void assertInvariants(MessageTransferInProgress progress1, MessageTransferInProgress progress2) {
-	ObjectTest.assertInvariants(progress1, progress2);// 1inherited
+        ObjectTest.assertInvariants(progress1, progress2);// 1inherited
 
-	final boolean equals = progress1.equals(progress2);
-	assertFalse("Value semantics, medium", equals && !progress1.getMedium().equals(progress2.getMedium()));
-	assertFalse("Value semantics, messageSofar",
-		equals && !Objects.equals(progress1.getMessageSofar(), progress2.getMessageSofar()));
+        final boolean equals = progress1.equals(progress2);
+        assertFalse("Value semantics, medium", equals && !progress1.getMedium().equals(progress2.getMedium()));
+        assertFalse("Value semantics, messageSofar",
+                equals && !Objects.equals(progress1.getMessageSofar(), progress2.getMessageSofar()));
     }
 
     private static MessageTransferInProgress constructor(Medium medium, Message messageSofar) {
-	final MessageTransferInProgress progress = new MessageTransferInProgress(medium, messageSofar);
+        final MessageTransferInProgress progress = new MessageTransferInProgress(medium, messageSofar);
 
-	assertInvariants(progress);
-	assertSame("medium", medium, progress.getMedium());
-	assertSame("messageSofar", messageSofar, progress.getMessageSofar());
+        assertInvariants(progress);
+        assertSame("medium", medium, progress.getMedium());
+        assertSame("messageSofar", messageSofar, progress.getMessageSofar());
 
-	return progress;
+        return progress;
     }
 
     private static void constructor_2Equals(Medium medium, Message messageSofar) {
-	final MessageTransferInProgress progress1 = new MessageTransferInProgress(medium, messageSofar);
-	final MessageTransferInProgress progress2 = new MessageTransferInProgress(medium, messageSofar);
+        final MessageTransferInProgress progress1 = new MessageTransferInProgress(medium, messageSofar);
+        final MessageTransferInProgress progress2 = new MessageTransferInProgress(medium, messageSofar);
 
-	assertInvariants(progress1, progress2);
-	assertEquals(progress1, progress2);
+        assertInvariants(progress1, progress2);
+        assertEquals(progress1, progress2);
     }
 
     @Test
     public void constructor_2DifferentMedium() {
-	final MessageTransferInProgress progress1 = new MessageTransferInProgress(MEDIUM_1, MESSAGE_1);
-	final MessageTransferInProgress progress2 = new MessageTransferInProgress(MEDIUM_2, MESSAGE_1);
+        final MessageTransferInProgress progress1 = new MessageTransferInProgress(MEDIUM_1, MESSAGE_1);
+        final MessageTransferInProgress progress2 = new MessageTransferInProgress(MEDIUM_2, MESSAGE_1);
 
-	assertInvariants(progress1, progress2);
-	assertNotEquals(progress1, progress2);
+        assertInvariants(progress1, progress2);
+        assertNotEquals(progress1, progress2);
     }
 
     @Test
     public void constructor_2DifferentMessage() {
-	final MessageTransferInProgress progress1 = new MessageTransferInProgress(MEDIUM_1, MESSAGE_1);
-	final MessageTransferInProgress progress2 = new MessageTransferInProgress(MEDIUM_1, MESSAGE_2);
+        final MessageTransferInProgress progress1 = new MessageTransferInProgress(MEDIUM_1, MESSAGE_1);
+        final MessageTransferInProgress progress2 = new MessageTransferInProgress(MEDIUM_1, MESSAGE_2);
 
-	assertInvariants(progress1, progress2);
-	assertNotEquals(progress1, progress2);
+        assertInvariants(progress1, progress2);
+        assertNotEquals(progress1, progress2);
     }
 
     @Test
     public void constructor_2DifferentMessageNullA() {
-	final MessageTransferInProgress progress1 = new MessageTransferInProgress(MEDIUM_1, null);
-	final MessageTransferInProgress progress2 = new MessageTransferInProgress(MEDIUM_1, MESSAGE_2);
+        final MessageTransferInProgress progress1 = new MessageTransferInProgress(MEDIUM_1, null);
+        final MessageTransferInProgress progress2 = new MessageTransferInProgress(MEDIUM_1, MESSAGE_2);
 
-	assertInvariants(progress1, progress2);
-	assertNotEquals(progress1, progress2);
+        assertInvariants(progress1, progress2);
+        assertNotEquals(progress1, progress2);
     }
 
     @Test
     public void constructor_2DifferentMessageNullB() {
-	final MessageTransferInProgress progress1 = new MessageTransferInProgress(MEDIUM_1, MESSAGE_1);
-	final MessageTransferInProgress progress2 = new MessageTransferInProgress(MEDIUM_1, null);
+        final MessageTransferInProgress progress1 = new MessageTransferInProgress(MEDIUM_1, MESSAGE_1);
+        final MessageTransferInProgress progress2 = new MessageTransferInProgress(MEDIUM_1, null);
 
-	assertInvariants(progress1, progress2);
-	assertNotEquals(progress1, progress2);
+        assertInvariants(progress1, progress2);
+        assertNotEquals(progress1, progress2);
     }
 
     @Test
     public void constructor_2EqualsA() {
-	constructor_2Equals(MEDIUM_1, MESSAGE_1);
+        constructor_2Equals(MEDIUM_1, MESSAGE_1);
     }
 
     @Test
     public void constructor_2EqualsB() {
-	constructor_2Equals(MEDIUM_2, MESSAGE_2);
+        constructor_2Equals(MEDIUM_2, MESSAGE_2);
     }
 
     @Test
     public void constructor_2EqualsNullMessageSoFar() {
-	constructor_2Equals(MEDIUM_1, null);
+        constructor_2Equals(MEDIUM_1, null);
     }
 
     @Test
     public void constructor_A() {
-	constructor(MEDIUM_1, MESSAGE_1);
+        constructor(MEDIUM_1, MESSAGE_1);
     }
 
     @Test
     public void constructor_B() {
-	constructor(MEDIUM_2, MESSAGE_2);
+        constructor(MEDIUM_2, MESSAGE_2);
     }
 
     @Test
     public void constructor_nullMessageSoFar() {
-	constructor(MEDIUM_1, null);
+        constructor(MEDIUM_1, null);
     }
 }

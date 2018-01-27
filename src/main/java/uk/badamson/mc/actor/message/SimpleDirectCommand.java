@@ -29,44 +29,44 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
 
     private static final Map<SimpleRelativeLocation, SimpleDirectCommand> ASSEMBLE_INSTANCES;
     static {
-	final Map<SimpleRelativeLocation, SimpleDirectCommand> map = new EnumMap<>(SimpleRelativeLocation.class);
-	for (SimpleRelativeLocation location : SimpleRelativeLocation.values()) {
-	    final SimpleDirectCommand command = new SimpleDirectCommand(Pronoun.YOU, SimpleVerb.ASSEMBLE, location);
-	    map.put(location, command);
-	}
-	ASSEMBLE_INSTANCES = map;
+        final Map<SimpleRelativeLocation, SimpleDirectCommand> map = new EnumMap<>(SimpleRelativeLocation.class);
+        for (SimpleRelativeLocation location : SimpleRelativeLocation.values()) {
+            final SimpleDirectCommand command = new SimpleDirectCommand(Pronoun.YOU, SimpleVerb.ASSEMBLE, location);
+            map.put(location, command);
+        }
+        ASSEMBLE_INSTANCES = map;
     }
 
     private static final Map<SimpleFormationName, SimpleDirectCommand> CHANGE_FORMATION_INSTANCES;
     static {
-	final Map<SimpleFormationName, SimpleDirectCommand> map = new EnumMap<>(SimpleFormationName.class);
-	for (SimpleFormationName formation : SimpleFormationName.values()) {
-	    final SimpleDirectCommand command = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.CHANGE_FORMATION,
-		    formation);
-	    map.put(formation, command);
-	}
-	CHANGE_FORMATION_INSTANCES = map;
+        final Map<SimpleFormationName, SimpleDirectCommand> map = new EnumMap<>(SimpleFormationName.class);
+        for (SimpleFormationName formation : SimpleFormationName.values()) {
+            final SimpleDirectCommand command = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.CHANGE_FORMATION,
+                    formation);
+            map.put(formation, command);
+        }
+        CHANGE_FORMATION_INSTANCES = map;
     }
 
     private static final Map<BattleDrillName, SimpleDirectCommand> PERFORM_BATTLE_DRILL_INSTANCES;
     static {
-	final Map<BattleDrillName, SimpleDirectCommand> map = new EnumMap<>(BattleDrillName.class);
-	for (BattleDrillName drill : BattleDrillName.values()) {
-	    final SimpleDirectCommand command = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.PERFORM_BATTLE_DRILL,
-		    drill);
-	    map.put(drill, command);
-	}
-	PERFORM_BATTLE_DRILL_INSTANCES = map;
+        final Map<BattleDrillName, SimpleDirectCommand> map = new EnumMap<>(BattleDrillName.class);
+        for (BattleDrillName drill : BattleDrillName.values()) {
+            final SimpleDirectCommand command = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.PERFORM_BATTLE_DRILL,
+                    drill);
+            map.put(drill, command);
+        }
+        PERFORM_BATTLE_DRILL_INSTANCES = map;
     }
 
     private static final Map<MilitaryRole, SimpleDirectCommand> ROLE_FORWARD_INSTANCES;
     static {
-	final Map<MilitaryRole, SimpleDirectCommand> map = new EnumMap<>(MilitaryRole.class);
-	for (MilitaryRole role : MilitaryRole.values()) {
-	    final SimpleDirectCommand command = new SimpleDirectCommand(role, SimpleVerb.JOIN, Pronoun.ME);
-	    map.put(role, command);
-	}
-	ROLE_FORWARD_INSTANCES = map;
+        final Map<MilitaryRole, SimpleDirectCommand> map = new EnumMap<>(MilitaryRole.class);
+        for (MilitaryRole role : MilitaryRole.values()) {
+            final SimpleDirectCommand command = new SimpleDirectCommand(role, SimpleVerb.JOIN, Pronoun.ME);
+            map.put(role, command);
+        }
+        ROLE_FORWARD_INSTANCES = map;
     }
 
     /**
@@ -124,7 +124,7 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      * @see #HALT
      */
     public static final SimpleDirectCommand STOP_AND_SCAN = new SimpleDirectCommand(Pronoun.WE,
-	    SimpleVerb.STOP_AND_SCAN, Pronoun.IT);
+            SimpleVerb.STOP_AND_SCAN, Pronoun.IT);
 
     /**
      * <p>
@@ -165,7 +165,7 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      * @see #HALT_AND_TAKE_A_KNEE
      */
     public static final SimpleDirectCommand HALT_AND_FREEZE = new SimpleDirectCommand(Pronoun.WE,
-	    SimpleVerb.HALT_AND_FREEZE, Pronoun.IT);
+            SimpleVerb.HALT_AND_FREEZE, Pronoun.IT);
 
     /**
      * <p>
@@ -184,7 +184,7 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      * </ul>
      */
     public static final SimpleDirectCommand HALT_AND_TAKE_A_KNEE = new SimpleDirectCommand(Pronoun.WE,
-	    SimpleVerb.HALT_AND_TAKE_A_KNEE, Pronoun.IT);
+            SimpleVerb.HALT_AND_TAKE_A_KNEE, Pronoun.IT);
 
     /**
      * <p>
@@ -203,7 +203,7 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      * </ul>
      */
     public static final SimpleDirectCommand HALT_AND_GO_PRONE = new SimpleDirectCommand(Pronoun.WE,
-	    SimpleVerb.HALT_AND_GO_PRONE, Pronoun.IT);
+            SimpleVerb.HALT_AND_GO_PRONE, Pronoun.IT);
 
     /**
      * <p>
@@ -222,7 +222,7 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      * </ul>
      */
     public static final SimpleDirectCommand TAKE_COVER = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.TAKE_COVER,
-	    Pronoun.IT);
+            Pronoun.IT);
 
     /**
      * <p>
@@ -240,7 +240,7 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      * </ul>
      */
     public static final SimpleDirectCommand QUICK_TIME = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.QUICK_TIME,
-	    Pronoun.IT);
+            Pronoun.IT);
 
     /**
      * <p>
@@ -259,7 +259,7 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      * </ul>
      */
     public static final SimpleDirectCommand FIX_BAYONET = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.FIX_BAYONET,
-	    Pronoun.IT);
+            Pronoun.IT);
 
     /**
      * <p>
@@ -278,7 +278,7 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      * </ul>
      */
     public static final SimpleDirectCommand CHECK_MAP = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.CHECK_MAP,
-	    Pronoun.IT);
+            Pronoun.IT);
 
     /**
      * <p>
@@ -297,7 +297,7 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      * </ul>
      */
     public static final SimpleDirectCommand CHECK_PACES = new SimpleDirectCommand(Pronoun.WE, SimpleVerb.CHECK_PACES,
-	    Pronoun.IT);
+            Pronoun.IT);
 
     /**
      * <p>
@@ -316,29 +316,29 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      * </ul>
      */
     public static final SimpleDirectCommand CHECK_NUMER_PRESENT = new SimpleDirectCommand(Pronoun.WE,
-	    SimpleVerb.CHECK_NUMER_PRESENT, Pronoun.IT);
+            SimpleVerb.CHECK_NUMER_PRESENT, Pronoun.IT);
 
     private static final SimpleDirectCommand[] ALL;
     static {
-	final List<SimpleDirectCommand> list = new ArrayList<>();
-	list.addAll(ASSEMBLE_INSTANCES.values());
-	list.addAll(CHANGE_FORMATION_INSTANCES.values());
-	list.addAll(PERFORM_BATTLE_DRILL_INSTANCES.values());
-	list.addAll(ROLE_FORWARD_INSTANCES.values());
-	list.add(CHECK_MAP);
-	list.add(CHECK_NUMER_PRESENT);
-	list.add(CHECK_PACES);
-	list.add(FIX_BAYONET);
-	list.add(STOP_AND_SCAN);
-	list.add(HALT);
-	list.add(HALT_AND_FREEZE);
-	list.add(HALT_AND_GO_PRONE);
-	list.add(HALT_AND_TAKE_A_KNEE);
-	list.add(JOIN_ME);
-	list.add(QUICK_TIME);
-	list.add(RUSH);
-	list.add(TAKE_COVER);
-	ALL = list.toArray(new SimpleDirectCommand[0]);
+        final List<SimpleDirectCommand> list = new ArrayList<>();
+        list.addAll(ASSEMBLE_INSTANCES.values());
+        list.addAll(CHANGE_FORMATION_INSTANCES.values());
+        list.addAll(PERFORM_BATTLE_DRILL_INSTANCES.values());
+        list.addAll(ROLE_FORWARD_INSTANCES.values());
+        list.add(CHECK_MAP);
+        list.add(CHECK_NUMER_PRESENT);
+        list.add(CHECK_PACES);
+        list.add(FIX_BAYONET);
+        list.add(STOP_AND_SCAN);
+        list.add(HALT);
+        list.add(HALT_AND_FREEZE);
+        list.add(HALT_AND_GO_PRONE);
+        list.add(HALT_AND_TAKE_A_KNEE);
+        list.add(JOIN_ME);
+        list.add(QUICK_TIME);
+        list.add(RUSH);
+        list.add(TAKE_COVER);
+        ALL = list.toArray(new SimpleDirectCommand[0]);
     }
 
     /**
@@ -369,8 +369,8 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      *             If {@code location} is null.
      */
     public static final SimpleDirectCommand getAssembleInstance(SimpleRelativeLocation location) {
-	Objects.requireNonNull(location, "location");
-	return ASSEMBLE_INSTANCES.get(location);
+        Objects.requireNonNull(location, "location");
+        return ASSEMBLE_INSTANCES.get(location);
     }
 
     /**
@@ -394,8 +394,8 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      *             If {@code formation} is null
      */
     public static SimpleDirectCommand getChangeFormationInstance(SimpleFormationName formation) {
-	Objects.requireNonNull(formation, "formation");
-	return CHANGE_FORMATION_INSTANCES.get(formation);
+        Objects.requireNonNull(formation, "formation");
+        return CHANGE_FORMATION_INSTANCES.get(formation);
     }
 
     /**
@@ -419,8 +419,8 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      *             If {@code drill} is null
      */
     public static SimpleDirectCommand getPerformBattleDrillInstance(BattleDrillName drill) {
-	Objects.requireNonNull(drill, "drill");
-	return PERFORM_BATTLE_DRILL_INSTANCES.get(drill);
+        Objects.requireNonNull(drill, "drill");
+        return PERFORM_BATTLE_DRILL_INSTANCES.get(drill);
     }
 
     /**
@@ -443,8 +443,8 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      *             If {@code role} is null
      */
     public static SimpleDirectCommand getRoleForwardInstance(MilitaryRole role) {
-	Objects.requireNonNull(role, "role");
-	return ROLE_FORWARD_INSTANCES.get(role);
+        Objects.requireNonNull(role, "role");
+        return ROLE_FORWARD_INSTANCES.get(role);
     }
 
     /**
@@ -461,7 +461,7 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      * @return the values
      */
     public static final SimpleDirectCommand[] values() {
-	return Arrays.copyOf(ALL, ALL.length);
+        return Arrays.copyOf(ALL, ALL.length);
     }
 
     private final Noun subject;
@@ -471,21 +471,21 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
     private final Set<Noun> objects;
 
     private SimpleDirectCommand(Noun subject, SimpleVerb verb, Noun object) {
-	this.subject = subject;
-	this.verb = verb;
-	this.objects = Collections.singleton(object);
+        this.subject = subject;
+        this.verb = verb;
+        this.objects = Collections.singleton(object);
     }
 
     @Override
     public boolean equals(Object obj) {
-	if (this == obj)
-	    return true;
-	if (obj == null)
-	    return false;
-	if (!(obj instanceof SimpleDirectCommand))
-	    return false;
-	SimpleDirectCommand other = (SimpleDirectCommand) obj;
-	return subject.equals(other.subject) && verb.equals(other.verb) && objects.equals(other.objects);
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (!(obj instanceof SimpleDirectCommand))
+            return false;
+        SimpleDirectCommand other = (SimpleDirectCommand) obj;
+        return subject.equals(other.subject) && verb.equals(other.verb) && objects.equals(other.objects);
     }
 
     /**
@@ -498,8 +498,8 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      */
     @Override
     public final double getInformationContent() {
-	return EXTRA_INFORMATION_CONTENT + getSubject().getInformationContent() + getVerb().getInformationContent()
-		+ MessageElement.getInformationContent(getObjects());
+        return EXTRA_INFORMATION_CONTENT + getSubject().getInformationContent() + getVerb().getInformationContent()
+                + MessageElement.getInformationContent(getObjects());
     }
 
     /**
@@ -507,7 +507,7 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      */
     @Override
     public final Set<Noun> getObjects() {
-	return objects;
+        return objects;
     }
 
     /**
@@ -515,7 +515,7 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      */
     @Override
     public final UnusableIncompleteMessage getPartialMessage(double partLength) {
-	return new UnusableIncompleteMessage(partLength);
+        return new UnusableIncompleteMessage(partLength);
     }
 
     /**
@@ -528,7 +528,7 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      */
     @Override
     public final Noun getSubject() {
-	return subject;
+        return subject;
     }
 
     /**
@@ -536,22 +536,22 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
      */
     @Override
     public final SimpleVerb getVerb() {
-	return verb;
+        return verb;
     }
 
     @Override
     public int hashCode() {
-	final int prime = 31;
-	int result = 1;
-	result = prime * result + subject.hashCode();
-	result = prime * result + verb.hashCode();
-	result = prime * result + objects.hashCode();
-	return result;
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + subject.hashCode();
+        result = prime * result + verb.hashCode();
+        result = prime * result + objects.hashCode();
+        return result;
     }
 
     @Override
     public String toString() {
-	return "SimpleDirectCommand [" + subject + " " + verb + " " + objects + "]";
+        return "SimpleDirectCommand [" + subject + " " + verb + " " + objects + "]";
     }
 
 }

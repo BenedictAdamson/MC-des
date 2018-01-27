@@ -14,20 +14,20 @@ import java.util.List;
 public class RelationshipStatementTest {
 
     public static void assertInvariants(RelationshipStatement statement) {
-	MessageTest.assertInvariants(statement);// inherited
+        MessageTest.assertInvariants(statement);// inherited
 
-	final List<Noun> things = statement.getThings();
-	final Relationship relationship = statement.getRelationship();
+        final List<Noun> things = statement.getThings();
+        final Relationship relationship = statement.getRelationship();
 
-	assertNotNull("Always have a list of things.", things);// guard
-	assertNotNull("Always have a relationship.", relationship);// guard
+        assertNotNull("Always have a list of things.", things);// guard
+        assertNotNull("Always have a relationship.", relationship);// guard
 
-	for (Noun thing : things) {
-	    assertNotNull("The list of things has no null elements.", thing);// guard
-	    NounTest.assertInvariants(thing);
-	}
-	assertTrue("The list of things has at least two elements.", 2 <= things.size());
+        for (Noun thing : things) {
+            assertNotNull("The list of things has no null elements.", thing);// guard
+            NounTest.assertInvariants(thing);
+        }
+        assertTrue("The list of things has at least two elements.", 2 <= things.size());
 
-	RelationshipTest.assertInvariants(relationship);
+        RelationshipTest.assertInvariants(relationship);
     }
 }

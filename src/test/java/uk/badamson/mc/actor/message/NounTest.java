@@ -8,8 +8,8 @@ package uk.badamson.mc.actor.message;
 public class NounTest {
 
     public static void assertInvariants(Noun noun) {
-	MessageElementTest.assertInvariants(noun);// inherited
-	// Do nothing
+        MessageElementTest.assertInvariants(noun);// inherited
+        // Do nothing
     }
 
 }

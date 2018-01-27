@@ -29,14 +29,14 @@ public interface MessageElement {
      *             If {@code elements} is null.
      */
     public static double getInformationContent(Collection<? extends MessageElement> elements) {
-	Objects.requireNonNull(elements, "elements");
-	double information = 0.0;
-	for (MessageElement element : elements) {
-	    if (element != null) {
-		information += element.getInformationContent();
-	    }
-	}
-	return information;
+        Objects.requireNonNull(elements, "elements");
+        double information = 0.0;
+        for (MessageElement element : elements) {
+            if (element != null) {
+                information += element.getInformationContent();
+            }
+        }
+        return information;
     }
 
     /**
@@ -55,7 +55,7 @@ public interface MessageElement {
      * @return the information content
      */
     public static double getInformationContent(int n) {
-	return 0 < n ? Math.log(n) / Math.log(2) : 0.0;
+        return 0 < n ? Math.log(n) / Math.log(2) : 0.0;
     }
 
     /**
@@ -73,14 +73,14 @@ public interface MessageElement {
      *             If {@code elements} is null.
      */
     public static double getInformationContent(MessageElement... elements) {
-	Objects.requireNonNull(elements, "elements");
-	double information = 0.0;
-	for (MessageElement element : elements) {
-	    if (element != null) {
-		information += element.getInformationContent();
-	    }
-	}
-	return information;
+        Objects.requireNonNull(elements, "elements");
+        double information = 0.0;
+        for (MessageElement element : elements) {
+            if (element != null) {
+                information += element.getInformationContent();
+            }
+        }
+        return information;
     }
 
     /**

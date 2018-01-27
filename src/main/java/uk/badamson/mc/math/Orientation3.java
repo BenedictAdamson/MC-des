@@ -32,7 +32,7 @@ public final class Orientation3 {
      * </ul>
      */
     public static final Orientation3 GLOBAL_BASIS = new Orientation3(ImmutableVector.create(1, 0, 0),
-	    ImmutableVector.create(0, 1, 0), ImmutableVector.create(0, 0, 1));
+            ImmutableVector.create(0, 1, 0), ImmutableVector.create(0, 0, 1));
 
     private static final double TOLERANCE = Math.max(Math.nextAfter(1.0, 2.0) - 1.0, 1.0 - Math.nextAfter(1.0, 0.0));
 
@@ -87,30 +87,30 @@ public final class Orientation3 {
      *             </ul>
      */
     public static Orientation3 createFromOrthogonalUnitBasisVectors(ImmutableVector e1, ImmutableVector e2,
-	    ImmutableVector e3) {
-	requireUnit3Vector(e1, "e1");
-	requireUnit3Vector(e2, "e2");
-	requireUnit3Vector(e3, "e3");
-	requireOrthogonal(e1, "e1", e2, "e2");
-	requireOrthogonal(e1, "e1", e3, "e3");
-	requireOrthogonal(e2, "e2", e3, "e3");
+            ImmutableVector e3) {
+        requireUnit3Vector(e1, "e1");
+        requireUnit3Vector(e2, "e2");
+        requireUnit3Vector(e3, "e3");
+        requireOrthogonal(e1, "e1", e2, "e2");
+        requireOrthogonal(e1, "e1", e3, "e3");
+        requireOrthogonal(e2, "e2", e3, "e3");
 
-	return new Orientation3(e1, e2, e3);
+        return new Orientation3(e1, e2, e3);
     }
 
     private static void requireOrthogonal(ImmutableVector e1, String name1, ImmutableVector e2, String name2) {
-	if (0.0 < Math.abs(e1.dot(e2))) {
-	    throw new IllegalArgumentException("Not orthogonal " + name1 + " " + e1 + " " + name2 + " " + e1);
-	}
+        if (0.0 < Math.abs(e1.dot(e2))) {
+            throw new IllegalArgumentException("Not orthogonal " + name1 + " " + e1 + " " + name2 + " " + e1);
+        }
     }
 
     private static ImmutableVector requireUnit3Vector(ImmutableVector e, String message) {
-	Objects.requireNonNull(e, message);
-	final double m = e.magnitude2();
-	if (e.getDimension() != 3 || TOLERANCE < Math.abs(m - 1.0)) {
-	    throw new IllegalArgumentException(message + " " + e + " (magnitude " + m + ")");
-	}
-	return e;
+        Objects.requireNonNull(e, message);
+        final double m = e.magnitude2();
+        if (e.getDimension() != 3 || TOLERANCE < Math.abs(m - 1.0)) {
+            throw new IllegalArgumentException(message + " " + e + " (magnitude " + m + ")");
+        }
+        return e;
     }
 
     private final ImmutableVector e1;
@@ -120,9 +120,9 @@ public final class Orientation3 {
     private final ImmutableVector e3;
 
     private Orientation3(ImmutableVector e1, ImmutableVector e2, ImmutableVector e3) {
-	this.e1 = e1;
-	this.e2 = e2;
-	this.e3 = e3;
+        this.e1 = e1;
+        this.e2 = e2;
+        this.e3 = e3;
     }
 
     /**
@@ -144,7 +144,7 @@ public final class Orientation3 {
      * @return the e1 vector
      */
     public final ImmutableVector getE1() {
-	return e1;
+        return e1;
     }
 
     /**
@@ -166,7 +166,7 @@ public final class Orientation3 {
      * @return the e2 vector
      */
     public final ImmutableVector getE2() {
-	return e2;
+        return e2;
     }
 
     /**
@@ -185,7 +185,7 @@ public final class Orientation3 {
      * @return the e3 vector
      */
     public final ImmutableVector getE3() {
-	return e3;
+        return e3;
     }
 
 }

@@ -8,6 +8,6 @@ package uk.badamson.mc.actor.message;
 public class CommandTest {
 
     public static void assertInvariants(Command command) {
-	SentenceTest.assertInvariants(command);// inherited
+        SentenceTest.assertInvariants(command);// inherited
     }
 }

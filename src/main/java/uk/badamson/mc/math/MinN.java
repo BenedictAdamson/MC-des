@@ -11,41 +11,41 @@ import java.util.Objects;
 public final class MinN {
 
     private static double basicPowell(final FunctionN f, final double[] x0, final double[] dx0, final double[] x,
-	    final double[][] dx) throws PoorlyConditionedFunctionException {
-	final int n = f.getDimension();
-	assert n == x0.length;
-	assert n == dx0.length;
-	assert n == x.length;
-	assert n == dx.length;
-	copyTo(x0, x);
-	for (int i = 0; i < n; ++i) {
-	    copyTo(dx0, dx[i]);
-	    minimiseAlongLine(f, x, dx0);
-	}
-	dx[n - 1] = dx[0];// recycle array
-	for (int i = 0; i < n - 1; ++i) {
-	    dx[i] = dx[i + 1];
-	}
-	double xNewMax = 0;
-	for (int j = 0; j < n; ++j) {
-	    final double xNew = x[j] - x0[j];
-	    dx[n - 1][j] = xNew;
-	    xNewMax = Math.max(xNewMax, Math.abs(xNew));
-	}
-	if (xNewMax < Min1.TOLERANCE) {
-	    /*
-	     * We have converged on the minimum, or the search directions have degenerated.
-	     */
-	    resetSearchDirections(dx);
-	}
-	copyTo(dx0, dx[n - 1]);
-	return minimiseAlongLine(f, x, dx0);
+            final double[][] dx) throws PoorlyConditionedFunctionException {
+        final int n = f.getDimension();
+        assert n == x0.length;
+        assert n == dx0.length;
+        assert n == x.length;
+        assert n == dx.length;
+        copyTo(x0, x);
+        for (int i = 0; i < n; ++i) {
+            copyTo(dx0, dx[i]);
+            minimiseAlongLine(f, x, dx0);
+        }
+        dx[n - 1] = dx[0];// recycle array
+        for (int i = 0; i < n - 1; ++i) {
+            dx[i] = dx[i + 1];
+        }
+        double xNewMax = 0;
+        for (int j = 0; j < n; ++j) {
+            final double xNew = x[j] - x0[j];
+            dx[n - 1][j] = xNew;
+            xNewMax = Math.max(xNewMax, Math.abs(xNew));
+        }
+        if (xNewMax < Min1.TOLERANCE) {
+            /*
+             * We have converged on the minimum, or the search directions have degenerated.
+             */
+            resetSearchDirections(dx);
+        }
+        copyTo(dx0, dx[n - 1]);
+        return minimiseAlongLine(f, x, dx0);
     }
 
     private static void copyTo(double[] x, double[] y) {
-	for (int j = 0, n = x.length; j < n; ++j) {
-	    x[j] = y[j];
-	}
+        for (int j = 0, n = x.length; j < n; ++j) {
+            x[j] = y[j];
+        }
     }
 
     /**
@@ -89,29 +89,29 @@ public final class MinN {
      *             </ul>
      */
     static Function1 createLineFunction(final FunctionN f, final double[] x0, final double[] dx) {
-	Objects.requireNonNull(f, "f");
-	Objects.requireNonNull(x0, "x0");
-	Objects.requireNonNull(dx, "dx");
-	final int n = x0.length;
-	if (n == 0) {
-	    throw new IllegalArgumentException("x0.length == 0");
-	}
-	if (n != dx.length || n != f.getDimension()) {
-	    throw new IllegalArgumentException(
-		    "Inconsistent lengths, x0 " + n + ", dx " + dx.length + ", f.dimensions " + f.getDimension());
-	}
+        Objects.requireNonNull(f, "f");
+        Objects.requireNonNull(x0, "x0");
+        Objects.requireNonNull(dx, "dx");
+        final int n = x0.length;
+        if (n == 0) {
+            throw new IllegalArgumentException("x0.length == 0");
+        }
+        if (n != dx.length || n != f.getDimension()) {
+            throw new IllegalArgumentException(
+                    "Inconsistent lengths, x0 " + n + ", dx " + dx.length + ", f.dimensions " + f.getDimension());
+        }
 
-	return new Function1() {
+        return new Function1() {
 
-	    @Override
-	    public double value(double w) {
-		final double[] x = new double[n];
-		for (int i = 0; i < n; i++) {
-		    x[i] = x0[i] + w * dx[i];
-		}
-		return f.value(x);
-	    }
-	};
+            @Override
+            public double value(double w) {
+                final double[] x = new double[n];
+                for (int i = 0; i < n; i++) {
+                    x[i] = x0[i] + w * dx[i];
+                }
+                return f.value(x);
+            }
+        };
     }
 
     /**
@@ -155,48 +155,48 @@ public final class MinN {
      *             </ul>
      */
     public static Function1WithGradient createLineFunction(final FunctionNWithGradient f, final ImmutableVector x0,
-	    final ImmutableVector dx) {
-	Objects.requireNonNull(f, "f");
-	Objects.requireNonNull(x0, "x0");
-	Objects.requireNonNull(dx, "dx");
-	final int n = x0.getDimension();
-	if (n != dx.getDimension() || n != f.getDimension()) {
-	    throw new IllegalArgumentException("Inconsistent lengths, x0 " + n + ", dx " + dx.getDimension()
-		    + ", f.dimensions " + f.getDimension());
-	}
+            final ImmutableVector dx) {
+        Objects.requireNonNull(f, "f");
+        Objects.requireNonNull(x0, "x0");
+        Objects.requireNonNull(dx, "dx");
+        final int n = x0.getDimension();
+        if (n != dx.getDimension() || n != f.getDimension()) {
+            throw new IllegalArgumentException("Inconsistent lengths, x0 " + n + ", dx " + dx.getDimension()
+                    + ", f.dimensions " + f.getDimension());
+        }
 
-	return new Function1WithGradient() {
+        return new Function1WithGradient() {
 
-	    @Override
-	    public String toString() {
-		final StringBuilder str = new StringBuilder();
-		str.append(f);
-		str.append(" along ");
-		str.append(x0);
-		str.append(" + w*");
-		str.append(dx);
-		return str.toString();
-	    }
+            @Override
+            public String toString() {
+                final StringBuilder str = new StringBuilder();
+                str.append(f);
+                str.append(" along ");
+                str.append(x0);
+                str.append(" + w*");
+                str.append(dx);
+                return str.toString();
+            }
 
-	    @Override
-	    public Function1WithGradientValue value(double w) {
-		final ImmutableVector x = ImmutableVector.createOnLine(x0, dx, w);
-		final FunctionNWithGradientValue v = f.value(x);
-		return new Function1WithGradientValue(w, v.getF(), v.getDfDx().dot(dx));
-	    }
-	};
+            @Override
+            public Function1WithGradientValue value(double w) {
+                final ImmutableVector x = ImmutableVector.createOnLine(x0, dx, w);
+                final FunctionNWithGradientValue v = f.value(x);
+                return new Function1WithGradientValue(w, v.getF(), v.getDfDx().dot(dx));
+            }
+        };
     }
 
     private static ImmutableVector downSlope(FunctionNWithGradientValue fx) {
-	final ImmutableVector dfDx = fx.getDfDx();
-	if (dfDx.magnitude2() < Double.MIN_NORMAL) {
-	    /* Avoid division by zero when close to a minimum */
-	    final double[] x = new double[fx.getX().getDimension()];
-	    x[0] = 1.0;
-	    return ImmutableVector.create(x);
-	} else {
-	    return dfDx.minus();
-	}
+        final ImmutableVector dfDx = fx.getDfDx();
+        if (dfDx.magnitude2() < Double.MIN_NORMAL) {
+            /* Avoid division by zero when close to a minimum */
+            final double[] x = new double[fx.getX().getDimension()];
+            x[0] = 1.0;
+            return ImmutableVector.create(x);
+        } else {
+            return dfDx.minus();
+        }
     }
 
     /**
@@ -238,63 +238,63 @@ public final class MinN {
      *             </ul>
      */
     public static FunctionNWithGradientValue findFletcherReevesPolakRibere(final FunctionNWithGradient f,
-	    ImmutableVector x0, double tolerance) throws PoorlyConditionedFunctionException {
-	Objects.requireNonNull(f, "f");
-	Objects.requireNonNull(x0, "x");
-	requireToleranceInRange(tolerance);
-	final int n = f.getDimension();
-	if (x0.getDimension() != n) {
-	    throw new IllegalArgumentException("Inconsistent dimensions f <" + n + "> x <" + x0.getDimension() + ">");
-	}
+            ImmutableVector x0, double tolerance) throws PoorlyConditionedFunctionException {
+        Objects.requireNonNull(f, "f");
+        Objects.requireNonNull(x0, "x");
+        requireToleranceInRange(tolerance);
+        final int n = f.getDimension();
+        if (x0.getDimension() != n) {
+            throw new IllegalArgumentException("Inconsistent dimensions f <" + n + "> x <" + x0.getDimension() + ">");
+        }
 
-	FunctionNWithGradientValue fx = f.value(x0);
-	ImmutableVector g = downSlope(fx);
-	ImmutableVector dx = g;
-	ImmutableVector h = g;
-	double fScale = 0.0;
+        FunctionNWithGradientValue fx = f.value(x0);
+        ImmutableVector g = downSlope(fx);
+        ImmutableVector dx = g;
+        ImmutableVector h = g;
+        double fScale = 0.0;
 
-	while (true) {
-	    final ImmutableVector x = fx.getX();
-	    FunctionNWithGradientValue fXNew;
-	    try {
-		fXNew = minimiseAlongLine(f, x, dx);
-	    } catch (PoorlyConditionedFunctionException e) {
-		/*
-		 * Can indicate that g has become a zero vector because we have reached the
-		 * minimum.
-		 */
-		break;
-	    }
-	    final double df = fx.getF() - fXNew.getF();
-	    assert 0.0 <= df;
-	    fScale = Math.max(fScale, df);
-	    final double fTolerance = fScale * tolerance * tolerance * 0.5;
-	    ;
-	    if (df <= fTolerance) {
-		fx = fXNew;
-		break;// converged
-	    }
+        while (true) {
+            final ImmutableVector x = fx.getX();
+            FunctionNWithGradientValue fXNew;
+            try {
+                fXNew = minimiseAlongLine(f, x, dx);
+            } catch (PoorlyConditionedFunctionException e) {
+                /*
+                 * Can indicate that g has become a zero vector because we have reached the
+                 * minimum.
+                 */
+                break;
+            }
+            final double df = fx.getF() - fXNew.getF();
+            assert 0.0 <= df;
+            fScale = Math.max(fScale, df);
+            final double fTolerance = fScale * tolerance * tolerance * 0.5;
+            ;
+            if (df <= fTolerance) {
+                fx = fXNew;
+                break;// converged
+            }
 
-	    final ImmutableVector gNew = downSlope(fXNew);
-	    final double gamma = (gNew.minus(g)).dot(gNew) / g.magnitude2();
+            final ImmutableVector gNew = downSlope(fXNew);
+            final double gamma = (gNew.minus(g)).dot(gNew) / g.magnitude2();
 
-	    if (Math.abs(gamma) <= tolerance) {
-		/*
-		 * The gamma value is a dimensionless measure of the change in the search
-		 * vector. When that becomes very small, the search vector is effectively zero,
-		 * and we have located the minimum.
-		 */
-		fx = fXNew;
-		break;// converged
-	    }
-	    final ImmutableVector hNew = ImmutableVector.createOnLine(gNew, h, gamma);
+            if (Math.abs(gamma) <= tolerance) {
+                /*
+                 * The gamma value is a dimensionless measure of the change in the search
+                 * vector. When that becomes very small, the search vector is effectively zero,
+                 * and we have located the minimum.
+                 */
+                fx = fXNew;
+                break;// converged
+            }
+            final ImmutableVector hNew = ImmutableVector.createOnLine(gNew, h, gamma);
 
-	    g = gNew;
-	    h = hNew;
-	    fx = fXNew;
-	    dx = hNew;
-	}
-	return fx;
+            g = gNew;
+            h = hNew;
+            fx = fXNew;
+            dx = hNew;
+        }
+        return fx;
     }
 
     /**
@@ -340,44 +340,44 @@ public final class MinN {
      *             </ul>
      */
     public static double findPowell(final FunctionN f, final double[] x, double tolerance)
-	    throws PoorlyConditionedFunctionException {
-	Objects.requireNonNull(f, "f");
-	Objects.requireNonNull(x, "x");
-	requireToleranceInRange(tolerance);
-	final int n = f.getDimension();
-	if (x.length != n) {
-	    throw new IllegalArgumentException("Inconsistent dimensions f <" + n + "> x <" + x.length + ">");
-	}
+            throws PoorlyConditionedFunctionException {
+        Objects.requireNonNull(f, "f");
+        Objects.requireNonNull(x, "x");
+        requireToleranceInRange(tolerance);
+        final int n = f.getDimension();
+        if (x.length != n) {
+            throw new IllegalArgumentException("Inconsistent dimensions f <" + n + "> x <" + x.length + ">");
+        }
 
-	final double[] x0 = new double[n];
-	final double[] dx0 = new double[n];
-	final double[][] dx = new double[n][];
-	for (int i = 0; i < n; ++i) {
-	    dx[i] = new double[n];
-	}
+        final double[] x0 = new double[n];
+        final double[] dx0 = new double[n];
+        final double[][] dx = new double[n][];
+        for (int i = 0; i < n; ++i) {
+            dx[i] = new double[n];
+        }
 
-	int iteration = 0;
-	double min = Double.POSITIVE_INFINITY;
-	while (true) {
-	    if (iteration % n == 0) {
-		/*
-		 * To prevent the search directions collapsing to a bundle of linearly dependent
-		 * vectors, reset them to the basis vectors.
-		 */
-		resetSearchDirections(dx);
-	    }
+        int iteration = 0;
+        double min = Double.POSITIVE_INFINITY;
+        while (true) {
+            if (iteration % n == 0) {
+                /*
+                 * To prevent the search directions collapsing to a bundle of linearly dependent
+                 * vectors, reset them to the basis vectors.
+                 */
+                resetSearchDirections(dx);
+            }
 
-	    final double minNext = basicPowell(f, x0, dx0, x, dx);
-	    assert minNext <= min;
-	    final double dMin = minNext - min;
-	    min = minNext;
-	    iteration++;
-	    if (n <= iteration && dMin <= min * tolerance) {
-		break;
-	    }
-	}
+            final double minNext = basicPowell(f, x0, dx0, x, dx);
+            assert minNext <= min;
+            final double dMin = minNext - min;
+            min = minNext;
+            iteration++;
+            if (n <= iteration && dMin <= min * tolerance) {
+                break;
+            }
+        }
 
-	return min;
+        return min;
     }
 
     /**
@@ -433,17 +433,17 @@ public final class MinN {
      *             </ul>
      */
     static double minimiseAlongLine(final FunctionN f, final double[] x, final double[] dx)
-	    throws PoorlyConditionedFunctionException {
-	final Function1 fLine = createLineFunction(f, x, dx);
-	final Min1.Bracket bracket = Min1.findBracket(fLine, 0.0, 1.0);
-	final Function1Value p = Min1.findBrent(fLine, bracket, Min1.TOLERANCE);
-	final double w = p.getX();
-	for (int i = 0, n = x.length; i < n; i++) {
-	    final double dxi = dx[i] * w;
-	    dx[i] = dxi;
-	    x[i] += dxi;
-	}
-	return p.getF();
+            throws PoorlyConditionedFunctionException {
+        final Function1 fLine = createLineFunction(f, x, dx);
+        final Min1.Bracket bracket = Min1.findBracket(fLine, 0.0, 1.0);
+        final Function1Value p = Min1.findBrent(fLine, bracket, Min1.TOLERANCE);
+        final double w = p.getX();
+        for (int i = 0, n = x.length; i < n; i++) {
+            final double dxi = dx[i] * w;
+            dx[i] = dxi;
+            x[i] += dxi;
+        }
+        return p.getF();
     }
 
     /**
@@ -489,44 +489,44 @@ public final class MinN {
      *             </ul>
      */
     static FunctionNWithGradientValue minimiseAlongLine(final FunctionNWithGradient f, final ImmutableVector x,
-	    ImmutableVector dx) throws PoorlyConditionedFunctionException {
-	final Function1WithGradient fLine = createLineFunction(f, x, dx);
-	final Function1 f1Line = new Function1() {
+            ImmutableVector dx) throws PoorlyConditionedFunctionException {
+        final Function1WithGradient fLine = createLineFunction(f, x, dx);
+        final Function1 f1Line = new Function1() {
 
-	    @Override
-	    public String toString() {
-		return fLine.toString();
-	    }
+            @Override
+            public String toString() {
+                return fLine.toString();
+            }
 
-	    @Override
-	    public double value(double x) {
-		return fLine.value(x).getF();
-	    }
+            @Override
+            public double value(double x) {
+                return fLine.value(x).getF();
+            }
 
-	};
-	final Min1.Bracket bracket = Min1.findBracket(f1Line, 0.0, 1.0);
-	final Function1WithGradientValue p = Min1.findBrent(fLine, bracket, Min1.TOLERANCE);
-	final ImmutableVector xMin = ImmutableVector.createOnLine(x, dx, p.getX());
-	return f.value(xMin);
+        };
+        final Min1.Bracket bracket = Min1.findBracket(f1Line, 0.0, 1.0);
+        final Function1WithGradientValue p = Min1.findBrent(fLine, bracket, Min1.TOLERANCE);
+        final ImmutableVector xMin = ImmutableVector.createOnLine(x, dx, p.getX());
+        return f.value(xMin);
     }
 
     private static void requireToleranceInRange(double tolerance) {
-	if (!(0.0 < tolerance && tolerance < 1.0)) {
-	    throw new IllegalArgumentException("tolerance <" + tolerance + ">");
-	}
+        if (!(0.0 < tolerance && tolerance < 1.0)) {
+            throw new IllegalArgumentException("tolerance <" + tolerance + ">");
+        }
     }
 
     private static void resetSearchDirections(final double[][] dx) {
-	final int n = dx.length;
-	for (int i = 0; i < n; ++i) {
-	    for (int j = 0; j < n; ++j) {
-		dx[i][j] = (i == j ? 1 : 0);
-	    }
-	}
+        final int n = dx.length;
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < n; ++j) {
+                dx[i][j] = (i == j ? 1 : 0);
+            }
+        }
     }
 
     private MinN() {
-	throw new AssertionError("Class should not be instantiated");
+        throw new AssertionError("Class should not be instantiated");
     }
 
 }

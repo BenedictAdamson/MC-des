@@ -12,22 +12,22 @@ import uk.badamson.mc.math.ImmutableVector;
 public class AbstractTimeStepEnergyErrorFunctionTermTest {
 
     public static void assertInvariants(AbstractTimeStepEnergyErrorFunctionTerm term) {
-	ObjectTest.assertInvariants(term);// inherited
-	TimeStepEnergyErrorFunctionTermTest.assertInvariants(term);// inherited
+        ObjectTest.assertInvariants(term);// inherited
+        TimeStepEnergyErrorFunctionTermTest.assertInvariants(term);// inherited
     }
 
     public static void assertInvariants(AbstractTimeStepEnergyErrorFunctionTerm term1,
-	    AbstractTimeStepEnergyErrorFunctionTerm term2) {
-	ObjectTest.assertInvariants(term1, term2);// inherited
-	TimeStepEnergyErrorFunctionTermTest.assertInvariants(term1, term2);// inherited
+            AbstractTimeStepEnergyErrorFunctionTerm term2) {
+        ObjectTest.assertInvariants(term1, term2);// inherited
+        TimeStepEnergyErrorFunctionTermTest.assertInvariants(term1, term2);// inherited
     }
 
     public static double evaluate(AbstractTimeStepEnergyErrorFunctionTerm term, double[] dedx, ImmutableVector state0,
-	    ImmutableVector state, double dt) {
-	final double e = TimeStepEnergyErrorFunctionTermTest.evaluate(term, dedx, state0, state, dt);
+            ImmutableVector state, double dt) {
+        final double e = TimeStepEnergyErrorFunctionTermTest.evaluate(term, dedx, state0, state, dt);
 
-	assertInvariants(term);
+        assertInvariants(term);
 
-	return e;
+        return e;
     }
 }

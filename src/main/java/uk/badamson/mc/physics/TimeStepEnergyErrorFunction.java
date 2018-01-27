@@ -100,24 +100,24 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
      *             </ul>
      */
     public TimeStepEnergyErrorFunction(ImmutableVector x0, double dt, List<TimeStepEnergyErrorFunctionTerm> terms) {
-	Objects.requireNonNull(x0, "x0");
-	Objects.requireNonNull(terms, "terms");
-	if (dt <= 0.0 || !Double.isFinite(dt)) {
-	    throw new IllegalArgumentException("dt " + dt);
-	}
+        Objects.requireNonNull(x0, "x0");
+        Objects.requireNonNull(terms, "terms");
+        if (dt <= 0.0 || !Double.isFinite(dt)) {
+            throw new IllegalArgumentException("dt " + dt);
+        }
 
-	this.x0 = x0;
-	this.dt = dt;
-	this.terms = Collections.unmodifiableList(new ArrayList<>(terms));
+        this.x0 = x0;
+        this.dt = dt;
+        this.terms = Collections.unmodifiableList(new ArrayList<>(terms));
 
-	/* Check precondition after construction to avoid race hazards. */
-	final int dimension = x0.getDimension();
-	for (TimeStepEnergyErrorFunctionTerm term : this.terms) {
-	    Objects.requireNonNull(term, "term");
-	    if (!term.isValidForDimension(dimension)) {
-		throw new IllegalArgumentException("term <" + term + "> not valid for " + dimension + " dimensions");
-	    }
-	}
+        /* Check precondition after construction to avoid race hazards. */
+        final int dimension = x0.getDimension();
+        for (TimeStepEnergyErrorFunctionTerm term : this.terms) {
+            Objects.requireNonNull(term, "term");
+            if (!term.isValidForDimension(dimension)) {
+                throw new IllegalArgumentException("term <" + term + "> not valid for " + dimension + " dimensions");
+            }
+        }
     }
 
     /**
@@ -135,7 +135,7 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
      */
     @Override
     public final int getDimension() {
-	return x0.getDimension();
+        return x0.getDimension();
     }
 
     /**
@@ -151,7 +151,7 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
      * @return the dt
      */
     public final double getDt() {
-	return dt;
+        return dt;
     }
 
     /**
@@ -172,7 +172,7 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
      * @return the terms
      */
     public final List<TimeStepEnergyErrorFunctionTerm> getTerms() {
-	return terms;
+        return terms;
     }
 
     /**
@@ -187,7 +187,7 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
      * @return the state vector; not null.
      */
     public final ImmutableVector getX0() {
-	return x0;
+        return x0;
     }
 
     /**
@@ -213,12 +213,12 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
      */
     @Override
     public final FunctionNWithGradientValue value(ImmutableVector state) {
-	double e = 0.0;
-	double[] dedx = new double[getDimension()];
-	for (TimeStepEnergyErrorFunctionTerm term : terms) {
-	    e += term.evaluate(dedx, x0, state, dt);
-	}
-	return new FunctionNWithGradientValue(state, e, ImmutableVector.create(dedx));
+        double e = 0.0;
+        double[] dedx = new double[getDimension()];
+        for (TimeStepEnergyErrorFunctionTerm term : terms) {
+            e += term.evaluate(dedx, x0, state, dt);
+        }
+        return new FunctionNWithGradientValue(state, e, ImmutableVector.create(dedx));
     }
 
 }

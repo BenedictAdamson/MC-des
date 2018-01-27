@@ -28,7 +28,7 @@ public class ImpossibleActionException extends Exception {
      * </p>
      */
     public ImpossibleActionException() {
-	super("Impossible action");
+        super("Impossible action");
     }
 
     /**
@@ -41,7 +41,7 @@ public class ImpossibleActionException extends Exception {
      *            The detail message
      */
     public ImpossibleActionException(String message) {
-	super(message);
+        super(message);
     }
 
     /**
@@ -57,7 +57,7 @@ public class ImpossibleActionException extends Exception {
      *            The cause of the exception.
      */
     public ImpossibleActionException(String message, Throwable cause) {
-	super(message, cause);
+        super(message, cause);
     }
 
     /**
@@ -70,7 +70,7 @@ public class ImpossibleActionException extends Exception {
      *            The cause of the exception.
      */
     public ImpossibleActionException(Throwable cause) {
-	super("Impossible action", cause);
+        super("Impossible action", cause);
     }
 
 }

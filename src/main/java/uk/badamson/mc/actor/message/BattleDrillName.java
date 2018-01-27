@@ -46,6 +46,6 @@ public enum BattleDrillName implements Noun {
      */
     @Override
     public double getInformationContent() {
-	return INFORMATION_CONTENT;
+        return INFORMATION_CONTENT;
     }
 }
