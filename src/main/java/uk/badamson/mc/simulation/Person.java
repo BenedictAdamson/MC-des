@@ -183,6 +183,17 @@ public final class Person implements ActorInterface {
         clearSendingMessage();
     }
 
+    private void scheduleDelayedUpdate(double delay) {
+        final long dt = Long.max(1, (long) (1E3 * delay));
+        clock.scheduleDelayedAction(dt, TimeUnit.MILLISECONDS, new Runnable() {
+
+            @Override
+            public void run() {
+                updateState();
+            }
+        });
+    }
+
     private void scheduleTellMessageTransmissionProgress() {
         final double transmissionTime = transmittingMessage.getInformationContent()
                 / transmissionInProgress.getMedium().getTypicalTransmissionRate();
@@ -199,6 +210,7 @@ public final class Person implements ActorInterface {
                 }
             });
         }
+        scheduleDelayedUpdate(transmissionTime);
     }
 
     /**

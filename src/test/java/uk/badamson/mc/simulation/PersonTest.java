@@ -305,9 +305,13 @@ public class PersonTest {
 
         clock.advance(clock.getUnit().convert((long) (transmissionTime * 1E3 * 20), TimeUnit.MILLISECONDS));
 
-        assertInvariants(person);
+        /*
+         * Check for calls to the actor before checking invariants, because checking the
+         * invariants might cause lazy updating and then calls to the actor.
+         */
         assertEquals("Called tellMessageSendingEnded", 1, nEndMessages.get());
         assertNull("No transmission in progress.", person.getTransmissionInProgress());
+        assertInvariants(person);
     }
 
     @Test
