@@ -90,6 +90,34 @@ public class PersonTest {
 
     private Clock clock2;
 
+    @Test
+    public void advanceAfterHaltSendingMessage() {
+        final double fraction = 0.25;
+        final SimpleDirectCommand message = SimpleDirectCommand.CHECK_MAP;
+        assert 0.0 < fraction && fraction < 1.0;
+        final Clock clock = new Clock(TimeUnit.MICROSECONDS, TIME_1);
+        final Person person = new Person(clock);
+        final Medium medium = HandSignals.INSTANCE;
+        final double informationInMessage = message.getInformationContent();
+        final double transmissionTime = informationInMessage / medium.getTypicalTransmissionRate();
+        final long dt1 = (long) (transmissionTime * fraction * 1E6);
+        final long dt2 = (long) (transmissionTime * (1.0 - fraction) * 1E6 * 20.0);
+
+        final AbstractActor actor = new AbstractActor(person);
+        person.setActor(actor);
+        try {
+            person.beginSendingMessage(medium, message);
+        } catch (MediumUnavailableException e) {
+            throw new AssertionError(e);
+        }
+        clock.advance(dt1);
+        person.haltSendingMessage();
+
+        clock.advance(dt2);
+
+        assertInvariants(person);
+    }
+
     private void beginSendingMessage_default(SimpleDirectCommand message) {
         final Person person = new Person(clock1);
         final Medium medium = HandSignals.INSTANCE;
@@ -326,5 +354,4 @@ public class PersonTest {
         clock1 = new Clock(TimeUnit.MILLISECONDS, TIME_1);
         clock2 = new Clock(TimeUnit.MILLISECONDS, TIME_2);
     }
-
 }

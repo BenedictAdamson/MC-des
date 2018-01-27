@@ -126,7 +126,7 @@ public final class Person implements ActorInterface {
 
                 @Override
                 public void run() {
-                    if (actor != null) {
+                    if (actor != null && transmissionInProgress != null) {
                         updateState();
                         actor.tellMessageTransmissionProgress();
                     }
