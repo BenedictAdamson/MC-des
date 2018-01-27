@@ -41,8 +41,11 @@ public interface ActorInterface {
      * transmitting message}.</li>
      * <li>The simulation guarantees that it will eventually
      * {@linkplain Actor#tellMessageSendingEnded(Medium, Message) call back} to the
-     * {@linkplain #getActor() actor} of this interface, to report completion or
-     * halting of sending of the message.</li>
+     * {@linkplain #getActor() actor} of this interface, to
+     * {@linkplain Actor#tellMessageSendingEnded(MessageTransferInProgress, Message)
+     * report completion} or
+     * {@linkplain Actor#tellMessageSendingEnded(MessageTransferInProgress, Message)
+     * halting} of sending of the message.</li>
      * <li>Other actors that can receive through the medium of the message had an
      * additional entry in their {@linkplain #getMessagesBeingReceived() set of
      * messages being received}, representing the start of them receiving the
