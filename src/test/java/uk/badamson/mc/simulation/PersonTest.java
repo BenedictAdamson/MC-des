@@ -136,6 +136,39 @@ public class PersonTest {
         constructor(clock2);
     }
 
+    private void haltSendingMessage(Message message, final double fraction) {
+        assert 0.0 < fraction && fraction < 1.0;
+        final Clock clock = new Clock(TimeUnit.MICROSECONDS, TIME_1);
+        final Person person = new Person(clock);
+        final Medium medium = HandSignals.INSTANCE;
+        final double informationInMessage = message.getInformationContent();
+        final double transmissionTime = informationInMessage / medium.getTypicalTransmissionRate();
+        final long dt = (long) (transmissionTime * fraction * 1E6);
+
+        final AbstractActor actor = new AbstractActor(person);
+        person.setActor(actor);
+        try {
+            person.beginSendingMessage(medium, message);
+        } catch (MediumUnavailableException e) {
+            throw new AssertionError(e);
+        }
+        clock.advance(dt);
+
+        haltSendingMessage(person);
+    }
+
+    @Test
+    public void haltSendingMessage_A() {
+        final double fraction = 0.25;
+        haltSendingMessage(SimpleDirectCommand.CHECK_MAP, fraction);
+    }
+
+    @Test
+    public void haltSendingMessage_B() {
+        final double fraction = 0.5;
+        haltSendingMessage(SimpleDirectCommand.getAssembleInstance(SimpleRelativeLocation.FRONT_NEAR), fraction);
+    }
+
     private void sendingMessageIncremental(final long time0, Message message, final int nSteps) {
         assert 2 <= nSteps;
         final Clock clock = new Clock(TimeUnit.MICROSECONDS, time0);
@@ -293,4 +326,5 @@ public class PersonTest {
         clock1 = new Clock(TimeUnit.MILLISECONDS, TIME_1);
         clock2 = new Clock(TimeUnit.MILLISECONDS, TIME_2);
     }
+
 }

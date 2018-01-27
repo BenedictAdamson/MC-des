@@ -82,12 +82,10 @@ public final class Person implements ActorInterface {
                 if (actor != null) {
                     final Message fullMessage = transmittingMessage;
                     final MessageTransferInProgress finalProgress = new MessageTransferInProgress(medium, fullMessage);
-                    transmittingMessage = null;
-                    transmissionInProgress = null;
+                    clearSendingMessage();
                     actor.tellMessageSendingEnded(finalProgress, fullMessage);
                 } else {
-                    transmittingMessage = null;
-                    transmissionInProgress = null;
+                    clearSendingMessage();
                 }
             }
         }
@@ -135,6 +133,11 @@ public final class Person implements ActorInterface {
                 }
             });
         }
+    }
+
+    private void clearSendingMessage() {
+        transmittingMessage = null;
+        transmissionInProgress = null;
     }
 
     /**
@@ -195,10 +198,10 @@ public final class Person implements ActorInterface {
 
     @Override
     public final void haltSendingMessage() {
-        if (transmissionInProgress != null) {
-            throw new IllegalStateException("Has a transmission in progress " + transmissionInProgress);
+        if (transmissionInProgress == null) {
+            throw new IllegalStateException("No a transmission in progress");
         }
-        // TODO
+        clearSendingMessage();
     }
 
     /**
