@@ -37,7 +37,7 @@ public final class Clock {
         private static final long serialVersionUID = 1L;
 
         private ActionException(RuntimeException cause) {
-            super(cause);
+            super("Exception thrown by scheduled action", cause);
         }
 
         /**
