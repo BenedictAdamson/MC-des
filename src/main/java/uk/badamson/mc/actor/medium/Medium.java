@@ -15,6 +15,26 @@ public interface Medium {
 
     /**
      * <p>
+     * Whether this medium can be used to convey a given messages.
+     * </p>
+     * <p>
+     * Some media are not capable of encoding and convey some kinds of message.
+     * Media able to send text or speech can convey any message, given enough time,
+     * but media relying on explicit encoding of all possible messages (such as
+     * {@linkplain HandSignals hand signals}) can send only those explicitly encoded
+     * messages.
+     * </p>
+     * 
+     * @param message
+     *            The message of interest
+     * @return whether the message can be conveyed
+     * @throws NullPointerException
+     *             If {@code message} is null.
+     */
+    public boolean canConvey(Message message);
+
+    /**
+     * <p>
      * Whether this object is <em>equivalent</em> to another object.
      * </p>
      * <p>
@@ -49,5 +69,4 @@ public interface Medium {
      * @return the typical transmission rate
      */
     public double getTypicalTransmissionRate();
-
 }
