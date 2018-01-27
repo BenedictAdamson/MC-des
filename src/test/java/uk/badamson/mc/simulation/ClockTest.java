@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -80,6 +81,22 @@ public class ClockTest {
         assertFalse("Did not perform the action", acted.get());
     }
 
+    private static void scheduleAction_immediate(long time) {
+        final Clock clock = new Clock(TimeUnit.MILLISECONDS, time);
+        AtomicBoolean acted = new AtomicBoolean(false);
+        final Runnable action = new Runnable() {
+
+            @Override
+            public final void run() {
+                acted.set(true);
+            }
+        };
+
+        scheduleAction(clock, time, action);
+
+        assertTrue("Performed the action", acted.get());
+    }
+
     @Test
     public void advance_0() {
         advance(TIME_1, 0L);
@@ -118,5 +135,15 @@ public class ClockTest {
     @Test
     public void scheduleAction_futureB() {
         scheduleAction_future(TIME_2, Long.MAX_VALUE);
+    }
+
+    @Test
+    public void scheduleAction_immediateA() {
+        scheduleAction_immediate(TIME_1);
+    }
+
+    @Test
+    public void scheduleAction_immediateB() {
+        scheduleAction_immediate(TIME_2);
     }
 }

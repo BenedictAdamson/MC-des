@@ -137,7 +137,12 @@ public final class Clock {
         if (when < time) {
             throw new IllegalArgumentException("when <" + when + "> is before now <" + time + ">");
         }
-        // TODO
+
+        if (time < when) {
+            // TODO
+        } else {// time == when
+            action.run();
+        }
     }
 
 }
