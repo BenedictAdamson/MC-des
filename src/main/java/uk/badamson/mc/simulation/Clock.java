@@ -257,4 +257,56 @@ public final class Clock {
         scheduledActions.add(new ScheduledAction(when, action));
     }
 
+    /**
+     * <p>
+     * Schedule that a given action should be performed at a {@linkplain #getTime()
+     * time} in the future, with that time specified by by the duration from the
+     * current time to that time.
+     * </p>
+     * <p>
+     * The clock records the action for future use when the clock is
+     * {@linkplain #advance(long) advanced} to (or through) the point in time when
+     * the action is to be performed. The clock guarantees that the clock time is
+     * that point in time when it performs the action.
+     * </p>
+     * 
+     * @param delay
+     *            The magnitude of the delay before the action should be performed,
+     *            measured in the given delay unit.
+     * @param delayUnit
+     *            The time unit in which the delay is measured.
+     * @param action
+     *            The action to perform. The the action must not (directly or
+     *            indirectly) try to {@linkplain #advance(long) advance} this clock.
+     * @throws NullPointerException
+     *             <ul>
+     *             <li>If {@code delayUnit} is null</li>
+     *             <li>If {@code action} is null</li>
+     *             </ul>
+     * @throws IllegalArgumentException
+     *             If {@code delay} is negative.
+     * @throws TimeOverflowException
+     *             <ul>
+     *             <li>If the {@code delay} indicates a delay in the
+     *             {@linkplain #getUnit() units} of this clock that is larger than
+     *             {@link Long#MAX_VALUE}.</li>
+     *             <li>If the {@code delay} indicates a point in time with a
+     *             {@linkplain #getTime() time} value larger than
+     *             {@link Long#MAX_VALUE}.</li>
+     *             </ul>
+     */
+    public final void scheduleDelayedAction(long delay, TimeUnit delayUnit, Runnable action) {
+        Objects.requireNonNull(delayUnit, "delayUnit");
+        if (delay < 0) {
+            throw new IllegalArgumentException("delay <" + delay + ">");
+        } else if (delay == Long.MAX_VALUE) {
+            throw new TimeOverflowException();
+        }
+        final long convertedDelay = unit.convert(delay, delayUnit);
+        if (convertedDelay == Long.MAX_VALUE || Long.MAX_VALUE - convertedDelay < time) {
+            throw new TimeOverflowException();
+        }
+        scheduleActionAt(time + convertedDelay, action);
+    }
+
 }
