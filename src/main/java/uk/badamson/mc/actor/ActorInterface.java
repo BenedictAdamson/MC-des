@@ -39,13 +39,10 @@ public interface ActorInterface {
      * transmitted so far} is null.</li>
      * <li>The given message is the current {@linkplain #getTransmittingMessage()
      * transmitting message}.</li>
-     * <li>The simulation guarantees that it will eventually
-     * {@linkplain Actor#tellMessageSendingEnded(Medium, Message) call back} to the
-     * {@linkplain #getActor() actor} of this interface, to
-     * {@linkplain Actor#tellMessageSendingEnded(MessageTransferInProgress, Message)
-     * report completion} or
-     * {@linkplain Actor#tellMessageSendingEnded(MessageTransferInProgress, Message)
-     * halting} of sending of the message.</li>
+     * <li>The simulation guarantees that, if it runs for sufficiently long, it will
+     * eventually {@linkplain Actor#tellMessageSendingEnded(Medium, Message) call
+     * back} to the {@linkplain #getActor() actor} of this interface, to report
+     * completion or halting of sending of the message.</li>
      * <li>Other actors that can receive through the medium of the message had an
      * additional entry in their {@linkplain #getMessagesBeingReceived() set of
      * messages being received}, representing the start of them receiving the
