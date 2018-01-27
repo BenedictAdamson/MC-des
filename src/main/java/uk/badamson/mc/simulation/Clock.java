@@ -1,5 +1,6 @@
 package uk.badamson.mc.simulation;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -109,6 +110,34 @@ public final class Clock {
      */
     public final TimeUnit getUnit() {
         return unit;
+    }
+
+    /**
+     * <p>
+     * Schedule that a given action should be performed when the
+     * {@linkplain #getTime() time} of this clock reaches a given point in time.
+     * </p>
+     * <p>
+     * If the point in time is the current time, the method immediately performs the
+     * action.
+     * </p>
+     * 
+     * @param when
+     *            The point in time when the action should be performed
+     * @param action
+     *            The action to perform.
+     * @throws NullPointerException
+     *             If {@code action} is null
+     * @throws IllegalArgumentException
+     *             If {@code when} is before the {@linkplain #getTime() current
+     *             time}.
+     */
+    public final void scheduleAction(long when, Runnable action) {
+        Objects.requireNonNull(action, "action");
+        if (when < time) {
+            throw new IllegalArgumentException("when <" + when + "> is before now <" + time + ">");
+        }
+        // TODO
     }
 
 }
