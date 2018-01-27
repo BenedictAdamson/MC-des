@@ -41,7 +41,7 @@ public class ActorTest {
     }
 
     public static void tellMessageTransmissionProgress(Actor actor, Message previousMessageSoFar) {
-        actor.tellMessageTransmissionProgress(previousMessageSoFar);
+        actor.tellMessageTransmissionProgress();
         assertInvariants(actor);
     }
 }

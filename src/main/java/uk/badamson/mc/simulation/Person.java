@@ -25,7 +25,7 @@ public final class Person implements ActorInterface {
     /**
      * <p>
      * While simulating the transmission of a message, the nominal minimum number of
-     * times to {@linkplain Actor#tellMessageTransmissionProgress(Message) tell} the
+     * times to {@linkplain Actor#tellMessageTransmissionProgress() tell} the
      * {@linkplain #getActor() actor} of progress in sending the message.
      * </p>
      */
@@ -124,7 +124,7 @@ public final class Person implements ActorInterface {
                 @Override
                 public void run() {
                     updateState();
-                    actor.tellMessageTransmissionProgress(null);// FIXME
+                    actor.tellMessageTransmissionProgress();// FIXME
                 }
             });
         }

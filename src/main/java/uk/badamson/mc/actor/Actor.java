@@ -148,15 +148,9 @@ public interface Actor {
      * of the transmission in progress}.
      * </p>
      * 
-     * @param previousMessageSoFar
-     *            The amount of the message that had been sent the previous time the
-     *            actor had information about transmission of the message. This may
-     *            be null, which indicates that this is the first call to indicate
-     *            progress.
-     * 
      * @throws NullPointerException
      *             <ul>
-     *             <li>If {@linkplain ActorInterface#getTransmissionInProgress()
+     *             <li>If the {@linkplain ActorInterface#getTransmissionInProgress()
      *             current state of the transmission in progress}, according to the
      *             {@linkplain #getActorInterface() actor interface}, is null.</li>
      *             <li>If the
@@ -165,18 +159,11 @@ public interface Actor {
      *             to the actor interface, is null, which would indicate that has
      *             been no progress since transmission started.</li>
      *             </ul>
-     * @throws IllegalArgumentException
-     *             If the {@code previousMessageSoFar} is non null and the
-     *             {@linkplain Message#getInformationContent() length (information
-     *             content)} of the message sent so far of the current transmission
-     *             in progress, according to the actor interface, is not greater
-     *             than the length of the {@code previousMessageSoFar}, which would
-     *             indicate no progress since the previous report.
      * @throws IllegalStateException
      *             <ul>
-     *             <li>If the length of the message sent so far of the current
-     *             transmission in progress, according to the actor interface, is
-     *             zero.</li>
+     *             <li>If the {@linkplain Message#getInformationContent() length} of
+     *             the message sent so far of the current transmission in progress,
+     *             according to the actor interface, is zero.</li>
      *             <li>If the length of the message sent so far of the current
      *             transmission in progress, according to the actor interface, is
      *             equal to the length of the
@@ -184,5 +171,5 @@ public interface Actor {
      *             transmitted}. That is, if transmission has completed.</li>
      *             </ul>
      */
-    public void tellMessageTransmissionProgress(Message previousMessageSoFar);
+    public void tellMessageTransmissionProgress();
 }

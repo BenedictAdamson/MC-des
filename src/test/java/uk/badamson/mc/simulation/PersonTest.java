@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -140,6 +141,7 @@ public class PersonTest {
 
         final AtomicInteger nProgressMessages = new AtomicInteger(0);
         final AtomicInteger nEndMessages = new AtomicInteger(0);
+        final AtomicReference<Message> messageSoFar = new AtomicReference<Message>(null);
         final AbstractActor actor = new AbstractActor(person) {
 
             @Override
@@ -153,10 +155,11 @@ public class PersonTest {
             }
 
             @Override
-            public void tellMessageTransmissionProgress(Message previousMessageSoFar) {
-                super.tellMessageTransmissionProgress(previousMessageSoFar);
+            public void tellMessageTransmissionProgress() {
+                super.tellMessageTransmissionProgress();
                 assertInvariants(person);
                 nProgressMessages.incrementAndGet();
+                messageSoFar.set(getActorInterface().getTransmissionInProgress().getMessageSofar());
             }
         };
         person.setActor(actor);
@@ -221,8 +224,8 @@ public class PersonTest {
             }
 
             @Override
-            public void tellMessageTransmissionProgress(Message previousMessageSoFar) {
-                super.tellMessageTransmissionProgress(previousMessageSoFar);
+            public void tellMessageTransmissionProgress() {
+                super.tellMessageTransmissionProgress();
                 assertInvariants(person);
             }
         };

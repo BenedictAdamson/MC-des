@@ -85,15 +85,12 @@ public class AbstractActor implements Actor {
     }
 
     @Override
-    public void tellMessageTransmissionProgress(Message previousMessageSoFar) {
+    public void tellMessageTransmissionProgress() {
         final MessageTransferInProgress transmissionInProgress = actorInterface.getTransmissionInProgress();
         Objects.requireNonNull(transmissionInProgress, "No transmission in progress");
         final Message messageSofar = transmissionInProgress.getMessageSofar();
         Objects.requireNonNull(messageSofar, "No progress since start of transmission");
         final double informationSoFar = messageSofar.getInformationContent();
-        if (previousMessageSoFar != null && informationSoFar <= previousMessageSoFar.getInformationContent()) {
-            throw new IllegalArgumentException("No progress since the previous report");
-        }
         if (informationSoFar == 0.0) {
             throw new IllegalStateException("No message so far");
         }
