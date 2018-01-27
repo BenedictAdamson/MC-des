@@ -101,6 +101,60 @@ public class ClockTest {
         action.assertRan(0);
     }
 
+    public static void advanceTo(Clock clock, long when) {
+        clock.advanceTo(when);
+
+        assertInvariants(clock);
+        assertEquals("time", when, clock.getTime());
+    }
+
+    private static void advanceTo(long time0, long when) {
+        final Clock clock = new Clock(TimeUnit.MILLISECONDS, time0);
+
+        advanceTo(clock, when);
+    }
+
+    private static void advanceTo_with1Action(long time0, long actionTime, long when) {
+        assert time0 < actionTime;
+        assert actionTime <= when;
+        final Clock clock = new Clock(TimeUnit.MILLISECONDS, time0);
+        final RunnableSpy action = new RunnableSpy(clock, actionTime);
+        clock.scheduleAction(actionTime, action);
+
+        advanceTo(clock, when);
+
+        action.assertRan(1);
+    }
+
+    private static void advanceTo_with2Actions(long time0, long actionTime1, long actionTime2, long when) {
+        assert time0 < actionTime1;
+        assert time0 < actionTime2;
+        assert actionTime2 <= when;
+        assert actionTime1 <= when;
+        final Clock clock = new Clock(TimeUnit.MILLISECONDS, time0);
+        final RunnableSpy action1 = new RunnableSpy(clock, actionTime1);
+        final RunnableSpy action2 = new RunnableSpy(clock, actionTime2);
+        clock.scheduleAction(actionTime1, action1);
+        clock.scheduleAction(actionTime2, action2);
+
+        advanceTo(clock, when);
+
+        action1.assertRan(1);
+        action2.assertRan(1);
+    }
+
+    private static void advanceTo_withLaterAction(long time0, long when, long actionTime) {
+        assert time0 <= when;
+        assert when < actionTime;
+        final Clock clock = new Clock(TimeUnit.MILLISECONDS, time0);
+        final RunnableSpy action = new RunnableSpy(clock, actionTime);
+        clock.scheduleAction(actionTime, action);
+
+        advanceTo(clock, when);
+
+        action.assertRan(0);
+    }
+
     public static void assertInvariants(Clock clock) {
         ObjectTest.assertInvariants(clock);// inherited
 
@@ -284,6 +338,143 @@ public class ClockTest {
     }
 
     @Test
+    public void advanceTo_0() {
+        advanceTo(TIME_1, TIME_1);
+    }
+
+    @Test
+    public void advanceTo_0AtMax() {
+        advanceTo(Long.MAX_VALUE, Long.MAX_VALUE);
+    }
+
+    @Test
+    public void advanceTo_1() {
+        advanceTo(TIME_1, TIME_1 + 1L);
+    }
+
+    @Test
+    public void advanceTo_1ToMax() {
+        advanceTo(Long.MAX_VALUE - 1L, Long.MAX_VALUE);
+    }
+
+    @Test
+    public void advanceTo_afterAction() {
+        final long time0 = TIME_1;
+        final long actionTime = TIME_2;
+        final long when = TIME_3;
+        final Clock clock = new Clock(TimeUnit.MILLISECONDS, time0);
+        final RunnableSpy action = new RunnableSpy(clock, actionTime);
+        clock.scheduleAction(actionTime, action);
+        clock.advanceTo(actionTime);
+
+        advanceTo(clock, when);
+
+        /*
+         * Check that did not perform the action twice.
+         */
+        action.assertRan(1);
+    }
+
+    @Test
+    public void advanceTo_with1ActionA() {
+        final long time0 = TIME_1;
+        final long actionTime = TIME_2;
+        final long when = TIME_3;
+        advanceTo_with1Action(time0, actionTime, when);
+    }
+
+    @Test
+    public void advanceTo_with1ActionAtEnd() {
+        final long time0 = TIME_1;
+        final long actionTime = TIME_2;
+        final long when = actionTime;// critical
+        advanceTo_with1Action(time0, actionTime, when);
+    }
+
+    @Test
+    public void advanceTo_with1ActionB() {
+        final long time0 = TIME_2;
+        final long actionTime = TIME_3;
+        final long when = TIME_4;
+        advanceTo_with1Action(time0, actionTime, when);
+    }
+
+    @Test
+    public void advanceTo_with2ActionsA() {
+        final long time0 = TIME_1;
+        final long actionTime1 = TIME_2;
+        final long actionTime2 = TIME_3;
+        final long when = TIME_4;
+
+        advanceTo_with2Actions(time0, actionTime1, actionTime2, when);
+    }
+
+    @Test
+    public void advanceTo_with2ActionsAtEnd() {
+        final long time0 = TIME_1;
+        final long actionTime1 = TIME_2;
+        final long actionTime2 = actionTime1;// critical
+        final long when = actionTime1;// critical
+
+        advanceTo_with2Actions(time0, actionTime1, actionTime2, when);
+    }
+
+    @Test
+    public void advanceTo_with2ActionsB() {
+        final long time0 = TIME_2;
+        final long actionTime1 = TIME_3;
+        final long actionTime2 = TIME_4;
+        final long when = TIME_5;
+
+        advanceTo_with2Actions(time0, actionTime1, actionTime2, when);
+    }
+
+    @Test
+    public void advanceTo_with2ActionsSameTime() {
+        final long time0 = TIME_1;
+        final long actionTime1 = TIME_2;
+        final long actionTime2 = actionTime1;// critical
+        final long when = TIME_4;
+
+        advanceTo_with2Actions(time0, actionTime1, actionTime2, when);
+    }
+
+    @Test
+    public void advanceTo_with2ActionsScheduledInReverseOrder() {
+        final long time0 = TIME_1;
+        final long actionTime1 = TIME_3;
+        final long actionTime2 = TIME_2;
+        final long when = TIME_4;
+        assert actionTime2 < actionTime1;
+
+        advanceTo_with2Actions(time0, actionTime1, actionTime2, when);
+    }
+
+    @Test
+    public void advanceTo_withLaterActionA() {
+        final long time0 = TIME_1;
+        final long when = TIME_2;
+        final long actionTime = TIME_3;
+        advanceTo_withLaterAction(time0, when, actionTime);
+    }
+
+    @Test
+    public void advanceTo_withLaterActionJust() {
+        final long time0 = TIME_1;
+        final long when = TIME_2;
+        final long actionTime = when + 1L;// critical
+        advanceTo_withLaterAction(time0, when, actionTime);
+    }
+
+    @Test
+    public void advanceTo_withLaterActionNoOp() {
+        final long time0 = TIME_1;
+        final long when = time0;// critical
+        final long actionTime = TIME_2;
+        advanceTo_withLaterAction(time0, when, actionTime);
+    }
+
+    @Test
     public void constructor_A() {
         constructor(TimeUnit.MILLISECONDS, TIME_1);
     }
@@ -312,4 +503,5 @@ public class ClockTest {
     public void scheduleAction_immediateB() {
         scheduleAction_immediate(TIME_2);
     }
+
 }

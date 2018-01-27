@@ -129,6 +129,44 @@ public final class Clock {
 
     /**
      * <p>
+     * Advance the {@linkplain #getTime() time} of this clock to a given time.
+     * </p>
+     * <ul>
+     * <li>The method advances the time to the given new time.
+     * <li>However, if any actions had been
+     * {@linkplain #scheduleAction(long, Runnable) scheduled} for points in time
+     * before that new time, the method first advances the clock to those scheduled
+     * times, in ascending time order, {@linkplain Runnable#run() performing} each
+     * of those actions at their scheduled time.</li>
+     * </ul>
+     * 
+     * @param when
+     *            The new time, in {@linkplain #getUnit() units} of this clock.
+     * @throws IllegalArgumentException
+     *             If {@code when} is before the {@linkplain #getTime() current
+     *             time}.
+     * @throws IllegalStateException
+     *             If the method is called from the {@link Runnable#run()} method of
+     *             a {@linkplain #scheduleAction(long, Runnable) scheduled action}.
+     */
+    public final void advanceTo(long when) {
+        if (when < time) {
+            throw new IllegalArgumentException("when " + when + " is before now " + time);
+        }
+        if (currentScheduledAction != null) {
+            throw new IllegalStateException("Called from the run method of a scheduled action");
+        }
+        while (!scheduledActions.isEmpty() && scheduledActions.peek().when <= when) {
+            currentScheduledAction = scheduledActions.poll();
+            time = currentScheduledAction.when;
+            currentScheduledAction.action.run();// may throw
+            currentScheduledAction = null;
+        }
+        time = when;
+    }
+
+    /**
+     * <p>
      * The current time, according to this clock, measured in the time
      * {@linkplain #getUnit() unit} of this clock.
      * </p>
