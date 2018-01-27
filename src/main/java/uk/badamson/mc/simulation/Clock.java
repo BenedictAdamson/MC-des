@@ -58,9 +58,9 @@ public final class Clock {
     }// class
 
     private final TimeUnit unit;
+    private final PriorityQueue<ScheduledAction> scheduledActions = new PriorityQueue<>();
     private long time;
     private Runnable currentAction;
-    private final PriorityQueue<ScheduledAction> scheduledActions = new PriorityQueue<>();
 
     /**
      * <p>
@@ -159,11 +159,10 @@ public final class Clock {
      * {@linkplain #getTime() time} of this clock reaches a given point in time.
      * </p>
      * <p>
-     * If the point in time is the current time, the method immediately performs the
-     * action. Otherwise, the clock records the action for future use when the clock
-     * is {@linkplain #advance(long) advanced} to (or through) the point in time
-     * when the action is to be performed. The clock guarantees that the clock time
-     * is that point in time when it performs the action.
+     * The clock records the action for future use when the clock is
+     * {@linkplain #advance(long) advanced} to (or through) the point in time when
+     * the action is to be performed. The clock guarantees that the clock time is
+     * that point in time when it performs the action.
      * </p>
      * 
      * @param when
@@ -183,13 +182,7 @@ public final class Clock {
             throw new IllegalArgumentException("when <" + when + "> is before now <" + time + ">");
         }
 
-        if (time < when) {
-            scheduledActions.add(new ScheduledAction(when, action));
-        } else {// time == when
-            currentAction = action;
-            action.run();
-            currentAction = null;
-        }
+        scheduledActions.add(new ScheduledAction(when, action));
     }
 
 }

@@ -143,7 +143,7 @@ public class ClockTest {
 
         scheduleAction(clock, time, action);
 
-        action.assertRan(1);
+        action.assertRan(0);
     }
 
     @Test
