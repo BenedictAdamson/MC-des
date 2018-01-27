@@ -130,6 +130,11 @@ public final class Person implements ActorInterface, Actor {
 
     /**
      * @param receptionStarted
+     * 
+     * @throws NullPointerException
+     *             {@inheritDoc}
+     * @throws IllegalArgumentException
+     *             {@inheritDoc}
      */
     @Override
     public void tellBeginReceivingMessage(MessageTransferInProgress receptionStarted) {
@@ -149,11 +154,34 @@ public final class Person implements ActorInterface, Actor {
     }
 
     /**
-     * @param transmissionProgress
-     * @param fullMessage
+     * {@inheritDoc}
+     * 
+     * @throws NullPointerException
+     *             {@inheritDoc}
+     * @throws IllegalArgumentException
+     *             {@inheritDoc}
+     * @throws IllegalStateException
+     *             {@inheritDoc}
      */
     @Override
-    public void tellMessageSendingEnded(MessageTransferInProgress transmissionProgress, Message fullMessage) {
+    public final void tellMessageSendingEnded(MessageTransferInProgress transmissionProgress, Message fullMessage) {
+        Objects.requireNonNull(transmissionProgress, "transmissionProgress");
+        final Message messageSofar = transmissionProgress.getMessageSofar();
+        if (messageSofar != null) {
+            final double fullInformation = fullMessage.getInformationContent();
+            final double sentInformation = messageSofar.getInformationContent();
+            if (fullInformation < sentInformation) {
+                throw new IllegalArgumentException("message sent so far is longer <" + sentInformation
+                        + "> than the full message <" + fullInformation + ">");
+            } else if (fullInformation == sentInformation && messageSofar != fullMessage) {
+                throw new IllegalArgumentException(
+                        "Information content of message so far indicates full message sent, but message so far <"
+                                + messageSofar + "> is not the full message <" + fullInformation + ">");
+            }
+        }
+        if (getActorInterface().getTransmittingMessage() != null) {
+            throw new IllegalStateException("(still) transmitting a message");
+        }
         // TODO Auto-generated method stub
 
     }

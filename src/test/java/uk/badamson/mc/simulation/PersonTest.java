@@ -18,6 +18,7 @@ import uk.badamson.mc.actor.medium.Medium;
 import uk.badamson.mc.actor.message.Message;
 import uk.badamson.mc.actor.message.SimpleDirectCommand;
 import uk.badamson.mc.actor.message.SimpleStatement;
+import uk.badamson.mc.actor.message.UnusableIncompleteMessage;
 
 /**
  * <p>
@@ -104,6 +105,23 @@ public class PersonTest {
         assertInvariants(person);
     }
 
+    private static void tellMessageSendingEnded_full(Message fullMessage) {
+        final Person person = new Person();
+        final MessageTransferInProgress transmissionProgress = new MessageTransferInProgress(HandSignals.INSTANCE,
+                fullMessage);
+
+        tellMessageSendingEnded(person, transmissionProgress, fullMessage);
+    }
+
+    private static void tellMessageSendingEnded_part(Message fullMessage, double fraction) {
+        final Person person = new Person();
+        final Message messageSoFar = new UnusableIncompleteMessage(fullMessage.getInformationContent() * fraction);
+        final MessageTransferInProgress transmissionProgress = new MessageTransferInProgress(HandSignals.INSTANCE,
+                messageSoFar);
+
+        tellMessageSendingEnded(person, transmissionProgress, fullMessage);
+    }
+
     public static void tellMessageTransmissionProgress(Person person, Message previousMessageSoFar) {
         ActorTest.tellMessageTransmissionProgress(person, previousMessageSoFar);// inherited
         assertInvariants(person);
@@ -126,5 +144,29 @@ public class PersonTest {
     @Test
     public void constructor_0() {
         constructor();
+    }
+
+    @Test
+    public void tellMessageSendingEnded_fullSimpleDirectCommands() {
+        for (SimpleDirectCommand message : SimpleDirectCommand.values()) {
+            tellMessageSendingEnded_full(message);
+        }
+    }
+
+    @Test
+    public void tellMessageSendingEnded_fulltSimpleStatements() {
+        for (SimpleStatement message : SimpleStatement.values()) {
+            tellMessageSendingEnded_full(message);
+        }
+    }
+
+    @Test
+    public void tellMessageSendingEnded_partA() {
+        tellMessageSendingEnded_part(SimpleDirectCommand.CHECK_MAP, 0.25);
+    }
+
+    @Test
+    public void tellMessageSendingEnded_partB() {
+        tellMessageSendingEnded_part(SimpleStatement.DANGER_AREA, 0.5);
     }
 }

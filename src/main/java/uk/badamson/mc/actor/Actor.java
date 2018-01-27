@@ -102,8 +102,8 @@ public interface Actor {
      * @param transmissionProgress
      *            The state of the transmission when sending ended. The
      *            {@linkplain MessageTransferInProgress#getMessageSofar() message
-     *            sent so far} of the transmission progress is actual message sent.
-     *            This will be the same as the full message if sending of the
+     *            sent so far} of the transmission progress is the actual message
+     *            sent. This will be the same as the full message if sending of the
      *            message was completed.
      * @param fullMessage
      *            The message that was wanted to be sent.
@@ -114,19 +114,22 @@ public interface Actor {
      *             </ul>
      * @throws IllegalArgumentException
      *             <ul>
-     *             <li>If the {@linkplain Message#getInformationContent() length
-     *             (information content)} of the
+     *             <li>If the
      *             {@linkplain MessageTransferInProgress#getMessageSofar() message
-     *             sent so far} of the {@code transmissionProgress} exceeds the
-     *             length of the {@code fullMessage}.</li>
-     *             <li>If the length of the message sent so far of the
-     *             {@code messageSent} equals the length of the {@code fullMessage},
-     *             but that message sent so far is not the same as the
-     *             {@code fullMessage}.
+     *             sent so far} of the {@code transmissionProgress} is not null and
+     *             its {@linkplain Message#getInformationContent() length
+     *             (information content)} exceeds the length of the
+     *             {@code fullMessage}.</li>
+     *             <li>If the message sent so far of the
+     *             {@code transmissionProgress} is not null and the
+     *             {@linkplain Message#getInformationContent() information content}
+     *             (length) of that message equals the information content of the
+     *             {@code fullMessage}, but that message sent so far is not the same
+     *             as the {@code fullMessage}.
      *             </ul>
      * @throws IllegalStateException
      *             If the {@linkplain ActorInterface#getTransmittingMessage()
-     *             currently sending message} of the
+     *             currently transmitting message} of the
      *             {@linkplain #getActorInterface() actor interface} of this actor
      *             is not null.
      */
