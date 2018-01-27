@@ -108,23 +108,10 @@ public final class Clock {
      *             a {@linkplain #scheduleAction(long, Runnable) scheduled action}.
      */
     public final void advance(long amount) {
-        if (amount < 0L) {
-            throw new IllegalArgumentException("amount " + amount);
-        }
         if (Long.MAX_VALUE - amount < time) {
             throw new TimeOverflowException();
         }
-        if (currentScheduledAction != null) {
-            throw new IllegalStateException("Called from the run method of a scheduled action");
-        }
-        final long newTime = time + amount;
-        while (!scheduledActions.isEmpty() && scheduledActions.peek().when <= newTime) {
-            currentScheduledAction = scheduledActions.poll();
-            time = currentScheduledAction.when;
-            currentScheduledAction.action.run();// may throw
-            currentScheduledAction = null;
-        }
-        time = newTime;
+        advanceTo(time + amount);
     }
 
     /**
