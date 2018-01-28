@@ -173,7 +173,17 @@ public class PersonTest {
         final double transmissionTime = informationInMessage / medium.getTypicalTransmissionRate();
         final long dt = (long) (transmissionTime * fraction * 1E6);
 
-        final AbstractActor actor = new AbstractActor(person);
+        final AtomicInteger nEndMessages = new AtomicInteger(0);
+        final AbstractActor actor = new AbstractActor(person) {
+
+            @Override
+            public final void tellMessageSendingEnded(MessageTransferInProgress transmissionProgress,
+                    Message fullMessage) {
+                super.tellMessageSendingEnded(transmissionProgress, fullMessage);
+                nEndMessages.incrementAndGet();
+            }
+
+        };
         person.setActor(actor);
         try {
             person.beginSendingMessage(medium, message);
@@ -183,6 +193,8 @@ public class PersonTest {
         clock.advance(dt);
 
         haltSendingMessage(person);
+        clock.advance(0L);
+        assertEquals("Called tellMessageSendingEnded", 1, nEndMessages.get());
     }
 
     @Test

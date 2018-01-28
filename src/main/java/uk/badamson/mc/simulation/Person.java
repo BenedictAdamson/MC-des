@@ -111,6 +111,7 @@ public final class Person implements ActorInterface {
         if (transmissionInProgress != null) {
             throw new IllegalStateException("This is already sending a message");
         }
+        // TODO updateState()
         assert medium instanceof HandSignals;
         transmittingMessage = message;
         transmissionInProgress = new MessageTransferInProgress(medium, UnusableIncompleteMessage.EMPTY_MESSAGE);
@@ -198,6 +199,17 @@ public final class Person implements ActorInterface {
         if (transmissionInProgress == null) {
             throw new IllegalStateException("Not a transmission in progress");
         }
+        updateState();
+        final Message fullMessage = transmittingMessage;
+        final MessageTransferInProgress finalProgress = transmissionInProgress;
+        clock.scheduleActionAt(clock.getTime(), new Runnable() {
+            @Override
+            public final void run() {
+                if (actor != null) {
+                    actor.tellMessageSendingEnded(finalProgress, fullMessage);
+                }
+            }
+        });
         clearSendingMessage();
     }
 
