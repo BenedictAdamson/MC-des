@@ -13,7 +13,7 @@ public class MessageElementTest {
     public static void assertInvariants(MessageElement element) {
         final double informationContent = element.getInformationContent();
 
-        assertTrue("The information content of a message element is positive.", 0.0 < informationContent);
+        assertTrue("The information content of a message element is not negative.", 0.0 <= informationContent);
         assertTrue("The information content of a message element is finite.", Double.isFinite(informationContent));
     }
 

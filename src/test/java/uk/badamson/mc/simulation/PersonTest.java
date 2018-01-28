@@ -271,8 +271,7 @@ public class PersonTest {
             assertInvariants(person);
             final MessageTransferInProgress transferInProgress = person.getTransmissionInProgress();
             if (transferInProgress != null) {
-                final Message messageSofar = transferInProgress.getMessageSofar();
-                final double informationSent = messageSofar == null ? 0.0 : messageSofar.getInformationContent();
+                final double informationSent = transferInProgress.getMessageSofar().getInformationContent();
                 assertTrue("Amount of information sent does not decrease", informationSentSoFar <= informationSent);
                 assertTrue("At most sent all the information", informationSent <= informationInMessage);
                 informationSentSoFar = informationSent;

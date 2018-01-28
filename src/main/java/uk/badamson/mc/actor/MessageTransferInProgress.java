@@ -33,11 +33,14 @@ public final class MessageTransferInProgress {
      * @param messageSofar
      *            The message that has been sent so far.
      * @throws NullPointerException
-     *             If {@code medium} is null.
+     *             <ul>
+     *             <li>If {@code medium} is null.</li>
+     *             <li>If {@code messageSofar} is null.</li>
+     *             </ul>
      */
     public MessageTransferInProgress(Medium medium, Message messageSofar) {
         this.medium = Objects.requireNonNull(medium, "medium");
-        this.messageSofar = messageSofar;
+        this.messageSofar = Objects.requireNonNull(messageSofar, "messageSofar");
     }
 
     /**
@@ -64,7 +67,7 @@ public final class MessageTransferInProgress {
         if (getClass() != obj.getClass())
             return false;
         MessageTransferInProgress other = (MessageTransferInProgress) obj;
-        return medium.equals(other.medium) && Objects.equals(messageSofar, other.messageSofar);
+        return medium.equals(other.medium) && messageSofar.equals(other.messageSofar);
     }
 
     /**
@@ -84,8 +87,7 @@ public final class MessageTransferInProgress {
      * The message that has been sent so far.
      * </p>
      * <ul>
-     * <li>A null message so far indicates that transmission has only just
-     * started.</li>
+     * <li>Always have a (non null) message so far.</li>
      * <li>This might be an {@link UnusableIncompleteMessage}, if no comprehensible
      * information has been transmitted so far.
      * <li>
@@ -111,7 +113,7 @@ public final class MessageTransferInProgress {
         final int prime = 31;
         int result = 1;
         result = prime * result + medium.hashCode();
-        result = prime * result + ((messageSofar == null) ? 0 : messageSofar.hashCode());
+        result = prime * result + messageSofar.hashCode();
         return result;
     }
 

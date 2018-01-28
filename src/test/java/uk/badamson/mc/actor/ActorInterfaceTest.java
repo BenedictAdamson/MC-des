@@ -10,6 +10,7 @@ import java.util.Set;
 
 import uk.badamson.mc.actor.medium.Medium;
 import uk.badamson.mc.actor.message.Message;
+import uk.badamson.mc.actor.message.UnusableIncompleteMessage;
 
 /**
  * Unit tests for classes that implement the {@link ActorInterface} interface
@@ -80,16 +81,15 @@ public class ActorInterfaceTest {
 
         assertSame("The medium of the transmission in progress is the given medium.", medium,
                 transmissionInProgress.getMedium());
-        assertNull("The message transmitted so far of the transmission in progress.",
-                transmissionInProgress.getMessageSofar());
+        assertEquals("The message transmitted so far is an empty unusable message.",
+                UnusableIncompleteMessage.EMPTY_MESSAGE, transmissionInProgress.getMessageSofar());
         assertSame("The given message is the current transmitting message.", message,
                 actorInterface.getTransmittingMessage());
     }
-    
 
     public static void haltSendingMessage(ActorInterface actorInterface) {
         actorInterface.haltSendingMessage();
-        
+
         assertInvariants(actorInterface);
         assertNull("This has no transmission in progress.", actorInterface.getTransmissionInProgress());
     }

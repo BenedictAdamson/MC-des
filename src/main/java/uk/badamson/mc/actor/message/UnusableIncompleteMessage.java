@@ -10,6 +10,8 @@ import net.jcip.annotations.Immutable;
 @Immutable
 public final class UnusableIncompleteMessage extends AbstractMessage {
 
+    public static final UnusableIncompleteMessage EMPTY_MESSAGE = new UnusableIncompleteMessage(0.0);
+
     private final double length;
 
     /**
@@ -21,10 +23,10 @@ public final class UnusableIncompleteMessage extends AbstractMessage {
      *            The {@linkplain #getInformationContent() length} of this message,
      *            in bits of information.
      * @throws IllegalArgumentException
-     *             If {@code length} is not positive.
+     *             If {@code length} is negative.
      */
     public UnusableIncompleteMessage(double length) {
-        if (length <= 0.0) {
+        if (length < 0.0) {
             throw new IllegalArgumentException("length " + length);
         }
         this.length = length;

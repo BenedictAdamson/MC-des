@@ -8,6 +8,7 @@ import uk.badamson.mc.actor.medium.Medium;
 import uk.badamson.mc.actor.message.Command;
 import uk.badamson.mc.actor.message.IllegalMessageException;
 import uk.badamson.mc.actor.message.Message;
+import uk.badamson.mc.actor.message.UnusableIncompleteMessage;
 
 /**
  * <p>
@@ -36,7 +37,8 @@ public interface ActorInterface {
      * <li>The {@linkplain MessageTransferInProgress#getMedium() medium} of the
      * transmission in progress is the given medium.</li>
      * <li>The {@linkplain MessageTransferInProgress#getMessageSofar() message
-     * transmitted so far} is null.</li>
+     * transmitted so far} is an {@linkplain UnusableIncompleteMessage#EMPTY_MESSAGE
+     * empty unusable message}.</li>
      * <li>The given message is the current {@linkplain #getTransmittingMessage()
      * transmitting message}.</li>
      * <li>The simulation guarantees that, if it runs for sufficiently long, it will
@@ -142,10 +144,9 @@ public interface ActorInterface {
      * the {@linkplain MessageTransferInProgress#getMessageSofar() message sent so
      * far} is less than or equal to the length of the
      * {@linkplain #getTransmittingMessage() message being sent}.</li>
-     * <li>If there is a (non null) transmission in progress, the length of the
-     * message sent so far equals the length of the message being sent at the
-     * instant that transmission completes. At that instant, the message sent so far
-     * is the same as the message being sent.</li>
+     * <li>If there is a (non null) transmission in progress, and the length of the
+     * message sent so far equals the length of the message being sent, the message
+     * sent so far is the same as the message being sent.</li>
      * </ul>
      * <p>
      * The simulation should arrange that, while the actor has a transmission in

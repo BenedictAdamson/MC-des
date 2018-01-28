@@ -6,8 +6,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 
-import java.util.Objects;
-
 import org.junit.Test;
 
 import uk.badamson.mc.ObjectTest;
@@ -44,6 +42,7 @@ public class MessageTransferInProgressTest {
         ObjectTest.assertInvariants(progress);// inherited
 
         assertNotNull("Not null, medium", progress.getMedium());
+        assertNotNull("Not null, messageSofar", progress.getMessageSofar());
     }
 
     public static void assertInvariants(MessageTransferInProgress progress1, MessageTransferInProgress progress2) {
@@ -52,7 +51,7 @@ public class MessageTransferInProgressTest {
         final boolean equals = progress1.equals(progress2);
         assertFalse("Value semantics, medium", equals && !progress1.getMedium().equals(progress2.getMedium()));
         assertFalse("Value semantics, messageSofar",
-                equals && !Objects.equals(progress1.getMessageSofar(), progress2.getMessageSofar()));
+                equals && !progress1.getMessageSofar().equals(progress2.getMessageSofar()));
     }
 
     private static MessageTransferInProgress constructor(Medium medium, Message messageSofar) {
@@ -92,24 +91,6 @@ public class MessageTransferInProgressTest {
     }
 
     @Test
-    public void constructor_2DifferentMessageNullA() {
-        final MessageTransferInProgress progress1 = new MessageTransferInProgress(MEDIUM_1, null);
-        final MessageTransferInProgress progress2 = new MessageTransferInProgress(MEDIUM_1, MESSAGE_2);
-
-        assertInvariants(progress1, progress2);
-        assertNotEquals(progress1, progress2);
-    }
-
-    @Test
-    public void constructor_2DifferentMessageNullB() {
-        final MessageTransferInProgress progress1 = new MessageTransferInProgress(MEDIUM_1, MESSAGE_1);
-        final MessageTransferInProgress progress2 = new MessageTransferInProgress(MEDIUM_1, null);
-
-        assertInvariants(progress1, progress2);
-        assertNotEquals(progress1, progress2);
-    }
-
-    @Test
     public void constructor_2EqualsA() {
         constructor_2Equals(MEDIUM_1, MESSAGE_1);
     }
@@ -120,11 +101,6 @@ public class MessageTransferInProgressTest {
     }
 
     @Test
-    public void constructor_2EqualsNullMessageSoFar() {
-        constructor_2Equals(MEDIUM_1, null);
-    }
-
-    @Test
     public void constructor_A() {
         constructor(MEDIUM_1, MESSAGE_1);
     }
@@ -132,10 +108,5 @@ public class MessageTransferInProgressTest {
     @Test
     public void constructor_B() {
         constructor(MEDIUM_2, MESSAGE_2);
-    }
-
-    @Test
-    public void constructor_nullMessageSoFar() {
-        constructor(MEDIUM_1, null);
     }
 }

@@ -3,6 +3,7 @@ package uk.badamson.mc.actor;
 import java.util.Objects;
 
 import uk.badamson.mc.actor.message.Message;
+import uk.badamson.mc.actor.message.UnusableIncompleteMessage;
 
 /**
  * <p>
@@ -41,7 +42,7 @@ public class AbstractActor implements Actor {
     @Override
     public void tellBeginReceivingMessage(MessageTransferInProgress receptionStarted) {
         Objects.requireNonNull(receptionStarted, "receptionStarted");
-        if (receptionStarted.getMessageSofar() != null) {
+        if (!UnusableIncompleteMessage.EMPTY_MESSAGE.equals(receptionStarted.getMessageSofar())) {
             throw new IllegalArgumentException("reception actually started some time ago.");
         }
     }
@@ -62,17 +63,15 @@ public class AbstractActor implements Actor {
         Objects.requireNonNull(transmissionProgress, "transmissionProgress");
         Objects.requireNonNull(fullMessage, "fullMessage");
         final Message messageSofar = transmissionProgress.getMessageSofar();
-        if (messageSofar != null) {
-            final double fullInformation = fullMessage.getInformationContent();
-            final double sentInformation = messageSofar.getInformationContent();
-            if (fullInformation < sentInformation) {
-                throw new IllegalArgumentException("message sent so far is longer <" + sentInformation
-                        + "> than the full message <" + fullInformation + ">");
-            } else if (fullInformation == sentInformation && messageSofar != fullMessage) {
-                throw new IllegalArgumentException(
-                        "Information content of message so far indicates full message sent, but message so far <"
-                                + messageSofar + "> is not the full message <" + fullInformation + ">");
-            }
+        final double fullInformation = fullMessage.getInformationContent();
+        final double sentInformation = messageSofar.getInformationContent();
+        if (fullInformation < sentInformation) {
+            throw new IllegalArgumentException("message sent so far is longer <" + sentInformation
+                    + "> than the full message <" + fullInformation + ">");
+        } else if (fullInformation == sentInformation && messageSofar != fullMessage) {
+            throw new IllegalArgumentException(
+                    "Information content of message so far indicates full message sent, but message so far <"
+                            + messageSofar + "> is not the full message <" + fullInformation + ">");
         }
     }
 
@@ -81,7 +80,6 @@ public class AbstractActor implements Actor {
         Objects.requireNonNull(transmissionProgress, "transmissionProgress");
         Objects.requireNonNull(fullMessage, "fullMessage");
         final Message messageSofar = transmissionProgress.getMessageSofar();
-        Objects.requireNonNull(messageSofar, "No progress since start of transmission");
         final double informationSoFar = messageSofar.getInformationContent();
         if (informationSoFar == 0.0) {
             throw new IllegalStateException("No message so far");

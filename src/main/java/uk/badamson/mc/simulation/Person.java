@@ -14,6 +14,7 @@ import uk.badamson.mc.actor.medium.HandSignals;
 import uk.badamson.mc.actor.medium.Medium;
 import uk.badamson.mc.actor.message.IllegalMessageException;
 import uk.badamson.mc.actor.message.Message;
+import uk.badamson.mc.actor.message.UnusableIncompleteMessage;
 
 /**
  * <p>
@@ -83,8 +84,7 @@ public final class Person implements ActorInterface {
     private void advance(double dt) {
         assert 0.0 < dt;
         if (transmissionInProgress != null) {
-            final Message messageSofar = transmissionInProgress.getMessageSofar();
-            final double informationSentPreviously = messageSofar == null ? 0.0 : messageSofar.getInformationContent();
+            final double informationSentPreviously = transmissionInProgress.getMessageSofar().getInformationContent();
             final double fullMessageInformation = transmittingMessage.getInformationContent();
             final Medium medium = transmissionInProgress.getMedium();
             double informationSent = informationSentPreviously + dt * medium.getTypicalTransmissionRate();
@@ -113,7 +113,7 @@ public final class Person implements ActorInterface {
         }
         assert medium instanceof HandSignals;
         transmittingMessage = message;
-        transmissionInProgress = new MessageTransferInProgress(medium, null);
+        transmissionInProgress = new MessageTransferInProgress(medium, UnusableIncompleteMessage.EMPTY_MESSAGE);
         scheduleUpdateMessageTransmissionProgress();
     }
 
@@ -129,7 +129,9 @@ public final class Person implements ActorInterface {
         clock.scheduleActionAt(clock.getTime(), new Runnable() {
             @Override
             public final void run() {
-                actor.tellMessageSendingEnded(finalProgress, fullMessage);
+                if (actor != null) {
+                    actor.tellMessageSendingEnded(finalProgress, fullMessage);
+                }
             }
         });
         clearSendingMessage();
@@ -194,16 +196,15 @@ public final class Person implements ActorInterface {
     @Override
     public final void haltSendingMessage() {
         if (transmissionInProgress == null) {
-            throw new IllegalStateException("No a transmission in progress");
+            throw new IllegalStateException("Not a transmission in progress");
         }
         clearSendingMessage();
     }
 
     private void scheduleUpdateMessageTransmissionProgress() {
-        final Message messageSofar = transmissionInProgress.getMessageSofar();
         final double transmissionRate = transmissionInProgress.getMedium().getTypicalTransmissionRate();
         final double fullInformation = transmittingMessage.getInformationContent();
-        final double sentInformation = messageSofar == null ? 0.0 : messageSofar.getInformationContent();
+        final double sentInformation = transmissionInProgress.getMessageSofar().getInformationContent();
         final double transmissionTime = fullInformation / transmissionRate;
         final double remainingTime = (fullInformation - sentInformation) / transmissionRate;
         double delay = transmissionTime / (1 + MIN_MESSAGE_TRANSMISSION_PROGRESS_COUNT);
@@ -215,8 +216,7 @@ public final class Person implements ActorInterface {
             @Override
             public void run() {
                 updateState();
-                if (actor != null && transmissionInProgress != null
-                        && transmissionInProgress.getMessageSofar() != null) {
+                if (actor != null && transmissionInProgress != null) {
                     actor.tellMessageTransmissionProgress(transmissionInProgress, transmittingMessage);
                     scheduleUpdateMessageTransmissionProgress();
                 }

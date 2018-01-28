@@ -106,7 +106,7 @@ public interface MessageElement {
      * essential compact form.
      * </p>
      * <ul>
-     * <li>The information content of a message element is positive.</li>
+     * <li>The information content of a message element is not negative.</li>
      * <li>The information content of a message element is
      * {@linkplain Double#isFinite() finite}.</li>
      * <li>The unit of information content is bits of information. If information
