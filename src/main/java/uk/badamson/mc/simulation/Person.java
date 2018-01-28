@@ -75,6 +75,11 @@ public final class Person implements ActorInterface {
         previousUpdate = clock.getTime();
     }
 
+    /*
+     * To avoid tricky corner cases when an actor triggers a lazy update, does not
+     * directly tell teh actor about state changes. Instead schedules immediate
+     * events to do so.
+     */
     private void advance(double dt) {
         assert 0.0 < dt;
         if (transmissionInProgress != null) {
@@ -212,7 +217,7 @@ public final class Person implements ActorInterface {
                 updateState();
                 if (actor != null && transmissionInProgress != null
                         && transmissionInProgress.getMessageSofar() != null) {
-                    actor.tellMessageTransmissionProgress();
+                    actor.tellMessageTransmissionProgress(transmissionInProgress, transmittingMessage);
                     scheduleUpdateMessageTransmissionProgress();
                 }
             }

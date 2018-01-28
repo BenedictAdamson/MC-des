@@ -37,8 +37,9 @@ public class AbstractActorTest {
         assertInvariants(actor);
     }
 
-    public static void tellMessageTransmissionProgress(AbstractActor actor, Message previousMessageSoFar) {
-        ActorTest.tellMessageTransmissionProgress(actor, previousMessageSoFar);
+    public static void tellMessageTransmissionProgress(AbstractActor actor,
+            MessageTransferInProgress transmissionProgress, Message fullMessage) {
+        ActorTest.tellMessageTransmissionProgress(actor, transmissionProgress, fullMessage);
         assertInvariants(actor);
     }
 }

@@ -36,17 +36,10 @@ public interface Actor {
      * @throws NullPointerException
      *             If {@code receptionStarted} is null.
      * @throws IllegalArgumentException
-     *             <ul>
-     *             <li>If the
-     *             {@linkplain MessageTransferInProgress#getMessageSofar() message
-     *             received so far} of the {@code receptionStarted} is not null,
-     *             which would indicate that reception actually started some time
-     *             ago.</li>
-     *             <li>If the {@code receptionStarted} is not one of the
-     *             {@linkplain ActorInterface#getMessagesBeingReceived() messages
-     *             being received} according to the {@linkplain #getActorInterface()
-     *             actor interface} of this actor.</li>
-     *             </ul>
+     *             If the {@linkplain MessageTransferInProgress#getMessageSofar()
+     *             message received so far} of the {@code receptionStarted} is not
+     *             null, which would indicate that reception actually started some
+     *             time ago.
      */
     public void tellBeginReceivingMessage(MessageTransferInProgress receptionStarted);
 
@@ -77,17 +70,11 @@ public interface Actor {
      *             null.</li>
      *             </ul>
      * @throws IllegalArgumentException
-     *             <ul>
-     *             <li>If {@code messageBeingReceived} is not one of the
-     *             {@linkplain ActorInterface#getMessagesBeingReceived() messages
-     *             being received} according to the {@linkplain #getActorInterface()
-     *             actor interface} of this actor.</li>
-     *             <li>If the {@code previousMessageSoFar} is non null and the
+     *             If the {@code previousMessageSoFar} is non null and the
      *             {@linkplain Message#getInformationContent() length (information
      *             content)} of the message received so far of the
      *             {@code messageBeingReceived} is not greater than the length of
-     *             the {@code previousMessageSoFar}.</li>
-     *             </ul>
+     *             the {@code previousMessageSoFar}.
      */
     public void tellMessageReceptionProgress(Message previousMessageSoFar,
             MessageTransferInProgress messageBeingReceived);
@@ -127,13 +114,8 @@ public interface Actor {
      *             {@linkplain Message#getInformationContent() information content}
      *             (length) of that message equals the information content of the
      *             {@code fullMessage}, but that message sent so far is not the same
-     *             as the {@code fullMessage}.
+     *             as the {@code fullMessage}.</li>
      *             </ul>
-     * @throws IllegalStateException
-     *             If the {@linkplain ActorInterface#getTransmittingMessage()
-     *             currently transmitting message} of the
-     *             {@linkplain #getActorInterface() actor interface} of this actor
-     *             is not null.
      */
     public void tellMessageSendingEnded(MessageTransferInProgress transmissionProgress, Message fullMessage);
 
@@ -148,28 +130,21 @@ public interface Actor {
      * of the transmission in progress}.
      * </p>
      * 
+     * @param transmissionProgress
+     *            The current state of the transmission.
+     * @param fullMessage
+     *            The message is being sent.
      * @throws NullPointerException
      *             <ul>
-     *             <li>If the {@linkplain ActorInterface#getTransmissionInProgress()
-     *             current state of the transmission in progress}, according to the
-     *             {@linkplain #getActorInterface() actor interface}, is null.</li>
-     *             <li>If the
-     *             {@linkplain MessageTransferInProgress#getMessageSofar() message
-     *             sent so far} of the current transmission in progress, according
-     *             to the actor interface, is null, which would indicate that has
-     *             been no progress since transmission started.</li>
+     *             <li>If {@code transmissionProgress} is null.</li>
+     *             <li>If {@code fullMessage} is null.</li>
      *             </ul>
-     * @throws IllegalStateException
-     *             <ul>
-     *             <li>If the {@linkplain Message#getInformationContent() length} of
-     *             the message sent so far of the current transmission in progress,
-     *             according to the actor interface, is zero.</li>
-     *             <li>If the length of the message sent so far of the current
-     *             transmission in progress, according to the actor interface, is
-     *             equal to the length of the
-     *             {@linkplain ActorInterface#getTransmittingMessage() message being
-     *             transmitted}. That is, if transmission has completed.</li>
-     *             </ul>
+     * @throws IllegalArgumentException
+     *             If the {@linkplain MessageTransferInProgress#getMessageSofar()
+     *             message sent so far} of the {@code transmissionProgress} is not
+     *             null and its {@linkplain Message#getInformationContent() length
+     *             (information content)} equals or exceeds the length of the
+     *             {@code fullMessage}.</li>
      */
-    public void tellMessageTransmissionProgress();
+    public void tellMessageTransmissionProgress(MessageTransferInProgress transmissionProgress, Message fullMessage);
 }

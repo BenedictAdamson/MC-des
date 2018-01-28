@@ -248,11 +248,12 @@ public class PersonTest {
             }
 
             @Override
-            public void tellMessageTransmissionProgress() {
-                super.tellMessageTransmissionProgress();
+            public void tellMessageTransmissionProgress(MessageTransferInProgress transmissionProgress,
+                    Message fullMessage) {
+                super.tellMessageTransmissionProgress(transmissionProgress, fullMessage);
                 assertInvariants(person);
                 nProgressMessages.incrementAndGet();
-                messageSoFar.set(getActorInterface().getTransmissionInProgress().getMessageSofar());
+                messageSoFar.set(transmissionProgress.getMessageSofar());
             }
         };
         person.setActor(actor);
@@ -317,8 +318,9 @@ public class PersonTest {
             }
 
             @Override
-            public void tellMessageTransmissionProgress() {
-                super.tellMessageTransmissionProgress();
+            public void tellMessageTransmissionProgress(MessageTransferInProgress transmissionProgress,
+                    Message fullMessage) {
+                super.tellMessageTransmissionProgress(transmissionProgress, fullMessage);
                 assertInvariants(person);
             }
         };

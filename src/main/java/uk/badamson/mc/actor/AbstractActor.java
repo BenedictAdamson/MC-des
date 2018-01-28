@@ -44,9 +44,6 @@ public class AbstractActor implements Actor {
         if (receptionStarted.getMessageSofar() != null) {
             throw new IllegalArgumentException("reception actually started some time ago.");
         }
-        if (!actorInterface.getMessagesBeingReceived().contains(receptionStarted)) {
-            throw new IllegalArgumentException("receptionStarted is not one of the messages being received");
-        }
     }
 
     @Override
@@ -54,9 +51,6 @@ public class AbstractActor implements Actor {
             MessageTransferInProgress messageBeingReceived) {
         Objects.requireNonNull(messageBeingReceived, "messageBeingReceived");
         Objects.requireNonNull(messageBeingReceived.getMessageSofar(), "messageBeingReceived.messageSoFar");
-        if (!actorInterface.getMessagesBeingReceived().contains(messageBeingReceived)) {
-            throw new IllegalArgumentException("messageBeingReceived is not one of the mesages being received");
-        }
         if (previousMessageSoFar != null && messageBeingReceived.getMessageSofar()
                 .getInformationContent() <= previousMessageSoFar.getInformationContent()) {
             throw new IllegalArgumentException("No progress in reception");
@@ -66,6 +60,7 @@ public class AbstractActor implements Actor {
     @Override
     public void tellMessageSendingEnded(MessageTransferInProgress transmissionProgress, Message fullMessage) {
         Objects.requireNonNull(transmissionProgress, "transmissionProgress");
+        Objects.requireNonNull(fullMessage, "fullMessage");
         final Message messageSofar = transmissionProgress.getMessageSofar();
         if (messageSofar != null) {
             final double fullInformation = fullMessage.getInformationContent();
@@ -79,23 +74,17 @@ public class AbstractActor implements Actor {
                                 + messageSofar + "> is not the full message <" + fullInformation + ">");
             }
         }
-        if (getActorInterface().getTransmittingMessage() != null) {
-            throw new IllegalStateException("(still) transmitting a message");
-        }
     }
 
     @Override
-    public void tellMessageTransmissionProgress() {
-        final MessageTransferInProgress transmissionInProgress = actorInterface.getTransmissionInProgress();
-        Objects.requireNonNull(transmissionInProgress, "No transmission in progress");
-        final Message messageSofar = transmissionInProgress.getMessageSofar();
+    public void tellMessageTransmissionProgress(MessageTransferInProgress transmissionProgress, Message fullMessage) {
+        Objects.requireNonNull(transmissionProgress, "transmissionProgress");
+        Objects.requireNonNull(fullMessage, "fullMessage");
+        final Message messageSofar = transmissionProgress.getMessageSofar();
         Objects.requireNonNull(messageSofar, "No progress since start of transmission");
         final double informationSoFar = messageSofar.getInformationContent();
         if (informationSoFar == 0.0) {
             throw new IllegalStateException("No message so far");
-        }
-        if (informationSoFar == actorInterface.getTransmittingMessage().getInformationContent()) {
-            throw new IllegalStateException("Transmission has completed.");
         }
     }
 
