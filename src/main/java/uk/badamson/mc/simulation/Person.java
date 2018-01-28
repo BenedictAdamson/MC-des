@@ -93,6 +93,8 @@ public final class Person implements ActorInterface {
                 transmissionInProgress = new MessageTransferInProgress(medium,
                         transmittingMessage.getPartialMessage(informationSent));
             } else {
+                transmissionInProgress = new MessageTransferInProgress(transmissionInProgress.getMedium(),
+                        transmittingMessage);
                 endMessageSending();
             }
         }
@@ -118,15 +120,12 @@ public final class Person implements ActorInterface {
         scheduleUpdateMessageTransmissionProgress();
     }
 
-    private void clearSendingMessage() {
-        transmittingMessage = null;
-        transmissionInProgress = null;
-    }
-
     private void endMessageSending() {
+        assert transmissionInProgress != null;
+        assert transmittingMessage != null;
+        final MessageTransferInProgress finalProgress = transmissionInProgress;
         final Message fullMessage = transmittingMessage;
-        final MessageTransferInProgress finalProgress = new MessageTransferInProgress(
-                transmissionInProgress.getMedium(), fullMessage);
+
         clock.scheduleActionAt(clock.getTime(), new Runnable() {
             @Override
             public final void run() {
@@ -135,7 +134,9 @@ public final class Person implements ActorInterface {
                 }
             }
         });
-        clearSendingMessage();
+
+        transmittingMessage = null;
+        transmissionInProgress = null;
     }
 
     /**
@@ -196,21 +197,11 @@ public final class Person implements ActorInterface {
 
     @Override
     public final void haltSendingMessage() {
+        updateState();
         if (transmissionInProgress == null) {
             throw new IllegalStateException("Not a transmission in progress");
         }
-        updateState();
-        final Message fullMessage = transmittingMessage;
-        final MessageTransferInProgress finalProgress = transmissionInProgress;
-        clock.scheduleActionAt(clock.getTime(), new Runnable() {
-            @Override
-            public final void run() {
-                if (actor != null) {
-                    actor.tellMessageSendingEnded(finalProgress, fullMessage);
-                }
-            }
-        });
-        clearSendingMessage();
+        endMessageSending();
     }
 
     private void scheduleUpdateMessageTransmissionProgress() {
