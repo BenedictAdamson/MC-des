@@ -1,5 +1,9 @@
 package uk.badamson.mc;
 
+import java.util.Arrays;
+
+import uk.badamson.mc.ui.Gui;
+
 /**
  * <p>
  * The entry point(s) of the Mission Command game.
@@ -20,22 +24,65 @@ package uk.badamson.mc;
  * directly derived from {@link Object}.
  * </p>
  */
-public final class Main {
-
-    private Main() {
-        throw new AssertionError("Main is a static class");
-    }
+public final class Main implements Runnable {
 
     /**
      * <p>
      * Run the Mission Command game.
+     * </p>
+     * <p>
+     * The method simply creates and then delegates to a new instance (object) of
+     * the {@link Main} class. This simplifies automated testing of the high-level
+     * parts of the program.
      * </p>
      * 
      * @param args
      *            Command-line arguments provided to the program.
      */
     public static void main(String[] args) {
-        // TODO
+        final Main program = new Main(args);
+        program.run();
+    }
+
+    private final String[] args;
+
+    /**
+     * <p>
+     * Construct an object with given attribute values.
+     * </p>
+     * 
+     * @param args
+     *            The command line arguments given to this instance of the Mission
+     *            Command game.
+     */
+    Main(String[] args) {
+        this.args = args == null ? null : Arrays.copyOf(args, args.length);
+    }
+
+    /**
+     * <p>
+     * The command line arguments given to this instance of the Mission Command
+     * game.
+     * </p>
+     * <ul>
+     * <li>The method returns a copy of the command-line arguments; manipulating the
+     * returned array will not change the sate of the this object.</li>
+     * </ul>
+     * 
+     * @return the arguments.
+     */
+    public final String[] getArgs() {
+        return args == null ? null : Arrays.copyOf(args, args.length);
+    }
+
+    /**
+     * <p>
+     * Run this instance of the Mission Command game.
+     * </p>
+     */
+    @Override
+    public final void run() {
+        Gui.mainEventLoop();
     }
 
 }
