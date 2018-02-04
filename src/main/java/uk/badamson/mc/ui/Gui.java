@@ -3,7 +3,10 @@ package uk.badamson.mc.ui;
 import java.util.Objects;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.layout.FillLayout;
+import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 
@@ -12,6 +15,7 @@ import uk.badamson.mc.Main;
 import uk.badamson.mc.actor.Actor;
 import uk.badamson.mc.actor.ActorInterface;
 import uk.badamson.mc.actor.MessageTransferInProgress;
+import uk.badamson.mc.actor.medium.Medium;
 import uk.badamson.mc.actor.message.Message;
 import uk.badamson.mc.simulation.Person;
 
@@ -45,22 +49,42 @@ public final class Gui implements AutoCloseable, Runnable {
             private final ActorInterface person;
 
             /**
+             * @param parentControl
+             *            The composite control which will be the parent of the GUI elements
+             *            for this GUI.
              * @param person
              *            The API (service interface) through which this GUI effects changes
              *            to the simulation of the played person.
              * @throws NullPointerException
-             *             If {@code person} is null.
+             *             <ul>
+             *             <li>If {@code parentControl} is null.</li>
+             *             <li>If {@code person} is null.</li>
+             *             </ul>
              * @throws IllegalArgumentException
              *             If {@code person} is not one of the {@linkplain Game#getPersons()
              *             simulated persons} of the {@linkplain Gui.GameGui#getGame() game}
              *             for which this is a GUI.
              */
-            PlayedPersonGui(ActorInterface person) {
+            PlayedPersonGui(Composite parentControl, ActorInterface person) {
+                Objects.requireNonNull(parentControl, "parentControl");
                 this.person = Objects.requireNonNull(person, "person");
                 if (!getGame().getPersons().contains(person)) {
                     throw new IllegalArgumentException(
                             "person is not one of the simulated persons of the game for which this is a GUI");
                 }
+
+                final Group mediaGroup = new Group(parentControl, SWT.DEFAULT);
+                mediaGroup.setText("Means for sending messages");
+                mediaGroup.setLayout(new FillLayout(SWT.VERTICAL));
+                for (Medium medium : person.getMedia()) {
+                    final Label mediumLabel = new Label(mediaGroup, SWT.LEFT);
+                    mediumLabel.setText(medium.toString());
+                    mediumLabel.setData(medium);
+                    mediumLabel.pack();
+                }
+                mediaGroup.layout();
+                mediaGroup.pack();
+                parentControl.layout();
             }
 
             /**
@@ -119,6 +143,7 @@ public final class Gui implements AutoCloseable, Runnable {
         }// class
 
         private final Game game;
+        private final Shell gameWindow;
 
         /**
          * <p>
@@ -133,6 +158,9 @@ public final class Gui implements AutoCloseable, Runnable {
          */
         GameGui(Game game) {
             this.game = Objects.requireNonNull(game, "game");
+            this.gameWindow = new Shell(mainWindow);
+            this.gameWindow.setLayout(new FillLayout(SWT.VERTICAL));
+            this.gameWindow.open();
         }
 
         /**
@@ -170,7 +198,7 @@ public final class Gui implements AutoCloseable, Runnable {
          *             the GUI.
          */
         public final PlayedPersonGui takeControl(Person person) {
-            final PlayedPersonGui gui = new PlayedPersonGui(person);
+            final PlayedPersonGui gui = new PlayedPersonGui(gameWindow, person);
             game.takeControl(gui, person);
             return gui;
         }
@@ -201,10 +229,6 @@ public final class Gui implements AutoCloseable, Runnable {
     public Gui(Main main) {
         this.main = Objects.requireNonNull(main, "main");
         mainWindow = new Shell(display);
-        Label label = new Label(mainWindow, SWT.CENTER);
-        label.setText("Hello_world");
-        label.setBounds(mainWindow.getClientArea());
-        mainWindow.open();
     }
 
     /**
@@ -259,6 +283,7 @@ public final class Gui implements AutoCloseable, Runnable {
      */
     @Override
     public final void run() {
+        mainWindow.open();
         while (!mainWindow.isDisposed()) {
             if (!display.readAndDispatch())
                 display.sleep();
