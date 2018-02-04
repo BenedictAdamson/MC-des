@@ -73,6 +73,7 @@ public final class Clock {
         }
 
     }// class
+
     /**
      * <p>
      * An exception for indicating that the {@linkplain Clock#getTime() time} of a
@@ -169,6 +170,8 @@ public final class Clock {
      *             If the {@link Runnable#run()} method of a
      *             {@linkplain #scheduleActionAt(long, Runnable) scheduled action}
      *             threw a {@link RuntimeException}.
+     * @see #advanceSeconds(double)
+     * @see #advanceTo(long)
      */
     public final void advance(long amount) {
         if (amount < 0) {
@@ -206,6 +209,7 @@ public final class Clock {
      *             If the {@link Runnable#run()} method of a
      *             {@linkplain #scheduleActionAt(long, Runnable) scheduled action}
      *             threw a {@link RuntimeException}.
+     * @see #advance(long)
      */
     public final void advanceSeconds(double amount) {
         if (amount < 0.0) {
@@ -254,6 +258,7 @@ public final class Clock {
      *             If the {@link Runnable#run()} method of a
      *             {@linkplain #scheduleActionAt(long, Runnable) scheduled action}
      *             threw a {@link RuntimeException}.
+     * @see #advance(long)
      */
     public final void advanceTo(long when) {
         if (when < time) {
