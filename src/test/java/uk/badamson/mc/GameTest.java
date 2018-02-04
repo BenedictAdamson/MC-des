@@ -9,10 +9,16 @@ import static org.junit.Assert.assertTrue;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
 import uk.badamson.mc.actor.ActorInterface;
+import uk.badamson.mc.actor.MediumUnavailableException;
+import uk.badamson.mc.actor.medium.HandSignals;
+import uk.badamson.mc.actor.medium.Medium;
+import uk.badamson.mc.actor.message.Message;
+import uk.badamson.mc.actor.message.SimpleDirectCommand;
 import uk.badamson.mc.simulation.Clock;
 import uk.badamson.mc.simulation.ClockTest;
 import uk.badamson.mc.simulation.Person;
@@ -94,4 +100,25 @@ public class GameTest {
 
         createPerson(game);
     }
+
+    @Test
+    public void personSendsMessage() {
+        final Message message = SimpleDirectCommand.CHECK_MAP;
+        final Game game = new Game();
+        final Clock clock = game.getClock();
+        final Person person = game.createPerson();
+        final Medium medium = HandSignals.INSTANCE;
+        final double informationInMessage = message.getInformationContent();
+        final double transmissionTime = informationInMessage / medium.getTypicalTransmissionRate();
+        try {
+            person.beginSendingMessage(medium, message);
+        } catch (MediumUnavailableException e) {
+            throw new AssertionError(e);
+        }
+
+        clock.advance(clock.getUnit().convert((long) (transmissionTime * 1E3 * 20), TimeUnit.MILLISECONDS));
+
+        assertNull("No transmission in progress.", person.getTransmissionInProgress());
+    }
+
 }
