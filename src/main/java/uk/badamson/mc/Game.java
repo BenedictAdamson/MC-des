@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import uk.badamson.mc.actor.Actor;
 import uk.badamson.mc.actor.ActorInterface;
 import uk.badamson.mc.simulation.Clock;
 import uk.badamson.mc.simulation.Person;
@@ -124,28 +125,37 @@ public final class Game {
 
     /**
      * <p>
-     * Select which {@linkplain #getPlayedPerson() simulated person of this game the
-     * player is controlling}.
+     * Have the human player of this game. take control of one of the
+     * {@linkplain #getPlayedPerson() simulated persons} of this game.
      * </p>
      * <ul>
-     * <li>The {@linkplain #getPlayedPerson() player person} becomes the given
+     * <li>The {@linkplain #getPlayedPerson() played person} becomes the given
      * person.</li>
+     * <li>The {@linkplain Person#getActor() actor} of the given person becomes the
+     * given actor.</li>
      * </ul>
      * 
+     * @param actor
+     *            The interface through which the simulation interacts with the
+     *            human player of this game.
      * @param person
-     *            The person to be controlled, or null if no person is to be
-     *            controlled.
+     *            The person to be controlled.
      * @throws NullPointerException
-     *             If {@code person} is null.
+     *             <ul>
+     *             <li>If {@code actor} is null.</li>
+     *             <li>If {@code person} is null.</li>
+     *             </ul>
      * @throws IllegalArgumentException
      *             If {@code person} is not one of the {@linkplain #getPersons()
      *             persons} of this simulation.
      */
-    public final void takeControl(Person person) {
+    public final void takeControl(Actor actor, Person person) {
+        Objects.requireNonNull(actor, "actor");
         Objects.requireNonNull(person, "person");
         if (!persons.contains(person)) {
             throw new IllegalArgumentException("person " + person + " is not one of the persons");
         }
+        person.setActor(actor);
         playedPerson = person;
     }
 }

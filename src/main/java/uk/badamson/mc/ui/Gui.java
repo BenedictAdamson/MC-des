@@ -9,7 +9,11 @@ import org.eclipse.swt.widgets.Shell;
 
 import uk.badamson.mc.Game;
 import uk.badamson.mc.Main;
+import uk.badamson.mc.actor.Actor;
 import uk.badamson.mc.actor.ActorInterface;
+import uk.badamson.mc.actor.MessageTransferInProgress;
+import uk.badamson.mc.actor.message.Message;
+import uk.badamson.mc.simulation.Person;
 
 /**
  * <p>
@@ -36,7 +40,7 @@ public final class Gui implements AutoCloseable, Runnable {
          * one instance of the {@linkplain Game Mission Command Game}
          * </p>
          */
-        public final class PlayedPersonGui {
+        public final class PlayedPersonGui implements Actor {
 
             private ActorInterface playerPersonInterface;
 
@@ -71,11 +75,36 @@ public final class Gui implements AutoCloseable, Runnable {
             public final ActorInterface getPlayerPersonInterface() {
                 return playerPersonInterface;
             }
+
+            @Override
+            public void tellBeginReceivingMessage(MessageTransferInProgress receptionStarted) {
+                // TODO Auto-generated method stub
+
+            }
+
+            @Override
+            public void tellMessageReceptionProgress(Message previousMessageSoFar,
+                    MessageTransferInProgress messageBeingReceived) {
+                // TODO Auto-generated method stub
+
+            }
+
+            @Override
+            public void tellMessageSendingEnded(MessageTransferInProgress transmissionProgress, Message fullMessage) {
+                // TODO Auto-generated method stub
+
+            }
+
+            @Override
+            public void tellMessageTransmissionProgress(MessageTransferInProgress transmissionProgress,
+                    Message fullMessage) {
+                // TODO Auto-generated method stub
+
+            }
+
         }// class
 
         private final Game game;
-
-        private PlayedPersonGui currentControlledPersonGui;
 
         /**
          * <p>
@@ -90,43 +119,6 @@ public final class Gui implements AutoCloseable, Runnable {
          */
         GameGui(Game game) {
             this.game = Objects.requireNonNull(game, "game");
-            changeCurrentControlledPersonGui(game.getPlayedPerson());
-        }
-
-        private void changeCurrentControlledPersonGui(final ActorInterface playerPersonInterface) {
-            currentControlledPersonGui = null;
-            if (playerPersonInterface != null) {
-                currentControlledPersonGui = new PlayedPersonGui(playerPersonInterface);
-            }
-        }
-
-        /**
-         * <p>
-         * Retrieve or create the GUI for the
-         * {@linkplain Game#getPlayerPersonInterface() played person} of the
-         * {@linkplain #getGame() game} for which this is the GUI.
-         * </p>
-         * <ul>
-         * <li>The current controlled person GUI is null if, and only if, the
-         * {@linkplain #getGame() game} has no the
-         * {@linkplain Game#getPlayerPersonInterface() played person}.</li>
-         * <li>If this has a (non null) controlled person GUI, the
-         * {@linkplain Gui.GameGui.PlayedPersonGui#getPlayerPersonInterface() played
-         * person} of that GUI is the played person of the game.</li>
-         * <li>Calling this method may cause lazy creation of a new GUI for the
-         * controlled person.</li>
-         * </ul>
-         * 
-         * @return the GUI
-         */
-        public PlayedPersonGui getCurrentPlayedPersonGui() {
-            final ActorInterface playerPersonInterface = game.getPlayedPerson();
-            final ActorInterface currentPlayerPersonInterface = currentControlledPersonGui == null ? null
-                    : currentControlledPersonGui.getPlayerPersonInterface();
-            if (playerPersonInterface != currentPlayerPersonInterface) {
-                changeCurrentControlledPersonGui(playerPersonInterface);
-            }
-            return currentControlledPersonGui;
         }
 
         /**
@@ -138,6 +130,35 @@ public final class Gui implements AutoCloseable, Runnable {
          */
         public final Game getGame() {
             return game;
+        }
+
+        /**
+         * <p>
+         * Have the user of this GUI take control of one of the
+         * {@linkplain Game#getPlayedPerson() simulated persons} of the
+         * {@linkplain #getGame() game} that this GUI controls.
+         * </p>
+         * <ul>
+         * <li>The {@linkplain Game#getPlayedPerson() played person} of the game that
+         * his GUI controls becomes the given person.</li>
+         * <li>The {@linkplain Person#getActor() actor} of the given person becomes the
+         * {@linkplain Gui.GameGui.PlayedPersonGui GUI} that this returns.</li>
+         * </ul>
+         * 
+         * @param person
+         *            The person to be controlled.
+         * @return the GUI through which the user controls the person.
+         * @throws NullPointerException
+         *             If {@code person} is null.
+         * @throws IllegalArgumentException
+         *             If {@code person} is not one of the {@linkplain Game#getPersons()
+         *             persons} of the {@linkplain #getGame() game} for which this is
+         *             the GUI.
+         */
+        public final PlayedPersonGui takeControl(Person person) {
+            final PlayedPersonGui gui = new PlayedPersonGui(person);
+            game.takeControl(gui, person);
+            return gui;
         }
 
     }// class
