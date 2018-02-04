@@ -2,15 +2,14 @@ package uk.badamson.mc;
 
 import java.util.Arrays;
 
+import uk.badamson.mc.simulation.Person;
 import uk.badamson.mc.ui.Gui;
 
 /**
  * <p>
- * The entry point(s) of the Mission Command game.
- * </p>
- * <p>
- * This is the Facade through which the users of the program, via the operating
- * system, should interact with the program(s) when.
+ * The entry point(s) of the Mission Command game; the Facade through which the
+ * users of the program, via the operating system, should interact with the
+ * program(s) when.
  * </p>
  * <p>
  * Classes used by this class might, in part, have to be loaded before execution
@@ -94,8 +93,11 @@ public final class Main implements AutoCloseable, Runnable {
      */
     @Override
     public final void run() {
-        final Game game = new Game();
         try (final Gui gui = new Gui(this)) {
+            /* TODO: do not hard code game set up. */
+            final Game game = new Game();
+            final Person person = game.createPerson();
+            game.controlPerson(person);
             gui.addGame(game);
             gui.run();
         }
