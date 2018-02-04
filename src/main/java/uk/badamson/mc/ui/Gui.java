@@ -3,12 +3,14 @@ package uk.badamson.mc.ui;
 import java.util.Objects;
 
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.layout.FillLayout;
+import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.ProgressBar;
 import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.widgets.Text;
 
 import uk.badamson.mc.Game;
 import uk.badamson.mc.Main;
@@ -72,25 +74,42 @@ public final class Gui implements AutoCloseable, Runnable {
                     throw new IllegalArgumentException(
                             "person is not one of the simulated persons of the game for which this is a GUI");
                 }
-
-                final Group mediaGroup = new Group(parentControl, SWT.DEFAULT);
-                mediaGroup.setText("Means for sending messages");
-                mediaGroup.setLayout(new FillLayout(SWT.VERTICAL));
-                for (Medium medium : person.getMedia()) {
-                    final Label mediumLabel = new Label(mediaGroup, SWT.LEFT);
-                    mediumLabel.setText(medium.toString());
-                    mediumLabel.setData(medium);
-                    mediumLabel.pack();
+                {
+                    final Group mediaGroup = new Group(parentControl, SWT.DEFAULT);
+                    final RowLayout layout = new RowLayout(SWT.VERTICAL);
+                    mediaGroup.setLayout(layout);
+                    mediaGroup.setText("Means for sending messages");
+                    for (Medium medium : person.getMedia()) {
+                        final Label mediumLabel = new Label(mediaGroup, SWT.LEFT);
+                        mediumLabel.setText(medium.toString());
+                        mediumLabel.setData(medium);
+                        mediumLabel.pack();
+                    }
+                    mediaGroup.pack(true);
                 }
-                mediaGroup.layout();
-                mediaGroup.pack();
-                final Group messagesBeingReceivedGroup = new Group(parentControl, SWT.DEFAULT);
-                messagesBeingReceivedGroup.setText("Messages being received");
-                // TODO MessagesBeingReceived
-                final Group transmissionInProgressGroup = new Group(parentControl, SWT.DEFAULT);
-                transmissionInProgressGroup.setText("Message being sent");
-                // TODO TransmissionInProgress
-                parentControl.layout();
+                {
+                    final Group transmissionInProgressGroup = new Group(parentControl, SWT.DEFAULT);
+                    final RowLayout layout = new RowLayout(SWT.VERTICAL);
+                    layout.fill = true;
+                    transmissionInProgressGroup.setLayout(layout);
+                    transmissionInProgressGroup.setText("Message being sent");
+                    final Label mediumLabel = new Label(transmissionInProgressGroup, SWT.LEFT);
+                    mediumLabel.setText("Not sending");
+                    final Text message = new Text(transmissionInProgressGroup, SWT.MULTI | SWT.LEFT | SWT.READ_ONLY);
+                    message.setText("");
+                    final ProgressBar progress = new ProgressBar(transmissionInProgressGroup, SWT.HORIZONTAL);
+                    progress.setMinimum(0);
+                    progress.setSelection(0);
+                    progress.setMaximum(Integer.MAX_VALUE);
+                    // TODO TransmissionInProgress
+                    transmissionInProgressGroup.pack();
+                }
+                {
+                    final Group messagesBeingReceivedGroup = new Group(parentControl, SWT.DEFAULT);
+                    messagesBeingReceivedGroup.setText("Messages being received");
+                    // TODO MessagesBeingReceived
+                }
+                parentControl.pack(true);
             }
 
             /**
@@ -165,7 +184,7 @@ public final class Gui implements AutoCloseable, Runnable {
         GameGui(Game game) {
             this.game = Objects.requireNonNull(game, "game");
             this.gameWindow = new Shell(mainWindow);
-            this.gameWindow.setLayout(new FillLayout(SWT.VERTICAL));
+            this.gameWindow.setLayout(new RowLayout(SWT.VERTICAL));
             this.gameWindow.open();
         }
 
@@ -206,6 +225,7 @@ public final class Gui implements AutoCloseable, Runnable {
         public final PlayedPersonGui takeControl(Person person) {
             final PlayedPersonGui gui = new PlayedPersonGui(gameWindow, person);
             game.takeControl(gui, person);
+            gameWindow.setModified(true);
             return gui;
         }
 
