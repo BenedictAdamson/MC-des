@@ -2,6 +2,11 @@ package uk.badamson.mc.ui;
 
 import java.util.Objects;
 
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Shell;
+
 import uk.badamson.mc.Main;
 
 /**
@@ -13,6 +18,8 @@ import uk.badamson.mc.Main;
 public final class Gui implements AutoCloseable, Runnable {
 
     private final Main main;
+    private final Display display = new Display();
+    private final Shell shell;
 
     /**
      * <p>
@@ -21,6 +28,8 @@ public final class Gui implements AutoCloseable, Runnable {
      * <ul>
      * <li>The constructor may allocate graphical resources and "open" a connection
      * to the system windowing and graphics system.</li>
+     * <li>The constructor may set up, create and "open" the main application
+     * window.</li>
      * </ul>
      * 
      * @param main
@@ -31,6 +40,11 @@ public final class Gui implements AutoCloseable, Runnable {
      */
     public Gui(Main main) {
         this.main = Objects.requireNonNull(main, "main");
+        shell = new Shell(display);
+        Label label = new Label(shell, SWT.CENTER);
+        label.setText("Hello_world");
+        label.setBounds(shell.getClientArea());
+        shell.open();
     }
 
     /**
@@ -42,7 +56,7 @@ public final class Gui implements AutoCloseable, Runnable {
      */
     @Override
     public final void close() {
-        // TODO
+        display.dispose();
     }
 
     /**
@@ -67,7 +81,10 @@ public final class Gui implements AutoCloseable, Runnable {
      */
     @Override
     public final void run() {
-        // TODO
+        while (!shell.isDisposed()) {
+            if (!display.readAndDispatch())
+                display.sleep();
+        }
     }
 
 }
