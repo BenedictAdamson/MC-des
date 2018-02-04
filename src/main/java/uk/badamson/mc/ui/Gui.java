@@ -54,6 +54,7 @@ public final class Gui implements AutoCloseable, Runnable {
         }
 
     }// class
+
     private final Main main;
     private final Display display = new Display();
 

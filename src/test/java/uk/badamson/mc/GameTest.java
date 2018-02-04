@@ -1,6 +1,7 @@
 package uk.badamson.mc;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Set;
@@ -34,6 +35,7 @@ public class GameTest {
         for (Person person : persons) {
             assertNotNull("The set of persons does not have a null element.", person);// guard
             PersonTest.assertInvariants(person);
+            assertSame("The clock of each person is the clock of this game.", clock, person.getClock());
         }
         assertTrue("If the player actor interface is not null, it is one of the simulated persons of this game.",
                 playerActorInterface == null || persons.contains(playerActorInterface));

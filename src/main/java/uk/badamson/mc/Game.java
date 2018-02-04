@@ -53,6 +53,8 @@ public final class Game {
      * <ul>
      * <li>Always have a (non null) set of persons.</li>
      * <li>The set of persons does not have a null element.</li>
+     * <li>The {@linkplain Person#getClock() clock} of each person is the
+     * {@linkplain #getClock() clock} of this game.</li>
      * <li>The set of persons is not publicly
      * {@linkplain Collections#unmodifiableSet(Set) modifiable}.</li>
      * </ul>
