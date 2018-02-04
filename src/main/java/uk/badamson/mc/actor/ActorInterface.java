@@ -81,7 +81,7 @@ public interface ActorInterface {
      * </p>
      * <ul>
      * <li>A null actor indicates that the person does not (currently) have a
-     * controlling AI or human player..</li>
+     * controlling AI or human player.</li>
      * <li>If this has an (non null) actor, this actor interface is the
      * {@linkplain Actor#getActorInterface() actor interface} of the actor.</li>
      * </ul>

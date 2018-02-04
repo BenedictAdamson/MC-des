@@ -72,6 +72,7 @@ public final class Gui implements AutoCloseable, Runnable {
                 return playedPerson;
             }
         }// class
+
         private final Game game;
 
         private PlayedPersonGui currentControlledPersonGui;

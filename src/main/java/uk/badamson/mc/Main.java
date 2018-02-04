@@ -97,7 +97,7 @@ public final class Main implements AutoCloseable, Runnable {
             /* TODO: do not hard code game set up. */
             final Game game = new Game();
             final Person person = game.createPerson();
-            game.controlPerson(person);
+            game.takeControl(person);
             gui.addGame(game);
             gui.run();
         }

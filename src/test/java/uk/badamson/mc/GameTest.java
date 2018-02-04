@@ -63,13 +63,6 @@ public class GameTest {
         return game;
     }
 
-    public static final void controlPerson(Game game, Person person) {
-        game.controlPerson(person);
-
-        assertInvariants(game);
-        assertSame("playedPerson", person, game.getPlayedPerson());
-    }
-
     public static final Person createPerson(Game game) {
         final Set<Person> persons0 = new HashSet<>(game.getPersons());
 
@@ -87,35 +80,23 @@ public class GameTest {
         return person;
     }
 
+    public static final void releaseControl(Game game) {
+        game.releaseControl();
+
+        assertInvariants(game);
+        assertNull("playedPerson", game.getPlayedPerson());
+    }
+
+    public static final void takeControl(Game game, Person person) {
+        game.takeControl(person);
+
+        assertInvariants(game);
+        assertSame("playedPerson", person, game.getPlayedPerson());
+    }
+
     @Test
     public void constructor_A() {
         constructor();
-    }
-
-    @Test
-    public void controlPerson_clear() {
-        final Game game = new Game();
-        final Person person = game.createPerson();
-        game.controlPerson(person);
-
-        controlPerson(game, null);
-        PersonTest.assertInvariants(person);
-    }
-
-    @Test
-    public void controlPerson_clearNoOp() {
-        final Game game = new Game();
-
-        controlPerson(game, null);
-    }
-
-    @Test
-    public void controlPerson_set() {
-        final Game game = new Game();
-        final Person person = game.createPerson();
-
-        controlPerson(game, person);
-        PersonTest.assertInvariants(person);
     }
 
     @Test
@@ -151,5 +132,31 @@ public class GameTest {
         clock.advanceSeconds(transmissionTime * 20);
 
         assertNull("No transmission in progress.", person.getTransmissionInProgress());
+    }
+
+    @Test
+    public void releaseControl() {
+        final Game game = new Game();
+        final Person person = game.createPerson();
+        game.takeControl(person);
+
+        releaseControl(game);
+        PersonTest.assertInvariants(person);
+    }
+
+    @Test
+    public void releaseControl_noOp() {
+        final Game game = new Game();
+
+        releaseControl(game);
+    }
+
+    @Test
+    public void takeControl_1() {
+        final Game game = new Game();
+        final Person person = game.createPerson();
+
+        takeControl(game, person);
+        PersonTest.assertInvariants(person);
     }
 }

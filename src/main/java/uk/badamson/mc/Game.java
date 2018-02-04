@@ -2,6 +2,7 @@ package uk.badamson.mc;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -33,30 +34,6 @@ public final class Game {
      */
     public Game() {
         // Do nothing
-    }
-
-    /**
-     * <p>
-     * Select or change which {@linkplain #getPersons() simulated person} of this
-     * game the player is controlling.
-     * </p>
-     * <ul>
-     * <li>The {@linkplain #getPlayedPerson() player person} becomes the given
-     * person.</li>
-     * </ul>
-     * 
-     * @param person
-     *            The person to be controlled, or null if no person is to be
-     *            controlled.
-     * @throws IllegalArgumentException
-     *             If {@code person} is not null and is not one of the
-     *             {@linkplain #getPersons() persons} of this simulation.
-     */
-    public final void controlPerson(Person person) {
-        if (person != null && !persons.contains(person)) {
-            throw new IllegalArgumentException("person " + person + " is not one of the persons");
-        }
-        playedPerson = person;
     }
 
     /**
@@ -130,5 +107,45 @@ public final class Game {
      */
     public final ActorInterface getPlayedPerson() {
         return playedPerson;
+    }
+
+    /**
+     * <p>
+     * Cease having a {@linkplain #getPlayedPerson() simulated person of this game
+     * the player is controlling}.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getPlayedPerson() player person} becomes null .</li>
+     * </ul>
+     */
+    public final void releaseControl() {
+        playedPerson = null;
+    }
+
+    /**
+     * <p>
+     * Select which {@linkplain #getPlayedPerson() simulated person of this game the
+     * player is controlling}.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getPlayedPerson() player person} becomes the given
+     * person.</li>
+     * </ul>
+     * 
+     * @param person
+     *            The person to be controlled, or null if no person is to be
+     *            controlled.
+     * @throws NullPointerException
+     *             If {@code person} is null.
+     * @throws IllegalArgumentException
+     *             If {@code person} is not one of the {@linkplain #getPersons()
+     *             persons} of this simulation.
+     */
+    public final void takeControl(Person person) {
+        Objects.requireNonNull(person, "person");
+        if (!persons.contains(person)) {
+            throw new IllegalArgumentException("person " + person + " is not one of the persons");
+        }
+        playedPerson = person;
     }
 }
