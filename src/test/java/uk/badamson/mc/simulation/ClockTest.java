@@ -102,6 +102,20 @@ public class ClockTest {
         action.assertRan(0);
     }
 
+    public static final void advanceSeconds(Clock clock, double amount) {
+        clock.advanceSeconds(amount);
+
+        assertInvariants(clock);
+    }
+
+    private static void advanceSeconds(TimeUnit unit, long time, double amount, long expectedDt) {
+        final Clock clock = new Clock(unit, time);
+
+        advanceSeconds(clock, amount);
+
+        assertEquals("time", time + expectedDt, clock.getTime());
+    }
+
     public static void advanceTo(Clock clock, long when) {
         clock.advanceTo(when);
 
@@ -383,9 +397,131 @@ public class ClockTest {
     }
 
     @Test
+    public void advanceSeconds_1d() {
+        final long time = TIME_1;
+        final double amount = 1.0;
+        final long expectedDt = 0L;
+        advanceSeconds(TimeUnit.DAYS, time, amount, expectedDt);
+    }
+
+    @Test
+    public void advanceSeconds_1hr() {
+        final long time = TIME_1;
+        final double amount = 1.0;
+        final long expectedDt = 0L;
+        advanceSeconds(TimeUnit.HOURS, time, amount, expectedDt);
+    }
+
+    @Test
+    public void advanceSeconds_1min() {
+        final long time = TIME_1;
+        final double amount = 1.0;
+        final long expectedDt = 0L;
+        advanceSeconds(TimeUnit.MINUTES, time, amount, expectedDt);
+    }
+
+    @Test
+    public void advanceSeconds_1ms() {
+        final long time = TIME_1;
+        final double amount = 1.0;
+        final long expectedDt = 1_000L;
+        advanceSeconds(TimeUnit.MILLISECONDS, time, amount, expectedDt);
+    }
+
+    @Test
+    public void advanceSeconds_1ns() {
+        final long time = TIME_1;
+        final double amount = 1.0;
+        final long expectedDt = 1_000_000_000L;
+        advanceSeconds(TimeUnit.NANOSECONDS, time, amount, expectedDt);
+    }
+
+    @Test
+    public void advanceSeconds_1sA() {
+        final long time = TIME_1;
+        final double amount = 1.0;
+        final long expectedDt = 1L;
+        advanceSeconds(TimeUnit.SECONDS, time, amount, expectedDt);
+    }
+
+    @Test
+    public void advanceSeconds_1sB() {
+        final long time = TIME_2;
+        final double amount = 1.0;
+        final long expectedDt = 1L;
+        advanceSeconds(TimeUnit.SECONDS, time, amount, expectedDt);
+    }
+
+    @Test
+    public void advanceSeconds_1us() {
+        final long time = TIME_1;
+        final double amount = 1.0;
+        final long expectedDt = 1_000_000L;
+        advanceSeconds(TimeUnit.MICROSECONDS, time, amount, expectedDt);
+    }
+
+    @Test
+    public void advanceSeconds_2s() {
+        final long time = TIME_1;
+        final double amount = 2.0;
+        final long expectedDt = 2L;
+        advanceSeconds(TimeUnit.SECONDS, time, amount, expectedDt);
+    }
+
+    @Test
+    public void advanceSeconds_tick_day() {
+        final long time = TIME_1;
+        final double amount = 3_600.0 * 24;
+        final long expectedDt = 1L;
+        advanceSeconds(TimeUnit.DAYS, time, amount, expectedDt);
+    }
+
+    @Test
+    public void advanceSeconds_tick_hr() {
+        final long time = TIME_1;
+        final double amount = 3_600;
+        final long expectedDt = 1L;
+        advanceSeconds(TimeUnit.HOURS, time, amount, expectedDt);
+    }
+
+    @Test
+    public void advanceSeconds_tick_min() {
+        final long time = TIME_1;
+        final double amount = 60;
+        final long expectedDt = 1L;
+        advanceSeconds(TimeUnit.MINUTES, time, amount, expectedDt);
+    }
+
+    @Test
+    public void advanceSeconds_tick_ms() {
+        final long time = TIME_1;
+        final double amount = 1.0E-3;
+        final long expectedDt = 1L;
+        advanceSeconds(TimeUnit.MILLISECONDS, time, amount, expectedDt);
+    }
+
+    @Test
+    public void advanceSeconds_tick_ns() {
+        final long time = TIME_1;
+        final double amount = 1.0E-9;
+        final long expectedDt = 1L;
+        advanceSeconds(TimeUnit.NANOSECONDS, time, amount, expectedDt);
+    }
+
+    @Test
+    public void advanceSeconds_tick_us() {
+        final long time = TIME_1;
+        final double amount = 1.0E-6;
+        final long expectedDt = 1L;
+        advanceSeconds(TimeUnit.MICROSECONDS, time, amount, expectedDt);
+    }
+
+    @Test
     public void advanceTo_0() {
         advanceTo(TIME_1, TIME_1);
     }
+
+    ///////////////////////////
 
     @Test
     public void advanceTo_0AtMax() {
@@ -546,8 +682,6 @@ public class ClockTest {
         final long actionTime = when + 1L;// critical
         advanceTo_withLaterAction(time0, when, actionTime);
     }
-
-    ///////////////////////////
 
     @Test
     public void advanceTo_withLaterActionNoOp() {

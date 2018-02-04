@@ -1,5 +1,7 @@
 package uk.badamson.mc.simulation;
 
+import java.util.EnumMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.concurrent.TimeUnit;
@@ -71,7 +73,6 @@ public final class Clock {
         }
 
     }// class
-
     /**
      * <p>
      * An exception for indicating that the {@linkplain Clock#getTime() time} of a
@@ -87,6 +88,32 @@ public final class Clock {
             super("Clock time would overflow");
         }
     }// class
+
+    private static final TimeUnit[] TIME_UNITS_IN_ASCENDING_ORDER = new TimeUnit[] { TimeUnit.NANOSECONDS,
+            TimeUnit.MICROSECONDS, TimeUnit.MILLISECONDS, TimeUnit.SECONDS, TimeUnit.MINUTES, TimeUnit.HOURS,
+            TimeUnit.DAYS };
+    private static final Map<TimeUnit, Double> TICKS_PER_SECOND;
+
+    static {
+        TICKS_PER_SECOND = new EnumMap<>(TimeUnit.class);
+        TICKS_PER_SECOND.put(TimeUnit.DAYS, 1.0 / (24.0 * 3600.0));
+        TICKS_PER_SECOND.put(TimeUnit.HOURS, 1.0 / 3600.0);
+        TICKS_PER_SECOND.put(TimeUnit.MINUTES, 1.0 / 60.0);
+        TICKS_PER_SECOND.put(TimeUnit.SECONDS, 1.0);
+        TICKS_PER_SECOND.put(TimeUnit.MILLISECONDS, 1.0E3);
+        TICKS_PER_SECOND.put(TimeUnit.MICROSECONDS, 1.0E6);
+        TICKS_PER_SECOND.put(TimeUnit.NANOSECONDS, 1.0E9);
+    }
+
+    private static final Map<TimeUnit, Double> MAX_SECONDS_FOR_UNIT;
+
+    static {
+        final double precision = Math.nextAfter(1.0, Double.POSITIVE_INFINITY) - 1.0;
+        MAX_SECONDS_FOR_UNIT = new EnumMap<>(TimeUnit.class);
+        for (TimeUnit unit : TimeUnit.values()) {
+            MAX_SECONDS_FOR_UNIT.put(unit, 1.0 / (TICKS_PER_SECOND.get(unit) * precision));
+        }
+    }
 
     private final TimeUnit unit;
     private final PriorityQueue<ScheduledAction> scheduledActions = new PriorityQueue<>();
@@ -144,10 +171,61 @@ public final class Clock {
      *             threw a {@link RuntimeException}.
      */
     public final void advance(long amount) {
+        if (amount < 0) {
+            throw new IllegalArgumentException("amount " + amount);
+        }
         if (Long.MAX_VALUE - amount < time) {
             throw new TimeOverflowException();
         }
         advanceTo(time + amount);
+    }
+
+    /**
+     * <p>
+     * Advance (increment) the {@linkplain #getTime() time} of this clock by a given
+     * amount, measured in seconds.
+     * </p>
+     * <p>
+     * This is equivalent to the {@link #advance(long)} method, but does the
+     * conversion from seconds to clock ticks.
+     * </p>
+     * 
+     * @param amount
+     *            The amount of time, in seconds, by which to advance this clock.
+     * @throws IllegalArgumentException
+     *             If {@code amount} is negative.
+     * @throws TimeOverflowException
+     *             If incrementing the time by the {@code amount} would cause the
+     *             time to overflow. That is, if recording the new time would
+     *             require a time value larger than {@link Long#MAX_VALUE}.
+     * @throws IllegalStateException
+     *             If the method is called from the {@link Runnable#run()} method of
+     *             a {@linkplain #scheduleActionAt(long, Runnable) scheduled
+     *             action}.
+     * @throws ActionException
+     *             If the {@link Runnable#run()} method of a
+     *             {@linkplain #scheduleActionAt(long, Runnable) scheduled action}
+     *             threw a {@link RuntimeException}.
+     */
+    public final void advanceSeconds(double amount) {
+        if (amount < 0.0) {
+            throw new IllegalArgumentException("amount " + amount);
+        }
+        /*
+         * Try to use the smallest time unit we can, to preserve as much precision as we
+         * can.
+         */
+        TimeUnit sourceUnit = null;
+        for (TimeUnit unit : TIME_UNITS_IN_ASCENDING_ORDER) {
+            if (amount <= MAX_SECONDS_FOR_UNIT.get(unit)) {
+                sourceUnit = unit;
+                break;
+            }
+        }
+        if (sourceUnit == null) {
+            throw new TimeOverflowException();
+        }
+        advance(unit.convert((long) (amount * TICKS_PER_SECOND.get(sourceUnit)), sourceUnit));
     }
 
     /**
