@@ -7,7 +7,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import uk.badamson.mc.actor.Actor;
-import uk.badamson.mc.actor.ActorInterface;
 import uk.badamson.mc.simulation.Clock;
 import uk.badamson.mc.simulation.Person;
 
@@ -23,7 +22,7 @@ public final class Game {
 
     private final Clock clock = new Clock(TimeUnit.MILLISECONDS, 0L);
     private final Set<Person> persons = new HashSet<>();
-    private ActorInterface playedPerson;
+    private Person playedPerson;
 
     /**
      * <p>
@@ -94,8 +93,8 @@ public final class Game {
 
     /**
      * <p>
-     * The API (service interface) through which the human player of this game uses
-     * to effect changes to the simulation of the person they are playing.
+     * The {@linkplain #getPersons() simulated person} that the human player of this
+     * game is playing.
      * </p>
      * <ul>
      * <li>The played person is null if the player is not (yet) playing a particular
@@ -106,20 +105,24 @@ public final class Game {
      * 
      * @return the interface.
      */
-    public final ActorInterface getPlayedPerson() {
+    public final Person getPlayedPerson() {
         return playedPerson;
     }
 
     /**
      * <p>
-     * Cease having a {@linkplain #getPlayedPerson() simulated person of this game
-     * the player is controlling}.
+     * Cease having a {@linkplain #getPlayedPerson() played person}.
      * </p>
      * <ul>
-     * <li>The {@linkplain #getPlayedPerson() player person} becomes null .</li>
+     * <li>If this had a (non null) {@linkplain #getPlayedPerson() played person},
+     * the {@linkplain Person#getActor() actor} of that person becomes null .</li>
+     * <li>The {@linkplain #getPlayedPerson() played person} becomes null.</li>
      * </ul>
      */
     public final void releaseControl() {
+        if (playedPerson != null) {
+            playedPerson.setActor(null);
+        }
         playedPerson = null;
     }
 

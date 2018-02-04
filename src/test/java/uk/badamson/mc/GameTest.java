@@ -14,7 +14,6 @@ import org.junit.Test;
 
 import uk.badamson.mc.actor.AbstractActor;
 import uk.badamson.mc.actor.Actor;
-import uk.badamson.mc.actor.ActorInterface;
 import uk.badamson.mc.actor.ActorTest;
 import uk.badamson.mc.actor.MediumUnavailableException;
 import uk.badamson.mc.actor.medium.HandSignals;
@@ -38,7 +37,7 @@ public class GameTest {
 
         final Clock clock = game.getClock();
         final Set<Person> persons = game.getPersons();
-        final ActorInterface playedPerson = game.getPlayedPerson();
+        final Person playedPerson = game.getPlayedPerson();
 
         assertNotNull("Not null, clock", clock);// guard
         assertNotNull("Always have a set of persons.", persons);// guard
@@ -84,9 +83,13 @@ public class GameTest {
     }
 
     public static final void releaseControl(Game game) {
+        final Person playedPerson0 = game.getPlayedPerson();
+
         game.releaseControl();
 
         assertInvariants(game);
+        assertTrue("If this had a played person, the actor of that person becomes null.",
+                playedPerson0 == null || playedPerson0.getActor() == null);
         assertNull("playedPerson", game.getPlayedPerson());
     }
 
