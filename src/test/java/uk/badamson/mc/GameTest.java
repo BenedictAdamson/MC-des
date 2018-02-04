@@ -35,7 +35,7 @@ public class GameTest {
 
         final Clock clock = game.getClock();
         final Set<Person> persons = game.getPersons();
-        final ActorInterface playerActorInterface = game.getPlayerActorInterface();
+        final ActorInterface playedPerson = game.getPlayedPerson();
 
         assertNotNull("Not null, clock", clock);// guard
         assertNotNull("Always have a set of persons.", persons);// guard
@@ -46,8 +46,8 @@ public class GameTest {
             PersonTest.assertInvariants(person);
             assertSame("The clock of each person is the clock of this game.", clock, person.getClock());
         }
-        assertTrue("If the player actor interface is not null, it is one of the simulated persons of this game.",
-                playerActorInterface == null || persons.contains(playerActorInterface));
+        assertTrue("If the played person is not null, it is one of the simulated persons of this game.",
+                playedPerson == null || persons.contains(playedPerson));
     }
 
     public static void assertInvariants(Game game1, Game game2) {
@@ -61,6 +61,13 @@ public class GameTest {
         assertEquals("This game has no simulated persons.", Collections.EMPTY_SET, game.getPersons());
 
         return game;
+    }
+
+    public static final void controlPerson(Game game, Person person) {
+        game.controlPerson(person);
+
+        assertInvariants(game);
+        assertSame("playedPerson", person, game.getPlayedPerson());
     }
 
     public static final Person createPerson(Game game) {
@@ -83,6 +90,32 @@ public class GameTest {
     @Test
     public void constructor_A() {
         constructor();
+    }
+
+    @Test
+    public void controlPerson_clear() {
+        final Game game = new Game();
+        final Person person = game.createPerson();
+        game.controlPerson(person);
+
+        controlPerson(game, null);
+        PersonTest.assertInvariants(person);
+    }
+
+    @Test
+    public void controlPerson_clearNoOp() {
+        final Game game = new Game();
+
+        controlPerson(game, null);
+    }
+
+    @Test
+    public void controlPerson_set() {
+        final Game game = new Game();
+        final Person person = game.createPerson();
+
+        controlPerson(game, person);
+        PersonTest.assertInvariants(person);
     }
 
     @Test
@@ -119,5 +152,4 @@ public class GameTest {
 
         assertNull("No transmission in progress.", person.getTransmissionInProgress());
     }
-
 }

@@ -21,7 +21,7 @@ public final class Game {
 
     private final Clock clock = new Clock(TimeUnit.MILLISECONDS, 0L);
     private final Set<Person> persons = new HashSet<>();
-    private ActorInterface playerActorInterface;
+    private ActorInterface playedPerson;
 
     /**
      * <p>
@@ -33,6 +33,30 @@ public final class Game {
      */
     public Game() {
         // Do nothing
+    }
+
+    /**
+     * <p>
+     * Select or change which {@linkplain #getPersons() simulated person} of this
+     * game the player is controlling.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getPlayedPerson() player person} becomes the given
+     * person.</li>
+     * </ul>
+     * 
+     * @param person
+     *            The person to be controlled, or null if no person is to be
+     *            controlled.
+     * @throws IllegalArgumentException
+     *             If {@code person} is not null and is not one of the
+     *             {@linkplain #getPersons() persons} of this simulation.
+     */
+    public final void controlPerson(Person person) {
+        if (person != null && !persons.contains(person)) {
+            throw new IllegalArgumentException("person " + person + " is not one of the persons");
+        }
+        playedPerson = person;
     }
 
     /**
@@ -92,19 +116,19 @@ public final class Game {
 
     /**
      * <p>
-     * The API (service interface) through which the human player of this game
-     * effect changes to the simulation of the person they are playing.
+     * The API (service interface) through which the human player of this game uses
+     * to effect changes to the simulation of the person they are playing.
      * </p>
      * <ul>
-     * <li>The player actor interface is null if the player is not (yet) playing a
-     * particular person.</li>
-     * <li>If the player actor interface is not null, it is one of the
+     * <li>The played person is null if the player is not (yet) playing a particular
+     * person.</li>
+     * <li>If the played person is not null, it is one of the
      * {@linkplain #getPersons() simulated persons} of this game.</li>
      * </ul>
      * 
      * @return the interface.
      */
-    public final ActorInterface getPlayerActorInterface() {
-        return playerActorInterface;
+    public final ActorInterface getPlayedPerson() {
+        return playedPerson;
     }
 }
