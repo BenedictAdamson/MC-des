@@ -84,6 +84,12 @@ public final class Gui implements AutoCloseable, Runnable {
                 }
                 mediaGroup.layout();
                 mediaGroup.pack();
+                final Group messagesBeingReceivedGroup = new Group(parentControl, SWT.DEFAULT);
+                messagesBeingReceivedGroup.setText("Messages being received");
+                // TODO MessagesBeingReceived
+                final Group transmissionInProgressGroup = new Group(parentControl, SWT.DEFAULT);
+                transmissionInProgressGroup.setText("Message being sent");
+                // TODO TransmissionInProgress
                 parentControl.layout();
             }
 
