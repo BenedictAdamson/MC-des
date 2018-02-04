@@ -36,23 +36,31 @@ public final class Gui implements AutoCloseable, Runnable {
 
         /**
          * <p>
-         * The GUI for the {@linkplain Game#getPlayerPersonInterface() played person} of
-         * one instance of the {@linkplain Game Mission Command Game}
+         * The GUI for the {@linkplain Game#getPerson() played person} of one instance
+         * of the {@linkplain Game Mission Command Game}
          * </p>
          */
         public final class PlayedPersonGui implements Actor {
 
-            private ActorInterface playerPersonInterface;
+            private final ActorInterface person;
 
             /**
-             * @param playerPersonInterface
+             * @param person
              *            The API (service interface) through which this GUI effects changes
              *            to the simulation of the played person.
              * @throws NullPointerException
-             *             If {@code playerPersonInterface} is null.
+             *             If {@code person} is null.
+             * @throws IllegalArgumentException
+             *             If {@code person} is not one of the {@linkplain Game#getPersons()
+             *             simulated persons} of the {@linkplain Gui.GameGui#getGame() game}
+             *             for which this is a GUI.
              */
-            PlayedPersonGui(ActorInterface playerPersonInterface) {
-                this.playerPersonInterface = Objects.requireNonNull(playerPersonInterface, "playerPersonInterface");
+            PlayedPersonGui(ActorInterface person) {
+                this.person = Objects.requireNonNull(person, "person");
+                if (!getGame().getPersons().contains(person)) {
+                    throw new IllegalArgumentException(
+                            "person is not one of the simulated persons of the game for which this is a GUI");
+                }
             }
 
             /**
@@ -60,9 +68,15 @@ public final class Gui implements AutoCloseable, Runnable {
              * The API (service interface) through which this GUI effects changes to the
              * simulation of the played person.
              * </p>
+             * <ul>
+             * <li>Always have a (non null) person simulation interface.</li>
+             * <li>The person simulation interface is one of the
+             * {@linkplain Game#getPersons() simulated persons} of the
+             * {@linkplain Gui.GameGui#getGame() game} for which this is a GUI..</li>
+             * </ul>
              * <p>
              * The played person will usually be the same as the current
-             * {@linkplain Game#getPlayerPersonInterface() played person} of
+             * {@linkplain Game#getPerson() played person} of
              * {@linkplain Gui.GameGui#getGame() the game} of which this is the part of the
              * GUI. However, that can (temporarily) not be the case if the played person has
              * changed but the GUI has not yet updated for the change. In that case, this
@@ -72,8 +86,8 @@ public final class Gui implements AutoCloseable, Runnable {
              * 
              * @return the interface; not null.
              */
-            public final ActorInterface getPlayerPersonInterface() {
-                return playerPersonInterface;
+            public final ActorInterface getPerson() {
+                return person;
             }
 
             @Override
