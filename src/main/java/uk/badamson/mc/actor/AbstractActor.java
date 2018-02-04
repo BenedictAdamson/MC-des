@@ -16,27 +16,12 @@ import uk.badamson.mc.actor.message.UnusableIncompleteMessage;
  */
 public class AbstractActor implements Actor {
 
-    private final ActorInterface actorInterface;
-
     /**
      * <p>
-     * Construct an {@linkplain Actor actor} that uses a given API (service
-     * interface) to effect changes to the simulation.
+     * Construct an {@linkplain Actor actor}.
      * </p>
-     * 
-     * @param actorInterface
-     *            The API (service interface) through which this effects changes to
-     *            the simulation.
-     * @throws NullPointerException
-     *             If {@code actorInterface} is null.
      */
-    public AbstractActor(ActorInterface actorInterface) {
-        this.actorInterface = Objects.requireNonNull(actorInterface, "actorInterface");
-    }
-
-    @Override
-    public final ActorInterface getActorInterface() {
-        return actorInterface;
+    public AbstractActor() {
     }
 
     @Override

@@ -12,21 +12,6 @@ public interface Actor {
 
     /**
      * <p>
-     * The API (service interface) through which this actor effects changes to the
-     * simulation.
-     * </p>
-     * <ul>
-     * <li>Always have an (non null) actor interface.</li>
-     * <li>This is the {@linkplain ActorInterface#getActor() actor} of the actor
-     * interface of this actor.</li>
-     * </ul>
-     * 
-     * @return the actor interface; not null.
-     */
-    public ActorInterface getActorInterface();
-
-    /**
-     * <p>
      * React to the start of a message being received.
      * </p>
      * 
@@ -123,11 +108,6 @@ public interface Actor {
      * <p>
      * React to transmission of more of the message that is the actor is
      * transmitting.
-     * </p>
-     * <p>
-     * The method can query the {@linkplain #getActorInterface() actor interface}
-     * for the {@linkplain ActorInterface#getTransmissionInProgress() current state
-     * of the transmission in progress}.
      * </p>
      * 
      * @param transmissionProgress

@@ -20,8 +20,8 @@ public interface ActorInterface {
 
     /**
      * <p>
-     * Indicate that the {@linkplain #getActor() actor} begins sending a message
-     * through a given transmission medium.
+     * Indicate that the person begins sending a message through a given
+     * transmission medium.
      * </p>
      * <p>
      * The message may be a {@linkplain Command command}, and the medium may enable
@@ -43,8 +43,8 @@ public interface ActorInterface {
      * transmitting message}.</li>
      * <li>The simulation guarantees that, if it runs for sufficiently long, it will
      * eventually {@linkplain Actor#tellMessageSendingEnded(Medium, Message) call
-     * back} to the {@linkplain #getActor() actor} of this interface, to report
-     * completion or halting of sending of the message.</li>
+     * back} to the person of this interface, to report completion or halting of
+     * sending of the message.</li>
      * <li>Other actors that can receive through the medium of the message had an
      * additional entry in their {@linkplain #getMessagesBeingReceived() set of
      * messages being received}, representing the start of them receiving the
@@ -77,23 +77,8 @@ public interface ActorInterface {
 
     /**
      * <p>
-     * The actor for which this is the service interface.
-     * </p>
-     * <ul>
-     * <li>A null actor indicates that the person does not (currently) have a
-     * controlling AI or human player.</li>
-     * <li>If this has an (non null) actor, this actor interface is the
-     * {@linkplain Actor#getActorInterface() actor interface} of the actor.</li>
-     * </ul>
-     * 
-     * @return The actor.
-     */
-    public Actor getActor();
-
-    /**
-     * <p>
-     * The current set of transmission media (or means) through which the
-     * {@linkplain #getActor() actor} can send {@linkplain Message messages}.
+     * The current set of transmission media (or means) through which the person can
+     * send {@linkplain Message messages}.
      * </p>
      * <ul>
      * <li>Always have a (non null) set of media.</li>
@@ -110,8 +95,8 @@ public interface ActorInterface {
 
     /**
      * <p>
-     * The set of messages that the {@linkplain #getActor() actor} is currently
-     * receiving through its {@linkplain #getMedia() communication media}.
+     * The set of messages that the person is currently receiving through its
+     * {@linkplain #getMedia() communication media}.
      * </p>
      * <ul>
      * <li>Always have a (non null) set of messages being received.</li>
@@ -128,12 +113,12 @@ public interface ActorInterface {
 
     /**
      * <p>
-     * Information about the progress of the current transmission that the
-     * {@linkplain #getActor() actor} is making.
+     * Information about the progress of the current transmission that the person is
+     * making.
      * </p>
      * <ul>
-     * <li>A null transmission in progress indicates that the
-     * {@linkplain #getActor() actor} is not currently transmitting.</li>
+     * <li>A null transmission in progress indicates that the person is not
+     * currently transmitting.</li>
      * <li>This has a transmission in progress if, and only if, this has a
      * {@linkplain transmitting message}.</li>
      * <li>If there is a (non null) transmission in progress, its
@@ -163,8 +148,7 @@ public interface ActorInterface {
 
     /**
      * <p>
-     * The message that the {@linkplain #getActor() actor} is currently transmitting
-     * (sending).
+     * The message that the person is currently transmitting (sending).
      * </p>
      * <ul>
      * <li>A null value indicates that the actor is not currently sending a
@@ -177,8 +161,8 @@ public interface ActorInterface {
 
     /**
      * <p>
-     * Indicate that the {@linkplain #getActor() actor} ceases sending a message,
-     * before completion of sending of the message.
+     * Indicate that the person ceases sending a message, before completion of
+     * sending of the message.
      * </p>
      * 
      * <section>

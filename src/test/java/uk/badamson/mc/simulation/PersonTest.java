@@ -101,7 +101,7 @@ public class PersonTest {
         final double informationInMessage = message.getInformationContent();
         final double transmissionTime = informationInMessage / medium.getTypicalTransmissionRate();
 
-        final AbstractActor actor = new AbstractActor(person);
+        final AbstractActor actor = new AbstractActor();
         person.setActor(actor);
         try {
             person.beginSendingMessage(medium, message);
@@ -171,7 +171,7 @@ public class PersonTest {
         final double transmissionTime = informationInMessage / medium.getTypicalTransmissionRate();
 
         final AtomicInteger nEndMessages = new AtomicInteger(0);
-        final AbstractActor actor = new AbstractActor(person) {
+        final AbstractActor actor = new AbstractActor() {
 
             @Override
             public final void tellMessageSendingEnded(MessageTransferInProgress transmissionProgress,
@@ -244,7 +244,7 @@ public class PersonTest {
         final AtomicInteger nProgressMessages = new AtomicInteger(0);
         final AtomicInteger nEndMessages = new AtomicInteger(0);
         final AtomicReference<Message> messageSoFar = new AtomicReference<Message>(null);
-        final AbstractActor actor = new AbstractActor(person) {
+        final AbstractActor actor = new AbstractActor() {
 
             @Override
             public void tellMessageSendingEnded(MessageTransferInProgress transmissionProgress, Message fullMessage) {
@@ -314,7 +314,7 @@ public class PersonTest {
         final double transmissionTime = informationInMessage / medium.getTypicalTransmissionRate();
 
         final AtomicInteger nEndMessages = new AtomicInteger(0);
-        final AbstractActor actor = new AbstractActor(person) {
+        final AbstractActor actor = new AbstractActor() {
 
             @Override
             public void tellMessageSendingEnded(MessageTransferInProgress transmissionProgress, Message fullMessage) {
@@ -378,7 +378,7 @@ public class PersonTest {
 
     private void setActor() {
         final Person person = new Person(clock1);
-        final Actor actor = new AbstractActor(person);
+        final Actor actor = new AbstractActor();
 
         setActor(person, actor);
     }

@@ -18,7 +18,6 @@ import uk.badamson.mc.actor.message.UnusableIncompleteMessage;
 public class ActorInterfaceTest {
 
     public static void assertInvariants(ActorInterface actorInterface) {
-        final Actor actor = actorInterface.getActor();
         final Set<Medium> media = actorInterface.getMedia();
         final MessageTransferInProgress transmissionInProgress = actorInterface.getTransmissionInProgress();
         final Message transmittingMessage = actorInterface.getTransmittingMessage();
@@ -31,9 +30,6 @@ public class ActorInterfaceTest {
 
         assertNotNull("Always have a set of media.", media);// guard
         assertNotNull("Always have a set of messages being received.", messagesBeingReceived);// guard
-
-        assertTrue("If this has an actor, this actor interface is the actor interface of the actor.",
-                actor == null || actor.getActorInterface() == actorInterface);
 
         for (Medium medium : media) {
             assertNotNull("The set of media does not contain a null element.", medium);

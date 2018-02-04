@@ -1,8 +1,5 @@
 package uk.badamson.mc.actor;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
-
 import uk.badamson.mc.actor.message.Message;
 
 /**
@@ -13,10 +10,7 @@ import uk.badamson.mc.actor.message.Message;
 public class ActorTest {
 
     public static void assertInvariants(Actor actor) {
-        final ActorInterface actorInterface = actor.getActorInterface();
-
-        assertNotNull("Always have an actor interface", actorInterface);// guard
-        assertSame("This is the actor of the actor interface of this actor", actor, actorInterface.getActor());
+        // Do nothing
     }
 
     public static void assertInvariants(Actor actor1, Actor actor2) {

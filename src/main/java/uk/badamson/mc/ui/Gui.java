@@ -32,23 +32,23 @@ public final class Gui implements AutoCloseable, Runnable {
 
         /**
          * <p>
-         * The GUI for the {@linkplain Game#getPlayedPerson() played person} of one
-         * instance of the {@linkplain Game Mission Command Game}
+         * The GUI for the {@linkplain Game#getPlayerPersonInterface() played person} of
+         * one instance of the {@linkplain Game Mission Command Game}
          * </p>
          */
         public final class PlayedPersonGui {
 
-            private ActorInterface playedPerson;
+            private ActorInterface playerPersonInterface;
 
             /**
-             * @param playedPerson
+             * @param playerPersonInterface
              *            The API (service interface) through which this GUI effects changes
              *            to the simulation of the played person.
              * @throws NullPointerException
-             *             If {@code playedPerson} is null.
+             *             If {@code playerPersonInterface} is null.
              */
-            PlayedPersonGui(ActorInterface playedPerson) {
-                this.playedPerson = Objects.requireNonNull(playedPerson, "playedPerson");
+            PlayedPersonGui(ActorInterface playerPersonInterface) {
+                this.playerPersonInterface = Objects.requireNonNull(playerPersonInterface, "playerPersonInterface");
             }
 
             /**
@@ -58,7 +58,7 @@ public final class Gui implements AutoCloseable, Runnable {
              * </p>
              * <p>
              * The played person will usually be the same as the current
-             * {@linkplain Game#getPlayedPerson() played person} of
+             * {@linkplain Game#getPlayerPersonInterface() played person} of
              * {@linkplain Gui.GameGui#getGame() the game} of which this is the part of the
              * GUI. However, that can (temporarily) not be the case if the played person has
              * changed but the GUI has not yet updated for the change. In that case, this
@@ -68,8 +68,8 @@ public final class Gui implements AutoCloseable, Runnable {
              * 
              * @return the interface; not null.
              */
-            public final ActorInterface getPlayedPerson() {
-                return playedPerson;
+            public final ActorInterface getPlayerPersonInterface() {
+                return playerPersonInterface;
             }
         }// class
 
@@ -93,25 +93,26 @@ public final class Gui implements AutoCloseable, Runnable {
             changeCurrentControlledPersonGui(game.getPlayedPerson());
         }
 
-        private void changeCurrentControlledPersonGui(final ActorInterface playedPerson) {
+        private void changeCurrentControlledPersonGui(final ActorInterface playerPersonInterface) {
             currentControlledPersonGui = null;
-            if (playedPerson != null) {
-                currentControlledPersonGui = new PlayedPersonGui(playedPerson);
+            if (playerPersonInterface != null) {
+                currentControlledPersonGui = new PlayedPersonGui(playerPersonInterface);
             }
         }
 
         /**
          * <p>
-         * Retrieve or create the GUI for the {@linkplain Game#getPlayedPerson() played
-         * person} of the {@linkplain #getGame() game} for which this is the GUI.
+         * Retrieve or create the GUI for the
+         * {@linkplain Game#getPlayerPersonInterface() played person} of the
+         * {@linkplain #getGame() game} for which this is the GUI.
          * </p>
          * <ul>
          * <li>The current controlled person GUI is null if, and only if, the
-         * {@linkplain #getGame() game} has no the {@linkplain Game#getPlayedPerson()
-         * played person}.</li>
+         * {@linkplain #getGame() game} has no the
+         * {@linkplain Game#getPlayerPersonInterface() played person}.</li>
          * <li>If this has a (non null) controlled person GUI, the
-         * {@linkplain Gui.GameGui.PlayedPersonGui#getPlayedPerson() played person} of
-         * that GUI is the played person of the game.</li>
+         * {@linkplain Gui.GameGui.PlayedPersonGui#getPlayerPersonInterface() played
+         * person} of that GUI is the played person of the game.</li>
          * <li>Calling this method may cause lazy creation of a new GUI for the
          * controlled person.</li>
          * </ul>
@@ -119,11 +120,11 @@ public final class Gui implements AutoCloseable, Runnable {
          * @return the GUI
          */
         public PlayedPersonGui getCurrentPlayedPersonGui() {
-            final ActorInterface playedPerson = game.getPlayedPerson();
-            final ActorInterface currentPlayedPerson = currentControlledPersonGui == null ? null
-                    : currentControlledPersonGui.getPlayedPerson();
-            if (playedPerson != currentPlayedPerson) {
-                changeCurrentControlledPersonGui(playedPerson);
+            final ActorInterface playerPersonInterface = game.getPlayedPerson();
+            final ActorInterface currentPlayerPersonInterface = currentControlledPersonGui == null ? null
+                    : currentControlledPersonGui.getPlayerPersonInterface();
+            if (playerPersonInterface != currentPlayerPersonInterface) {
+                changeCurrentControlledPersonGui(playerPersonInterface);
             }
             return currentControlledPersonGui;
         }

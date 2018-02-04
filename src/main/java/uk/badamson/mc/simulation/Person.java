@@ -157,15 +157,10 @@ public final class Person implements ActorInterface {
      * The interface through which the simulation interacts with a human or AI
      * player controlling this person.
      * </p>
-     * <ul>
-     * <li>Always have an (non null) actor.</li>
-     * <li>This is the {@linkplain Actor#getActorInterface() actor interface} of the
-     * actor of this actor interface.</li>
-     * </ul>
      * 
-     * @return The actor.
+     * @return The actor, or null if this person does not (yet) have a human or AI
+     *         controller.
      */
-    @Override
     public final Actor getActor() {
         return actor;
     }
@@ -255,9 +250,6 @@ public final class Person implements ActorInterface {
      *             {@code actor} is not this object.
      */
     public final void setActor(Actor actor) {
-        if (actor != null && actor.getActorInterface() != this) {
-            throw new IllegalArgumentException("actor does not use this ActorInterface");
-        }
         this.actor = actor;
     }
 
