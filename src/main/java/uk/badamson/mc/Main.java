@@ -24,7 +24,7 @@ import uk.badamson.mc.ui.Gui;
  * directly derived from {@link Object}.
  * </p>
  */
-public final class Main implements Runnable {
+public final class Main implements AutoCloseable, Runnable {
 
     /**
      * <p>
@@ -40,8 +40,9 @@ public final class Main implements Runnable {
      *            Command-line arguments provided to the program.
      */
     public static void main(String[] args) {
-        final Main program = new Main(args);
-        program.run();
+        try (final Main program = new Main(args)) {
+            program.run();
+        }
     }
 
     private final String[] args;
@@ -57,6 +58,17 @@ public final class Main implements Runnable {
      */
     Main(String[] args) {
         this.args = args == null ? null : Arrays.copyOf(args, args.length);
+    }
+
+    /**
+     * <p>
+     * Release any resources that this game instance holds.
+     * </p>
+     * 
+     */
+    @Override
+    public final void close() {
+        // TODO
     }
 
     /**
@@ -82,7 +94,9 @@ public final class Main implements Runnable {
      */
     @Override
     public final void run() {
-        Gui.mainEventLoop();
+        try (final Gui gui = new Gui(this)) {
+            gui.run();
+        }
     }
 
 }
