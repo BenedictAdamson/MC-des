@@ -7,19 +7,57 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 
+import uk.badamson.mc.Game;
 import uk.badamson.mc.Main;
 
 /**
  * <p>
- * The Facade through which high-level parts of the Mission Command game access
- * the Graphical User Interface of the game.
+ * The Facade through which high-level parts of the program access the Graphical
+ * User Interface of the Mission Command program.
  * </p>
  */
 public final class Gui implements AutoCloseable, Runnable {
 
+    /**
+     * <p>
+     * The GUI of one instance of the Mission Commadn game.
+     * </p>
+     */
+    public final class GameGui {
+
+        private final Game game;
+
+        /**
+         * <p>
+         * Construct a GUI for a given game instance.
+         * </p>
+         * 
+         * @param game
+         *            The instance of the Mission Command game for which this is the
+         *            GUI.
+         * @throws NullPointerException
+         *             If {@code game} is null.
+         */
+        GameGui(Game game) {
+            this.game = Objects.requireNonNull(game, "game");
+        }
+
+        /**
+         * <p>
+         * The instance of the Mission Command game for which this is the GUI.
+         * </p>
+         * 
+         * @return the game; not null.
+         */
+        public final Game getGame() {
+            return game;
+        }
+
+    }// class
     private final Main main;
     private final Display display = new Display();
-    private final Shell shell;
+
+    private final Shell mainWindow;
 
     /**
      * <p>
@@ -28,7 +66,7 @@ public final class Gui implements AutoCloseable, Runnable {
      * <ul>
      * <li>The constructor may allocate graphical resources and "open" a connection
      * to the system windowing and graphics system.</li>
-     * <li>The constructor may set up, create and "open" the main application
+     * <li>The constructor may set up, create and "open" a main application
      * window.</li>
      * </ul>
      * 
@@ -40,11 +78,27 @@ public final class Gui implements AutoCloseable, Runnable {
      */
     public Gui(Main main) {
         this.main = Objects.requireNonNull(main, "main");
-        shell = new Shell(display);
-        Label label = new Label(shell, SWT.CENTER);
+        mainWindow = new Shell(display);
+        Label label = new Label(mainWindow, SWT.CENTER);
         label.setText("Hello_world");
-        label.setBounds(shell.getClientArea());
-        shell.open();
+        label.setBounds(mainWindow.getClientArea());
+        mainWindow.open();
+    }
+
+    /**
+     * <p>
+     * Alter this GUI so it also provides a GUI for a given instance of the Mission
+     * Command game.
+     * </p>
+     * 
+     * @param game
+     *            The instance of the Mission Command game for which to provide a
+     *            GUI.
+     * @throws NullPointerException
+     *             If {@code game} is null.
+     */
+    public final void addGame(Game game) {
+        new GameGui(game);
     }
 
     /**
@@ -81,10 +135,9 @@ public final class Gui implements AutoCloseable, Runnable {
      */
     @Override
     public final void run() {
-        while (!shell.isDisposed()) {
+        while (!mainWindow.isDisposed()) {
             if (!display.readAndDispatch())
                 display.sleep();
         }
     }
-
 }

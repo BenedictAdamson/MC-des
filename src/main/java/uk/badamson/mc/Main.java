@@ -94,7 +94,9 @@ public final class Main implements AutoCloseable, Runnable {
      */
     @Override
     public final void run() {
+        final Game game = new Game();
         try (final Gui gui = new Gui(this)) {
+            gui.addGame(game);
             gui.run();
         }
     }

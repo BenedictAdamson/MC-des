@@ -13,7 +13,7 @@ import uk.badamson.mc.actor.message.UnusableIncompleteMessage;
 /**
  * <p>
  * The API (service interface) through which a human or AI player ("actor") of
- * the Mission Command game effect changes to the simulation.
+ * the Mission Command game effect changes to the simulation of a person.
  * </p>
  */
 public interface ActorInterface {
