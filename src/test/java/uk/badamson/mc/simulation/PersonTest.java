@@ -100,8 +100,6 @@ public class PersonTest {
         final Medium medium = HandSignals.INSTANCE;
         final double informationInMessage = message.getInformationContent();
         final double transmissionTime = informationInMessage / medium.getTypicalTransmissionRate();
-        final long dt1 = (long) (transmissionTime * fraction * 1E6);
-        final long dt2 = (long) (transmissionTime * (1.0 - fraction) * 1E6 * 20.0);
 
         final AbstractActor actor = new AbstractActor(person);
         person.setActor(actor);
@@ -110,10 +108,10 @@ public class PersonTest {
         } catch (MediumUnavailableException e) {
             throw new AssertionError(e);
         }
-        clock.advance(dt1);
+        clock.advanceSeconds(transmissionTime * fraction);
         person.haltSendingMessage();
 
-        clock.advance(dt2);
+        clock.advanceSeconds(transmissionTime * (1.0 - fraction) * 20);
 
         assertInvariants(person);
     }
@@ -171,7 +169,6 @@ public class PersonTest {
         final Medium medium = HandSignals.INSTANCE;
         final double informationInMessage = message.getInformationContent();
         final double transmissionTime = informationInMessage / medium.getTypicalTransmissionRate();
-        final long dt = (long) (transmissionTime * fraction * 1E6);
 
         final AtomicInteger nEndMessages = new AtomicInteger(0);
         final AbstractActor actor = new AbstractActor(person) {
@@ -190,7 +187,7 @@ public class PersonTest {
         } catch (MediumUnavailableException e) {
             throw new AssertionError(e);
         }
-        clock.advance(dt);
+        clock.advanceSeconds(transmissionTime * fraction);
 
         haltSendingMessage(person);
         clock.advance(0L);
@@ -225,7 +222,7 @@ public class PersonTest {
             throw new AssertionError(e);
         }
 
-        clock.advance(clock.getUnit().convert((long) (transmissionTime * 1E3), TimeUnit.MILLISECONDS));
+        clock.advanceSeconds(transmissionTime * 1E3);
 
         /*
          * Check state before checking invariants, because checking the invariants might
@@ -242,7 +239,7 @@ public class PersonTest {
         final Medium medium = HandSignals.INSTANCE;
         final double informationInMessage = message.getInformationContent();
         final double transmissionTime = informationInMessage / medium.getTypicalTransmissionRate();
-        final long dt = (long) (transmissionTime * 1E6 / nSteps);
+        final double dt = transmissionTime / nSteps;
 
         final AtomicInteger nProgressMessages = new AtomicInteger(0);
         final AtomicInteger nEndMessages = new AtomicInteger(0);
@@ -279,7 +276,7 @@ public class PersonTest {
          * Do an extra step to ensure we advance past the end of transmission.
          */
         for (int i = 0; i < nSteps + 1; ++i) {
-            clock.advance(dt);
+            clock.advanceSeconds(dt);
             assertInvariants(person);
             final MessageTransferInProgress transferInProgress = person.getTransmissionInProgress();
             if (transferInProgress != null) {
@@ -342,7 +339,7 @@ public class PersonTest {
             throw new AssertionError(e);
         }
 
-        clock.advance(clock.getUnit().convert((long) (transmissionTime * 1E3 * 20), TimeUnit.MILLISECONDS));
+        clock.advanceSeconds(transmissionTime * 20);
 
         /*
          * Check for calls to the actor before checking invariants, because checking the
@@ -369,7 +366,7 @@ public class PersonTest {
             throw new AssertionError(e);
         }
 
-        clock.advance(clock.getUnit().convert((long) (transmissionTime * 1E3 * 20), TimeUnit.MILLISECONDS));
+        clock.advanceSeconds(transmissionTime * 20);
 
         /*
          * Check state before checking invariants, because checking the invariants might

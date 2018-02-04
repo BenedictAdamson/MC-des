@@ -9,7 +9,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
@@ -116,7 +115,7 @@ public class GameTest {
             throw new AssertionError(e);
         }
 
-        clock.advance(clock.getUnit().convert((long) (transmissionTime * 1E3 * 20), TimeUnit.MILLISECONDS));
+        clock.advanceSeconds(transmissionTime * 20);
 
         assertNull("No transmission in progress.", person.getTransmissionInProgress());
     }
