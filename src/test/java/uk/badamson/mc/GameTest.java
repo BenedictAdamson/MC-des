@@ -1,6 +1,11 @@
 package uk.badamson.mc;
 
+import static org.junit.Assert.assertNotNull;
+
 import org.junit.Test;
+
+import uk.badamson.mc.simulation.Clock;
+import uk.badamson.mc.simulation.ClockTest;
 
 /**
  * <p>
@@ -11,6 +16,11 @@ public class GameTest {
 
     public static void assertInvariants(Game game) {
         ObjectTest.assertInvariants(game);// inherited
+
+        final Clock clock = game.getClock();
+        assertNotNull("Not null, clock", clock);// guard
+
+        ClockTest.assertInvariants(clock);
     }
 
     public static void assertInvariants(Game game1, Game game2) {
