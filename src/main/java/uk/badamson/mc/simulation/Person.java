@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import uk.badamson.mc.actor.Actor;
 import uk.badamson.mc.actor.ActorInterface;
@@ -34,13 +33,27 @@ public final class Person implements ActorInterface {
 
     /**
      * <p>
-     * While simulating the transmission of a message, the nominal minimum time
+     * While simulating the transmission of a message, the nominal maximum time
      * interval, in seconds, between
      * {@linkplain Actor#tellMessageTransmissionProgress() telling} the
      * {@linkplain #getActor() actor} of progress in sending the message.
      * </p>
      */
-    public static final double MIN_MESSAGE_TRANSMISSION_PROGRESS_INTERVAL = 1.0;
+    public static final double MAX_MESSAGE_TRANSMISSION_PROGRESS_INTERVAL = 1.0;
+
+    /**
+     * <p>
+     * While simulating the transmission of a message, the nominal minimum time
+     * interval, in seconds, between
+     * {@linkplain Actor#tellMessageTransmissionProgress() telling} the
+     * {@linkplain #getActor() actor} of progress in sending the message.
+     * </p>
+     * <p>
+     * This value also models the minimum reaction time to completion of the
+     * transmission.
+     * </p>
+     */
+    public static final double MIN_MESSAGE_TRANSMISSION_PROGRESS_INTERVAL = 0.125;
 
     private final Clock clock;
     private final Set<Medium> media = new HashSet<>();
@@ -78,7 +91,7 @@ public final class Person implements ActorInterface {
 
     /*
      * To avoid tricky corner cases when an actor triggers a lazy update, does not
-     * directly tell teh actor about state changes. Instead schedules immediate
+     * directly tell the actor about state changes. Instead schedules immediate
      * events to do so.
      */
     private void advance(double dt) {
@@ -117,7 +130,7 @@ public final class Person implements ActorInterface {
         assert medium instanceof HandSignals;
         transmittingMessage = message;
         transmissionInProgress = new MessageTransferInProgress(medium, UnusableIncompleteMessage.EMPTY_MESSAGE);
-        scheduleUpdateMessageTransmissionProgress();
+        scheduleUpdateMessageTransmission();
     }
 
     private void endMessageSending() {
@@ -204,25 +217,26 @@ public final class Person implements ActorInterface {
         endMessageSending();
     }
 
-    private void scheduleUpdateMessageTransmissionProgress() {
+    private void scheduleUpdateMessageTransmission() {
         final double transmissionRate = transmissionInProgress.getMedium().getTypicalTransmissionRate();
         final double fullInformation = transmittingMessage.getInformationContent();
         final double sentInformation = transmissionInProgress.getMessageSofar().getInformationContent();
         final double transmissionTime = fullInformation / transmissionRate;
         final double remainingTime = (fullInformation - sentInformation) / transmissionRate;
         double delay = transmissionTime / (1 + MIN_MESSAGE_TRANSMISSION_PROGRESS_COUNT);
-        delay = Double.min(delay, MIN_MESSAGE_TRANSMISSION_PROGRESS_INTERVAL);
+        delay = Double.min(delay, MAX_MESSAGE_TRANSMISSION_PROGRESS_INTERVAL);
         delay = Double.min(delay, remainingTime);
-        final long dt = Long.max(1, (long) (1E3 * delay));
-        clock.scheduleDelayedAction(dt, TimeUnit.MILLISECONDS, new Runnable() {
+        delay = Double.max(delay, MIN_MESSAGE_TRANSMISSION_PROGRESS_INTERVAL);
+        clock.scheduleDelayedActionSeconds(delay, new Runnable() {
 
             @Override
             public void run() {
                 updateState();
                 if (actor != null && transmissionInProgress != null) {
                     actor.tellMessageTransmissionProgress(transmissionInProgress, transmittingMessage);
-                    scheduleUpdateMessageTransmissionProgress();
+                    scheduleUpdateMessageTransmission();
                 }
+                /* else updateState() ended message transmission. */
             }
         });
     }

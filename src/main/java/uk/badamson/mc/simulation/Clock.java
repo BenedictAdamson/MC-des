@@ -119,6 +119,7 @@ public final class Clock {
     private static long convertSecondsToTicks(double amount, final TimeUnit sourceUnit) {
         return (long) (amount * TICKS_PER_SECOND.get(sourceUnit));
     }
+
     /*
      * Try to use the smallest time unit we can, to preserve as much precision as we
      * can.
