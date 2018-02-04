@@ -259,6 +259,37 @@ public class ClockTest {
         action.assertRan(0);
     }
 
+    public static long scheduleDelayedActionSeconds(Clock clock, double delay, Runnable action) {
+        final long when = clock.scheduleDelayedActionSeconds(delay, action);
+
+        assertInvariants(clock);
+        assertTrue("Scheduled time is at or after the current time", clock.getTime() <= when);
+        return when;
+    }
+
+    private static void scheduleDelayedActionSeconds_future(final long time, final long delayMilliseconds) {
+        assert 0.0 < delayMilliseconds;
+        final TimeUnit timeUnit = TimeUnit.MILLISECONDS;
+        final Clock clock = new Clock(timeUnit, time);
+        final RunnableSpy action = new RunnableSpy(clock, delayMilliseconds);
+
+        final long when = scheduleDelayedActionSeconds(clock, 1.0E-3 * delayMilliseconds, action);
+
+        assertEquals("Scheduled time", clock.getTime() + delayMilliseconds, when);
+        action.assertRan(0);
+    }
+
+    private static void scheduleDelayedActionSeconds_immediate(long time, TimeUnit clockUnit) {
+        final Clock clock = new Clock(clockUnit, time);
+        final long delay = 0L;
+        final RunnableSpy action = new RunnableSpy(clock, time);
+
+        final long when = scheduleDelayedActionSeconds(clock, delay, action);
+
+        assertEquals("Scheduled for the current time", time, when);
+        action.assertRan(0);
+    }
+
     @Test
     public void advance_0() {
         advance(TIME_1, 0L);
@@ -500,6 +531,8 @@ public class ClockTest {
         advanceSeconds(TimeUnit.MILLISECONDS, time, amount, expectedDt);
     }
 
+    ///////////////////////////
+
     @Test
     public void advanceSeconds_tick_ns() {
         final long time = TIME_1;
@@ -520,8 +553,6 @@ public class ClockTest {
     public void advanceTo_0() {
         advanceTo(TIME_1, TIME_1);
     }
-
-    ///////////////////////////
 
     @Test
     public void advanceTo_0AtMax() {
@@ -739,5 +770,25 @@ public class ClockTest {
     @Test
     public void scheduleDelayedAction_immediateB() {
         scheduleDelayedAction_immediate(TIME_2, TimeUnit.MICROSECONDS, TimeUnit.MILLISECONDS);
+    }
+
+    @Test
+    public void scheduleDelayedActionSeconds_futureA() {
+        scheduleDelayedActionSeconds_future(TIME_1, 1L);
+    }
+
+    @Test
+    public void scheduleDelayedActionSeconds_futureB() {
+        scheduleDelayedActionSeconds_future(TIME_2, 1_000L);
+    }
+
+    @Test
+    public void scheduleDelayedActionSeconds_immediateA() {
+        scheduleDelayedActionSeconds_immediate(TIME_1, TimeUnit.MILLISECONDS);
+    }
+
+    @Test
+    public void scheduleDelayedActionSeconds_immediateB() {
+        scheduleDelayedActionSeconds_immediate(TIME_2, TimeUnit.MICROSECONDS);
     }
 }

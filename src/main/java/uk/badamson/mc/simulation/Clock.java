@@ -116,10 +116,32 @@ public final class Clock {
         }
     }
 
+    private static long convertSecondsToTicks(double amount, final TimeUnit sourceUnit) {
+        return (long) (amount * TICKS_PER_SECOND.get(sourceUnit));
+    }
+    /*
+     * Try to use the smallest time unit we can, to preserve as much precision as we
+     * can.
+     */
+    private static TimeUnit getTimeUnitForDelay(double amount) {
+        TimeUnit sourceUnit = null;
+        for (TimeUnit unit : TIME_UNITS_IN_ASCENDING_ORDER) {
+            if (amount <= MAX_SECONDS_FOR_UNIT.get(unit)) {
+                sourceUnit = unit;
+                break;
+            }
+        }
+        if (sourceUnit == null) {
+            throw new TimeOverflowException();
+        }
+        return sourceUnit;
+    }
+
     private final TimeUnit unit;
     private final PriorityQueue<ScheduledAction> scheduledActions = new PriorityQueue<>();
 
     private long time;
+
     private ScheduledAction currentScheduledAction;
 
     /**
@@ -215,21 +237,8 @@ public final class Clock {
         if (amount < 0.0) {
             throw new IllegalArgumentException("amount " + amount);
         }
-        /*
-         * Try to use the smallest time unit we can, to preserve as much precision as we
-         * can.
-         */
-        TimeUnit sourceUnit = null;
-        for (TimeUnit unit : TIME_UNITS_IN_ASCENDING_ORDER) {
-            if (amount <= MAX_SECONDS_FOR_UNIT.get(unit)) {
-                sourceUnit = unit;
-                break;
-            }
-        }
-        if (sourceUnit == null) {
-            throw new TimeOverflowException();
-        }
-        advance(unit.convert((long) (amount * TICKS_PER_SECOND.get(sourceUnit)), sourceUnit));
+        final TimeUnit sourceUnit = getTimeUnitForDelay(amount);
+        advance(unit.convert(convertSecondsToTicks(amount, sourceUnit), sourceUnit));
     }
 
     /**
@@ -330,6 +339,7 @@ public final class Clock {
      * @throws IllegalArgumentException
      *             If {@code when} is before the {@linkplain #getTime() current
      *             time}.
+     * @see #scheduleDelayedAction(long, TimeUnit, Runnable)
      */
     public final void scheduleActionAt(long when, Runnable action) {
         Objects.requireNonNull(action, "action");
@@ -343,8 +353,8 @@ public final class Clock {
     /**
      * <p>
      * Schedule that a given action should be performed at a {@linkplain #getTime()
-     * time} in the future, with that time specified by by the duration from the
-     * current time to that time.
+     * time} in the future, with that time specified by a duration from the current
+     * time to that time.
      * </p>
      * <p>
      * The clock records the action for future use when the clock is
@@ -362,7 +372,7 @@ public final class Clock {
      *            The action to perform. The the action must not (directly or
      *            indirectly) try to {@linkplain #advance(long) advance} this clock.
      * @return the clock {@linkplain #getTime() time} at which the action will be
-     *         performed. At or after teh current time.
+     *         performed. At or after the current time.
      * @throws NullPointerException
      *             <ul>
      *             <li>If {@code delayUnit} is null</li>
@@ -379,6 +389,8 @@ public final class Clock {
      *             {@linkplain #getTime() time} value larger than
      *             {@link Long#MAX_VALUE}.</li>
      *             </ul>
+     * @see #scheduleActionAt(long, Runnable)
+     * @see #scheduleDelayedActionSeconds(double, Runnable)
      */
     public final long scheduleDelayedAction(long delay, TimeUnit delayUnit, Runnable action) {
         Objects.requireNonNull(delayUnit, "delayUnit");
@@ -394,6 +406,50 @@ public final class Clock {
         final long when = time + convertedDelay;
         scheduleActionAt(when, action);
         return when;
+    }
+
+    /**
+     * <p>
+     * Schedule that a given action should be performed at a {@linkplain #getTime()
+     * time} in the future, with that time specified by a duration from the current
+     * time to that time, with the duration measured in seconds.
+     * </p>
+     * <p>
+     * The clock records the action for future use when the clock is
+     * {@linkplain #advance(long) advanced} to (or through) the point in time when
+     * the action is to be performed. The clock guarantees that the clock time is
+     * that point in time when it performs the action.
+     * </p>
+     * 
+     * @param delay
+     *            The magnitude of the delay before the action should be performed,
+     *            measured in seconds.
+     * @param action
+     *            The action to perform. The the action must not (directly or
+     *            indirectly) try to {@linkplain #advance(long) advance} this clock.
+     * @return the clock {@linkplain #getTime() time} at which the action will be
+     *         performed. At or after the current time.
+     * @throws NullPointerException
+     *             If {@code action} is null
+     * @throws IllegalArgumentException
+     *             If {@code delay} is negative.
+     * @throws TimeOverflowException
+     *             <ul>
+     *             <li>If the {@code delay} indicates a delay in the
+     *             {@linkplain #getUnit() units} of this clock that is larger than
+     *             {@link Long#MAX_VALUE}.</li>
+     *             <li>If the {@code delay} indicates a point in time with a
+     *             {@linkplain #getTime() time} value larger than
+     *             {@link Long#MAX_VALUE}.</li>
+     *             </ul>
+     * @see #scheduleDelayedAction(long, TimeUnit, Runnable)
+     */
+    public final long scheduleDelayedActionSeconds(double delay, Runnable action) {
+        if (delay < 0) {
+            throw new IllegalArgumentException("delay <" + delay + ">");
+        }
+        final TimeUnit sourceUnit = getTimeUnitForDelay(delay);
+        return scheduleDelayedAction(convertSecondsToTicks(delay, sourceUnit), sourceUnit, action);
     }
 
 }
