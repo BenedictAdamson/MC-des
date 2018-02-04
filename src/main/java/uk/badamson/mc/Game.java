@@ -27,9 +27,34 @@ public final class Game {
      * <p>
      * Construct a new instance of the Mission Command game.
      * </p>
+     * <ul>
+     * <li>This game has no {@linkplain #getPersons() simulated persons}.</li>
+     * </ul>
      */
     public Game() {
         // Do nothing
+    }
+
+    /**
+     * <p>
+     * Create a new simulated person that is part of this game
+     * </p>
+     * <ul>
+     * <li>Always creates a (non null) person.</li>
+     * <li>The created person does not have an {@linkplain Person#getActor() actor}
+     * (it is null).</li>
+     * <li>The created person is one of the {@linkplain #getPersons() persons} of
+     * this game.</li>
+     * <li>Does not remove any persons from this game.</li>
+     * <li>Adds one person to this game.</li>
+     * </ul>
+     * 
+     * @return the created person.
+     */
+    public final Person createPerson() {
+        final Person person = new Person(clock);
+        persons.add(person);
+        return person;
     }
 
     /**
@@ -62,7 +87,7 @@ public final class Game {
      * @return the persons
      */
     public final Set<Person> getPersons() {
-        return persons;
+        return Collections.unmodifiableSet(persons);
     }
 
     /**
@@ -82,5 +107,4 @@ public final class Game {
     public final ActorInterface getPlayerActorInterface() {
         return playerActorInterface;
     }
-
 }

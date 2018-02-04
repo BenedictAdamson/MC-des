@@ -1,9 +1,13 @@
 package uk.badamson.mc;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.junit.Test;
@@ -49,12 +53,45 @@ public class GameTest {
         final Game game = new Game();
 
         assertInvariants(game);
+        assertEquals("This game has no simulated persons.", Collections.EMPTY_SET, game.getPersons());
 
         return game;
+    }
+
+    public static final Person createPerson(Game game) {
+        final Set<Person> persons0 = new HashSet<>(game.getPersons());
+
+        final Person person = game.createPerson();
+
+        assertInvariants(game);
+        assertNotNull("Always creates a person.", person);// guard
+        final Set<Person> persons = game.getPersons();
+        PersonTest.assertInvariants(person);
+        assertNull("The created person does not have an actor.", person.getActor());
+        assertTrue("The created person is one of the persons of this game.", persons.contains(person));
+        assertTrue("Does not remove any persons from this game.", persons.containsAll(persons0));
+        assertEquals("Adds one person to this game.", persons0.size() + 1, persons.size());
+
+        return person;
     }
 
     @Test
     public void constructor_A() {
         constructor();
+    }
+
+    @Test
+    public void createPerson_1() {
+        final Game game = new Game();
+
+        createPerson(game);
+    }
+
+    @Test
+    public void createPerson_2() {
+        final Game game = new Game();
+        game.createPerson();
+
+        createPerson(game);
     }
 }
