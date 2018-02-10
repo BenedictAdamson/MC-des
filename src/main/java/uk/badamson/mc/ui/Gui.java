@@ -1,13 +1,15 @@
 package uk.badamson.mc.ui;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Decorations;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Group;
@@ -73,7 +75,15 @@ public final class Gui implements AutoCloseable, Runnable {
             public final class SendHandSignalGui {
 
                 private final Shell handSignalDialog;
-                private final Listener enforceRadioButtonBehaviour;
+                private final List<Button> messageButtons = new ArrayList<>(
+                        SimpleDirectCommand.values().length + SimpleStatement.values().length);
+                private final Listener enforceRadioButtonBehaviour = event -> {
+                    final Button selectedButton = (Button) event.widget;
+                    for (Button messageButton : messageButtons) {
+                        messageButton.setSelection(false);
+                    }
+                    selectedButton.setSelection(true);
+                };
 
                 /**
                  * <p>
@@ -88,36 +98,21 @@ public final class Gui implements AutoCloseable, Runnable {
                     handSignalDialog.setVisible(false);
                     final RowLayout layout = new RowLayout(SWT.HORIZONTAL);// TODO
                     handSignalDialog.setLayout(layout);
-                    final Group[] groups = new Group[8];
-                    enforceRadioButtonBehaviour = event -> {
-                        final Button selectedButton = (Button) event.widget;
-                        for (Group group : groups) {
-                            for (Control child : group.getChildren()) {
-                                if (((child.getStyle() & SWT.RADIO) != 0) && child instanceof Button
-                                        && child.getData() instanceof Message) {
-                                    final Button childButton = (Button) child;
-                                    childButton.setSelection(false);
-                                }
-                            }
-                        }
-                        selectedButton.setSelection(true);
-                    };
                     {
                         final Group allMoveGroup = new Group(handSignalDialog, SWT.DEFAULT);
                         final RowLayout groupLayout = new RowLayout(SWT.VERTICAL);
                         layout.fill = true;
                         allMoveGroup.setLayout(groupLayout);
                         allMoveGroup.setText("All Move");
-                        addMessageButton(allMoveGroup, SimpleDirectCommand.RUSH, "Rush");
-                        addMessageButton(allMoveGroup, SimpleDirectCommand.QUICK_TIME, "Quick time");
-                        addMessageButton(allMoveGroup, SimpleDirectCommand.HALT, "Halt");
-                        addMessageButton(allMoveGroup, SimpleDirectCommand.HALT_AND_FREEZE, "Halt and freeze");
-                        addMessageButton(allMoveGroup, SimpleDirectCommand.HALT_AND_TAKE_A_KNEE,
+                        createMessageButton(allMoveGroup, SimpleDirectCommand.RUSH, "Rush");
+                        createMessageButton(allMoveGroup, SimpleDirectCommand.QUICK_TIME, "Quick time");
+                        createMessageButton(allMoveGroup, SimpleDirectCommand.HALT, "Halt");
+                        createMessageButton(allMoveGroup, SimpleDirectCommand.HALT_AND_FREEZE, "Halt and freeze");
+                        createMessageButton(allMoveGroup, SimpleDirectCommand.HALT_AND_TAKE_A_KNEE,
                                 "Halt and take a knee");
-                        addMessageButton(allMoveGroup, SimpleDirectCommand.HALT_AND_GO_PRONE, "Halt and go prone");
-                        addMessageButton(allMoveGroup, SimpleDirectCommand.TAKE_COVER, "Take cover");
+                        createMessageButton(allMoveGroup, SimpleDirectCommand.HALT_AND_GO_PRONE, "Halt and go prone");
+                        createMessageButton(allMoveGroup, SimpleDirectCommand.TAKE_COVER, "Take cover");
                         allMoveGroup.pack(true);
-                        groups[0] = allMoveGroup;
                     }
                     {
                         final Group checkGroup = new Group(handSignalDialog, SWT.DEFAULT);
@@ -125,11 +120,10 @@ public final class Gui implements AutoCloseable, Runnable {
                         layout.fill = true;
                         checkGroup.setLayout(groupLayout);
                         checkGroup.setText("Check");
-                        addMessageButton(checkGroup, SimpleDirectCommand.CHECK_MAP, "Map check");
-                        addMessageButton(checkGroup, SimpleDirectCommand.CHECK_PACES, "Pace count");
-                        addMessageButton(checkGroup, SimpleDirectCommand.CHECK_NUMER_PRESENT, "Head count");
+                        createMessageButton(checkGroup, SimpleDirectCommand.CHECK_MAP, "Map check");
+                        createMessageButton(checkGroup, SimpleDirectCommand.CHECK_PACES, "Pace count");
+                        createMessageButton(checkGroup, SimpleDirectCommand.CHECK_NUMER_PRESENT, "Head count");
                         checkGroup.pack(true);
-                        groups[1] = checkGroup;
                     }
                     {
                         final Group personMoveGroup = new Group(handSignalDialog, SWT.DEFAULT);
@@ -137,42 +131,36 @@ public final class Gui implements AutoCloseable, Runnable {
                         layout.fill = true;
                         personMoveGroup.setLayout(groupLayout);
                         personMoveGroup.setText("Person Move");
-                        addMessageButton(personMoveGroup, SimpleDirectCommand.JOIN_ME, "Join me");
-                        addMessageButton(personMoveGroup,
+                        createMessageButton(personMoveGroup, SimpleDirectCommand.JOIN_ME, "Join me");
+                        createMessageButton(personMoveGroup,
                                 SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.PLATOON_LEADER),
                                 "Platoon leader forward");
-                        addMessageButton(personMoveGroup,
+                        createMessageButton(personMoveGroup,
                                 SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.PLATOON_SERGEANT),
                                 "Platoon sergeant forward");
-                        addMessageButton(personMoveGroup, SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.RTO),
-                                "RTO forward");
-                        addMessageButton(personMoveGroup,
+                        createMessageButton(personMoveGroup,
+                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.RTO), "RTO forward");
+                        createMessageButton(personMoveGroup,
                                 SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.SQUAD_LEADER_1),
                                 "Squad 1 leader forward");
-                        addMessageButton(personMoveGroup,
+                        createMessageButton(personMoveGroup,
                                 SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.SQUAD_LEADER_2),
                                 "Squad 2 leader forward");
-                        addMessageButton(personMoveGroup,
+                        createMessageButton(personMoveGroup,
                                 SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.SQUAD_LEADER_3),
                                 "Squad 3 leader forward");
-                        addMessageButton(personMoveGroup,
+                        createMessageButton(personMoveGroup,
                                 SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.SQUAD_LEADER_4),
                                 "Squad 4 leader forward");
                         personMoveGroup.pack(true);
-                        groups[2] = personMoveGroup;
                     }
                     {
                         final Group assembleGroup = new Group(handSignalDialog, SWT.DEFAULT);
-                        final RowLayout groupLayout = new RowLayout(SWT.VERTICAL);// TODO
-                        layout.fill = true;
-                        assembleGroup.setLayout(groupLayout);
                         assembleGroup.setText("Assemble");
                         for (SimpleRelativeLocation location : SimpleRelativeLocation.values()) {
-                            addMessageButton(assembleGroup, SimpleDirectCommand.getAssembleInstance(location),
-                                    location.toString());
+                            createLocationButton(assembleGroup, SimpleDirectCommand.getAssembleInstance(location),
+                                    location);
                         }
-                        assembleGroup.pack(true);
-                        groups[3] = assembleGroup;
                     }
                     {
                         final Group formationGroup = new Group(handSignalDialog, SWT.DEFAULT);
@@ -180,31 +168,30 @@ public final class Gui implements AutoCloseable, Runnable {
                         layout.fill = true;
                         formationGroup.setLayout(groupLayout);
                         formationGroup.setText("Change Formation");
-                        addMessageButton(formationGroup,
+                        createMessageButton(formationGroup,
                                 SimpleDirectCommand.getChangeFormationInstance(SimpleFormationName.WEDGE), "Wedge");
-                        addMessageButton(formationGroup,
+                        createMessageButton(formationGroup,
                                 SimpleDirectCommand.getChangeFormationInstance(SimpleFormationName.ECHELON_LEFT),
                                 "Echelon left");
-                        addMessageButton(formationGroup,
+                        createMessageButton(formationGroup,
                                 SimpleDirectCommand.getChangeFormationInstance(SimpleFormationName.ECHELON_RIGHT),
                                 "Echelon right");
-                        addMessageButton(formationGroup,
+                        createMessageButton(formationGroup,
                                 SimpleDirectCommand.getChangeFormationInstance(SimpleFormationName.LINE), "Line");
-                        addMessageButton(formationGroup,
+                        createMessageButton(formationGroup,
                                 SimpleDirectCommand.getChangeFormationInstance(SimpleFormationName.VEE), "Vee");
-                        addMessageButton(formationGroup,
+                        createMessageButton(formationGroup,
                                 SimpleDirectCommand.getChangeFormationInstance(SimpleFormationName.STAGGERED_COLUMN),
                                 "Staggered column");
-                        addMessageButton(formationGroup,
+                        createMessageButton(formationGroup,
                                 SimpleDirectCommand.getChangeFormationInstance(SimpleFormationName.COLUMN), "Column");
-                        addMessageButton(formationGroup,
+                        createMessageButton(formationGroup,
                                 SimpleDirectCommand.getChangeFormationInstance(SimpleFormationName.HERRINGBONE),
                                 "Herringone");
-                        addMessageButton(formationGroup,
+                        createMessageButton(formationGroup,
                                 SimpleDirectCommand.getChangeFormationInstance(SimpleFormationName.DISPERSED),
                                 "Disperse");
                         formationGroup.pack(true);
-                        groups[4] = formationGroup;
                     }
                     {
                         final Group battleDrillGroup = new Group(handSignalDialog, SWT.DEFAULT);
@@ -212,20 +199,19 @@ public final class Gui implements AutoCloseable, Runnable {
                         layout.fill = true;
                         battleDrillGroup.setLayout(groupLayout);
                         battleDrillGroup.setText("Battle Drill");
-                        addMessageButton(battleDrillGroup,
+                        createMessageButton(battleDrillGroup,
                                 SimpleDirectCommand.getPerformBattleDrillInstance(BattleDrillName.CONTACT_LEFT),
                                 "Contact left");
-                        addMessageButton(battleDrillGroup,
+                        createMessageButton(battleDrillGroup,
                                 SimpleDirectCommand.getPerformBattleDrillInstance(BattleDrillName.CONTACT_RIGHT),
                                 "Contact right");
-                        addMessageButton(battleDrillGroup,
+                        createMessageButton(battleDrillGroup,
                                 SimpleDirectCommand.getPerformBattleDrillInstance(BattleDrillName.AIR_ATTACK),
                                 "Air attack");
-                        addMessageButton(battleDrillGroup,
+                        createMessageButton(battleDrillGroup,
                                 SimpleDirectCommand.getPerformBattleDrillInstance(BattleDrillName.CBRN_DANGER),
                                 "CBRN attack");
                         battleDrillGroup.pack(true);
-                        groups[5] = battleDrillGroup;
                     }
                     {
                         final Group enemyInSightGroup = new Group(handSignalDialog, SWT.DEFAULT);
@@ -234,11 +220,10 @@ public final class Gui implements AutoCloseable, Runnable {
                         enemyInSightGroup.setLayout(groupLayout);
                         enemyInSightGroup.setText("Enemy in Sight");
                         for (SimpleRelativeLocation location : SimpleRelativeLocation.values()) {
-                            addMessageButton(enemyInSightGroup, SimpleStatement.getEnemyInSight(location),
+                            createMessageButton(enemyInSightGroup, SimpleStatement.getEnemyInSight(location),
                                     location.toString());
                         }
                         enemyInSightGroup.pack(true);
-                        groups[6] = enemyInSightGroup;
                     }
                     {
                         final Group miscGroup = new Group(handSignalDialog, SWT.DEFAULT);
@@ -246,11 +231,10 @@ public final class Gui implements AutoCloseable, Runnable {
                         layout.fill = true;
                         miscGroup.setLayout(groupLayout);
                         miscGroup.setText("Miscellaneous");
-                        addMessageButton(miscGroup, SimpleStatement.ACKNOWLEDGE_MESSAGE, "Message acknowleded");
-                        addMessageButton(miscGroup, SimpleStatement.DANGER_AREA, "Danger area");
-                        addMessageButton(miscGroup, SimpleDirectCommand.FIX_BAYONET, "Fix bayonets");
+                        createMessageButton(miscGroup, SimpleStatement.ACKNOWLEDGE_MESSAGE, "Message acknowleded");
+                        createMessageButton(miscGroup, SimpleStatement.DANGER_AREA, "Danger area");
+                        createMessageButton(miscGroup, SimpleDirectCommand.FIX_BAYONET, "Fix bayonets");
                         miscGroup.pack(true);
-                        groups[7] = miscGroup;
                     }
                     {
                         final Button cancelButton = new Button(handSignalDialog, SWT.PUSH);
@@ -266,13 +250,6 @@ public final class Gui implements AutoCloseable, Runnable {
                     handSignalDialog.pack(true);
                 }
 
-                private void addMessageButton(Composite parent, Message message, String text) {
-                    final Button button = new Button(parent, SWT.RADIO);
-                    button.setText(text);
-                    button.setData(message);
-                    button.addListener(SWT.Selection, enforceRadioButtonBehaviour);
-                }
-
                 /**
                  * <p>
                  * Hide this GUID.
@@ -280,6 +257,53 @@ public final class Gui implements AutoCloseable, Runnable {
                  */
                 public final void close() {
                     handSignalDialog.close();
+                }
+
+                private Button createLocationButton(final Composite parent, Message message,
+                        SimpleRelativeLocation location) {
+                    final double r;
+                    switch (location.getRange()) {
+                    case NEAR:
+                        r = 1.0 / 3.0;
+                        break;
+                    case MEDIUM:
+                        r = 2.0 / 3.0;
+                        break;
+                    case FAR:
+                        r = 1.0;
+                        break;
+                    default:// never happens
+                        r = 0.0;
+                        break;
+                    }
+                    final SimpleRelativeLocation.Direction direction = location.getDirection();
+                    final double fx = (1.0 + r * direction.getX()) * 3.0 / 7.0;
+                    final double fy = (1.0 + r * direction.getY()) * 3.0 / 7.0;
+                    final Button button = new Button(parent, SWT.RADIO);
+                    button.setData(message);
+                    button.pack();
+                    messageButtons.add(button);
+                    button.addListener(SWT.Selection, enforceRadioButtonBehaviour);
+                    parent.addListener(SWT.Resize, event -> {
+                        final Point parentSize = parent.getSize();
+                        final double l = Integer.min(parentSize.x, parentSize.y);
+                        button.setLocation((int) (l * fx), (int) (l * fy));
+                    });
+                    final Point size = button.computeSize(SWT.DEFAULT, SWT.DEFAULT);
+                    button.setSize(size);
+                    final int xMargin = 4;
+                    final int yMargin = 4;
+                    parent.setSize(size.x * 7 + 6 * xMargin, button.getSize().y * 7 + 6 * yMargin);
+                    return button;
+                }
+
+                private Button createMessageButton(Composite parent, Message message, String text) {
+                    final Button button = new Button(parent, SWT.RADIO);
+                    button.setText(text);
+                    button.setData(message);
+                    messageButtons.add(button);
+                    button.addListener(SWT.Selection, enforceRadioButtonBehaviour);
+                    return button;
                 }
 
                 /**

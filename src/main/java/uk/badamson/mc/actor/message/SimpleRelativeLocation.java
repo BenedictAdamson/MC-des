@@ -47,7 +47,47 @@ public enum SimpleRelativeLocation implements Noun {
      * </p>
      */
     public enum Direction {
-        FRONT, FRONT_RIGHT, RIGHT, RIGHT_BACK, BACK, BACK_LEFT, LEFT, LEFT_FRONT
+        FRONT(0, 1),
+        FRONT_RIGHT(Math.sqrt(0.5), Math.sqrt(0.5)),
+        RIGHT(1, 0),
+        RIGHT_BACK(Math.sqrt(0.5), -Math.sqrt(0.5)),
+        BACK(0, -1),
+        BACK_LEFT(-Math.sqrt(0.5), -Math.sqrt(0.5)),
+        LEFT(-1, 0),
+        LEFT_FRONT(-Math.sqrt(0.5), Math.sqrt(0.5));
+
+        private final double x;
+        private final double y;
+
+        private Direction(double x, double y) {
+            this.x = x;
+            this.y = y;
+        }
+
+        /**
+         * <p>
+         * The x component of a (unit) direction vector pointing in this direction, if
+         * the {@linkplain #FRONT front} direction points in the positive y direction.
+         * </p>
+         * 
+         * @return the x
+         */
+        public final double getX() {
+            return x;
+        }
+
+        /**
+         * <p>
+         * The y component of a (unit) direction vector pointing in this direction, if
+         * the {@linkplain #FRONT front} direction points in the positive y direction.
+         * </p>
+         * 
+         * @return the y
+         */
+        public final double getY() {
+            return y;
+        }
+
     }// enum
 
     /**
