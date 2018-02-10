@@ -225,7 +225,7 @@ public class SimpleStatement extends AbstractMessage {
 
     @Override
     public final String toString() {
-        return "SimpleStatement [" + subject + " " + predicate + "]";
+        return subject + " " + predicate;
     }
 
 }

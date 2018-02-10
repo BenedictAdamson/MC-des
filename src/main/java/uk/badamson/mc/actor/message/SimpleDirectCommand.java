@@ -551,7 +551,7 @@ public final class SimpleDirectCommand extends AbstractMessage implements Comman
 
     @Override
     public String toString() {
-        return "SimpleDirectCommand [" + subject + " " + verb + " " + objects + "]";
+        return subject + " " + verb + " " + objects;
     }
 
 }
