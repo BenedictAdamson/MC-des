@@ -91,13 +91,14 @@ public final class Gui implements AutoCloseable, Runnable {
                         layout.fill = true;
                         allMoveGroup.setLayout(groupLayout);
                         allMoveGroup.setText("All Move");
-                        addMessageButton(allMoveGroup, SimpleDirectCommand.RUSH);
-                        addMessageButton(allMoveGroup, SimpleDirectCommand.QUICK_TIME);
-                        addMessageButton(allMoveGroup, SimpleDirectCommand.HALT);
-                        addMessageButton(allMoveGroup, SimpleDirectCommand.HALT_AND_FREEZE);
-                        addMessageButton(allMoveGroup, SimpleDirectCommand.HALT_AND_TAKE_A_KNEE);
-                        addMessageButton(allMoveGroup, SimpleDirectCommand.HALT_AND_GO_PRONE);
-                        addMessageButton(allMoveGroup, SimpleDirectCommand.TAKE_COVER);
+                        addMessageButton(allMoveGroup, SimpleDirectCommand.RUSH, "Rush");
+                        addMessageButton(allMoveGroup, SimpleDirectCommand.QUICK_TIME, "Quick time");
+                        addMessageButton(allMoveGroup, SimpleDirectCommand.HALT, "Halt");
+                        addMessageButton(allMoveGroup, SimpleDirectCommand.HALT_AND_FREEZE, "Halt and freeze");
+                        addMessageButton(allMoveGroup, SimpleDirectCommand.HALT_AND_TAKE_A_KNEE,
+                                "Halt and take a knee");
+                        addMessageButton(allMoveGroup, SimpleDirectCommand.HALT_AND_GO_PRONE, "Halt and go prone");
+                        addMessageButton(allMoveGroup, SimpleDirectCommand.TAKE_COVER, "Take cover");
                         allMoveGroup.pack(true);
                     }
                     {
@@ -106,9 +107,9 @@ public final class Gui implements AutoCloseable, Runnable {
                         layout.fill = true;
                         checkGroup.setLayout(groupLayout);
                         checkGroup.setText("Check");
-                        addMessageButton(checkGroup, SimpleDirectCommand.CHECK_MAP);
-                        addMessageButton(checkGroup, SimpleDirectCommand.CHECK_PACES);
-                        addMessageButton(checkGroup, SimpleDirectCommand.CHECK_NUMER_PRESENT);
+                        addMessageButton(checkGroup, SimpleDirectCommand.CHECK_MAP, "Map check");
+                        addMessageButton(checkGroup, SimpleDirectCommand.CHECK_PACES, "Pace count");
+                        addMessageButton(checkGroup, SimpleDirectCommand.CHECK_NUMER_PRESENT, "Head count");
                         checkGroup.pack(true);
                     }
                     {
@@ -117,20 +118,27 @@ public final class Gui implements AutoCloseable, Runnable {
                         layout.fill = true;
                         personMoveGroup.setLayout(groupLayout);
                         personMoveGroup.setText("Person Move");
-                        addMessageButton(personMoveGroup, SimpleDirectCommand.JOIN_ME);
+                        addMessageButton(personMoveGroup, SimpleDirectCommand.JOIN_ME, "Join me");
                         addMessageButton(personMoveGroup,
-                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.PLATOON_LEADER));
+                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.PLATOON_LEADER),
+                                "Platoon leader forward");
                         addMessageButton(personMoveGroup,
-                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.PLATOON_SERGEANT));
-                        addMessageButton(personMoveGroup, SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.RTO));
+                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.PLATOON_SERGEANT),
+                                "Platoon sergeant forward");
+                        addMessageButton(personMoveGroup, SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.RTO),
+                                "RTO forward");
                         addMessageButton(personMoveGroup,
-                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.SQUAD_LEADER_1));
+                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.SQUAD_LEADER_1),
+                                "Squad 1 leader forward");
                         addMessageButton(personMoveGroup,
-                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.SQUAD_LEADER_2));
+                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.SQUAD_LEADER_2),
+                                "Squad 2 leader forward");
                         addMessageButton(personMoveGroup,
-                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.SQUAD_LEADER_3));
+                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.SQUAD_LEADER_3),
+                                "Squad 3 leader forward");
                         addMessageButton(personMoveGroup,
-                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.SQUAD_LEADER_4));
+                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.SQUAD_LEADER_4),
+                                "Squad 4 leader forward");
                         personMoveGroup.pack(true);
                     }
                     {
@@ -140,7 +148,8 @@ public final class Gui implements AutoCloseable, Runnable {
                         assembleGroup.setLayout(groupLayout);
                         assembleGroup.setText("Assemble");
                         for (SimpleRelativeLocation location : SimpleRelativeLocation.values()) {
-                            addMessageButton(assembleGroup, SimpleDirectCommand.getAssembleInstance(location));
+                            addMessageButton(assembleGroup, SimpleDirectCommand.getAssembleInstance(location),
+                                    location.toString());
                         }
                         assembleGroup.pack(true);
                     }
@@ -150,9 +159,29 @@ public final class Gui implements AutoCloseable, Runnable {
                         layout.fill = true;
                         formationGroup.setLayout(groupLayout);
                         formationGroup.setText("Change Formation");
-                        for (SimpleFormationName formation : SimpleFormationName.values()) {
-                            addMessageButton(formationGroup, SimpleDirectCommand.getChangeFormationInstance(formation));
-                        }
+                        addMessageButton(formationGroup,
+                                SimpleDirectCommand.getChangeFormationInstance(SimpleFormationName.WEDGE), "Wedge");
+                        addMessageButton(formationGroup,
+                                SimpleDirectCommand.getChangeFormationInstance(SimpleFormationName.ECHELON_LEFT),
+                                "Echelon left");
+                        addMessageButton(formationGroup,
+                                SimpleDirectCommand.getChangeFormationInstance(SimpleFormationName.ECHELON_RIGHT),
+                                "Echelon right");
+                        addMessageButton(formationGroup,
+                                SimpleDirectCommand.getChangeFormationInstance(SimpleFormationName.LINE), "Line");
+                        addMessageButton(formationGroup,
+                                SimpleDirectCommand.getChangeFormationInstance(SimpleFormationName.VEE), "Vee");
+                        addMessageButton(formationGroup,
+                                SimpleDirectCommand.getChangeFormationInstance(SimpleFormationName.STAGGERED_COLUMN),
+                                "Staggered column");
+                        addMessageButton(formationGroup,
+                                SimpleDirectCommand.getChangeFormationInstance(SimpleFormationName.COLUMN), "Column");
+                        addMessageButton(formationGroup,
+                                SimpleDirectCommand.getChangeFormationInstance(SimpleFormationName.HERRINGBONE),
+                                "Herringone");
+                        addMessageButton(formationGroup,
+                                SimpleDirectCommand.getChangeFormationInstance(SimpleFormationName.DISPERSED),
+                                "Disperse");
                         formationGroup.pack(true);
                     }
                     {
@@ -161,10 +190,18 @@ public final class Gui implements AutoCloseable, Runnable {
                         layout.fill = true;
                         battleDrillGroup.setLayout(groupLayout);
                         battleDrillGroup.setText("Battle Drill");
-                        for (BattleDrillName drill : BattleDrillName.values()) {
-                            addMessageButton(battleDrillGroup,
-                                    SimpleDirectCommand.getPerformBattleDrillInstance(drill));
-                        }
+                        addMessageButton(battleDrillGroup,
+                                SimpleDirectCommand.getPerformBattleDrillInstance(BattleDrillName.CONTACT_LEFT),
+                                "Contact left");
+                        addMessageButton(battleDrillGroup,
+                                SimpleDirectCommand.getPerformBattleDrillInstance(BattleDrillName.CONTACT_RIGHT),
+                                "Contact right");
+                        addMessageButton(battleDrillGroup,
+                                SimpleDirectCommand.getPerformBattleDrillInstance(BattleDrillName.AIR_ATTACK),
+                                "Air attack");
+                        addMessageButton(battleDrillGroup,
+                                SimpleDirectCommand.getPerformBattleDrillInstance(BattleDrillName.CBRN_DANGER),
+                                "CBRN attack");
                         battleDrillGroup.pack(true);
                     }
                     {
@@ -174,7 +211,8 @@ public final class Gui implements AutoCloseable, Runnable {
                         enemyInSightGroup.setLayout(groupLayout);
                         enemyInSightGroup.setText("Enemy in Sight");
                         for (SimpleRelativeLocation location : SimpleRelativeLocation.values()) {
-                            addMessageButton(enemyInSightGroup, SimpleStatement.getEnemyInSight(location));
+                            addMessageButton(enemyInSightGroup, SimpleStatement.getEnemyInSight(location),
+                                    location.toString());
                         }
                         enemyInSightGroup.pack(true);
                     }
@@ -184,9 +222,9 @@ public final class Gui implements AutoCloseable, Runnable {
                         layout.fill = true;
                         miscGroup.setLayout(groupLayout);
                         miscGroup.setText("Miscellaneous");
-                        addMessageButton(miscGroup, SimpleStatement.ACKNOWLEDGE_MESSAGE);
-                        addMessageButton(miscGroup, SimpleStatement.DANGER_AREA);
-                        addMessageButton(miscGroup, SimpleDirectCommand.FIX_BAYONET);
+                        addMessageButton(miscGroup, SimpleStatement.ACKNOWLEDGE_MESSAGE, "Message acknowleded");
+                        addMessageButton(miscGroup, SimpleStatement.DANGER_AREA, "Danger area");
+                        addMessageButton(miscGroup, SimpleDirectCommand.FIX_BAYONET, "Fix bayonets");
                         miscGroup.pack(true);
                     }
                     {
@@ -203,9 +241,9 @@ public final class Gui implements AutoCloseable, Runnable {
                     handSignalDialog.pack(true);
                 }
 
-                private void addMessageButton(Composite parent, Message message) {
+                private void addMessageButton(Composite parent, Message message, String text) {
                     final Button button = new Button(parent, SWT.RADIO);
-                    button.setText(message.toString());// TODO
+                    button.setText(text);
                     button.setData(message);
                 }
 
