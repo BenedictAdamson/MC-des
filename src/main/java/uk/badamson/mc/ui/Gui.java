@@ -20,6 +20,7 @@ import uk.badamson.mc.Main;
 import uk.badamson.mc.actor.Actor;
 import uk.badamson.mc.actor.ActorInterface;
 import uk.badamson.mc.actor.MessageTransferInProgress;
+import uk.badamson.mc.actor.medium.HandSignals;
 import uk.badamson.mc.actor.medium.Medium;
 import uk.badamson.mc.actor.message.Message;
 import uk.badamson.mc.simulation.Person;
@@ -46,10 +47,48 @@ public final class Gui implements AutoCloseable, Runnable {
         /**
          * <p>
          * The GUI for the {@linkplain Game#getPerson() played person} of one instance
-         * of the {@linkplain Game Mission Command Game}
+         * of the {@linkplain Game Mission Command Game}.
          * </p>
          */
         public final class PlayedPersonGui implements Actor {
+
+            /**
+             * <p>
+             * The GUI for causing the {@linkplain Game#getPerson() played person} of one
+             * instance of the {@linkplain Game Mission Command Game} to
+             * {@linkplain ActorInterface#beginSendingMessage(Medium, Message) send} a
+             * {@linkplain HandSignals hand signal}.
+             * </p>
+             */
+            public final class SendHandSignalGui {
+
+                private final Shell handSignalDialog;
+
+                /**
+                 * <p>
+                 * Create this GUI, in a non-displayed (closed, invisible) state.
+                 * </p>
+                 */
+                SendHandSignalGui() {
+                    handSignalDialog = new Shell(gameWindow, SWT.DIALOG_TRIM);
+                    handSignalDialog.setText("Hand Signal");
+                    handSignalDialog.setData(this);
+                    handSignalDialog.setEnabled(false);
+                    handSignalDialog.setVisible(false);
+                }
+
+                /**
+                 * <p>
+                 * Display this GUI.
+                 * </p>
+                 */
+                public final void open() {
+                    handSignalDialog.setEnabled(true);
+                    handSignalDialog.setMinimized(false);
+                    handSignalDialog.open();
+                }
+
+            }//
 
             private final ActorInterface person;
 
@@ -89,6 +128,10 @@ public final class Gui implements AutoCloseable, Runnable {
                             final MenuItem mediumItem = new MenuItem(sendMenu, SWT.PUSH);
                             mediumItem.setText(medium.toString() + "...");
                             mediumItem.setData(medium);
+                            if (medium == HandSignals.INSTANCE) {
+                                final SendHandSignalGui sendHandSignalGui = new SendHandSignalGui();
+                                mediumItem.addListener(SWT.SELECTED, event -> sendHandSignalGui.open());
+                            }
                         }
                     }
                     parentWindow.setMenuBar(menuBar);
