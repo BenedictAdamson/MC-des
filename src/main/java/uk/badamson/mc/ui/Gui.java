@@ -1,13 +1,16 @@
 package uk.badamson.mc.ui;
 
 import java.util.Objects;
+import java.util.Set;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.RowLayout;
-import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Decorations;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Menu;
+import org.eclipse.swt.widgets.MenuItem;
 import org.eclipse.swt.widgets.ProgressBar;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
@@ -51,7 +54,7 @@ public final class Gui implements AutoCloseable, Runnable {
             private final ActorInterface person;
 
             /**
-             * @param parentControl
+             * @param parentWindow
              *            The composite control which will be the parent of the GUI elements
              *            for this GUI.
              * @param person
@@ -67,28 +70,31 @@ public final class Gui implements AutoCloseable, Runnable {
              *             simulated persons} of the {@linkplain Gui.GameGui#getGame() game}
              *             for which this is a GUI.
              */
-            PlayedPersonGui(Composite parentControl, ActorInterface person) {
-                Objects.requireNonNull(parentControl, "parentControl");
+            PlayedPersonGui(Decorations parentWindow, ActorInterface person) {
+                Objects.requireNonNull(parentWindow, "parentControl");
                 this.person = Objects.requireNonNull(person, "person");
                 if (!getGame().getPersons().contains(person)) {
                     throw new IllegalArgumentException(
                             "person is not one of the simulated persons of the game for which this is a GUI");
                 }
                 {
-                    final Group mediaGroup = new Group(parentControl, SWT.DEFAULT);
-                    final RowLayout layout = new RowLayout(SWT.VERTICAL);
-                    mediaGroup.setLayout(layout);
-                    mediaGroup.setText("Means for sending messages");
-                    for (Medium medium : person.getMedia()) {
-                        final Label mediumLabel = new Label(mediaGroup, SWT.LEFT);
-                        mediumLabel.setText(medium.toString());
-                        mediumLabel.setData(medium);
-                        mediumLabel.pack();
+                    final Menu menuBar = new Menu(parentWindow, SWT.BAR);
+                    {
+                        final MenuItem sendMenuItem = new MenuItem(menuBar, SWT.CASCADE);
+                        sendMenuItem.setText("Send");
+                        final Menu sendMenu = new Menu(menuBar);
+                        sendMenuItem.setMenu(sendMenu);
+                        final Set<Medium> media = person.getMedia();
+                        for (Medium medium : media) {
+                            final MenuItem mediumItem = new MenuItem(sendMenu, SWT.PUSH);
+                            mediumItem.setText(medium.toString() + "...");
+                            mediumItem.setData(medium);
+                        }
                     }
-                    mediaGroup.pack(true);
+                    parentWindow.setMenuBar(menuBar);
                 }
                 {
-                    final Group transmissionInProgressGroup = new Group(parentControl, SWT.DEFAULT);
+                    final Group transmissionInProgressGroup = new Group(parentWindow, SWT.DEFAULT);
                     final RowLayout layout = new RowLayout(SWT.VERTICAL);
                     layout.fill = true;
                     transmissionInProgressGroup.setLayout(layout);
@@ -105,7 +111,7 @@ public final class Gui implements AutoCloseable, Runnable {
                     transmissionInProgressGroup.pack();
                 }
                 {
-                    final Group messagesBeingReceivedGroup = new Group(parentControl, SWT.DEFAULT);
+                    final Group messagesBeingReceivedGroup = new Group(parentWindow, SWT.DEFAULT);
                     messagesBeingReceivedGroup.setText("Messages being received");
                     // TODO MessagesBeingReceived
                     messagesBeingReceivedGroup.pack(true);
