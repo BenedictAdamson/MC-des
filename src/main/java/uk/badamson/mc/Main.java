@@ -93,10 +93,10 @@ public final class Main implements AutoCloseable, Runnable {
      */
     @Override
     public final void run() {
+        /* TODO: do not hard code game set up. */
+        final Game game = new Game();
+        final Person person = game.createPerson();
         try (final Gui gui = new Gui(this)) {
-            /* TODO: do not hard code game set up. */
-            final Game game = new Game();
-            final Person person = game.createPerson();
             final Gui.GameGui gameGui = gui.addGame(game);
             gameGui.takeControl(person);
             gui.run();

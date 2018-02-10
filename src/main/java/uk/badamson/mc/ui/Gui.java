@@ -108,8 +108,8 @@ public final class Gui implements AutoCloseable, Runnable {
                     final Group messagesBeingReceivedGroup = new Group(parentControl, SWT.DEFAULT);
                     messagesBeingReceivedGroup.setText("Messages being received");
                     // TODO MessagesBeingReceived
+                    messagesBeingReceivedGroup.pack(true);
                 }
-                parentControl.pack(true);
             }
 
             /**
@@ -185,7 +185,6 @@ public final class Gui implements AutoCloseable, Runnable {
             this.game = Objects.requireNonNull(game, "game");
             this.gameWindow = new Shell(mainWindow);
             this.gameWindow.setLayout(new RowLayout(SWT.VERTICAL));
-            this.gameWindow.open();
         }
 
         /**
@@ -224,8 +223,9 @@ public final class Gui implements AutoCloseable, Runnable {
          */
         public final PlayedPersonGui takeControl(Person person) {
             final PlayedPersonGui gui = new PlayedPersonGui(gameWindow, person);
+            gameWindow.pack(true);
+            gameWindow.open();
             game.takeControl(gui, person);
-            gameWindow.setModified(true);
             return gui;
         }
 
@@ -255,6 +255,7 @@ public final class Gui implements AutoCloseable, Runnable {
     public Gui(Main main) {
         this.main = Objects.requireNonNull(main, "main");
         mainWindow = new Shell(display);
+        mainWindow.open();
     }
 
     /**
@@ -309,7 +310,6 @@ public final class Gui implements AutoCloseable, Runnable {
      */
     @Override
     public final void run() {
-        mainWindow.open();
         while (!mainWindow.isDisposed()) {
             if (!display.readAndDispatch())
                 display.sleep();
