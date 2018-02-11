@@ -16,11 +16,13 @@ import uk.badamson.mc.actor.message.SimpleRelativeLocation;
  * {@linkplain Control#getLayoutData() layout data} that is a
  * {@link SimpleRelativeLocation}.
  * </p>
+ * <p>
+ * This layout assumes that the children are square.
+ * </p>
  */
 public final class SimpleRelativeLocationLayout extends Layout {
 
-    public final int horizontalSpacing = 4;
-    public final int verticalSpacing = 4;
+    public final int spacing = 4;
 
     @Override
     protected final Point computeSize(Composite composite, int wHint, int hHint, boolean flushCache) {
@@ -28,8 +30,8 @@ public final class SimpleRelativeLocationLayout extends Layout {
 
         final boolean defaultW = wHint == SWT.DEFAULT;
         final boolean defaultH = hHint == SWT.DEFAULT;
-        final int wHintChild = defaultW ? SWT.DEFAULT : (wHint - verticalSpacing * 6) / 7;
-        final int hHintChild = defaultH ? SWT.DEFAULT : (hHint - horizontalSpacing * 6) / 7;
+        final int wHintChild = defaultW ? SWT.DEFAULT : ((wHint - spacing * 6) / 7);
+        final int hHintChild = defaultH ? SWT.DEFAULT : ((hHint - spacing * 6) / 7);
         int preferredChildWidth = 0;
         int preferredChildHeight = 0;
         for (Control child : composite.getChildren()) {
@@ -37,18 +39,20 @@ public final class SimpleRelativeLocationLayout extends Layout {
             preferredChildWidth = Integer.max(preferredChildWidth, childPreferredSize.x);
             preferredChildHeight = Integer.max(preferredChildHeight, childPreferredSize.y);
         }
-        return new Point(preferredChildWidth * 7 + horizontalSpacing * 6,
-                preferredChildHeight * 7 + verticalSpacing * 6);
+
+        final int preferredChildSize = Integer.max(preferredChildWidth, preferredChildHeight);
+        final int preferredSize = preferredChildSize * 7 + spacing * 6;
+        return new Point(preferredSize, preferredSize);
     }
 
     @Override
     protected final void layout(Composite composite, boolean flushCache) {
         Objects.requireNonNull(composite, "composite");
         final Point size = composite.getSize();
-        final int childWidth = (size.x - 6 * horizontalSpacing) / 7;
-        final int childHeight = (size.y - 6 * verticalSpacing) / 7;
-        final double rx = (size.x - childWidth - horizontalSpacing) * 0.5;
-        final double ry = (size.y - childHeight - verticalSpacing) * 0.5;
+        final int l = Integer.min(size.x, size.y);
+        final int childSize = (l - 6 * spacing) / 7;
+        final double r = childSize + spacing;
+        final double origin = ((double) l - childSize) * 0.5;
         for (Control child : composite.getChildren()) {
             final Object layoutData = child.getLayoutData();
             Objects.requireNonNull(layoutData, "child layoutData");
@@ -56,22 +60,22 @@ public final class SimpleRelativeLocationLayout extends Layout {
             final double f;
             switch (location.getRange()) {
             case NEAR:
-                f = 1.0 / 3.0;
+                f = 1;
                 break;
             case MEDIUM:
-                f = 2.0 / 3.0;
+                f = 2;
                 break;
             case FAR:
-                f = 1.0;
+                f = 3;
                 break;
             default:// never happens
                 f = 0.0;
                 break;
             }
             final SimpleRelativeLocation.Direction direction = location.getDirection();
-            final double x = rx + rx * f * direction.getX();
-            final double y = ry - ry * f * direction.getY();
-            child.setBounds((int) x, (int) y, childWidth, childHeight);
+            final double x = origin + r * f * direction.getX();
+            final double y = origin - r * f * direction.getY();
+            child.setBounds((int) x, (int) y, childSize, childSize);
         }
     }
 

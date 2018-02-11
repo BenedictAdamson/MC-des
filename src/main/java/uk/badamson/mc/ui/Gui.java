@@ -163,6 +163,7 @@ public final class Gui implements AutoCloseable, Runnable {
                             createLocationButton(assembleGroup, SimpleDirectCommand.getAssembleInstance(location),
                                     location);
                         }
+                        assembleGroup.pack(true);
                     }
                     {
                         final Group formationGroup = new Group(handSignalDialog, SWT.DEFAULT);
