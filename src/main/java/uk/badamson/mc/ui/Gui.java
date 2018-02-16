@@ -6,6 +6,8 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
@@ -95,9 +97,25 @@ public final class Gui implements AutoCloseable, Runnable {
                     handSignalDialog.setData(this);
                     handSignalDialog.setEnabled(false);
                     handSignalDialog.setVisible(false);
-                    final RowLayout dialogLayout = new RowLayout(SWT.HORIZONTAL);// TODO
-                    dialogLayout.fill = false;
+                    final GridLayout dialogLayout = new GridLayout(6, true);
                     handSignalDialog.setLayout(dialogLayout);
+                    {
+                        final Group assembleGroup = new Group(handSignalDialog, SWT.DEFAULT);
+                        final SimpleRelativeLocationLayout groupLayout = new SimpleRelativeLocationLayout();
+                        assembleGroup.setLayout(groupLayout);
+                        assembleGroup.setText("Assemble");
+                        for (SimpleRelativeLocation location : SimpleRelativeLocation.values()) {
+                            createLocationButton(assembleGroup, SimpleDirectCommand.getAssembleInstance(location),
+                                    location);
+                        }
+                        assembleGroup.pack(true);
+                        final GridData gridData = new GridData();
+                        gridData.horizontalSpan = 2;
+                        gridData.verticalSpan = 9;
+                        gridData.verticalAlignment = SWT.TOP;
+                        gridData.horizontalAlignment = SWT.FILL;
+                        assembleGroup.setLayoutData(gridData);
+                    }
                     {
                         final Group allMoveGroup = new Group(handSignalDialog, SWT.DEFAULT);
                         final RowLayout groupLayout = new RowLayout(SWT.VERTICAL);
@@ -113,57 +131,12 @@ public final class Gui implements AutoCloseable, Runnable {
                         createMessageButton(allMoveGroup, SimpleDirectCommand.HALT_AND_GO_PRONE, "Halt and go prone");
                         createMessageButton(allMoveGroup, SimpleDirectCommand.TAKE_COVER, "Take cover");
                         allMoveGroup.pack(true);
-                    }
-                    {
-                        final Group checkGroup = new Group(handSignalDialog, SWT.DEFAULT);
-                        final RowLayout groupLayout = new RowLayout(SWT.VERTICAL);
-                        groupLayout.fill = true;
-                        checkGroup.setLayout(groupLayout);
-                        checkGroup.setText("Check");
-                        createMessageButton(checkGroup, SimpleDirectCommand.CHECK_MAP, "Map check");
-                        createMessageButton(checkGroup, SimpleDirectCommand.CHECK_PACES, "Pace count");
-                        createMessageButton(checkGroup, SimpleDirectCommand.CHECK_NUMER_PRESENT, "Head count");
-                        checkGroup.pack(true);
-                    }
-                    {
-                        final Group personMoveGroup = new Group(handSignalDialog, SWT.DEFAULT);
-                        final RowLayout groupLayout = new RowLayout(SWT.VERTICAL);
-                        groupLayout.fill = true;
-                        personMoveGroup.setLayout(groupLayout);
-                        personMoveGroup.setText("Person Move");
-                        createMessageButton(personMoveGroup, SimpleDirectCommand.JOIN_ME, "Join me");
-                        createMessageButton(personMoveGroup,
-                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.PLATOON_LEADER),
-                                "Platoon leader forward");
-                        createMessageButton(personMoveGroup,
-                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.PLATOON_SERGEANT),
-                                "Platoon sergeant forward");
-                        createMessageButton(personMoveGroup,
-                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.RTO), "RTO forward");
-                        createMessageButton(personMoveGroup,
-                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.SQUAD_LEADER_1),
-                                "Squad 1 leader forward");
-                        createMessageButton(personMoveGroup,
-                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.SQUAD_LEADER_2),
-                                "Squad 2 leader forward");
-                        createMessageButton(personMoveGroup,
-                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.SQUAD_LEADER_3),
-                                "Squad 3 leader forward");
-                        createMessageButton(personMoveGroup,
-                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.SQUAD_LEADER_4),
-                                "Squad 4 leader forward");
-                        personMoveGroup.pack(true);
-                    }
-                    {
-                        final Group assembleGroup = new Group(handSignalDialog, SWT.DEFAULT);
-                        final SimpleRelativeLocationLayout groupLayout = new SimpleRelativeLocationLayout();
-                        assembleGroup.setLayout(groupLayout);
-                        assembleGroup.setText("Assemble");
-                        for (SimpleRelativeLocation location : SimpleRelativeLocation.values()) {
-                            createLocationButton(assembleGroup, SimpleDirectCommand.getAssembleInstance(location),
-                                    location);
-                        }
-                        assembleGroup.pack(true);
+                        final GridData gridData = new GridData();
+                        gridData.horizontalSpan = 2;
+                        gridData.verticalSpan = 9;
+                        gridData.verticalAlignment = SWT.TOP;
+                        gridData.horizontalAlignment = SWT.FILL;
+                        allMoveGroup.setLayoutData(gridData);
                     }
                     {
                         final Group formationGroup = new Group(handSignalDialog, SWT.DEFAULT);
@@ -195,6 +168,64 @@ public final class Gui implements AutoCloseable, Runnable {
                                 SimpleDirectCommand.getChangeFormationInstance(SimpleFormationName.DISPERSED),
                                 "Disperse");
                         formationGroup.pack(true);
+                        final GridData gridData = new GridData();
+                        gridData.horizontalSpan = 2;
+                        gridData.verticalSpan = 9;
+                        gridData.verticalAlignment = SWT.TOP;
+                        gridData.horizontalAlignment = SWT.FILL;
+                        formationGroup.setLayoutData(gridData);
+                    }
+                    {
+                        final Group enemyInSightGroup = new Group(handSignalDialog, SWT.DEFAULT);
+                        final SimpleRelativeLocationLayout groupLayout = new SimpleRelativeLocationLayout();
+                        enemyInSightGroup.setLayout(groupLayout);
+                        enemyInSightGroup.setText("Enemy in Sight");
+                        for (SimpleRelativeLocation location : SimpleRelativeLocation.values()) {
+                            createLocationButton(enemyInSightGroup, SimpleStatement.getEnemyInSight(location),
+                                    location);
+                        }
+                        enemyInSightGroup.pack(true);
+                        final GridData gridData = new GridData();
+                        gridData.horizontalSpan = 2;
+                        gridData.verticalSpan = 8;
+                        gridData.verticalAlignment = SWT.BOTTOM;
+                        gridData.horizontalAlignment = SWT.FILL;
+                        enemyInSightGroup.setLayoutData(gridData);
+                    }
+                    {
+                        final Group personMoveGroup = new Group(handSignalDialog, SWT.DEFAULT);
+                        final RowLayout groupLayout = new RowLayout(SWT.VERTICAL);
+                        groupLayout.fill = true;
+                        personMoveGroup.setLayout(groupLayout);
+                        personMoveGroup.setText("Person Move");
+                        createMessageButton(personMoveGroup, SimpleDirectCommand.JOIN_ME, "Join me");
+                        createMessageButton(personMoveGroup,
+                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.PLATOON_LEADER),
+                                "Platoon leader forward");
+                        createMessageButton(personMoveGroup,
+                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.PLATOON_SERGEANT),
+                                "Platoon sergeant forward");
+                        createMessageButton(personMoveGroup,
+                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.RTO), "RTO forward");
+                        createMessageButton(personMoveGroup,
+                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.SQUAD_LEADER_1),
+                                "Squad 1 leader forward");
+                        createMessageButton(personMoveGroup,
+                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.SQUAD_LEADER_2),
+                                "Squad 2 leader forward");
+                        createMessageButton(personMoveGroup,
+                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.SQUAD_LEADER_3),
+                                "Squad 3 leader forward");
+                        createMessageButton(personMoveGroup,
+                                SimpleDirectCommand.getRoleForwardInstance(MilitaryRole.SQUAD_LEADER_4),
+                                "Squad 4 leader forward");
+                        personMoveGroup.pack(true);
+                        final GridData gridData = new GridData();
+                        gridData.horizontalSpan = 2;
+                        gridData.verticalSpan = 8;
+                        gridData.verticalAlignment = SWT.TOP;
+                        gridData.horizontalAlignment = SWT.FILL;
+                        personMoveGroup.setLayoutData(gridData);
                     }
                     {
                         final Group battleDrillGroup = new Group(handSignalDialog, SWT.DEFAULT);
@@ -215,17 +246,40 @@ public final class Gui implements AutoCloseable, Runnable {
                                 SimpleDirectCommand.getPerformBattleDrillInstance(BattleDrillName.CBRN_DANGER),
                                 "CBRN attack");
                         battleDrillGroup.pack(true);
+                        final GridData gridData = new GridData();
+                        gridData.horizontalSpan = 2;
+                        gridData.verticalSpan = 8;
+                        gridData.verticalAlignment = SWT.TOP;
+                        gridData.horizontalAlignment = SWT.FILL;
+                        battleDrillGroup.setLayoutData(gridData);
                     }
                     {
-                        final Group enemyInSightGroup = new Group(handSignalDialog, SWT.DEFAULT);
-                        final SimpleRelativeLocationLayout groupLayout = new SimpleRelativeLocationLayout();
-                        enemyInSightGroup.setLayout(groupLayout);
-                        enemyInSightGroup.setText("Enemy in Sight");
-                        for (SimpleRelativeLocation location : SimpleRelativeLocation.values()) {
-                            createLocationButton(enemyInSightGroup, SimpleStatement.getEnemyInSight(location),
-                                    location);
-                        }
-                        enemyInSightGroup.pack(true);
+                        final Label spacer = new Label(handSignalDialog, SWT.DEFAULT);
+                        spacer.setSize(0, 0);
+                        spacer.setVisible(false);
+                        final GridData gridData = new GridData();
+                        gridData.horizontalSpan = 2;
+                        gridData.verticalSpan = 3;
+                        gridData.verticalAlignment = SWT.TOP;
+                        gridData.heightHint = 0;
+                        spacer.setLayoutData(gridData);
+                    }
+                    {
+                        final Group checkGroup = new Group(handSignalDialog, SWT.DEFAULT);
+                        final RowLayout groupLayout = new RowLayout(SWT.VERTICAL);
+                        groupLayout.fill = true;
+                        checkGroup.setLayout(groupLayout);
+                        checkGroup.setText("Check");
+                        createMessageButton(checkGroup, SimpleDirectCommand.CHECK_MAP, "Map check");
+                        createMessageButton(checkGroup, SimpleDirectCommand.CHECK_PACES, "Pace count");
+                        createMessageButton(checkGroup, SimpleDirectCommand.CHECK_NUMER_PRESENT, "Head count");
+                        checkGroup.pack(true);
+                        final GridData gridData = new GridData();
+                        gridData.horizontalSpan = 2;
+                        gridData.verticalSpan = 3;
+                        gridData.verticalAlignment = SWT.TOP;
+                        gridData.horizontalAlignment = SWT.FILL;
+                        checkGroup.setLayoutData(gridData);
                     }
                     {
                         final Group miscGroup = new Group(handSignalDialog, SWT.DEFAULT);
@@ -237,17 +291,44 @@ public final class Gui implements AutoCloseable, Runnable {
                         createMessageButton(miscGroup, SimpleStatement.DANGER_AREA, "Danger area");
                         createMessageButton(miscGroup, SimpleDirectCommand.FIX_BAYONET, "Fix bayonets");
                         miscGroup.pack(true);
+                        final GridData gridData = new GridData();
+                        gridData.horizontalSpan = 2;
+                        gridData.verticalSpan = 3;
+                        gridData.verticalAlignment = SWT.TOP;
+                        gridData.horizontalAlignment = SWT.FILL;
+                        miscGroup.setLayoutData(gridData);
                     }
                     {
-                        final Button cancelButton = new Button(handSignalDialog, SWT.PUSH);
+                        final Label spacer = new Label(handSignalDialog, SWT.DEFAULT);
+                        spacer.setSize(0, 0);
+                        spacer.setVisible(false);
+                        final GridData gridData = new GridData();
+                        gridData.horizontalSpan = 4;
+                        gridData.verticalAlignment = SWT.BOTTOM;
+                        gridData.heightHint = 0;
+                        spacer.setLayoutData(gridData);
+                    }
+                    {
+                        final Button cancelButton = new Button(handSignalDialog, SWT.PUSH | SWT.CANCEL);
                         cancelButton.setText("Cancel");
                         cancelButton.addListener(SWT.Selection, event -> close());
+                        final GridData gridData = new GridData();
+                        gridData.horizontalSpan = 1;
+                        gridData.verticalSpan = 1;
+                        gridData.verticalAlignment = SWT.BOTTOM;
+                        cancelButton.setLayoutData(gridData);
                     }
                     {
-                        final Button sendButton = new Button(handSignalDialog, SWT.PUSH);
-                        sendButton.setText("Send");
+                        final Button sendButton = new Button(handSignalDialog, SWT.PUSH | SWT.OK);
+                        sendButton.setText("Signal");
                         handSignalDialog.setDefaultButton(sendButton);
                         sendButton.addListener(SWT.Selection, event -> send());
+                        final GridData gridData = new GridData();
+                        gridData.horizontalSpan = 1;
+                        gridData.verticalSpan = 1;
+                        gridData.verticalAlignment = SWT.BOTTOM;
+                        gridData.horizontalAlignment = SWT.FILL;
+                        sendButton.setLayoutData(gridData);
                     }
                     handSignalDialog.pack(true);
                 }
