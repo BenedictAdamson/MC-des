@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import net.jcip.annotations.GuardedBy;
 import net.jcip.annotations.ThreadSafe;
 import uk.badamson.mc.actor.Actor;
 import uk.badamson.mc.simulation.Clock;
@@ -23,8 +24,11 @@ import uk.badamson.mc.simulation.Person;
 public final class Game {
 
     private final Clock clock = new Clock(TimeUnit.MILLISECONDS, 0L);
+    @GuardedBy("persons")
     private final Set<Person> persons = new HashSet<>();
+    @GuardedBy("persons")
     private Person playedPerson;
+    @GuardedBy("persons")
     private String name;
 
     /**
@@ -57,8 +61,10 @@ public final class Game {
      */
     public final Person createPerson() {
         final Person person = new Person(clock);
-        persons.add(person);
-        return person;
+        synchronized (persons) {
+            persons.add(person);
+            return person;
+        }
     }
 
     /**
@@ -84,7 +90,9 @@ public final class Game {
      * @return the name, or null if it this no name.
      */
     public final String getName() {
-        return name;
+        synchronized (persons) {
+            return name;
+        }
     }
 
     /**
@@ -103,7 +111,9 @@ public final class Game {
      * @return the persons
      */
     public final Set<Person> getPersons() {
-        return Collections.unmodifiableSet(persons);
+        synchronized (persons) {
+            return Collections.unmodifiableSet(new HashSet<>(persons));
+        }
     }
 
     /**
@@ -121,7 +131,9 @@ public final class Game {
      * @return the interface.
      */
     public final Person getPlayedPerson() {
-        return playedPerson;
+        synchronized (persons) {
+            return playedPerson;
+        }
     }
 
     /**
@@ -135,10 +147,12 @@ public final class Game {
      * </ul>
      */
     public final void releaseControl() {
-        if (playedPerson != null) {
-            playedPerson.setActor(null);
+        synchronized (persons) {
+            if (playedPerson != null) {
+                playedPerson.setActor(null);
+            }
+            playedPerson = null;
         }
-        playedPerson = null;
     }
 
     /**
@@ -150,7 +164,9 @@ public final class Game {
      *            the name
      */
     public final void setName(String name) {
-        this.name = name;
+        synchronized (persons) {
+            this.name = name;
+        }
     }
 
     /**
@@ -182,10 +198,12 @@ public final class Game {
     public final void takeControl(Actor actor, Person person) {
         Objects.requireNonNull(actor, "actor");
         Objects.requireNonNull(person, "person");
-        if (!persons.contains(person)) {
-            throw new IllegalArgumentException("person " + person + " is not one of the persons");
+        synchronized (persons) {
+            if (!persons.contains(person)) {
+                throw new IllegalArgumentException("person " + person + " is not one of the persons");
+            }
+            person.setActor(actor);
+            playedPerson = person;
         }
-        person.setActor(actor);
-        playedPerson = person;
     }
 }
