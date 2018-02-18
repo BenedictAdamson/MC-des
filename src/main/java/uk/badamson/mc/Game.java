@@ -23,6 +23,7 @@ public final class Game {
     private final Clock clock = new Clock(TimeUnit.MILLISECONDS, 0L);
     private final Set<Person> persons = new HashSet<>();
     private Person playedPerson;
+    private String name;
 
     /**
      * <p>
@@ -70,6 +71,18 @@ public final class Game {
      */
     public final Clock getClock() {
         return clock;
+    }
+
+    /**
+     * <p>
+     * An identifier for this instance of the Mission Command game, suitable for
+     * display to the player of this game.
+     * </p>
+     * 
+     * @return the name, or null if it this no name.
+     */
+    public final String getName() {
+        return name;
     }
 
     /**
@@ -124,6 +137,18 @@ public final class Game {
             playedPerson.setActor(null);
         }
         playedPerson = null;
+    }
+
+    /**
+     * <p>
+     * Change the {@linkplain #getName() name} of this game.
+     * </p>
+     * 
+     * @param name
+     *            the name
+     */
+    public final void setName(String name) {
+        this.name = name;
     }
 
     /**

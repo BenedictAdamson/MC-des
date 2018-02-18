@@ -10,7 +10,6 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Decorations;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
@@ -100,7 +99,7 @@ public final class Gui implements AutoCloseable, Runnable {
                  */
                 SendHandSignalGui() {
                     handSignalDialog = new Shell(gameWindow, SWT.DIALOG_TRIM);
-                    handSignalDialog.setText("Hand Signal");
+                    handSignalDialog.setText("Mission Command: " + uiName + ": Hand Signal");
                     handSignalDialog.setData(this);
                     handSignalDialog.setEnabled(false);
                     handSignalDialog.setVisible(false);
@@ -408,27 +407,27 @@ public final class Gui implements AutoCloseable, Runnable {
             }// class
 
             private final ActorInterface person;
+            private String uiName;
 
             /**
-             * @param parentWindow
-             *            The composite control which will be the parent of the GUI elements
-             *            for this GUI.
              * @param person
              *            The API (service interface) through which this GUI effects changes
              *            to the simulation of the played person.
+             * @param uiName
+             *            The name to use to identify this person in the GUI.
              * @throws NullPointerException
              *             <ul>
-             *             <li>If {@code parentControl} is null.</li>
              *             <li>If {@code person} is null.</li>
+             *             <li>If {@code uiName} is null.</li>
              *             </ul>
              * @throws IllegalArgumentException
              *             If {@code person} is not one of the {@linkplain Game#getPersons()
              *             simulated persons} of the {@linkplain Gui.GameGui#getGame() game}
              *             for which this is a GUI.
              */
-            PlayedPersonGui(Decorations parentWindow, ActorInterface person) {
-                Objects.requireNonNull(parentWindow, "parentControl");
+            PlayedPersonGui(ActorInterface person, String uiName) {
                 this.person = Objects.requireNonNull(person, "person");
+                this.uiName = Objects.requireNonNull(uiName, "uiName");
                 if (!getGame().getPersons().contains(person)) {
                     throw new IllegalArgumentException(
                             "person is not one of the simulated persons of the game for which this is a GUI");
@@ -532,6 +531,12 @@ public final class Gui implements AutoCloseable, Runnable {
         GameGui(Game game) {
             this.game = Objects.requireNonNull(game, "game");
             gameWindow = new Shell(display);
+            gameWindow.setData(this);
+            if (game.getName() == null) {
+                gameWindow.setText("Misson Command Game");
+            } else {
+                gameWindow.setText("Misson Command: " + game.getName());
+            }
             final RowLayout gameWindowLayout = new RowLayout(SWT.VERTICAL);
             gameWindowLayout.fill = true;
             gameWindow.setLayout(gameWindowLayout);
@@ -559,12 +564,14 @@ public final class Gui implements AutoCloseable, Runnable {
                 transmissionInProgressBar.setMinimum(0);
                 transmissionInProgressBar.setMaximum(Integer.MAX_VALUE);
                 clearTransmissionInProgress();
+                transmissionInProgressGroup.setEnabled(false);
                 transmissionInProgressGroup.pack();
             }
             {
                 final Group messagesBeingReceivedGroup = new Group(gameWindow, SWT.DEFAULT);
                 messagesBeingReceivedGroup.setText("Messages being received");
                 // TODO MessagesBeingReceived
+                messagesBeingReceivedGroup.setEnabled(false);
                 messagesBeingReceivedGroup.pack(true);
             }
             gameWindow.pack(true);
@@ -603,16 +610,22 @@ public final class Gui implements AutoCloseable, Runnable {
          * 
          * @param person
          *            The person to be controlled.
+         * @param uiName
+         *            The name to use to identify this person in the GUI.
          * @return the GUI through which the user controls the person.
          * @throws NullPointerException
-         *             If {@code person} is null.
+         *             <ul>
+         *             <li>If {@code person} is null.</li>
+         *             <li>If {@code uiName} is null.</li>
+         *             </ul>
          * @throws IllegalArgumentException
          *             If {@code person} is not one of the {@linkplain Game#getPersons()
          *             persons} of the {@linkplain #getGame() game} for which this is
          *             the GUI.
          */
-        public final PlayedPersonGui takeControl(Person person) {
-            final PlayedPersonGui gui = new PlayedPersonGui(gameWindow, person);
+        public final PlayedPersonGui takeControl(Person person, String uiName) {
+            final PlayedPersonGui gui = new PlayedPersonGui(person, uiName);
+            gameWindow.setText("Mission Command: " + uiName);
             game.takeControl(gui, person);
             return gui;
         }
@@ -643,6 +656,7 @@ public final class Gui implements AutoCloseable, Runnable {
     public Gui(Main main) {
         this.main = Objects.requireNonNull(main, "main");
         mainWindow = new Shell(display);
+        mainWindow.setText("Misson Command");
         mainWindow.open();
     }
 

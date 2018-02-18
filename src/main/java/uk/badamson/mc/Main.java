@@ -95,10 +95,11 @@ public final class Main implements AutoCloseable, Runnable {
     public final void run() {
         /* TODO: do not hard code game set up. */
         final Game game = new Game();
+        game.setName("1 Person");
         final Person person = game.createPerson();
         try (final Gui gui = new Gui(this)) {
             final Gui.GameGui gameGui = gui.addGame(game);
-            gameGui.takeControl(person);
+            gameGui.takeControl(person, "The Person");
             gui.run();
         }
     }
