@@ -102,6 +102,11 @@ public final class Gui implements AutoCloseable, Runnable {
                     handSignalDialog.setData(this);
                     handSignalDialog.setEnabled(false);
                     handSignalDialog.setVisible(false);
+                    handSignalDialog.addListener(SWT.Close, event -> {
+                        /* Override standard behaviour to hide the dialog rather than dispose of it. */
+                        event.doit = false;
+                        close();
+                    });
                     final GridLayout dialogLayout = new GridLayout(6, true);
                     handSignalDialog.setLayout(dialogLayout);
                     {
@@ -345,7 +350,7 @@ public final class Gui implements AutoCloseable, Runnable {
                  * </p>
                  */
                 public final void close() {
-                    handSignalDialog.close();
+                    handSignalDialog.setVisible(false);
                 }
 
                 private Button createLocationButton(final Composite parent, Message message,
