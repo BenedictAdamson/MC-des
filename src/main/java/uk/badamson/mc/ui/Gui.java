@@ -20,6 +20,7 @@ import org.eclipse.swt.widgets.ProgressBar;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 
+import net.jcip.annotations.ThreadSafe;
 import uk.badamson.mc.Game;
 import uk.badamson.mc.Main;
 import uk.badamson.mc.actor.Actor;
@@ -47,6 +48,7 @@ import uk.badamson.mc.simulation.Person;
  * the main event loop of the GUI.
  * </p>
  */
+@ThreadSafe
 public final class Gui implements AutoCloseable, Runnable {
 
     /**
@@ -58,6 +60,7 @@ public final class Gui implements AutoCloseable, Runnable {
      * {@linkplain Person person}.
      * </p>
      */
+    @ThreadSafe
     public final class GameGui {
         /**
          * <p>
@@ -482,6 +485,14 @@ public final class Gui implements AutoCloseable, Runnable {
                 return person;
             }
 
+            private void setTransmissionInProgressBar(final MessageTransferInProgress transmissionProgress,
+                    final Message fullMessage) {
+                final double lengthSent = transmissionProgress.getMessageSofar().getInformationContent();
+                final double length = fullMessage.getInformationContent();
+                final int progress = (int) ((lengthSent / length) * Integer.MAX_VALUE);
+                transmissionInProgressBar.setSelection(progress);
+            }
+
             @Override
             public void tellBeginReceivingMessage(MessageTransferInProgress receptionStarted) {
                 // TODO Auto-generated method stub
@@ -497,15 +508,19 @@ public final class Gui implements AutoCloseable, Runnable {
 
             @Override
             public void tellMessageSendingEnded(MessageTransferInProgress transmissionProgress, Message fullMessage) {
-                // TODO Auto-generated method stub
-
+                display.asyncExec(() -> {
+                    setTransmissionInProgressBar(transmissionProgress, fullMessage);
+                    transmissionInProgressBar.update();
+                    clearTransmissionInProgress();
+                });
             }
 
             @Override
-            public void tellMessageTransmissionProgress(MessageTransferInProgress transmissionProgress,
-                    Message fullMessage) {
-                // TODO Auto-generated method stub
-
+            public void tellMessageTransmissionProgress(final MessageTransferInProgress transmissionProgress,
+                    final Message fullMessage) {
+                display.asyncExec(() -> {
+                    setTransmissionInProgressBar(transmissionProgress, fullMessage);
+                });
             }
 
         }// class
