@@ -3,7 +3,6 @@ package uk.badamson.mc.ui;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -55,9 +54,12 @@ public final class Gui implements AutoCloseable, Runnable {
      * <p>
      * The GUI of one instance of the Mission Command game.
      * </p>
+     * <p>
+     * For each instance of the game, it is possible to control one
+     * {@linkplain Person person}.
+     * </p>
      */
     public final class GameGui {
-
         /**
          * <p>
          * The GUI for the {@linkplain Game#getPerson() played person} of one instance
@@ -403,12 +405,9 @@ public final class Gui implements AutoCloseable, Runnable {
                     close();
                 }
 
-            }//
+            }// class
 
             private final ActorInterface person;
-            private final Text transmissionInProgressMessage;
-            private final ProgressBar transmissionInProgressBar;
-            private final Label transmissionMediumLabel;
 
             /**
              * @param parentWindow
@@ -434,48 +433,17 @@ public final class Gui implements AutoCloseable, Runnable {
                     throw new IllegalArgumentException(
                             "person is not one of the simulated persons of the game for which this is a GUI");
                 }
-                {
-                    final Menu menuBar = new Menu(parentWindow, SWT.BAR);
-                    {
-                        final MenuItem sendMenuItem = new MenuItem(menuBar, SWT.CASCADE);
-                        sendMenuItem.setText("Send");
-                        final Menu sendMenu = new Menu(menuBar);
-                        sendMenuItem.setMenu(sendMenu);
-                        final Set<Medium> media = person.getMedia();
-                        for (Medium medium : media) {
-                            final MenuItem mediumItem = new MenuItem(sendMenu, SWT.PUSH);
-                            mediumItem.setText(medium.toString() + "...");
-                            if (medium == HandSignals.INSTANCE) {
-                                final SendHandSignalGui sendHandSignalGui = new SendHandSignalGui();
-                                mediumItem.setData(sendHandSignalGui);
-                                mediumItem.addListener(SWT.Selection, event -> sendHandSignalGui.open());
-                            }
-                        }
+                for (Medium medium : person.getMedia()) {
+                    final MenuItem mediumItem = new MenuItem(sendMenu, SWT.PUSH);
+                    mediumItem.setText(medium.toString() + "...");
+                    if (medium == HandSignals.INSTANCE) {
+                        final SendHandSignalGui sendHandSignalGui = new SendHandSignalGui();
+                        mediumItem.setData(sendHandSignalGui);
+                        mediumItem.addListener(SWT.Selection, event -> sendHandSignalGui.open());
                     }
-                    parentWindow.setMenuBar(menuBar);
                 }
-                {
-                    final Group transmissionInProgressGroup = new Group(parentWindow, SWT.DEFAULT);
-                    final RowLayout layout = new RowLayout(SWT.VERTICAL);
-                    layout.fill = true;
-                    transmissionInProgressGroup.setLayout(layout);
-                    transmissionInProgressGroup.setText("Message being sent");
-                    transmissionMediumLabel = new Label(transmissionInProgressGroup, SWT.LEFT);
-                    transmissionInProgressMessage = new Text(transmissionInProgressGroup,
-                            SWT.MULTI | SWT.LEFT | SWT.READ_ONLY);
-                    transmissionInProgressBar = new ProgressBar(transmissionInProgressGroup, SWT.HORIZONTAL);
-                    transmissionInProgressBar.setMinimum(0);
-                    transmissionInProgressBar.setMaximum(Integer.MAX_VALUE);
-                    clearTransmissionInProgress();
-                    transmissionInProgressGroup.pack();
-                }
-                {
-                    final Group messagesBeingReceivedGroup = new Group(parentWindow, SWT.DEFAULT);
-                    messagesBeingReceivedGroup.setText("Messages being received");
-                    // TODO MessagesBeingReceived
-                    messagesBeingReceivedGroup.pack(true);
-                }
-                parentWindow.requestLayout();
+                sendMenu.setEnabled(true);
+                clearTransmissionInProgress();
             }
 
             final void beginSendingMesage(Medium medium, Message fullMessage) throws MediumUnavailableException {
@@ -486,13 +454,6 @@ public final class Gui implements AutoCloseable, Runnable {
                 transmissionMediumLabel.setText(medium.toString());
                 transmissionInProgressMessage.setText(fullMessage.toString());
                 transmissionInProgressBar.setSelection(0);
-            }
-
-            private void clearTransmissionInProgress() {
-                transmissionMediumLabel.setText("Not sending");
-                transmissionInProgressMessage.setText("");
-                transmissionInProgressBar.setSelection(0);
-                transmissionInProgressBar.setMaximum(Integer.MAX_VALUE);
             }
 
             /**
@@ -551,6 +512,10 @@ public final class Gui implements AutoCloseable, Runnable {
         }// class
 
         private final Game game;
+        private final Text transmissionInProgressMessage;
+        private final ProgressBar transmissionInProgressBar;
+        private final Label transmissionMediumLabel;
+        private final Menu sendMenu;
         private final Shell gameWindow;
 
         /**
@@ -566,8 +531,50 @@ public final class Gui implements AutoCloseable, Runnable {
          */
         GameGui(Game game) {
             this.game = Objects.requireNonNull(game, "game");
-            this.gameWindow = new Shell();
-            this.gameWindow.setLayout(new RowLayout(SWT.VERTICAL));
+            gameWindow = new Shell(display);
+            final RowLayout gameWindowLayout = new RowLayout(SWT.VERTICAL);
+            gameWindowLayout.fill = true;
+            gameWindow.setLayout(gameWindowLayout);
+            {
+                final Menu menuBar = new Menu(gameWindow, SWT.BAR);
+                {
+                    final MenuItem sendMenuItem = new MenuItem(menuBar, SWT.CASCADE);
+                    sendMenuItem.setText("Send");
+                    sendMenu = new Menu(menuBar);
+                    sendMenuItem.setMenu(sendMenu);
+                    sendMenuItem.setEnabled(false);
+                }
+                gameWindow.setMenuBar(menuBar);
+            }
+            {
+                final Group transmissionInProgressGroup = new Group(gameWindow, SWT.DEFAULT);
+                final RowLayout layout = new RowLayout(SWT.VERTICAL);
+                layout.fill = true;
+                transmissionInProgressGroup.setLayout(layout);
+                transmissionInProgressGroup.setText("Message being sent");
+                transmissionMediumLabel = new Label(transmissionInProgressGroup, SWT.LEFT);
+                transmissionInProgressMessage = new Text(transmissionInProgressGroup,
+                        SWT.MULTI | SWT.LEFT | SWT.READ_ONLY);
+                transmissionInProgressBar = new ProgressBar(transmissionInProgressGroup, SWT.HORIZONTAL);
+                transmissionInProgressBar.setMinimum(0);
+                transmissionInProgressBar.setMaximum(Integer.MAX_VALUE);
+                clearTransmissionInProgress();
+                transmissionInProgressGroup.pack();
+            }
+            {
+                final Group messagesBeingReceivedGroup = new Group(gameWindow, SWT.DEFAULT);
+                messagesBeingReceivedGroup.setText("Messages being received");
+                // TODO MessagesBeingReceived
+                messagesBeingReceivedGroup.pack(true);
+            }
+            gameWindow.pack(true);
+            gameWindow.open();
+        }
+
+        private void clearTransmissionInProgress() {
+            transmissionMediumLabel.setText("Not sending");
+            transmissionInProgressMessage.setText("");
+            transmissionInProgressBar.setSelection(0);
         }
 
         /**
@@ -606,8 +613,6 @@ public final class Gui implements AutoCloseable, Runnable {
          */
         public final PlayedPersonGui takeControl(Person person) {
             final PlayedPersonGui gui = new PlayedPersonGui(gameWindow, person);
-            gameWindow.pack(true);
-            gameWindow.open();
             game.takeControl(gui, person);
             return gui;
         }
