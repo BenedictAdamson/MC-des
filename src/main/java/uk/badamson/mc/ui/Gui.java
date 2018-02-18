@@ -78,13 +78,17 @@ public final class Gui implements AutoCloseable, Runnable {
                 private final Shell handSignalDialog;
                 private final List<Button> messageButtons = new ArrayList<>(
                         SimpleDirectCommand.values().length + SimpleStatement.values().length);
-                private final Listener enforceRadioButtonBehaviour = event -> {
+                private final Button sendButton;
+                private final Listener selectMessage = event -> {
                     final Button selectedButton = (Button) event.widget;
                     for (Button messageButton : messageButtons) {
                         messageButton.setSelection(false);
                     }
                     selectedButton.setSelection(true);
+                    selectedMessage = (Message) selectedButton.getData();
+                    enableSending();
                 };
+                private Message selectedMessage;
 
                 /**
                  * <p>
@@ -319,8 +323,9 @@ public final class Gui implements AutoCloseable, Runnable {
                         cancelButton.setLayoutData(gridData);
                     }
                     {
-                        final Button sendButton = new Button(handSignalDialog, SWT.PUSH | SWT.OK);
+                        sendButton = new Button(handSignalDialog, SWT.PUSH | SWT.OK);
                         sendButton.setText("Signal");
+                        sendButton.setEnabled(false);
                         handSignalDialog.setDefaultButton(sendButton);
                         sendButton.addListener(SWT.Selection, event -> send());
                         final GridData gridData = new GridData();
@@ -349,7 +354,7 @@ public final class Gui implements AutoCloseable, Runnable {
                     button.setLayoutData(location);
                     button.pack();
                     messageButtons.add(button);
-                    button.addListener(SWT.Selection, enforceRadioButtonBehaviour);
+                    button.addListener(SWT.Selection, selectMessage);
                     return button;
                 }
 
@@ -358,8 +363,12 @@ public final class Gui implements AutoCloseable, Runnable {
                     button.setText(text);
                     button.setData(message);
                     messageButtons.add(button);
-                    button.addListener(SWT.Selection, enforceRadioButtonBehaviour);
+                    button.addListener(SWT.Selection, selectMessage);
                     return button;
+                }
+
+                private void enableSending() {
+                    sendButton.setEnabled(true);
                 }
 
                 /**
