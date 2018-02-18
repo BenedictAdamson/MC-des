@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import net.jcip.annotations.ThreadSafe;
 import uk.badamson.mc.actor.Actor;
 import uk.badamson.mc.simulation.Clock;
 import uk.badamson.mc.simulation.Person;
@@ -18,6 +19,7 @@ import uk.badamson.mc.simulation.Person;
  * Each game consists of one simulated world.
  * </p>
  */
+@ThreadSafe
 public final class Game {
 
     private final Clock clock = new Clock(TimeUnit.MILLISECONDS, 0L);
