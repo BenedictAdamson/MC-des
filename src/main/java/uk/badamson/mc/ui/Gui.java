@@ -515,6 +515,7 @@ public final class Gui implements AutoCloseable, Runnable {
         private final ProgressBar transmissionInProgressBar;
         private final Label transmissionMediumLabel;
         private final Menu sendMenu;
+        private final Label timeLabel;
         private final Shell gameWindow;
 
         /**
@@ -552,6 +553,15 @@ public final class Gui implements AutoCloseable, Runnable {
                 gameWindow.setMenuBar(menuBar);
             }
             {
+                timeLabel = new Label(gameWindow, SWT.LEFT | SWT.HORIZONTAL);
+                updateClockDisplay();
+            }
+            {
+                final Button runButton = new Button(gameWindow, SWT.PUSH);
+                runButton.setText("Advance Simulation");
+                runButton.addListener(SWT.Selection, event -> advanceSimulation(game));
+            }
+            {
                 final Group transmissionInProgressGroup = new Group(gameWindow, SWT.DEFAULT);
                 final RowLayout layout = new RowLayout(SWT.VERTICAL);
                 layout.fill = true;
@@ -576,6 +586,11 @@ public final class Gui implements AutoCloseable, Runnable {
             }
             gameWindow.pack(true);
             gameWindow.open();
+        }
+
+        private void advanceSimulation(Game game) {
+            game.getClock().advanceSeconds(1.0);
+            updateClockDisplay();
         }
 
         private void clearTransmissionInProgress() {
@@ -628,6 +643,10 @@ public final class Gui implements AutoCloseable, Runnable {
             gameWindow.setText("Mission Command: " + uiName);
             game.takeControl(gui, person);
             return gui;
+        }
+
+        private void updateClockDisplay() {
+            timeLabel.setText(Long.toString(game.getClock().getTime()));
         }
 
     }// class
