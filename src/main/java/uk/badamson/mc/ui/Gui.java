@@ -26,6 +26,7 @@ import uk.badamson.mc.Game;
 import uk.badamson.mc.Main;
 import uk.badamson.mc.actor.Actor;
 import uk.badamson.mc.actor.ActorInterface;
+import uk.badamson.mc.actor.MediumUnavailableException;
 import uk.badamson.mc.actor.MessageTransferInProgress;
 import uk.badamson.mc.actor.medium.HandSignals;
 import uk.badamson.mc.actor.medium.Medium;
@@ -383,7 +384,13 @@ public final class Gui implements AutoCloseable, Runnable {
                 }
 
                 private final void send() {
-                    // TODO
+                    try {
+                        person.beginSendingMessage(HandSignals.INSTANCE, selectedMessage);
+                    } catch (MediumUnavailableException e) {
+                        // TODO pop up error dialog
+                        // TODO prevent dialog being opened again
+                        sendButton.setEnabled(false);
+                    }
                     close();
                 }
 
