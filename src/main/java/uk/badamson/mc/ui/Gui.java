@@ -267,6 +267,7 @@ public final class Gui implements AutoCloseable, Runnable {
                         final Label spacer = new Label(handSignalDialog, SWT.DEFAULT);
                         spacer.setSize(0, 0);
                         spacer.setVisible(false);
+                        spacer.pack(true);
                         final GridData gridData = new GridData();
                         gridData.horizontalSpan = 2;
                         gridData.verticalSpan = 3;
@@ -312,6 +313,7 @@ public final class Gui implements AutoCloseable, Runnable {
                         final Label spacer = new Label(handSignalDialog, SWT.DEFAULT);
                         spacer.setSize(0, 0);
                         spacer.setVisible(false);
+                        spacer.pack(true);
                         final GridData gridData = new GridData();
                         gridData.horizontalSpan = 4;
                         gridData.verticalAlignment = SWT.BOTTOM;
@@ -322,6 +324,7 @@ public final class Gui implements AutoCloseable, Runnable {
                         final Button cancelButton = new Button(handSignalDialog, SWT.PUSH | SWT.CANCEL);
                         cancelButton.setText("Cancel");
                         cancelButton.addListener(SWT.Selection, event -> close());
+                        cancelButton.pack(true);
                         final GridData gridData = new GridData();
                         gridData.horizontalSpan = 1;
                         gridData.verticalSpan = 1;
@@ -334,6 +337,7 @@ public final class Gui implements AutoCloseable, Runnable {
                         sendButton.setEnabled(false);
                         handSignalDialog.setDefaultButton(sendButton);
                         sendButton.addListener(SWT.Selection, event -> send());
+                        sendButton.pack(true);
                         final GridData gridData = new GridData();
                         gridData.horizontalSpan = 1;
                         gridData.verticalSpan = 1;
@@ -471,9 +475,13 @@ public final class Gui implements AutoCloseable, Runnable {
                     // TODO MessagesBeingReceived
                     messagesBeingReceivedGroup.pack(true);
                 }
+                parentWindow.requestLayout();
             }
 
             final void beginSendingMesage(Medium medium, Message fullMessage) throws MediumUnavailableException {
+                if (person.getTransmissionInProgress() != null) {
+                    person.haltSendingMessage();
+                }
                 person.beginSendingMessage(medium, fullMessage);
                 transmissionMediumLabel.setText(medium.toString());
                 transmissionInProgressMessage.setText(fullMessage.toString());
@@ -558,7 +566,7 @@ public final class Gui implements AutoCloseable, Runnable {
          */
         GameGui(Game game) {
             this.game = Objects.requireNonNull(game, "game");
-            this.gameWindow = new Shell(mainWindow);
+            this.gameWindow = new Shell();
             this.gameWindow.setLayout(new RowLayout(SWT.VERTICAL));
         }
 
