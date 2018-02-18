@@ -6,6 +6,9 @@ import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.concurrent.TimeUnit;
 
+import net.jcip.annotations.GuardedBy;
+import net.jcip.annotations.ThreadSafe;
+
 /**
  * <p>
  * A simulation clock.
@@ -25,6 +28,7 @@ import java.util.concurrent.TimeUnit;
  * {@linkplain Clock.TimeOverflowException overflow} during the simulation.
  * </p>
  */
+@ThreadSafe
 public final class Clock {
 
     /**
@@ -139,10 +143,11 @@ public final class Clock {
     }
 
     private final TimeUnit unit;
+    @GuardedBy("scheduledActions")
     private final PriorityQueue<ScheduledAction> scheduledActions = new PriorityQueue<>();
-
+    @GuardedBy("scheduledActions")
     private long time;
-
+    @GuardedBy("scheduledActions")
     private ScheduledAction currentScheduledAction;
 
     /**
@@ -159,7 +164,9 @@ public final class Clock {
      */
     public Clock(TimeUnit unit, long time) {
         this.unit = unit;
-        this.time = time;
+        synchronized (scheduledActions) {
+            this.time = time;
+        }
     }
 
     /**
@@ -200,10 +207,12 @@ public final class Clock {
         if (amount < 0) {
             throw new IllegalArgumentException("amount " + amount);
         }
-        if (Long.MAX_VALUE - amount < time) {
-            throw new TimeOverflowException();
+        synchronized (scheduledActions) {
+            if (Long.MAX_VALUE - amount < time) {
+                throw new TimeOverflowException();
+            }
+            advanceTo(time + amount);
         }
-        advanceTo(time + amount);
     }
 
     /**
@@ -271,24 +280,26 @@ public final class Clock {
      * @see #advance(long)
      */
     public final void advanceTo(long when) {
-        if (when < time) {
-            throw new IllegalArgumentException("when " + when + " is before now " + time);
-        }
-        if (currentScheduledAction != null) {
-            throw new IllegalStateException("Called from the run method of a scheduled action");
-        }
-        while (!scheduledActions.isEmpty() && scheduledActions.peek().when <= when) {
-            currentScheduledAction = scheduledActions.poll();
-            time = currentScheduledAction.when;
-            try {
-                currentScheduledAction.action.run();
-            } catch (RuntimeException e) {
-                throw new ActionException(e);
-            } finally {
-                currentScheduledAction = null;
+        synchronized (scheduledActions) {
+            if (when < time) {
+                throw new IllegalArgumentException("when " + when + " is before now " + time);
             }
+            if (currentScheduledAction != null) {
+                throw new IllegalStateException("Called from the run method of a scheduled action");
+            }
+            while (!scheduledActions.isEmpty() && scheduledActions.peek().when <= when) {
+                currentScheduledAction = scheduledActions.poll();
+                time = currentScheduledAction.when;
+                try {
+                    currentScheduledAction.action.run();
+                } catch (RuntimeException e) {
+                    throw new ActionException(e);
+                } finally {
+                    currentScheduledAction = null;
+                }
+            }
+            time = when;
         }
-        time = when;
     }
 
     /**
@@ -300,7 +311,9 @@ public final class Clock {
      * @return the time
      */
     public final long getTime() {
-        return time;
+        synchronized (scheduledActions) {
+            return time;
+        }
     }
 
     /**
@@ -344,11 +357,12 @@ public final class Clock {
      */
     public final void scheduleActionAt(long when, Runnable action) {
         Objects.requireNonNull(action, "action");
-        if (when < time) {
-            throw new IllegalArgumentException("when <" + when + "> is before now <" + time + ">");
+        synchronized (scheduledActions) {
+            if (when < time) {
+                throw new IllegalArgumentException("when <" + when + "> is before now <" + time + ">");
+            }
+            scheduledActions.add(new ScheduledAction(when, action));
         }
-
-        scheduledActions.add(new ScheduledAction(when, action));
     }
 
     /**
@@ -401,12 +415,14 @@ public final class Clock {
             throw new TimeOverflowException();
         }
         final long convertedDelay = unit.convert(delay, delayUnit);
-        if (convertedDelay == Long.MAX_VALUE || Long.MAX_VALUE - convertedDelay < time) {
-            throw new TimeOverflowException();
+        synchronized (scheduledActions) {
+            if (convertedDelay == Long.MAX_VALUE || Long.MAX_VALUE - convertedDelay < time) {
+                throw new TimeOverflowException();
+            }
+            final long when = time + convertedDelay;
+            scheduleActionAt(when, action);
+            return when;
         }
-        final long when = time + convertedDelay;
-        scheduleActionAt(when, action);
-        return when;
     }
 
     /**
