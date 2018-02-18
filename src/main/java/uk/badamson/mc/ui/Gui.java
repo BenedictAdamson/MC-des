@@ -390,7 +390,7 @@ public final class Gui implements AutoCloseable, Runnable {
 
                 private final void send() {
                     try {
-                        person.beginSendingMessage(HandSignals.INSTANCE, selectedMessage);
+                        beginSendingMesage(HandSignals.INSTANCE, selectedMessage);
                     } catch (MediumUnavailableException e) {
                         // TODO pop up error dialog
                         // TODO prevent dialog being opened again
@@ -402,6 +402,9 @@ public final class Gui implements AutoCloseable, Runnable {
             }//
 
             private final ActorInterface person;
+            private final Text transmissionInProgressMessage;
+            private final ProgressBar transmissionInProgressBar;
+            private final Label transmissionMediumLabel;
 
             /**
              * @param parentWindow
@@ -453,15 +456,13 @@ public final class Gui implements AutoCloseable, Runnable {
                     layout.fill = true;
                     transmissionInProgressGroup.setLayout(layout);
                     transmissionInProgressGroup.setText("Message being sent");
-                    final Label mediumLabel = new Label(transmissionInProgressGroup, SWT.LEFT);
-                    mediumLabel.setText("Not sending");
-                    final Text message = new Text(transmissionInProgressGroup, SWT.MULTI | SWT.LEFT | SWT.READ_ONLY);
-                    message.setText("");
-                    final ProgressBar progress = new ProgressBar(transmissionInProgressGroup, SWT.HORIZONTAL);
-                    progress.setMinimum(0);
-                    progress.setSelection(0);
-                    progress.setMaximum(Integer.MAX_VALUE);
-                    // TODO TransmissionInProgress
+                    transmissionMediumLabel = new Label(transmissionInProgressGroup, SWT.LEFT);
+                    transmissionInProgressMessage = new Text(transmissionInProgressGroup,
+                            SWT.MULTI | SWT.LEFT | SWT.READ_ONLY);
+                    transmissionInProgressBar = new ProgressBar(transmissionInProgressGroup, SWT.HORIZONTAL);
+                    transmissionInProgressBar.setMinimum(0);
+                    transmissionInProgressBar.setMaximum(Integer.MAX_VALUE);
+                    clearTransmissionInProgress();
                     transmissionInProgressGroup.pack();
                 }
                 {
@@ -470,6 +471,20 @@ public final class Gui implements AutoCloseable, Runnable {
                     // TODO MessagesBeingReceived
                     messagesBeingReceivedGroup.pack(true);
                 }
+            }
+
+            final void beginSendingMesage(Medium medium, Message fullMessage) throws MediumUnavailableException {
+                person.beginSendingMessage(medium, fullMessage);
+                transmissionMediumLabel.setText(medium.toString());
+                transmissionInProgressMessage.setText(fullMessage.toString());
+                transmissionInProgressBar.setSelection(0);
+            }
+
+            private void clearTransmissionInProgress() {
+                transmissionMediumLabel.setText("Not sending");
+                transmissionInProgressMessage.setText("");
+                transmissionInProgressBar.setSelection(0);
+                transmissionInProgressBar.setMaximum(Integer.MAX_VALUE);
             }
 
             /**
