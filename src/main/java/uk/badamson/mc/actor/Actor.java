@@ -21,10 +21,11 @@ public interface Actor {
      * @throws NullPointerException
      *             If {@code receptionStarted} is null.
      * @throws IllegalArgumentException
-     *             If the {@linkplain MessageTransferInProgress#getMessageSofar()
-     *             message received so far} of the {@code receptionStarted} is not
-     *             null, which would indicate that reception actually started some
-     *             time ago.
+     *             If the {@linkplain Message#getInformationContent() length} of the
+     *             {@linkplain MessageTransferInProgress#getMessageSofar() message
+     *             received so far} of the {@code receptionStarted} is not zero,
+     *             which would indicate that reception actually started some time
+     *             ago.
      */
     public void tellBeginReceivingMessage(MessageTransferInProgress receptionStarted);
 

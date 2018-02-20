@@ -255,13 +255,26 @@ public class PersonTest {
         final Person sender = new Person(clock1);
         final Person receiver = new Person(clock1);
         final Medium medium = HandSignals.INSTANCE;
+        final AtomicInteger nStartMessages = new AtomicInteger(0);
+        final Actor receiverActor = new AbstractActor() {
+
+            @Override
+            public final void tellBeginReceivingMessage(MessageTransferInProgress receptionStarted) {
+                super.tellBeginReceivingMessage(receptionStarted);
+                assertEquals("receptionStarted.medium", medium, receptionStarted.getMedium());
+                nStartMessages.incrementAndGet();
+            }
+
+        };
         sender.addReceiver(medium, receiver);
+        receiver.setActor(receiverActor);
 
         try {
             ActorInterfaceTest.beginSendingMessage(sender, medium, message);
         } catch (MediumUnavailableException e) {
             throw new AssertionError(e);
         }
+        clock1.advance(0L);// fire all events
 
         assertInvariants(sender);
         assertInvariants(receiver);
@@ -271,6 +284,7 @@ public class PersonTest {
         assertEquals("Receiving medium", medium, messageBeingReceived.getMedium());
         assertEquals("Received message length", 0.0, messageBeingReceived.getMessageSofar().getInformationContent(),
                 message.getInformationContent() * 0.01);
+        assertEquals("Told receiver actor that begin receiving message", 1, nStartMessages.get());
     }
 
     @Test

@@ -166,10 +166,21 @@ public final class Person implements ActorInterface {
         // TODO updateState()
         assert medium instanceof HandSignals;
         transmittingMessage = message;
-        transmissionInProgress = new MessageTransferInProgress(medium, UnusableIncompleteMessage.EMPTY_MESSAGE);
-        for (Person receiver : receivers) {
-            receiver.messagesBeingReceived.add(transmissionInProgress);
-            // TODO tell receiver actor tellBeginReceivingMessage
+        final long now = clock.getTime();
+        final MessageTransferInProgress messageTransferInProgress0 = new MessageTransferInProgress(medium,
+                UnusableIncompleteMessage.EMPTY_MESSAGE);
+        transmissionInProgress = messageTransferInProgress0;
+        for (final Person receiver : receivers) {
+            receiver.messagesBeingReceived.add(messageTransferInProgress0);
+
+            clock.scheduleActionAt(now, new Runnable() {
+                @Override
+                public final void run() {
+                    if (receiver.actor != null) {
+                        receiver.actor.tellBeginReceivingMessage(messageTransferInProgress0);
+                    }
+                }
+            });
         }
         scheduleUpdateMessageTransmission();
     }
