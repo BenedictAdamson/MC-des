@@ -1,7 +1,9 @@
 package uk.badamson.mc.simulation;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -56,7 +58,8 @@ public final class Person implements ActorInterface {
     public static final double MIN_MESSAGE_TRANSMISSION_PROGRESS_INTERVAL = 0.125;
 
     private final Clock clock;
-    private final Set<Medium> media = new HashSet<>();
+    private final Map<Medium, Set<Person>> mediaReceivers = new HashMap<>();
+    private final Set<MessageTransferInProgress> messagesBeingReceived = new HashSet<>();
 
     private Actor actor;
     private MessageTransferInProgress transmissionInProgress;
@@ -85,8 +88,41 @@ public final class Person implements ActorInterface {
      */
     public Person(Clock clock) {
         this.clock = Objects.requireNonNull(clock, "clock");
-        media.add(HandSignals.INSTANCE);
+        mediaReceivers.put(HandSignals.INSTANCE, new HashSet<>());
         previousUpdate = clock.getTime();
+    }
+
+    /**
+     * <p>
+     * Add a person as a person that can {@linkplain #getMessagesBeingReceived()
+     * receive} messages {@linkplain #beginSendingMessage(Medium, Message) sent} by
+     * this person using a given medium.
+     * </p>
+     * <ul>
+     * <li>The given medium is one of the {@linkplain #getMedia() media} through
+     * which this person can send messages.</li>
+     * <li>Subsequent {@linkplain #beginSendingMessage(Medium, Message) sending} of
+     * messages by this person through the medium will result in the given person
+     * {@linkplain #getMessagesBeingReceived() receiving} those messages.</li>
+     * </ul>
+     * 
+     * @param medium
+     *            The transmission medium (or means) through which this person can
+     *            send messages to the receiver
+     * @param receiver
+     *            The person who can receive messages sent by this person through
+     *            the medium.
+     * @throws NullPointerException
+     *             <ul>
+     *             <li>If {@code medium} is null.</li>
+     *             <li>If {@code receiver} is null.</li>
+     *             </ul>
+     */
+    public final void addReceiver(Medium medium, Person receiver) {
+        Objects.requireNonNull(medium, "medium");
+        Objects.requireNonNull(receiver, "receiver");
+        // TODO handle new medium
+        mediaReceivers.get(medium).add(receiver);
     }
 
     /*
@@ -120,7 +156,8 @@ public final class Person implements ActorInterface {
         if (!medium.canConvey(message)) {
             throw new IllegalMessageException();
         }
-        if (!media.contains(medium)) {
+        final Set<Person> receivers = mediaReceivers.get(medium);
+        if (receivers == null) {
             throw new MediumUnavailableException();
         }
         if (transmissionInProgress != null) {
@@ -130,6 +167,10 @@ public final class Person implements ActorInterface {
         assert medium instanceof HandSignals;
         transmittingMessage = message;
         transmissionInProgress = new MessageTransferInProgress(medium, UnusableIncompleteMessage.EMPTY_MESSAGE);
+        for (Person receiver : receivers) {
+            receiver.messagesBeingReceived.add(transmissionInProgress);
+            // TODO tell receiver actor tellBeginReceivingMessage
+        }
         scheduleUpdateMessageTransmission();
     }
 
@@ -144,6 +185,7 @@ public final class Person implements ActorInterface {
             public final void run() {
                 if (actor != null) {
                     actor.tellMessageSendingEnded(finalProgress, fullMessage);
+                    // TODO tell receiver actor tellMessageReceptionProgress
                 }
             }
         });
@@ -176,20 +218,14 @@ public final class Person implements ActorInterface {
         return clock;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public final Set<Medium> getMedia() {
-        return Collections.unmodifiableSet(media);
+        return Collections.unmodifiableSet(mediaReceivers.keySet());
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public final Set<MessageTransferInProgress> getMessagesBeingReceived() {
-        return Collections.emptySet();// TODO
+        return Collections.unmodifiableSet(messagesBeingReceived);
     }
 
     @Override
@@ -229,6 +265,7 @@ public final class Person implements ActorInterface {
                 updateState();
                 if (actor != null && transmissionInProgress != null) {
                     actor.tellMessageTransmissionProgress(transmissionInProgress, transmittingMessage);
+                    // TODO tell receiver actor tellMessageReceptionProgress
                     scheduleUpdateMessageTransmission();
                 }
                 /* else updateState() ended message transmission. */

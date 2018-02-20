@@ -7,6 +7,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -248,6 +249,38 @@ public class PersonTest {
     public void haltSendingMessage_B() {
         final double fraction = 0.5;
         haltSendingMessage(SimpleDirectCommand.getAssembleInstance(SimpleRelativeLocation.FRONT_NEAR), fraction);
+    }
+
+    private void receivingMessage(SimpleDirectCommand message) {
+        final Person sender = new Person(clock1);
+        final Person receiver = new Person(clock1);
+        final Medium medium = HandSignals.INSTANCE;
+        sender.addReceiver(medium, receiver);
+
+        try {
+            ActorInterfaceTest.beginSendingMessage(sender, medium, message);
+        } catch (MediumUnavailableException e) {
+            throw new AssertionError(e);
+        }
+
+        assertInvariants(sender);
+        assertInvariants(receiver);
+        final Set<MessageTransferInProgress> messagesBeingReceived = receiver.getMessagesBeingReceived();
+        assertEquals("Messages being received", 1, messagesBeingReceived.size());// guard
+        final MessageTransferInProgress messageBeingReceived = messagesBeingReceived.iterator().next();
+        assertEquals("Receiving medium", medium, messageBeingReceived.getMedium());
+        assertEquals("Received message length", 0.0, messageBeingReceived.getMessageSofar().getInformationContent(),
+                message.getInformationContent() * 0.01);
+    }
+
+    @Test
+    public void receivingMessageA() {
+        receivingMessage(SimpleDirectCommand.CHECK_MAP);
+    }
+
+    @Test
+    public void receivingMessageB() {
+        receivingMessage(SimpleDirectCommand.HALT);
     }
 
     @Test
