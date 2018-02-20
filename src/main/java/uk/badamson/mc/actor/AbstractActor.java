@@ -33,14 +33,9 @@ public class AbstractActor implements Actor {
     }
 
     @Override
-    public void tellMessageReceptionProgress(Message previousMessageSoFar,
-            MessageTransferInProgress messageBeingReceived) {
+    public void tellMessageReceptionProgress(MessageTransferInProgress messageBeingReceived) {
         Objects.requireNonNull(messageBeingReceived, "messageBeingReceived");
         Objects.requireNonNull(messageBeingReceived.getMessageSofar(), "messageBeingReceived.messageSoFar");
-        if (previousMessageSoFar != null && messageBeingReceived.getMessageSofar()
-                .getInformationContent() <= previousMessageSoFar.getInformationContent()) {
-            throw new IllegalArgumentException("No progress in reception");
-        }
     }
 
     @Override

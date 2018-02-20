@@ -22,9 +22,8 @@ public class ActorTest {
         assertInvariants(actor);
     }
 
-    public static void tellMessageReceptionProgress(Actor actor, Message previousMessageSoFar,
-            MessageTransferInProgress messageBeingReceived) {
-        actor.tellMessageReceptionProgress(previousMessageSoFar, messageBeingReceived);
+    public static void tellMessageReceptionProgress(Actor actor, MessageTransferInProgress messageBeingReceived) {
+        actor.tellMessageReceptionProgress(messageBeingReceived);
         assertInvariants(actor);
     }
 

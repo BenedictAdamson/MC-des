@@ -34,35 +34,12 @@ public interface Actor {
      * actor.
      * </p>
      * 
-     * @param previousMessageSoFar
-     *            The amount of the message that had been received the previous time
-     *            the actor was told about reception of the message. This may be
-     *            null, which indicates that this is the first call to indicate
-     *            progress, and the previous call about the
-     *            {@linkplain MessageTransferInProgress#getMedium() medium} of the
-     *            message was a call to indicate that
-     *            {@linkplain #tellBeginReceivingMessage(MessageTransferInProgress)
-     *            receiving the message began}.
      * @param messageBeingReceived
      *            The current progress of reception of the message.
-     * 
      * @throws NullPointerException
-     *             <ul>
-     *             <li>If {@code messageBeingReceived} is null.</li>
-     *             <li>If the
-     *             {@linkplain MessageTransferInProgress#getMessageSofar() message
-     *             received so far} of the {@code messageBeingReceived} is
-     *             null.</li>
-     *             </ul>
-     * @throws IllegalArgumentException
-     *             If the {@code previousMessageSoFar} is non null and the
-     *             {@linkplain Message#getInformationContent() length (information
-     *             content)} of the message received so far of the
-     *             {@code messageBeingReceived} is not greater than the length of
-     *             the {@code previousMessageSoFar}.
+     *             If {@code messageBeingReceived} is null.
      */
-    public void tellMessageReceptionProgress(Message previousMessageSoFar,
-            MessageTransferInProgress messageBeingReceived);
+    public void tellMessageReceptionProgress(MessageTransferInProgress messageBeingReceived);
 
     /**
      * <p>
