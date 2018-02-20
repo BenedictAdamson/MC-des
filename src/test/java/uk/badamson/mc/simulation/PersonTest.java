@@ -153,6 +153,47 @@ public class PersonTest {
     }
 
     @Test
+    public void changeSendingMessage() {
+        final double interruptionFraction = 0.25;
+        final Message message1 = SimpleDirectCommand.CHECK_MAP;
+        final Message message2 = SimpleDirectCommand.CHECK_PACES;
+
+        final Clock clock = new Clock(TimeUnit.MICROSECONDS, TIME_1);
+        final Person person = new Person(clock);
+        final Medium medium = HandSignals.INSTANCE;
+        final double informationInMessage = message1.getInformationContent();
+        final double transmissionTime = informationInMessage / medium.getTypicalTransmissionRate();
+
+        final AtomicInteger nEndMessages = new AtomicInteger(0);
+        final AbstractActor actor = new AbstractActor() {
+
+            @Override
+            public final void tellMessageSendingEnded(MessageTransferInProgress transmissionProgress,
+                    Message fullMessage) {
+                super.tellMessageSendingEnded(transmissionProgress, fullMessage);
+                nEndMessages.incrementAndGet();
+            }
+
+        };
+        person.setActor(actor);
+        try {
+            person.beginSendingMessage(medium, message1);
+        } catch (MediumUnavailableException e) {
+            throw new AssertionError(e);
+        }
+        clock.advanceSeconds(transmissionTime * interruptionFraction);
+        person.haltSendingMessage();
+        try {
+            beginSendingMessage(person, medium, message2);
+        } catch (MediumUnavailableException e) {
+            throw new AssertionError(e);
+        }
+
+        clock.advance(0L);
+        assertEquals("Called tellMessageSendingEnded", 1, nEndMessages.get());
+    }
+
+    @Test
     public void constructor_A() {
         constructor(clock1);
     }
@@ -169,6 +210,7 @@ public class PersonTest {
         final Medium medium = HandSignals.INSTANCE;
         final double informationInMessage = message.getInformationContent();
         final double transmissionTime = informationInMessage / medium.getTypicalTransmissionRate();
+        final double informationSent = fraction * informationInMessage;
 
         final AtomicInteger nEndMessages = new AtomicInteger(0);
         final AbstractActor actor = new AbstractActor() {
@@ -178,6 +220,8 @@ public class PersonTest {
                     Message fullMessage) {
                 super.tellMessageSendingEnded(transmissionProgress, fullMessage);
                 nEndMessages.incrementAndGet();
+                assertEquals("information sent", informationSent,
+                        transmissionProgress.getMessageSofar().getInformationContent(), informationInMessage * 0.01);
             }
 
         };
