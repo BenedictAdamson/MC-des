@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -115,6 +116,52 @@ public class PersonTest {
         clock.advanceSeconds(transmissionTime * (1.0 - fraction) * 20);
 
         assertInvariants(person);
+    }
+
+    private void beginReceivingMessage(SimpleDirectCommand message) {
+        final Person sender = new Person(clock1);
+        final Person receiver = new Person(clock1);
+        final Medium medium = HandSignals.INSTANCE;
+        final AtomicInteger nStartMessages = new AtomicInteger(0);
+        final Mind receiverPlayer = new AbstractMind() {
+
+            @Override
+            public final void tellBeginReceivingMessage(Medium toldMedium) {
+                super.tellBeginReceivingMessage(medium);
+                assertEquals("medium", medium, toldMedium);
+                nStartMessages.incrementAndGet();
+            }
+
+        };
+        sender.addReceiver(medium, receiver);
+        receiver.setPlayer(receiverPlayer);
+
+        try {
+            MindInterfaceTest.beginSendingMessage(sender, medium, message);
+        } catch (MediumUnavailableException e) {
+            throw new AssertionError(e);
+        }
+        clock1.advance(0L);// fire all events
+
+        assertInvariants(sender);
+        assertInvariants(receiver);
+        final Set<MessageTransferInProgress> messagesBeingReceived = receiver.getMessagesBeingReceived();
+        assertEquals("Messages being received", 1, messagesBeingReceived.size());// guard
+        final MessageTransferInProgress messageBeingReceived = messagesBeingReceived.iterator().next();
+        assertEquals("Receiving medium", medium, messageBeingReceived.getMedium());
+        assertEquals("Received message length", 0.0, messageBeingReceived.getMessageSofar().getInformationContent(),
+                message.getInformationContent() * 0.01);
+        assertEquals("Told receiver actor that begin receiving message", 1, nStartMessages.get());
+    }
+
+    @Test
+    public void beginReceivingMessageA() {
+        beginReceivingMessage(SimpleDirectCommand.CHECK_MAP);
+    }
+
+    @Test
+    public void beginReceivingMessageB() {
+        beginReceivingMessage(SimpleDirectCommand.HALT);
     }
 
     private void beginSendingMessage_default(SimpleDirectCommand message) {
@@ -251,18 +298,37 @@ public class PersonTest {
         haltSendingMessage(SimpleDirectCommand.getAssembleInstance(SimpleRelativeLocation.FRONT_NEAR), fraction);
     }
 
-    private void receivingMessage(SimpleDirectCommand message) {
+    private void messageReceptionProgress(SimpleDirectCommand fullMessage) {
         final Person sender = new Person(clock1);
         final Person receiver = new Person(clock1);
         final Medium medium = HandSignals.INSTANCE;
-        final AtomicInteger nStartMessages = new AtomicInteger(0);
+        final double transmissionTime = fullMessage.getInformationContent() / medium.getTypicalTransmissionRate();
+
+        final AtomicInteger nProgressEvents = new AtomicInteger(0);
+        final AtomicBoolean completionEvent = new AtomicBoolean();
         final Mind receiverPlayer = new AbstractMind() {
 
+            MessageTransferInProgress previousMessageBeingReceived;
+
             @Override
-            public final void tellBeginReceivingMessage(Medium toldMedium) {
-                super.tellBeginReceivingMessage(medium);
-                assertEquals("medium", medium, toldMedium);
-                nStartMessages.incrementAndGet();
+            public void tellMessageReceptionProgress(MessageTransferInProgress messageBeingReceived, boolean complete) {
+                super.tellMessageReceptionProgress(messageBeingReceived, complete);
+
+                final Message messageSofar = messageBeingReceived.getMessageSofar();
+                final double informationReceived = messageSofar.getInformationContent();
+                final double previousInformationReceived = previousMessageBeingReceived == null ? 0.0
+                        : previousMessageBeingReceived.getMessageSofar().getInformationContent();
+
+                assertSame("mediium", medium, messageBeingReceived.getMedium());
+                assertTrue("At most, progress indicates full information transfer",
+                        informationReceived <= fullMessage.getInformationContent());
+                assertTrue("Successive events indicate progress", previousInformationReceived < informationReceived);
+                assertEquals("Full message received iff reception is complete", fullMessage.equals(messageSofar),
+                        complete);
+
+                previousMessageBeingReceived = messageBeingReceived;
+                nProgressEvents.incrementAndGet();
+                completionEvent.set(complete);
             }
 
         };
@@ -270,31 +336,26 @@ public class PersonTest {
         receiver.setPlayer(receiverPlayer);
 
         try {
-            MindInterfaceTest.beginSendingMessage(sender, medium, message);
+            MindInterfaceTest.beginSendingMessage(sender, medium, fullMessage);
         } catch (MediumUnavailableException e) {
             throw new AssertionError(e);
         }
-        clock1.advance(0L);// fire all events
+        clock1.advanceSeconds(transmissionTime * 10.0);
 
         assertInvariants(sender);
         assertInvariants(receiver);
-        final Set<MessageTransferInProgress> messagesBeingReceived = receiver.getMessagesBeingReceived();
-        assertEquals("Messages being received", 1, messagesBeingReceived.size());// guard
-        final MessageTransferInProgress messageBeingReceived = messagesBeingReceived.iterator().next();
-        assertEquals("Receiving medium", medium, messageBeingReceived.getMedium());
-        assertEquals("Received message length", 0.0, messageBeingReceived.getMessageSofar().getInformationContent(),
-                message.getInformationContent() * 0.01);
-        assertEquals("Told receiver actor that begin receiving message", 1, nStartMessages.get());
+        assertTrue("Receiver told of reception progress", 1 <= nProgressEvents.get());
+        assertTrue("Receiver told of reception completion", completionEvent.get());
     }
 
     @Test
-    public void receivingMessageA() {
-        receivingMessage(SimpleDirectCommand.CHECK_MAP);
+    public void messageReceptionProgressA() {
+        messageReceptionProgress(SimpleDirectCommand.CHECK_MAP);
     }
 
     @Test
-    public void receivingMessageB() {
-        receivingMessage(SimpleDirectCommand.HALT);
+    public void messageReceptionProgressB() {
+        messageReceptionProgress(SimpleDirectCommand.HALT);
     }
 
     @Test

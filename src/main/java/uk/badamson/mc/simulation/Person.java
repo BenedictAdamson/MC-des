@@ -195,7 +195,10 @@ public final class Person implements MindInterface {
             @Override
             public final void run() {
                 ai.tellMessageSendingEnded(finalProgress, fullMessage);
-                // TODO tell receiver actor tellMessageReceptionProgress
+                final boolean complete = fullMessage.equals(finalProgress.getMessageSofar());
+                for (Person receiver : mediaReceivers.get(finalProgress.getMedium())) {
+                    receiver.ai.tellMessageReceptionProgress(finalProgress, complete);
+                }
             }
         });
 
@@ -257,7 +260,8 @@ public final class Person implements MindInterface {
     }
 
     private void scheduleUpdateMessageTransmission() {
-        final double transmissionRate = transmissionInProgress.getMedium().getTypicalTransmissionRate();
+        final Medium medium = transmissionInProgress.getMedium();
+        final double transmissionRate = medium.getTypicalTransmissionRate();
         final double fullInformation = transmittingMessage.getInformationContent();
         final double sentInformation = transmissionInProgress.getMessageSofar().getInformationContent();
         final double transmissionTime = fullInformation / transmissionRate;
@@ -273,7 +277,10 @@ public final class Person implements MindInterface {
                 updateState();
                 if (transmissionInProgress != null) {
                     ai.tellMessageTransmissionProgress(transmissionInProgress, transmittingMessage);
-                    // TODO tell receiver actor tellMessageReceptionProgress
+                    final boolean complete = transmittingMessage.equals(transmissionInProgress.getMessageSofar());
+                    for (Person receiver : mediaReceivers.get(medium)) {
+                        receiver.ai.tellMessageReceptionProgress(transmissionInProgress, complete);
+                    }
                     scheduleUpdateMessageTransmission();
                 }
                 /* else updateState() ended message transmission. */
