@@ -7,8 +7,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import uk.badamson.mc.mind.Actor;
-import uk.badamson.mc.mind.ActorInterface;
+import uk.badamson.mc.mind.Mind;
+import uk.badamson.mc.mind.MindInterface;
 import uk.badamson.mc.mind.MediumUnavailableException;
 import uk.badamson.mc.mind.MessageTransferInProgress;
 import uk.badamson.mc.mind.medium.HandSignals;
@@ -22,12 +22,12 @@ import uk.badamson.mc.mind.message.UnusableIncompleteMessage;
  * A simulated person.
  * </p>
  */
-public final class Person implements ActorInterface {
+public final class Person implements MindInterface {
 
     /**
      * <p>
      * While simulating the transmission of a message, the nominal number of times
-     * to {@linkplain Actor#tellMessageTransmissionProgress() telling} the
+     * to {@linkplain Mind#tellMessageTransmissionProgress() telling} the
      * {@linkplain #getActor() actor} of progress in sending the message.
      * </p>
      */
@@ -37,7 +37,7 @@ public final class Person implements ActorInterface {
      * <p>
      * While simulating the transmission of a message, the nominal maximum time
      * interval, in seconds, between
-     * {@linkplain Actor#tellMessageTransmissionProgress() telling} the
+     * {@linkplain Mind#tellMessageTransmissionProgress() telling} the
      * {@linkplain #getActor() actor} of progress in sending the message.
      * </p>
      */
@@ -47,7 +47,7 @@ public final class Person implements ActorInterface {
      * <p>
      * While simulating the transmission of a message, the nominal minimum time
      * interval, in seconds, between
-     * {@linkplain Actor#tellMessageTransmissionProgress() telling} the
+     * {@linkplain Mind#tellMessageTransmissionProgress() telling} the
      * {@linkplain #getActor() actor} of progress in sending the message.
      * </p>
      * <p>
@@ -61,7 +61,7 @@ public final class Person implements ActorInterface {
     private final Map<Medium, Set<Person>> mediaReceivers = new HashMap<>();
     private final Set<MessageTransferInProgress> messagesBeingReceived = new HashSet<>();
 
-    private Actor actor;
+    private Mind actor;
     private MessageTransferInProgress transmissionInProgress;
     private Message transmittingMessage;
     private long previousUpdate;
@@ -214,7 +214,7 @@ public final class Person implements ActorInterface {
      * @return The actor, or null if this person does not (yet) have a human or AI
      *         controller.
      */
-    public final Actor getActor() {
+    public final Mind getActor() {
         return actor;
     }
 
@@ -294,10 +294,10 @@ public final class Person implements ActorInterface {
      *            the interface to use from now on
      * @throws IllegalArgumentException
      *             If {@code actor} is not null and the
-     *             {@linkplain Actor#getActorInterface() actor interface} of the
+     *             {@linkplain Mind#getActorInterface() actor interface} of the
      *             {@code actor} is not this object.
      */
-    public final void setActor(Actor actor) {
+    public final void setActor(Mind actor) {
         this.actor = actor;
     }
 

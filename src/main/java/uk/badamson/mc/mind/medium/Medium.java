@@ -1,12 +1,12 @@
 package uk.badamson.mc.mind.medium;
 
 import net.jcip.annotations.Immutable;
-import uk.badamson.mc.mind.Actor;
+import uk.badamson.mc.mind.Mind;
 import uk.badamson.mc.mind.message.Message;
 
 /**
  * <p>
- * A transmission medium (or means) through which {@linkplain Actor actors} can
+ * A transmission medium (or means) through which {@linkplain Mind actors} can
  * send {@linkplain Message messages}, from their perspective.
  * </p>
  */

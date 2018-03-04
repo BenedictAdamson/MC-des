@@ -12,9 +12,9 @@ import java.util.Set;
 
 import org.junit.Test;
 
-import uk.badamson.mc.mind.AbstractActor;
-import uk.badamson.mc.mind.Actor;
-import uk.badamson.mc.mind.ActorTest;
+import uk.badamson.mc.mind.AbstractMind;
+import uk.badamson.mc.mind.Mind;
+import uk.badamson.mc.mind.MindTest;
 import uk.badamson.mc.mind.MediumUnavailableException;
 import uk.badamson.mc.mind.medium.HandSignals;
 import uk.badamson.mc.mind.medium.Medium;
@@ -93,11 +93,11 @@ public class GameTest {
         assertNull("playedPerson", game.getPlayedPerson());
     }
 
-    public static final void takeControl(Game game, Actor actor, Person person) {
+    public static final void takeControl(Game game, Mind actor, Person person) {
         game.takeControl(actor, person);
 
         assertInvariants(game);
-        ActorTest.assertInvariants(actor);
+        MindTest.assertInvariants(actor);
         PersonTest.assertInvariants(person);
 
         assertSame("playedPerson", person, game.getPlayedPerson());
@@ -148,7 +148,7 @@ public class GameTest {
     public void releaseControl() {
         final Game game = new Game();
         final Person person = game.createPerson();
-        final Actor actor = new AbstractActor();
+        final Mind actor = new AbstractMind();
         game.takeControl(actor, person);
 
         releaseControl(game);
@@ -166,7 +166,7 @@ public class GameTest {
     public void takeControl_1() {
         final Game game = new Game();
         final Person person = game.createPerson();
-        final Actor actor = new AbstractActor();
+        final Mind actor = new AbstractMind();
 
         takeControl(game, actor, person);
     }

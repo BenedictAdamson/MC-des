@@ -12,11 +12,11 @@ import uk.badamson.mc.mind.message.UnusableIncompleteMessage;
 
 /**
  * <p>
- * The API (service interface) through which a human or AI player ("actor") of
+ * The API (service interface) through which a human or AI player ("mind") of
  * the Mission Command game effect changes to the simulation of a person.
  * </p>
  */
-public interface ActorInterface {
+public interface MindInterface {
 
     /**
      * <p>
@@ -42,7 +42,7 @@ public interface ActorInterface {
      * <li>The given message is the current {@linkplain #getTransmittingMessage()
      * transmitting message}.</li>
      * <li>The simulation guarantees that, if it runs for sufficiently long, it will
-     * eventually {@linkplain Actor#tellMessageSendingEnded(Medium, Message) call
+     * eventually {@linkplain Mind#tellMessageSendingEnded(Medium, Message) call
      * back} to the person of this interface, to report completion or halting of
      * sending of the message.</li>
      * <li>Other actors that can receive through the medium of the message had an

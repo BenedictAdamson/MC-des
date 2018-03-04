@@ -16,9 +16,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import uk.badamson.mc.ObjectTest;
-import uk.badamson.mc.mind.AbstractActor;
-import uk.badamson.mc.mind.Actor;
-import uk.badamson.mc.mind.ActorInterfaceTest;
+import uk.badamson.mc.mind.AbstractMind;
+import uk.badamson.mc.mind.Mind;
+import uk.badamson.mc.mind.MindInterfaceTest;
 import uk.badamson.mc.mind.MediumUnavailableException;
 import uk.badamson.mc.mind.MessageTransferInProgress;
 import uk.badamson.mc.mind.medium.HandSignals;
@@ -39,20 +39,20 @@ public class PersonTest {
 
     public static void assertInvariants(Person person) {
         ObjectTest.assertInvariants(person);// inherited
-        ActorInterfaceTest.assertInvariants(person);// inherited
+        MindInterfaceTest.assertInvariants(person);// inherited
 
         assertNotNull("Not null, clock", person.getClock());
     }
 
     public static void assertInvariants(Person person1, Person person2) {
         ObjectTest.assertInvariants(person1, person2);// inherited
-        ActorInterfaceTest.assertInvariants(person1, person2);// inherited
+        MindInterfaceTest.assertInvariants(person1, person2);// inherited
     }
 
     public static void beginSendingMessage(Person person, Medium medium, Message message)
             throws MediumUnavailableException {
         try {
-            ActorInterfaceTest.beginSendingMessage(person, medium, message);// inherited
+            MindInterfaceTest.beginSendingMessage(person, medium, message);// inherited
         } catch (MediumUnavailableException e) {
             assertInvariants(person);
             throw e;
@@ -75,12 +75,12 @@ public class PersonTest {
     }
 
     public static void haltSendingMessage(Person person) {
-        ActorInterfaceTest.haltSendingMessage(person);// inherited
+        MindInterfaceTest.haltSendingMessage(person);// inherited
 
         assertInvariants(person);
     }
 
-    public static void setActor(Person person, Actor actor) {
+    public static void setActor(Person person, Mind actor) {
         person.setActor(actor);
 
         assertInvariants(person);
@@ -102,7 +102,7 @@ public class PersonTest {
         final double informationInMessage = message.getInformationContent();
         final double transmissionTime = informationInMessage / medium.getTypicalTransmissionRate();
 
-        final AbstractActor actor = new AbstractActor();
+        final AbstractMind actor = new AbstractMind();
         person.setActor(actor);
         try {
             person.beginSendingMessage(medium, message);
@@ -121,7 +121,7 @@ public class PersonTest {
         final Person person = new Person(clock1);
         final Medium medium = HandSignals.INSTANCE;
         try {
-            ActorInterfaceTest.beginSendingMessage(person, medium, message);
+            MindInterfaceTest.beginSendingMessage(person, medium, message);
         } catch (MediumUnavailableException e) {
             throw new AssertionError(e);
         }
@@ -132,7 +132,7 @@ public class PersonTest {
         final Person person = new Person(clock1);
         final Medium medium = HandSignals.INSTANCE;
         try {
-            ActorInterfaceTest.beginSendingMessage(person, medium, message);
+            MindInterfaceTest.beginSendingMessage(person, medium, message);
         } catch (MediumUnavailableException e) {
             throw new AssertionError(e);
         }
@@ -166,7 +166,7 @@ public class PersonTest {
         final double transmissionTime = informationInMessage / medium.getTypicalTransmissionRate();
 
         final AtomicInteger nEndMessages = new AtomicInteger(0);
-        final AbstractActor actor = new AbstractActor() {
+        final AbstractMind actor = new AbstractMind() {
 
             @Override
             public final void tellMessageSendingEnded(MessageTransferInProgress transmissionProgress,
@@ -214,7 +214,7 @@ public class PersonTest {
         final double informationSent = fraction * informationInMessage;
 
         final AtomicInteger nEndMessages = new AtomicInteger(0);
-        final AbstractActor actor = new AbstractActor() {
+        final AbstractMind actor = new AbstractMind() {
 
             @Override
             public final void tellMessageSendingEnded(MessageTransferInProgress transmissionProgress,
@@ -256,7 +256,7 @@ public class PersonTest {
         final Person receiver = new Person(clock1);
         final Medium medium = HandSignals.INSTANCE;
         final AtomicInteger nStartMessages = new AtomicInteger(0);
-        final Actor receiverActor = new AbstractActor() {
+        final Mind receiverActor = new AbstractMind() {
 
             @Override
             public final void tellBeginReceivingMessage(MessageTransferInProgress receptionStarted) {
@@ -270,7 +270,7 @@ public class PersonTest {
         receiver.setActor(receiverActor);
 
         try {
-            ActorInterfaceTest.beginSendingMessage(sender, medium, message);
+            MindInterfaceTest.beginSendingMessage(sender, medium, message);
         } catch (MediumUnavailableException e) {
             throw new AssertionError(e);
         }
@@ -335,7 +335,7 @@ public class PersonTest {
         final AtomicInteger nProgressMessages = new AtomicInteger(0);
         final AtomicInteger nEndMessages = new AtomicInteger(0);
         final AtomicReference<Message> messageSoFar = new AtomicReference<Message>(null);
-        final AbstractActor actor = new AbstractActor() {
+        final AbstractMind actor = new AbstractMind() {
 
             @Override
             public void tellMessageSendingEnded(MessageTransferInProgress transmissionProgress, Message fullMessage) {
@@ -405,7 +405,7 @@ public class PersonTest {
         final double transmissionTime = informationInMessage / medium.getTypicalTransmissionRate();
 
         final AtomicInteger nEndMessages = new AtomicInteger(0);
-        final AbstractActor actor = new AbstractActor() {
+        final AbstractMind actor = new AbstractMind() {
 
             @Override
             public void tellMessageSendingEnded(MessageTransferInProgress transmissionProgress, Message fullMessage) {
@@ -469,7 +469,7 @@ public class PersonTest {
 
     private void setActor() {
         final Person person = new Person(clock1);
-        final Actor actor = new AbstractActor();
+        final Mind actor = new AbstractMind();
 
         setActor(person, actor);
     }

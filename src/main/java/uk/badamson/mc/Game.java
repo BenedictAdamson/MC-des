@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit;
 
 import net.jcip.annotations.GuardedBy;
 import net.jcip.annotations.ThreadSafe;
-import uk.badamson.mc.mind.Actor;
+import uk.badamson.mc.mind.Mind;
 import uk.badamson.mc.simulation.Clock;
 import uk.badamson.mc.simulation.Person;
 
@@ -195,7 +195,7 @@ public final class Game {
      *             If {@code person} is not one of the {@linkplain #getPersons()
      *             persons} of this simulation.
      */
-    public final void takeControl(Actor actor, Person person) {
+    public final void takeControl(Mind actor, Person person) {
         Objects.requireNonNull(actor, "actor");
         Objects.requireNonNull(person, "person");
         synchronized (persons) {

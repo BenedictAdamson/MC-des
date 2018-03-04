@@ -23,8 +23,8 @@ import org.eclipse.swt.widgets.Text;
 import net.jcip.annotations.ThreadSafe;
 import uk.badamson.mc.Game;
 import uk.badamson.mc.Main;
-import uk.badamson.mc.mind.Actor;
-import uk.badamson.mc.mind.ActorInterface;
+import uk.badamson.mc.mind.Mind;
+import uk.badamson.mc.mind.MindInterface;
 import uk.badamson.mc.mind.MediumUnavailableException;
 import uk.badamson.mc.mind.MessageTransferInProgress;
 import uk.badamson.mc.mind.medium.HandSignals;
@@ -68,13 +68,13 @@ public final class Gui implements AutoCloseable, Runnable {
          * of the {@linkplain Game Mission Command Game}.
          * </p>
          */
-        public final class PlayedPersonGui implements Actor {
+        public final class PlayedPersonGui implements Mind {
 
             /**
              * <p>
              * The GUI for causing the {@linkplain Game#getPerson() played person} of one
              * instance of the {@linkplain Game Mission Command Game} to
-             * {@linkplain ActorInterface#beginSendingMessage(Medium, Message) send} a
+             * {@linkplain MindInterface#beginSendingMessage(Medium, Message) send} a
              * {@linkplain HandSignals hand signal}.
              * </p>
              */
@@ -409,7 +409,7 @@ public final class Gui implements AutoCloseable, Runnable {
 
             }// class
 
-            private final ActorInterface person;
+            private final MindInterface person;
             private String uiName;
 
             /**
@@ -428,7 +428,7 @@ public final class Gui implements AutoCloseable, Runnable {
              *             simulated persons} of the {@linkplain Gui.GameGui#getGame() game}
              *             for which this is a GUI.
              */
-            PlayedPersonGui(ActorInterface person, String uiName) {
+            PlayedPersonGui(MindInterface person, String uiName) {
                 this.person = Objects.requireNonNull(person, "person");
                 this.uiName = Objects.requireNonNull(uiName, "uiName");
                 if (!getGame().getPersons().contains(person)) {
@@ -481,7 +481,7 @@ public final class Gui implements AutoCloseable, Runnable {
              * 
              * @return the interface; not null.
              */
-            public final ActorInterface getPerson() {
+            public final MindInterface getPerson() {
                 return person;
             }
 

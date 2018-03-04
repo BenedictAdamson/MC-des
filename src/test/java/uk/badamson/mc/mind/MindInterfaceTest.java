@@ -8,7 +8,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Set;
 
-import uk.badamson.mc.mind.ActorInterface;
+import uk.badamson.mc.mind.MindInterface;
 import uk.badamson.mc.mind.MediumUnavailableException;
 import uk.badamson.mc.mind.MessageTransferInProgress;
 import uk.badamson.mc.mind.medium.Medium;
@@ -16,11 +16,11 @@ import uk.badamson.mc.mind.message.Message;
 import uk.badamson.mc.mind.message.UnusableIncompleteMessage;
 
 /**
- * Unit tests for classes that implement the {@link ActorInterface} interface
+ * Unit tests for classes that implement the {@link MindInterface} interface
  */
-public class ActorInterfaceTest {
+public class MindInterfaceTest {
 
-    public static void assertInvariants(ActorInterface actorInterface) {
+    public static void assertInvariants(MindInterface actorInterface) {
         final Set<Medium> media = actorInterface.getMedia();
         final MessageTransferInProgress transmissionInProgress = actorInterface.getTransmissionInProgress();
         final Message transmittingMessage = actorInterface.getTransmittingMessage();
@@ -61,11 +61,11 @@ public class ActorInterfaceTest {
         }
     }
 
-    public static void assertInvariants(ActorInterface actorInterface1, ActorInterface actorInterface2) {
+    public static void assertInvariants(MindInterface actorInterface1, MindInterface actorInterface2) {
         // Do nothing
     }
 
-    public static void beginSendingMessage(ActorInterface actorInterface, Medium medium, Message message)
+    public static void beginSendingMessage(MindInterface actorInterface, Medium medium, Message message)
             throws MediumUnavailableException {
         try {
             actorInterface.beginSendingMessage(medium, message);
@@ -86,7 +86,7 @@ public class ActorInterfaceTest {
                 actorInterface.getTransmittingMessage());
     }
 
-    public static void haltSendingMessage(ActorInterface actorInterface) {
+    public static void haltSendingMessage(MindInterface actorInterface) {
         actorInterface.haltSendingMessage();
 
         assertInvariants(actorInterface);

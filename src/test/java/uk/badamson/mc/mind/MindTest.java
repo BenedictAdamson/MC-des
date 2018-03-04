@@ -1,41 +1,41 @@
 package uk.badamson.mc.mind;
 
-import uk.badamson.mc.mind.Actor;
+import uk.badamson.mc.mind.Mind;
 import uk.badamson.mc.mind.MessageTransferInProgress;
 import uk.badamson.mc.mind.message.Message;
 
 /**
  * <p>
- * Unit tests for objects that implement the {@link Actor} interface.
+ * Unit tests for objects that implement the {@link Mind} interface.
  * </p>
  */
-public class ActorTest {
+public class MindTest {
 
-    public static void assertInvariants(Actor actor) {
+    public static void assertInvariants(Mind actor) {
         // Do nothing
     }
 
-    public static void assertInvariants(Actor actor1, Actor actor2) {
+    public static void assertInvariants(Mind actor1, Mind actor2) {
         // Do nothing
     }
 
-    public static void tellBeginReceivingMessage(Actor actor, MessageTransferInProgress receptionStarted) {
+    public static void tellBeginReceivingMessage(Mind actor, MessageTransferInProgress receptionStarted) {
         actor.tellBeginReceivingMessage(receptionStarted);
         assertInvariants(actor);
     }
 
-    public static void tellMessageReceptionProgress(Actor actor, MessageTransferInProgress messageBeingReceived) {
+    public static void tellMessageReceptionProgress(Mind actor, MessageTransferInProgress messageBeingReceived) {
         actor.tellMessageReceptionProgress(messageBeingReceived);
         assertInvariants(actor);
     }
 
-    public static void tellMessageSendingEnded(Actor actor, MessageTransferInProgress transmissionProgress,
+    public static void tellMessageSendingEnded(Mind actor, MessageTransferInProgress transmissionProgress,
             Message fullMessage) {
         actor.tellMessageSendingEnded(transmissionProgress, fullMessage);
         assertInvariants(actor);
     }
 
-    public static void tellMessageTransmissionProgress(Actor actor, MessageTransferInProgress transmissionProgress,
+    public static void tellMessageTransmissionProgress(Mind actor, MessageTransferInProgress transmissionProgress,
             Message fullMessage) {
         actor.tellMessageTransmissionProgress(transmissionProgress, fullMessage);
         assertInvariants(actor);

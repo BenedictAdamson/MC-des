@@ -8,7 +8,7 @@ import uk.badamson.mc.mind.message.Message;
  * player of the Mission Command game.
  * </p>
  */
-public interface Actor {
+public interface Mind {
 
     /**
      * <p>

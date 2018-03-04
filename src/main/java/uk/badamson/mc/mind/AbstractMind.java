@@ -7,21 +7,21 @@ import uk.badamson.mc.mind.message.UnusableIncompleteMessage;
 
 /**
  * <p>
- * A concrete class that implements the {@link Actor} interface.
+ * A concrete class that implements the {@link Mind} interface.
  * </p>
  * <p>
  * This class is intended to be used as a base class. Objects of this type act
  * are <i>null objects</i>: their mutator methods have no behaviour.
  * </p>
  */
-public class AbstractActor implements Actor {
+public class AbstractMind implements Mind {
 
     /**
      * <p>
-     * Construct an {@linkplain Actor actor}.
+     * Construct an {@linkplain Mind actor}.
      * </p>
      */
-    public AbstractActor() {
+    public AbstractMind() {
     }
 
     @Override

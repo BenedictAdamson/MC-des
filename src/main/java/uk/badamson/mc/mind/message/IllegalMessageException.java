@@ -1,12 +1,12 @@
 package uk.badamson.mc.mind.message;
 
-import uk.badamson.mc.mind.ActorInterface;
+import uk.badamson.mc.mind.MindInterface;
 import uk.badamson.mc.mind.medium.Medium;
 
 /**
  * <p>
  * An (unchecked) exception for indicating that
- * {@linkplain ActorInterface#beginSendingMessage(Message) beginning to send} a
+ * {@linkplain MindInterface#beginSendingMessage(Message) beginning to send} a
  * particular {@linkplain Message message} through a {@linkplain Medium medium}
  * is not permitted because the message is of the incorrect class or type, or
  * has incorrect characteristics, to be sent through that medium.
@@ -24,7 +24,7 @@ public final class IllegalMessageException extends IllegalArgumentException {
     /**
      * <p>
      * Create an exception object for indicating that
-     * {@linkplain ActorInterface#beginSendingMessage(Message) beginning to send} a
+     * {@linkplain MindInterface#beginSendingMessage(Message) beginning to send} a
      * particular {@linkplain Message message} through a {@linkplain Medium medium}
      * is not permitted because the message is of the incorrect class or type, or
      * has incorrect characteristics, to be sent through that medium.
@@ -37,7 +37,7 @@ public final class IllegalMessageException extends IllegalArgumentException {
     /**
      * <p>
      * Create an exception object for indicating that
-     * {@linkplain ActorInterface#beginSendingMessage(Message) beginning to send} a
+     * {@linkplain MindInterface#beginSendingMessage(Message) beginning to send} a
      * particular {@linkplain Message message} through a {@linkplain Medium medium}
      * is not permitted because the message is of the incorrect class or type, or
      * has incorrect characteristics, to be sent through that medium, with an
