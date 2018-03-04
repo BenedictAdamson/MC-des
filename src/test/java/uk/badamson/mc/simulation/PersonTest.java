@@ -16,17 +16,17 @@ import org.junit.Before;
 import org.junit.Test;
 
 import uk.badamson.mc.ObjectTest;
-import uk.badamson.mc.actor.AbstractActor;
-import uk.badamson.mc.actor.Actor;
-import uk.badamson.mc.actor.ActorInterfaceTest;
-import uk.badamson.mc.actor.MediumUnavailableException;
-import uk.badamson.mc.actor.MessageTransferInProgress;
-import uk.badamson.mc.actor.medium.HandSignals;
-import uk.badamson.mc.actor.medium.Medium;
-import uk.badamson.mc.actor.message.Message;
-import uk.badamson.mc.actor.message.SimpleDirectCommand;
-import uk.badamson.mc.actor.message.SimpleRelativeLocation;
-import uk.badamson.mc.actor.message.SimpleStatement;
+import uk.badamson.mc.mind.AbstractActor;
+import uk.badamson.mc.mind.Actor;
+import uk.badamson.mc.mind.ActorInterfaceTest;
+import uk.badamson.mc.mind.MediumUnavailableException;
+import uk.badamson.mc.mind.MessageTransferInProgress;
+import uk.badamson.mc.mind.medium.HandSignals;
+import uk.badamson.mc.mind.medium.Medium;
+import uk.badamson.mc.mind.message.Message;
+import uk.badamson.mc.mind.message.SimpleDirectCommand;
+import uk.badamson.mc.mind.message.SimpleRelativeLocation;
+import uk.badamson.mc.mind.message.SimpleStatement;
 
 /**
  * <p>

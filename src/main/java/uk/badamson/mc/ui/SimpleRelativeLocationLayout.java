@@ -8,7 +8,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Layout;
 
-import uk.badamson.mc.actor.message.SimpleRelativeLocation;
+import uk.badamson.mc.mind.message.SimpleRelativeLocation;
 
 /**
  * <p>

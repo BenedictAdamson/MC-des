@@ -7,15 +7,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import uk.badamson.mc.actor.Actor;
-import uk.badamson.mc.actor.ActorInterface;
-import uk.badamson.mc.actor.MediumUnavailableException;
-import uk.badamson.mc.actor.MessageTransferInProgress;
-import uk.badamson.mc.actor.medium.HandSignals;
-import uk.badamson.mc.actor.medium.Medium;
-import uk.badamson.mc.actor.message.IllegalMessageException;
-import uk.badamson.mc.actor.message.Message;
-import uk.badamson.mc.actor.message.UnusableIncompleteMessage;
+import uk.badamson.mc.mind.Actor;
+import uk.badamson.mc.mind.ActorInterface;
+import uk.badamson.mc.mind.MediumUnavailableException;
+import uk.badamson.mc.mind.MessageTransferInProgress;
+import uk.badamson.mc.mind.medium.HandSignals;
+import uk.badamson.mc.mind.medium.Medium;
+import uk.badamson.mc.mind.message.IllegalMessageException;
+import uk.badamson.mc.mind.message.Message;
+import uk.badamson.mc.mind.message.UnusableIncompleteMessage;
 
 /**
  * <p>

@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit;
 
 import net.jcip.annotations.GuardedBy;
 import net.jcip.annotations.ThreadSafe;
-import uk.badamson.mc.actor.Actor;
+import uk.badamson.mc.mind.Actor;
 import uk.badamson.mc.simulation.Clock;
 import uk.badamson.mc.simulation.Person;
 
