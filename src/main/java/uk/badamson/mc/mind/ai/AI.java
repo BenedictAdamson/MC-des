@@ -5,6 +5,7 @@ import java.util.Objects;
 import uk.badamson.mc.mind.AbstractMind;
 import uk.badamson.mc.mind.MessageTransferInProgress;
 import uk.badamson.mc.mind.Mind;
+import uk.badamson.mc.mind.medium.Medium;
 import uk.badamson.mc.mind.message.Message;
 import uk.badamson.mc.simulation.Clock;
 
@@ -94,10 +95,10 @@ public final class AI extends AbstractMind {
      *             {@inheritDoc}
      */
     @Override
-    public void tellBeginReceivingMessage(MessageTransferInProgress receptionStarted) {
-        super.tellBeginReceivingMessage(receptionStarted);
+    public void tellBeginReceivingMessage(Medium medium) {
+        super.tellBeginReceivingMessage(medium);
         if (player != null) {
-            player.tellBeginReceivingMessage(receptionStarted);
+            player.tellBeginReceivingMessage(medium);
         }
     }
 

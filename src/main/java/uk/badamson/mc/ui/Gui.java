@@ -495,7 +495,7 @@ public final class Gui implements AutoCloseable, Runnable {
             }
 
             @Override
-            public void tellBeginReceivingMessage(MessageTransferInProgress receptionStarted) {
+            public void tellBeginReceivingMessage(Medium medium) {
                 // TODO Auto-generated method stub
 
             }

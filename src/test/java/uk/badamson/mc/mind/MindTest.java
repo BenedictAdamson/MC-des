@@ -1,5 +1,6 @@
 package uk.badamson.mc.mind;
 
+import uk.badamson.mc.mind.medium.Medium;
 import uk.badamson.mc.mind.message.Message;
 
 /**
@@ -17,8 +18,8 @@ public class MindTest {
         // Do nothing
     }
 
-    public static void tellBeginReceivingMessage(Mind mind, MessageTransferInProgress receptionStarted) {
-        mind.tellBeginReceivingMessage(receptionStarted);
+    public static void tellBeginReceivingMessage(Mind mind, Medium medium) {
+        mind.tellBeginReceivingMessage(medium);
         assertInvariants(mind);
     }
 

@@ -2,8 +2,8 @@ package uk.badamson.mc.mind;
 
 import java.util.Objects;
 
+import uk.badamson.mc.mind.medium.Medium;
 import uk.badamson.mc.mind.message.Message;
-import uk.badamson.mc.mind.message.UnusableIncompleteMessage;
 
 /**
  * <p>
@@ -25,11 +25,8 @@ public class AbstractMind implements Mind {
     }
 
     @Override
-    public void tellBeginReceivingMessage(MessageTransferInProgress receptionStarted) {
-        Objects.requireNonNull(receptionStarted, "receptionStarted");
-        if (!UnusableIncompleteMessage.EMPTY_MESSAGE.equals(receptionStarted.getMessageSofar())) {
-            throw new IllegalArgumentException("reception actually started some time ago.");
-        }
+    public void tellBeginReceivingMessage(Medium medium) {
+        Objects.requireNonNull(medium, "medium");
     }
 
     @Override

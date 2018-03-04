@@ -1,5 +1,6 @@
 package uk.badamson.mc.mind;
 
+import uk.badamson.mc.mind.medium.Medium;
 import uk.badamson.mc.mind.message.Message;
 import uk.badamson.mc.simulation.Person;
 
@@ -16,19 +17,14 @@ public interface Mind {
      * React to the start of a message being received.
      * </p>
      * 
-     * @param receptionStarted
-     *            The message transfer that has just started.
+     * @param medium
+     *            The medium through which the message transfer that has just
+     *            started.
      * 
      * @throws NullPointerException
-     *             If {@code receptionStarted} is null.
-     * @throws IllegalArgumentException
-     *             If the {@linkplain Message#getInformationContent() length} of the
-     *             {@linkplain MessageTransferInProgress#getMessageSofar() message
-     *             received so far} of the {@code receptionStarted} is not zero,
-     *             which would indicate that reception actually started some time
-     *             ago.
+     *             If {@code medium} is null.
      */
-    public void tellBeginReceivingMessage(MessageTransferInProgress receptionStarted);
+    public void tellBeginReceivingMessage(Medium medium);
 
     /**
      * <p>

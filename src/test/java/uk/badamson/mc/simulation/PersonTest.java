@@ -259,9 +259,9 @@ public class PersonTest {
         final Mind receiverPlayer = new AbstractMind() {
 
             @Override
-            public final void tellBeginReceivingMessage(MessageTransferInProgress receptionStarted) {
-                super.tellBeginReceivingMessage(receptionStarted);
-                assertEquals("receptionStarted.medium", medium, receptionStarted.getMedium());
+            public final void tellBeginReceivingMessage(Medium toldMedium) {
+                super.tellBeginReceivingMessage(medium);
+                assertEquals("medium", medium, toldMedium);
                 nStartMessages.incrementAndGet();
             }
 

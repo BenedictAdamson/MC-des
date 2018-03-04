@@ -14,6 +14,7 @@ import uk.badamson.mc.mind.AbstractMindTest;
 import uk.badamson.mc.mind.MessageTransferInProgress;
 import uk.badamson.mc.mind.Mind;
 import uk.badamson.mc.mind.medium.HandSignals;
+import uk.badamson.mc.mind.medium.Medium;
 import uk.badamson.mc.mind.message.Message;
 import uk.badamson.mc.mind.message.SimpleDirectCommand;
 import uk.badamson.mc.mind.message.UnusableIncompleteMessage;
@@ -34,14 +35,14 @@ public class AITest {
         private int nCallsTellMessageSendingEnded;
         private int nCallsTellMessageTransmissionProgress;
 
-        private MessageTransferInProgress receptionStarted;
+        private Medium medium;
         private MessageTransferInProgress messageBeingReceived;
         private MessageTransferInProgress transmissionProgress;
         private Message fullMessage;
 
-        void assertCalled_tellBeginReceivingMessage(int nCalls, MessageTransferInProgress receptionStarted) {
+        void assertCalled_tellBeginReceivingMessage(int nCalls, Medium medium) {
             assertEquals("Called tellBeginReceivingMessage, number of calls", nCalls, nCallsTellBeginReceivingMessage);
-            assertSame("Called tellBeginReceivingMessage, receptionStarted", receptionStarted, this.receptionStarted);
+            assertSame("Called tellBeginReceivingMessage, medium", medium, this.medium);
         }
 
         void assertCalled_tellMessageReceptionProgress(int nCalls, MessageTransferInProgress messageBeingReceived) {
@@ -69,10 +70,10 @@ public class AITest {
         }
 
         @Override
-        public void tellBeginReceivingMessage(MessageTransferInProgress receptionStarted) {
-            super.tellBeginReceivingMessage(receptionStarted);
+        public void tellBeginReceivingMessage(Medium medium) {
+            super.tellBeginReceivingMessage(medium);
             ++nCallsTellBeginReceivingMessage;
-            this.receptionStarted = receptionStarted;
+            this.medium = medium;
         }
 
         @Override
@@ -130,8 +131,8 @@ public class AITest {
         assertSame("player", player, ai.getPlayer());
     }
 
-    public static void tellBeginReceivingMessage(AI ai, MessageTransferInProgress receptionStarted) {
-        AbstractMindTest.tellBeginReceivingMessage(ai, receptionStarted);// inherited
+    public static void tellBeginReceivingMessage(AI ai, Medium medium) {
+        AbstractMindTest.tellBeginReceivingMessage(ai, medium);// inherited
         assertInvariants(ai);
     }
 
@@ -192,23 +193,23 @@ public class AITest {
     @Test
     public void tellBeginReceivingMessage_basic() {
         final AI ai = new AI(clock1);
-        final MessageTransferInProgress receptionStarted = new MessageTransferInProgress(HandSignals.INSTANCE,
-                UnusableIncompleteMessage.EMPTY_MESSAGE);
+        final HandSignals medium = HandSignals.INSTANCE;
 
-        tellBeginReceivingMessage(ai, receptionStarted);
+        tellBeginReceivingMessage(ai, medium);
     }
 
     @Test
     public void tellBeginReceivingMessage_withPlayer() {
-        final MessageTransferInProgress receptionStarted = new MessageTransferInProgress(HandSignals.INSTANCE,
+        final HandSignals medium = HandSignals.INSTANCE;
+        final MessageTransferInProgress receptionStarted = new MessageTransferInProgress(medium,
                 UnusableIncompleteMessage.EMPTY_MESSAGE);
         final AI ai = new AI(clock1);
         final PlayerSpy player = new PlayerSpy();
         ai.setPlayer(player);
 
-        tellBeginReceivingMessage(ai, receptionStarted);
+        tellBeginReceivingMessage(ai, medium);
 
-        player.assertCalled_tellBeginReceivingMessage(1, receptionStarted);
+        player.assertCalled_tellBeginReceivingMessage(1, medium);
     }
 
     @Test

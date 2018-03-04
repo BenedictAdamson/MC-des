@@ -1,6 +1,7 @@
 package uk.badamson.mc.mind;
 
 import uk.badamson.mc.ObjectTest;
+import uk.badamson.mc.mind.medium.Medium;
 import uk.badamson.mc.mind.message.Message;
 
 /**
@@ -20,8 +21,8 @@ public class AbstractMindTest {
         MindTest.assertInvariants(mind1, mind2);// inherited
     }
 
-    public static void tellBeginReceivingMessage(AbstractMind mind, MessageTransferInProgress receptionStarted) {
-        MindTest.tellBeginReceivingMessage(mind, receptionStarted);// inherited
+    public static void tellBeginReceivingMessage(AbstractMind mind, Medium medium) {
+        MindTest.tellBeginReceivingMessage(mind, medium);// inherited
         assertInvariants(mind);
     }
 

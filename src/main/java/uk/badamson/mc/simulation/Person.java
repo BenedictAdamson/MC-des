@@ -152,7 +152,7 @@ public final class Person implements MindInterface {
     }
 
     @Override
-    public final void beginSendingMessage(Medium medium, Message message) throws MediumUnavailableException {
+    public final void beginSendingMessage(final Medium medium, Message message) throws MediumUnavailableException {
         Objects.requireNonNull(medium, "medium");
         Objects.requireNonNull(message, "message");
         if (!medium.canConvey(message)) {
@@ -178,7 +178,7 @@ public final class Person implements MindInterface {
             clock.scheduleActionAt(now, new Runnable() {
                 @Override
                 public final void run() {
-                    receiver.ai.getPlayer().tellBeginReceivingMessage(messageTransferInProgress0);
+                    receiver.ai.getPlayer().tellBeginReceivingMessage(medium);
                 }
             });
         }
