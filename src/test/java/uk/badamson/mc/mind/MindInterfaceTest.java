@@ -17,11 +17,11 @@ import uk.badamson.mc.mind.message.UnusableIncompleteMessage;
  */
 public class MindInterfaceTest {
 
-    public static void assertInvariants(MindInterface actorInterface) {
-        final Set<Medium> media = actorInterface.getMedia();
-        final MessageTransferInProgress transmissionInProgress = actorInterface.getTransmissionInProgress();
-        final Message transmittingMessage = actorInterface.getTransmittingMessage();
-        final Set<MessageTransferInProgress> messagesBeingReceived = actorInterface.getMessagesBeingReceived();
+    public static void assertInvariants(MindInterface mindInterface) {
+        final Set<Medium> media = mindInterface.getMedia();
+        final MessageTransferInProgress transmissionInProgress = mindInterface.getTransmissionInProgress();
+        final Message transmittingMessage = mindInterface.getTransmittingMessage();
+        final Set<MessageTransferInProgress> messagesBeingReceived = mindInterface.getMessagesBeingReceived();
 
         final Message messageSofar = transmissionInProgress == null ? null : transmissionInProgress.getMessageSofar();
         final double messageSofarLength = messageSofar == null ? 0.0 : messageSofar.getInformationContent();
@@ -58,20 +58,20 @@ public class MindInterfaceTest {
         }
     }
 
-    public static void assertInvariants(MindInterface actorInterface1, MindInterface actorInterface2) {
+    public static void assertInvariants(MindInterface mindInterface1, MindInterface mindInterface2) {
         // Do nothing
     }
 
-    public static void beginSendingMessage(MindInterface actorInterface, Medium medium, Message message)
+    public static void beginSendingMessage(MindInterface mindInterface, Medium medium, Message message)
             throws MediumUnavailableException {
         try {
-            actorInterface.beginSendingMessage(medium, message);
+            mindInterface.beginSendingMessage(medium, message);
         } catch (MediumUnavailableException e) {
-            assertInvariants(actorInterface);
+            assertInvariants(mindInterface);
             throw e;
         }
-        assertInvariants(actorInterface);
-        final MessageTransferInProgress transmissionInProgress = actorInterface.getTransmissionInProgress();
+        assertInvariants(mindInterface);
+        final MessageTransferInProgress transmissionInProgress = mindInterface.getTransmissionInProgress();
         assertNotNull("This has a transmission in progress.", transmissionInProgress);// guard
         MessageTransferInProgressTest.assertInvariants(transmissionInProgress);
 
@@ -80,13 +80,13 @@ public class MindInterfaceTest {
         assertEquals("The message transmitted so far is an empty unusable message.",
                 UnusableIncompleteMessage.EMPTY_MESSAGE, transmissionInProgress.getMessageSofar());
         assertSame("The given message is the current transmitting message.", message,
-                actorInterface.getTransmittingMessage());
+                mindInterface.getTransmittingMessage());
     }
 
-    public static void haltSendingMessage(MindInterface actorInterface) {
-        actorInterface.haltSendingMessage();
+    public static void haltSendingMessage(MindInterface mindInterface) {
+        mindInterface.haltSendingMessage();
 
-        assertInvariants(actorInterface);
-        assertNull("This has no transmission in progress.", actorInterface.getTransmissionInProgress());
+        assertInvariants(mindInterface);
+        assertNull("This has no transmission in progress.", mindInterface.getTransmissionInProgress());
     }
 }
