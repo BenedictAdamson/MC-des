@@ -10,36 +10,35 @@ import uk.badamson.mc.mind.message.Message;
  */
 public class AbstractMindTest {
 
-    public static void assertInvariants(AbstractMind actor) {
-        ObjectTest.assertInvariants(actor);// inherited
-        MindTest.assertInvariants(actor);// inherited
+    public static void assertInvariants(AbstractMind mind) {
+        ObjectTest.assertInvariants(mind);// inherited
+        MindTest.assertInvariants(mind);// inherited
     }
 
-    public static void assertInvariants(AbstractMind actor1, AbstractMind actor2) {
-        ObjectTest.assertInvariants(actor1, actor2);// inherited
-        MindTest.assertInvariants(actor1, actor2);// inherited
+    public static void assertInvariants(AbstractMind mind1, AbstractMind mind2) {
+        ObjectTest.assertInvariants(mind1, mind2);// inherited
+        MindTest.assertInvariants(mind1, mind2);// inherited
     }
 
-    public static void tellBeginReceivingMessage(AbstractMind actor, MessageTransferInProgress receptionStarted) {
-        MindTest.tellBeginReceivingMessage(actor, receptionStarted);// inherited
-        assertInvariants(actor);
+    public static void tellBeginReceivingMessage(AbstractMind mind, MessageTransferInProgress receptionStarted) {
+        MindTest.tellBeginReceivingMessage(mind, receptionStarted);// inherited
+        assertInvariants(mind);
     }
 
-    public static void tellMessageReceptionProgress(AbstractMind actor,
-            MessageTransferInProgress messageBeingReceived) {
-        MindTest.tellMessageReceptionProgress(actor, messageBeingReceived);
-        assertInvariants(actor);
+    public static void tellMessageReceptionProgress(AbstractMind mind, MessageTransferInProgress messageBeingReceived) {
+        MindTest.tellMessageReceptionProgress(mind, messageBeingReceived);
+        assertInvariants(mind);
     }
 
-    public static void tellMessageSendingEnded(AbstractMind actor, MessageTransferInProgress transmissionProgress,
+    public static void tellMessageSendingEnded(AbstractMind mind, MessageTransferInProgress transmissionProgress,
             Message fullMessage) {
-        MindTest.tellMessageSendingEnded(actor, transmissionProgress, fullMessage);
-        assertInvariants(actor);
+        MindTest.tellMessageSendingEnded(mind, transmissionProgress, fullMessage);
+        assertInvariants(mind);
     }
 
-    public static void tellMessageTransmissionProgress(AbstractMind actor,
+    public static void tellMessageTransmissionProgress(AbstractMind mind,
             MessageTransferInProgress transmissionProgress, Message fullMessage) {
-        MindTest.tellMessageTransmissionProgress(actor, transmissionProgress, fullMessage);
-        assertInvariants(actor);
+        MindTest.tellMessageTransmissionProgress(mind, transmissionProgress, fullMessage);
+        assertInvariants(mind);
     }
 }
