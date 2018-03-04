@@ -3,7 +3,9 @@ package uk.badamson.mc.mind.ai;
 import java.util.Objects;
 
 import uk.badamson.mc.mind.AbstractMind;
+import uk.badamson.mc.mind.MessageTransferInProgress;
 import uk.badamson.mc.mind.Mind;
+import uk.badamson.mc.mind.message.Message;
 import uk.badamson.mc.simulation.Clock;
 
 /**
@@ -77,4 +79,87 @@ public final class AI extends AbstractMind {
     public final void setPlayer(Mind player) {
         this.player = player;
     }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * <ul>
+     * <li>If this AI has a (non null) {@linkplain #getPlayer() associated player},
+     * the method delegates to the corresponding method of the player.</li>
+     * </ul>
+     * 
+     * @throws NullPointerException
+     *             {@inheritDoc}
+     * @throws IllegalArgumentException
+     *             {@inheritDoc}
+     */
+    @Override
+    public void tellBeginReceivingMessage(MessageTransferInProgress receptionStarted) {
+        super.tellBeginReceivingMessage(receptionStarted);
+        if (player != null) {
+            player.tellBeginReceivingMessage(receptionStarted);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * <ul>
+     * <li>If this AI has a (non null) {@linkplain #getPlayer() associated player},
+     * the method delegates to the corresponding method of the player.</li>
+     * </ul>
+     * 
+     * @throws NullPointerException
+     *             {@inheritDoc}
+     */
+    @Override
+    public void tellMessageReceptionProgress(MessageTransferInProgress messageBeingReceived) {
+        super.tellMessageReceptionProgress(messageBeingReceived);
+        if (player != null) {
+            player.tellMessageReceptionProgress(messageBeingReceived);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * <ul>
+     * <li>If this AI has a (non null) {@linkplain #getPlayer() associated player},
+     * the method delegates to the corresponding method of the player.</li>
+     * </ul>
+     * 
+     * @throws NullPointerException
+     *             {@inheritDoc}
+     * @throws IllegalArgumentException
+     *             {@inheritDoc}
+     */
+    @Override
+    public void tellMessageSendingEnded(MessageTransferInProgress transmissionProgress, Message fullMessage) {
+        super.tellMessageSendingEnded(transmissionProgress, fullMessage);
+        if (player != null) {
+            player.tellMessageSendingEnded(transmissionProgress, fullMessage);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * <ul>
+     * <li>If this AI has a (non null) {@linkplain #getPlayer() associated player},
+     * the method delegates to the corresponding method of the player.</li>
+     * </ul>
+     * 
+     * @throws NullPointerException
+     *             {@inheritDoc}
+     * @throws IllegalArgumentException
+     *             {@inheritDoc}
+     */
+    @Override
+    public void tellMessageTransmissionProgress(MessageTransferInProgress transmissionProgress, Message fullMessage) {
+        super.tellMessageTransmissionProgress(transmissionProgress, fullMessage);
+        if (player != null) {
+            player.tellMessageTransmissionProgress(transmissionProgress, fullMessage);
+        }
+    }
+
 }
