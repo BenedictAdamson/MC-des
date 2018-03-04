@@ -178,9 +178,7 @@ public final class Person implements MindInterface {
             clock.scheduleActionAt(now, new Runnable() {
                 @Override
                 public final void run() {
-                    if (receiver.ai.getPlayer() != null) {
-                        receiver.ai.getPlayer().tellBeginReceivingMessage(messageTransferInProgress0);
-                    }
+                    receiver.ai.getPlayer().tellBeginReceivingMessage(messageTransferInProgress0);
                 }
             });
         }
@@ -196,11 +194,8 @@ public final class Person implements MindInterface {
         clock.scheduleActionAt(clock.getTime(), new Runnable() {
             @Override
             public final void run() {
-                final Mind player = getPlayer();
-                if (player != null) {
-                    getPlayer().tellMessageSendingEnded(finalProgress, fullMessage);
-                    // TODO tell receiver actor tellMessageReceptionProgress
-                }
+                ai.tellMessageSendingEnded(finalProgress, fullMessage);
+                // TODO tell receiver actor tellMessageReceptionProgress
             }
         });
 
@@ -276,9 +271,8 @@ public final class Person implements MindInterface {
             @Override
             public void run() {
                 updateState();
-                final Mind player = getPlayer();
-                if (player != null && transmissionInProgress != null) {
-                    getPlayer().tellMessageTransmissionProgress(transmissionInProgress, transmittingMessage);
+                if (transmissionInProgress != null) {
+                    ai.tellMessageTransmissionProgress(transmissionInProgress, transmittingMessage);
                     // TODO tell receiver actor tellMessageReceptionProgress
                     scheduleUpdateMessageTransmission();
                 }
