@@ -26,8 +26,9 @@ public class AbstractMindTest {
         assertInvariants(mind);
     }
 
-    public static void tellMessageReceptionProgress(AbstractMind mind, MessageTransferInProgress messageBeingReceived) {
-        MindTest.tellMessageReceptionProgress(mind, messageBeingReceived);
+    public static void tellMessageReceptionProgress(AbstractMind mind, MessageTransferInProgress messageBeingReceived,
+            boolean complete) {
+        MindTest.tellMessageReceptionProgress(mind, messageBeingReceived, complete);
         assertInvariants(mind);
     }
 

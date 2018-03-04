@@ -30,7 +30,7 @@ public class AbstractMind implements Mind {
     }
 
     @Override
-    public void tellMessageReceptionProgress(MessageTransferInProgress messageBeingReceived) {
+    public void tellMessageReceptionProgress(MessageTransferInProgress messageBeingReceived, boolean complete) {
         Objects.requireNonNull(messageBeingReceived, "messageBeingReceived");
         Objects.requireNonNull(messageBeingReceived.getMessageSofar(), "messageBeingReceived.messageSoFar");
     }

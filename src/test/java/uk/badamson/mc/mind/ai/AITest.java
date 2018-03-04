@@ -17,7 +17,6 @@ import uk.badamson.mc.mind.medium.HandSignals;
 import uk.badamson.mc.mind.medium.Medium;
 import uk.badamson.mc.mind.message.Message;
 import uk.badamson.mc.mind.message.SimpleDirectCommand;
-import uk.badamson.mc.mind.message.UnusableIncompleteMessage;
 import uk.badamson.mc.simulation.Clock;
 import uk.badamson.mc.simulation.ClockTest;
 
@@ -37,6 +36,7 @@ public class AITest {
 
         private Medium medium;
         private MessageTransferInProgress messageBeingReceived;
+        boolean complete;
         private MessageTransferInProgress transmissionProgress;
         private Message fullMessage;
 
@@ -45,11 +45,13 @@ public class AITest {
             assertSame("Called tellBeginReceivingMessage, medium", medium, this.medium);
         }
 
-        void assertCalled_tellMessageReceptionProgress(int nCalls, MessageTransferInProgress messageBeingReceived) {
+        void assertCalled_tellMessageReceptionProgress(int nCalls, MessageTransferInProgress messageBeingReceived,
+                boolean complete) {
             assertEquals("Called tellMessageReceptionProgress, number of calls", nCalls,
                     nCallsTellMessageReceptionProgress);
             assertSame("Called tellMessageReceptionProgress, messageBeingReceived", messageBeingReceived,
                     this.messageBeingReceived);
+            assertEquals("Called tellMessageReceptionProgress, complete", complete, this.complete);
         }
 
         void assertCalled_tellMessageSendingEnded(int nCalls, MessageTransferInProgress transmissionProgress,
@@ -77,10 +79,11 @@ public class AITest {
         }
 
         @Override
-        public void tellMessageReceptionProgress(MessageTransferInProgress messageBeingReceived) {
-            super.tellMessageReceptionProgress(messageBeingReceived);
+        public void tellMessageReceptionProgress(MessageTransferInProgress messageBeingReceived, boolean complete) {
+            super.tellMessageReceptionProgress(messageBeingReceived, complete);
             ++nCallsTellMessageReceptionProgress;
             this.messageBeingReceived = messageBeingReceived;
+            this.complete = complete;
         }
 
         @Override
@@ -136,8 +139,9 @@ public class AITest {
         assertInvariants(ai);
     }
 
-    public static void tellMessageReceptionProgress(AI ai, MessageTransferInProgress messageBeingReceived) {
-        AbstractMindTest.tellMessageReceptionProgress(ai, messageBeingReceived);
+    public static void tellMessageReceptionProgress(AI ai, MessageTransferInProgress messageBeingReceived,
+            boolean complete) {
+        AbstractMindTest.tellMessageReceptionProgress(ai, messageBeingReceived, complete);
         assertInvariants(ai);
     }
 
@@ -201,8 +205,6 @@ public class AITest {
     @Test
     public void tellBeginReceivingMessage_withPlayer() {
         final HandSignals medium = HandSignals.INSTANCE;
-        final MessageTransferInProgress receptionStarted = new MessageTransferInProgress(medium,
-                UnusableIncompleteMessage.EMPTY_MESSAGE);
         final AI ai = new AI(clock1);
         final PlayerSpy player = new PlayerSpy();
         ai.setPlayer(player);
@@ -213,35 +215,55 @@ public class AITest {
     }
 
     @Test
-    public void tellMessageReceptionProgress_basic() {
+    public void tellMessageReceptionProgress_basicA() {
         final AI ai = new AI(clock1);
         final MessageTransferInProgress messageBeingReceived = new MessageTransferInProgress(HandSignals.INSTANCE,
                 SimpleDirectCommand.CHECK_MAP);
+        final boolean complete = true;
 
-        tellMessageReceptionProgress(ai, messageBeingReceived);
+        tellMessageReceptionProgress(ai, messageBeingReceived, complete);
+    }
+
+    @Test
+    public void tellMessageReceptionProgress_basicB() {
+        final AI ai = new AI(clock1);
+        final Message completeMessage = SimpleDirectCommand.CHECK_MAP;
+        final MessageTransferInProgress messageBeingReceived = new MessageTransferInProgress(HandSignals.INSTANCE,
+                completeMessage.getPartialMessage(completeMessage.getInformationContent() * 0.5));
+        final boolean complete = false;
+
+        tellMessageReceptionProgress(ai, messageBeingReceived, complete);
     }
 
     private void tellMessageReceptionProgress_withPlayer(final Message fullMessage, final double fractionReceived) {
+        final boolean complete = 1.0 < fractionReceived;
         final MessageTransferInProgress messageBeingReceived = new MessageTransferInProgress(HandSignals.INSTANCE,
                 fullMessage.getPartialMessage(fullMessage.getInformationContent() * fractionReceived));
         final AI ai = new AI(clock1);
         final PlayerSpy player = new PlayerSpy();
         ai.setPlayer(player);
 
-        tellMessageReceptionProgress(ai, messageBeingReceived);
+        tellMessageReceptionProgress(ai, messageBeingReceived, complete);
 
-        player.assertCalled_tellMessageReceptionProgress(1, messageBeingReceived);
+        player.assertCalled_tellMessageReceptionProgress(1, messageBeingReceived, complete);
     }
 
     @Test
     public void tellMessageReceptionProgress_withPlayerA() {
+        final Message fullMessage = SimpleDirectCommand.CHECK_MAP;
+        final double fractionReceived = 1.0;
+        tellMessageReceptionProgress_withPlayer(fullMessage, fractionReceived);
+    }
+
+    @Test
+    public void tellMessageReceptionProgress_withPlayerB() {
         final Message fullMessage = SimpleDirectCommand.CHECK_MAP;
         final double fractionReceived = 0.5;
         tellMessageReceptionProgress_withPlayer(fullMessage, fractionReceived);
     }
 
     @Test
-    public void tellMessageReceptionProgress_withPlayerB() {
+    public void tellMessageReceptionProgress_withPlayerC() {
         final Message fullMessage = SimpleDirectCommand.HALT;
         final double fractionReceived = 0.25;
         tellMessageReceptionProgress_withPlayer(fullMessage, fractionReceived);

@@ -28,16 +28,18 @@ public interface Mind {
 
     /**
      * <p>
-     * React to the reception of more of a message that is being transmitted to the
-     * actor.
+     * React to the reception of more of a message that is being transmitted to this
+     * mind.
      * </p>
      * 
      * @param messageBeingReceived
      *            The current progress of reception of the message.
+     * @param complete
+     *            Whether the transmission is complete.
      * @throws NullPointerException
      *             If {@code messageBeingReceived} is null.
      */
-    public void tellMessageReceptionProgress(MessageTransferInProgress messageBeingReceived);
+    public void tellMessageReceptionProgress(MessageTransferInProgress messageBeingReceived, boolean complete);
 
     /**
      * <p>

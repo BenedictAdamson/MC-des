@@ -501,7 +501,7 @@ public final class Gui implements AutoCloseable, Runnable {
             }
 
             @Override
-            public void tellMessageReceptionProgress(MessageTransferInProgress messageBeingReceived) {
+            public void tellMessageReceptionProgress(MessageTransferInProgress messageBeingReceived, boolean complete) {
                 // TODO Auto-generated method stub
 
             }

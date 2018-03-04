@@ -114,10 +114,10 @@ public final class AI extends AbstractMind {
      *             {@inheritDoc}
      */
     @Override
-    public void tellMessageReceptionProgress(MessageTransferInProgress messageBeingReceived) {
-        super.tellMessageReceptionProgress(messageBeingReceived);
+    public void tellMessageReceptionProgress(MessageTransferInProgress messageBeingReceived, boolean complete) {
+        super.tellMessageReceptionProgress(messageBeingReceived, complete);
         if (player != null) {
-            player.tellMessageReceptionProgress(messageBeingReceived);
+            player.tellMessageReceptionProgress(messageBeingReceived, complete);
         }
     }
 
