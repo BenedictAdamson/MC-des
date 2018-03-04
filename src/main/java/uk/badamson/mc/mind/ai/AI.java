@@ -1,7 +1,10 @@
 package uk.badamson.mc.mind.ai;
 
+import java.util.Objects;
+
 import uk.badamson.mc.mind.AbstractMind;
 import uk.badamson.mc.mind.Mind;
+import uk.badamson.mc.simulation.Clock;
 
 /**
  * <p>
@@ -11,6 +14,8 @@ import uk.badamson.mc.mind.Mind;
  * </p>
  */
 public final class AI extends AbstractMind {
+    private final Clock clock;
+
     private Mind player;
 
     /**
@@ -18,11 +23,29 @@ public final class AI extends AbstractMind {
      * Construct an artificial intelligence that is currently doing nothing.
      * </p>
      * <ul>
-     * <li>This does not have an {@linkplain #getPlayer() actor} (it is null).
+     * <li>The {@linkplain #getClock() clock} of this person is the given clock.
+     * <li>
+     * <li>This does not have an {@linkplain #getPlayer() actor} (it is null).</li>
      * </ul>
+     * 
+     * @param clock
+     *            The clock of the simulated world that this person is in.
+     * @throws NullPointerException
+     *             If {@code clock} is null.
      */
-    public AI() {
-        // Do nothing
+    public AI(Clock clock) {
+        this.clock = Objects.requireNonNull(clock, "clock");
+    }
+
+    /**
+     * <p>
+     * The clock of the simulated world that this simulated mind is in.
+     * </p>
+     * 
+     * @return the clock; not null
+     */
+    public final Clock getClock() {
+        return clock;
     }
 
     /**

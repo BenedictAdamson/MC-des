@@ -40,8 +40,8 @@ public class ClockTest {
         }
     }// class
 
-    static final long TIME_1 = -123L;
-    static final long TIME_2 = 1_000L;
+    public static final long TIME_1 = -123L;
+    public static final long TIME_2 = 1_000L;
     static final long TIME_3 = 7_000L;
     static final long TIME_4 = 60_000L;
     static final long TIME_5 = 3_600_000L;
