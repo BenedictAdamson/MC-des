@@ -13,9 +13,9 @@ import java.util.Set;
 import org.junit.Test;
 
 import uk.badamson.mc.mind.AbstractMind;
+import uk.badamson.mc.mind.MediumUnavailableException;
 import uk.badamson.mc.mind.Mind;
 import uk.badamson.mc.mind.MindTest;
-import uk.badamson.mc.mind.MediumUnavailableException;
 import uk.badamson.mc.mind.medium.HandSignals;
 import uk.badamson.mc.mind.medium.Medium;
 import uk.badamson.mc.mind.message.Message;
@@ -74,7 +74,7 @@ public class GameTest {
         assertNotNull("Always creates a person.", person);// guard
         final Set<Person> persons = game.getPersons();
         PersonTest.assertInvariants(person);
-        assertNull("The created person does not have an actor.", person.getActor());
+        assertNull("The created person does not have an actor.", person.getPlayer());
         assertTrue("The created person is one of the persons of this game.", persons.contains(person));
         assertTrue("Does not remove any persons from this game.", persons.containsAll(persons0));
         assertEquals("Adds one person to this game.", persons0.size() + 1, persons.size());
@@ -89,19 +89,19 @@ public class GameTest {
 
         assertInvariants(game);
         assertTrue("If this had a played person, the actor of that person becomes null.",
-                playedPerson0 == null || playedPerson0.getActor() == null);
+                playedPerson0 == null || playedPerson0.getPlayer() == null);
         assertNull("playedPerson", game.getPlayedPerson());
     }
 
-    public static final void takeControl(Game game, Mind actor, Person person) {
-        game.takeControl(actor, person);
+    public static final void takeControl(Game game, Mind player, Person person) {
+        game.takeControl(player, person);
 
         assertInvariants(game);
-        MindTest.assertInvariants(actor);
+        MindTest.assertInvariants(player);
         PersonTest.assertInvariants(person);
 
         assertSame("playedPerson", person, game.getPlayedPerson());
-        assertSame("The actor of the given person becomes the given actor.", actor, person.getActor());
+        assertSame("The player of the given person becomes the given player.", player, person.getPlayer());
     }
 
     @Test
@@ -148,8 +148,8 @@ public class GameTest {
     public void releaseControl() {
         final Game game = new Game();
         final Person person = game.createPerson();
-        final Mind actor = new AbstractMind();
-        game.takeControl(actor, person);
+        final Mind player = new AbstractMind();
+        game.takeControl(player, person);
 
         releaseControl(game);
         PersonTest.assertInvariants(person);
@@ -166,8 +166,8 @@ public class GameTest {
     public void takeControl_1() {
         final Game game = new Game();
         final Person person = game.createPerson();
-        final Mind actor = new AbstractMind();
+        final Mind player = new AbstractMind();
 
-        takeControl(game, actor, person);
+        takeControl(game, player, person);
     }
 }

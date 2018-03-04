@@ -6,13 +6,13 @@ import uk.badamson.mc.mind.medium.Medium;
 
 /**
  * <p>
- * A message that an {@linkplain Mind actor} might send through a
+ * A message that a {@linkplain Mind minds} might send through a
  * {@linkplain Medium medium}.
  * </p>
  * <p>
  * The message may be a {@linkplain Command command}, and the medium may enable
  * the intended recipient of that command to receive the command. Objects of
- * this class are therefore means by which actors can express orders to
+ * this class are therefore means by which minds can express orders to
  * sub-ordinates.
  * </p>
  */

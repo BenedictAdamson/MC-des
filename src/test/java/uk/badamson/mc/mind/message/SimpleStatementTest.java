@@ -11,11 +11,6 @@ import java.util.Objects;
 
 import org.junit.Test;
 
-import uk.badamson.mc.mind.message.Noun;
-import uk.badamson.mc.mind.message.Pronoun;
-import uk.badamson.mc.mind.message.SimpleRelativeLocation;
-import uk.badamson.mc.mind.message.SimpleStatement;
-import uk.badamson.mc.mind.message.UnusableIncompleteMessage;
 import uk.badamson.mc.mind.message.SimpleStatement.SimplePredicate;
 
 /**

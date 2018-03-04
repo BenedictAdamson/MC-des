@@ -49,7 +49,7 @@ public final class Game {
      * </p>
      * <ul>
      * <li>Always creates a (non null) person.</li>
-     * <li>The created person does not have an {@linkplain Person#getActor() actor}
+     * <li>The created person does not have an {@linkplain Person#getPlayer() actor}
      * (it is null).</li>
      * <li>The created person is one of the {@linkplain #getPersons() persons} of
      * this game.</li>
@@ -142,14 +142,14 @@ public final class Game {
      * </p>
      * <ul>
      * <li>If this had a (non null) {@linkplain #getPlayedPerson() played person},
-     * the {@linkplain Person#getActor() actor} of that person becomes null .</li>
+     * the {@linkplain Person#getPlayer() actor} of that person becomes null .</li>
      * <li>The {@linkplain #getPlayedPerson() played person} becomes null.</li>
      * </ul>
      */
     public final void releaseControl() {
         synchronized (persons) {
             if (playedPerson != null) {
-                playedPerson.setActor(null);
+                playedPerson.setPlayer(null);
             }
             playedPerson = null;
         }
@@ -171,38 +171,38 @@ public final class Game {
 
     /**
      * <p>
-     * Have the human player of this game. take control of one of the
+     * Have the human player of this game take control of one of the
      * {@linkplain #getPlayedPerson() simulated persons} of this game.
      * </p>
      * <ul>
      * <li>The {@linkplain #getPlayedPerson() played person} becomes the given
      * person.</li>
-     * <li>The {@linkplain Person#getActor() actor} of the given person becomes the
-     * given actor.</li>
+     * <li>The {@linkplain Person#getPlayer() actor} of the given person becomes the
+     * given player.</li>
      * </ul>
      * 
-     * @param actor
+     * @param player
      *            The interface through which the simulation interacts with the
      *            human player of this game.
      * @param person
      *            The person to be controlled.
      * @throws NullPointerException
      *             <ul>
-     *             <li>If {@code actor} is null.</li>
+     *             <li>If {@code player} is null.</li>
      *             <li>If {@code person} is null.</li>
      *             </ul>
      * @throws IllegalArgumentException
      *             If {@code person} is not one of the {@linkplain #getPersons()
      *             persons} of this simulation.
      */
-    public final void takeControl(Mind actor, Person person) {
-        Objects.requireNonNull(actor, "actor");
+    public final void takeControl(Mind player, Person person) {
+        Objects.requireNonNull(player, "player");
         Objects.requireNonNull(person, "person");
         synchronized (persons) {
             if (!persons.contains(person)) {
                 throw new IllegalArgumentException("person " + person + " is not one of the persons");
             }
-            person.setActor(actor);
+            person.setPlayer(player);
             playedPerson = person;
         }
     }

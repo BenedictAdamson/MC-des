@@ -5,10 +5,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
-import uk.badamson.mc.mind.message.Noun;
-import uk.badamson.mc.mind.message.Relationship;
-import uk.badamson.mc.mind.message.RelationshipStatement;
-
 /**
  * <p>
  * Unit tests of classes that implement the {@link RelationshipStatement}

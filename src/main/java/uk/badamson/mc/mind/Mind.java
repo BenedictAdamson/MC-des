@@ -1,11 +1,12 @@
 package uk.badamson.mc.mind;
 
 import uk.badamson.mc.mind.message.Message;
+import uk.badamson.mc.simulation.Person;
 
 /**
  * <p>
- * The interface through which the simulation interacts with a human or AI
- * player of the Mission Command game.
+ * The interface through which the simulation interacts with the human or AI
+ * intelligence that controls a {@link Person}.
  * </p>
  */
 public interface Mind {

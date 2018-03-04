@@ -3,18 +3,18 @@ package uk.badamson.mc.mind;
 /**
  * <p>
  * A {@linkplain Exception checked exception} for indicating that an
- * {@linkplain MindInterface action} that an {@linkplain Mind actor} wants to
+ * {@linkplain MindInterface action} that a {@linkplain Mind mind} wants to
  * perform is impossible to perform because of the (current) state of the
  * simulation.
  * <p>
  * That is, the simulation indicates that the action is <em>currently</em>
  * physically impossible, but the action is sometimes possible. This is similar
  * to an {@link IllegalStateException}, but this is not an
- * {@link IllegalStateException}, (which is a {@link RuntimeException}) because
+ * {@link IllegalStateException} (which is a {@link RuntimeException}), because
  * it can be practically impossible, or inconvenient, to determine whether an
  * action is possible other than trying to do it. This is a checked exception
- * because an {@linkplain Mind actor} must always be prepared to handle
- * attempted actions that fail.
+ * because a {@linkplain Mind mind} must always be prepared to handle attempted
+ * actions that fail.
  * </p>
  * <p>
  */

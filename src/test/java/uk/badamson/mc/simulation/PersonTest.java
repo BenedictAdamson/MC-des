@@ -17,10 +17,10 @@ import org.junit.Test;
 
 import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.mind.AbstractMind;
-import uk.badamson.mc.mind.Mind;
-import uk.badamson.mc.mind.MindInterfaceTest;
 import uk.badamson.mc.mind.MediumUnavailableException;
 import uk.badamson.mc.mind.MessageTransferInProgress;
+import uk.badamson.mc.mind.Mind;
+import uk.badamson.mc.mind.MindInterfaceTest;
 import uk.badamson.mc.mind.medium.HandSignals;
 import uk.badamson.mc.mind.medium.Medium;
 import uk.badamson.mc.mind.message.Message;
@@ -65,7 +65,7 @@ public class PersonTest {
 
         assertInvariants(person);
         assertSame("clock", clock, person.getClock());
-        assertNull("actor", person.getActor());
+        assertNull("actor", person.getPlayer());
         assertEquals("The media through which this actor can send messages consists of hand signals}.",
                 Collections.singleton(HandSignals.INSTANCE), person.getMedia());
         assertEquals("This actor is receiving no messages.", Collections.EMPTY_SET, person.getMessagesBeingReceived());
@@ -80,11 +80,11 @@ public class PersonTest {
         assertInvariants(person);
     }
 
-    public static void setActor(Person person, Mind actor) {
-        person.setActor(actor);
+    public static void setPlayer(Person person, Mind player) {
+        person.setPlayer(player);
 
         assertInvariants(person);
-        assertSame("actor", actor, person.getActor());
+        assertSame("player", player, person.getPlayer());
     }
 
     private Clock clock1;
@@ -103,7 +103,7 @@ public class PersonTest {
         final double transmissionTime = informationInMessage / medium.getTypicalTransmissionRate();
 
         final AbstractMind actor = new AbstractMind();
-        person.setActor(actor);
+        person.setPlayer(actor);
         try {
             person.beginSendingMessage(medium, message);
         } catch (MediumUnavailableException e) {
@@ -176,7 +176,7 @@ public class PersonTest {
             }
 
         };
-        person.setActor(actor);
+        person.setPlayer(actor);
         try {
             person.beginSendingMessage(medium, message1);
         } catch (MediumUnavailableException e) {
@@ -226,7 +226,7 @@ public class PersonTest {
             }
 
         };
-        person.setActor(actor);
+        person.setPlayer(actor);
         try {
             person.beginSendingMessage(medium, message);
         } catch (MediumUnavailableException e) {
@@ -256,7 +256,7 @@ public class PersonTest {
         final Person receiver = new Person(clock1);
         final Medium medium = HandSignals.INSTANCE;
         final AtomicInteger nStartMessages = new AtomicInteger(0);
-        final Mind receiverActor = new AbstractMind() {
+        final Mind receiverPlayer = new AbstractMind() {
 
             @Override
             public final void tellBeginReceivingMessage(MessageTransferInProgress receptionStarted) {
@@ -267,7 +267,7 @@ public class PersonTest {
 
         };
         sender.addReceiver(medium, receiver);
-        receiver.setActor(receiverActor);
+        receiver.setPlayer(receiverPlayer);
 
         try {
             MindInterfaceTest.beginSendingMessage(sender, medium, message);
@@ -356,7 +356,7 @@ public class PersonTest {
                 messageSoFar.set(transmissionProgress.getMessageSofar());
             }
         };
-        person.setActor(actor);
+        person.setPlayer(actor);
         try {
             person.beginSendingMessage(medium, message);
         } catch (MediumUnavailableException e) {
@@ -423,7 +423,7 @@ public class PersonTest {
                 assertInvariants(person);
             }
         };
-        person.setActor(actor);
+        person.setPlayer(actor);
         try {
             person.beginSendingMessage(medium, message);
         } catch (MediumUnavailableException e) {
@@ -467,21 +467,21 @@ public class PersonTest {
         assertInvariants(person);
     }
 
-    private void setActor() {
+    private void setPlayer() {
         final Person person = new Person(clock1);
         final Mind actor = new AbstractMind();
 
-        setActor(person, actor);
+        setPlayer(person, actor);
     }
 
     @Test
-    public void setActor_A() {
-        setActor();
+    public void setPlayer_A() {
+        setPlayer();
     }
 
     @Test
-    public void setActor_B() {
-        setActor();
+    public void setPlayer_B() {
+        setPlayer();
     }
 
     @Before

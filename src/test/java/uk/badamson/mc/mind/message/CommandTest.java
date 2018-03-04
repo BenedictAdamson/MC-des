@@ -1,7 +1,5 @@
 package uk.badamson.mc.mind.message;
 
-import uk.badamson.mc.mind.message.Command;
-
 /**
  * <p>
  * Unit tests of classes that implement the {@link Command} interface.

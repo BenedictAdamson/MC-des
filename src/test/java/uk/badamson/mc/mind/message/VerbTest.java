@@ -1,7 +1,5 @@
 package uk.badamson.mc.mind.message;
 
-import uk.badamson.mc.mind.message.Verb;
-
 /**
  * <p>
  * Unit tests of classes that implement the {@link Verb} interface.

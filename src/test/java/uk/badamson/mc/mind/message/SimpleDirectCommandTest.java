@@ -11,15 +11,6 @@ import java.util.Collections;
 import org.junit.Test;
 
 import uk.badamson.mc.ObjectTest;
-import uk.badamson.mc.mind.message.BattleDrillName;
-import uk.badamson.mc.mind.message.MilitaryRole;
-import uk.badamson.mc.mind.message.Noun;
-import uk.badamson.mc.mind.message.Pronoun;
-import uk.badamson.mc.mind.message.SimpleDirectCommand;
-import uk.badamson.mc.mind.message.SimpleFormationName;
-import uk.badamson.mc.mind.message.SimpleRelativeLocation;
-import uk.badamson.mc.mind.message.SimpleVerb;
-import uk.badamson.mc.mind.message.UnusableIncompleteMessage;
 
 /**
  * <p>

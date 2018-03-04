@@ -8,9 +8,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Set;
 
-import uk.badamson.mc.mind.MindInterface;
-import uk.badamson.mc.mind.MediumUnavailableException;
-import uk.badamson.mc.mind.MessageTransferInProgress;
 import uk.badamson.mc.mind.medium.Medium;
 import uk.badamson.mc.mind.message.Message;
 import uk.badamson.mc.mind.message.UnusableIncompleteMessage;

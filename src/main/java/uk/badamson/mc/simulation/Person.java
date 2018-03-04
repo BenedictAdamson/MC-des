@@ -7,10 +7,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import uk.badamson.mc.mind.Mind;
-import uk.badamson.mc.mind.MindInterface;
 import uk.badamson.mc.mind.MediumUnavailableException;
 import uk.badamson.mc.mind.MessageTransferInProgress;
+import uk.badamson.mc.mind.Mind;
+import uk.badamson.mc.mind.MindInterface;
 import uk.badamson.mc.mind.medium.HandSignals;
 import uk.badamson.mc.mind.medium.Medium;
 import uk.badamson.mc.mind.message.IllegalMessageException;
@@ -28,7 +28,7 @@ public final class Person implements MindInterface {
      * <p>
      * While simulating the transmission of a message, the nominal number of times
      * to {@linkplain Mind#tellMessageTransmissionProgress() telling} the
-     * {@linkplain #getActor() actor} of progress in sending the message.
+     * {@linkplain #getPlayer() player} of progress in sending the message.
      * </p>
      */
     public static final int MIN_MESSAGE_TRANSMISSION_PROGRESS_COUNT = 4;
@@ -38,7 +38,7 @@ public final class Person implements MindInterface {
      * While simulating the transmission of a message, the nominal maximum time
      * interval, in seconds, between
      * {@linkplain Mind#tellMessageTransmissionProgress() telling} the
-     * {@linkplain #getActor() actor} of progress in sending the message.
+     * {@linkplain #getPlayer() player} of progress in sending the message.
      * </p>
      */
     public static final double MAX_MESSAGE_TRANSMISSION_PROGRESS_INTERVAL = 1.0;
@@ -48,7 +48,7 @@ public final class Person implements MindInterface {
      * While simulating the transmission of a message, the nominal minimum time
      * interval, in seconds, between
      * {@linkplain Mind#tellMessageTransmissionProgress() telling} the
-     * {@linkplain #getActor() actor} of progress in sending the message.
+     * {@linkplain #getPlayer() player} of progress in sending the message.
      * </p>
      * <p>
      * This value also models the minimum reaction time to completion of the
@@ -61,7 +61,7 @@ public final class Person implements MindInterface {
     private final Map<Medium, Set<Person>> mediaReceivers = new HashMap<>();
     private final Set<MessageTransferInProgress> messagesBeingReceived = new HashSet<>();
 
-    private Mind actor;
+    private Mind player;
     private MessageTransferInProgress transmissionInProgress;
     private Message transmittingMessage;
     private long previousUpdate;
@@ -72,7 +72,7 @@ public final class Person implements MindInterface {
      * </p>
      * <ul>
      * <li>The {@linkplain #getClock() clock} of this person is the given clock.
-     * <li>This does not have an {@linkplain #getActor() actor} (it is null).
+     * <li>This does not have an {@linkplain #getPlayer() actor} (it is null).
      * <li>The {@linkplain #getMedia() media} through which this actor can send
      * messages consists of {@linkplain HandSignals hand signals}.</li>
      * <li>This actor is {@linkplain #getMessagesBeingReceived() receiving} no
@@ -176,8 +176,8 @@ public final class Person implements MindInterface {
             clock.scheduleActionAt(now, new Runnable() {
                 @Override
                 public final void run() {
-                    if (receiver.actor != null) {
-                        receiver.actor.tellBeginReceivingMessage(messageTransferInProgress0);
+                    if (receiver.player != null) {
+                        receiver.player.tellBeginReceivingMessage(messageTransferInProgress0);
                     }
                 }
             });
@@ -194,8 +194,8 @@ public final class Person implements MindInterface {
         clock.scheduleActionAt(clock.getTime(), new Runnable() {
             @Override
             public final void run() {
-                if (actor != null) {
-                    actor.tellMessageSendingEnded(finalProgress, fullMessage);
+                if (player != null) {
+                    player.tellMessageSendingEnded(finalProgress, fullMessage);
                     // TODO tell receiver actor tellMessageReceptionProgress
                 }
             }
@@ -203,19 +203,6 @@ public final class Person implements MindInterface {
 
         transmittingMessage = null;
         transmissionInProgress = null;
-    }
-
-    /**
-     * <p>
-     * The interface through which the simulation interacts with a human or AI
-     * player controlling this person.
-     * </p>
-     * 
-     * @return The actor, or null if this person does not (yet) have a human or AI
-     *         controller.
-     */
-    public final Mind getActor() {
-        return actor;
     }
 
     /**
@@ -237,6 +224,18 @@ public final class Person implements MindInterface {
     @Override
     public final Set<MessageTransferInProgress> getMessagesBeingReceived() {
         return Collections.unmodifiableSet(messagesBeingReceived);
+    }
+
+    /**
+     * <p>
+     * The interface through which the simulation interacts with a player
+     * controlling this person.
+     * </p>
+     * 
+     * @return The player, or null if this person does not (yet) have a player.
+     */
+    public final Mind getPlayer() {
+        return player;
     }
 
     @Override
@@ -274,8 +273,8 @@ public final class Person implements MindInterface {
             @Override
             public void run() {
                 updateState();
-                if (actor != null && transmissionInProgress != null) {
-                    actor.tellMessageTransmissionProgress(transmissionInProgress, transmittingMessage);
+                if (player != null && transmissionInProgress != null) {
+                    player.tellMessageTransmissionProgress(transmissionInProgress, transmittingMessage);
                     // TODO tell receiver actor tellMessageReceptionProgress
                     scheduleUpdateMessageTransmission();
                 }
@@ -286,19 +285,19 @@ public final class Person implements MindInterface {
 
     /**
      * <p>
-     * Change the interface through which the simulation interacts with a human or
-     * AI player controlling this person.
+     * Change the interface through which the simulation interacts with a player
+     * controlling this person.
      * </p>
      * 
-     * @param actor
+     * @param player
      *            the interface to use from now on
      * @throws IllegalArgumentException
-     *             If {@code actor} is not null and the
+     *             If {@code player} is not null and the
      *             {@linkplain Mind#getActorInterface() actor interface} of the
      *             {@code actor} is not this object.
      */
-    public final void setActor(Mind actor) {
-        this.actor = actor;
+    public final void setPlayer(Mind player) {
+        this.player = player;
     }
 
     private void updateState() {

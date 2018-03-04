@@ -9,7 +9,6 @@ import static org.junit.Assert.assertSame;
 import org.junit.Test;
 
 import uk.badamson.mc.ObjectTest;
-import uk.badamson.mc.mind.MessageTransferInProgress;
 import uk.badamson.mc.mind.medium.HandSignals;
 import uk.badamson.mc.mind.medium.Medium;
 import uk.badamson.mc.mind.message.Message;

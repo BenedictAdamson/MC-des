@@ -6,8 +6,8 @@ import uk.badamson.mc.mind.message.Message;
 
 /**
  * <p>
- * A transmission medium (or means) through which {@linkplain Mind actors} can
- * send {@linkplain Message messages}, from their perspective.
+ * A transmission medium (or means) through which {@linkplain Mind minds} can
+ * send {@linkplain Message messages} to each other, from their perspective.
  * </p>
  */
 @Immutable

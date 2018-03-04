@@ -6,7 +6,6 @@ import static org.junit.Assert.assertSame;
 
 import org.junit.Test;
 
-import uk.badamson.mc.mind.message.SimpleRelativeLocation;
 import uk.badamson.mc.mind.message.SimpleRelativeLocation.Direction;
 import uk.badamson.mc.mind.message.SimpleRelativeLocation.Range;
 

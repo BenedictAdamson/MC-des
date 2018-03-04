@@ -1,7 +1,5 @@
 package uk.badamson.mc.mind;
 
-import uk.badamson.mc.mind.Mind;
-import uk.badamson.mc.mind.MessageTransferInProgress;
 import uk.badamson.mc.mind.message.Message;
 
 /**
@@ -11,33 +9,33 @@ import uk.badamson.mc.mind.message.Message;
  */
 public class MindTest {
 
-    public static void assertInvariants(Mind actor) {
+    public static void assertInvariants(Mind mind) {
         // Do nothing
     }
 
-    public static void assertInvariants(Mind actor1, Mind actor2) {
+    public static void assertInvariants(Mind mind1, Mind mind2) {
         // Do nothing
     }
 
-    public static void tellBeginReceivingMessage(Mind actor, MessageTransferInProgress receptionStarted) {
-        actor.tellBeginReceivingMessage(receptionStarted);
-        assertInvariants(actor);
+    public static void tellBeginReceivingMessage(Mind mind, MessageTransferInProgress receptionStarted) {
+        mind.tellBeginReceivingMessage(receptionStarted);
+        assertInvariants(mind);
     }
 
-    public static void tellMessageReceptionProgress(Mind actor, MessageTransferInProgress messageBeingReceived) {
-        actor.tellMessageReceptionProgress(messageBeingReceived);
-        assertInvariants(actor);
+    public static void tellMessageReceptionProgress(Mind mind, MessageTransferInProgress messageBeingReceived) {
+        mind.tellMessageReceptionProgress(messageBeingReceived);
+        assertInvariants(mind);
     }
 
-    public static void tellMessageSendingEnded(Mind actor, MessageTransferInProgress transmissionProgress,
+    public static void tellMessageSendingEnded(Mind mind, MessageTransferInProgress transmissionProgress,
             Message fullMessage) {
-        actor.tellMessageSendingEnded(transmissionProgress, fullMessage);
-        assertInvariants(actor);
+        mind.tellMessageSendingEnded(transmissionProgress, fullMessage);
+        assertInvariants(mind);
     }
 
-    public static void tellMessageTransmissionProgress(Mind actor, MessageTransferInProgress transmissionProgress,
+    public static void tellMessageTransmissionProgress(Mind mind, MessageTransferInProgress transmissionProgress,
             Message fullMessage) {
-        actor.tellMessageTransmissionProgress(transmissionProgress, fullMessage);
-        assertInvariants(actor);
+        mind.tellMessageTransmissionProgress(transmissionProgress, fullMessage);
+        assertInvariants(mind);
     }
 }

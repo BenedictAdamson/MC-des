@@ -7,7 +7,6 @@ import static org.junit.Assert.assertNotEquals;
 import org.junit.Test;
 
 import uk.badamson.mc.ObjectTest;
-import uk.badamson.mc.mind.message.UnusableIncompleteMessage;
 
 /**
  * <p>

@@ -4,17 +4,17 @@ import uk.badamson.mc.mind.medium.Medium;
 
 /**
  * <p>
- * A {@linkplain Exception checked exception} for indicating an {@linkplain Mind
- * actor} is unable to use a {@linkplain Medium communication medium} it is
- * trying to {@linkplain MindInterface use}, because of the <em>currently</em>
+ * A {@linkplain Exception checked exception} for indicating a {@linkplain Mind
+ * mind} is unable to use a {@linkplain Medium communication medium} it is
+ * trying to {@linkplain MindInterface use}, because of the <em>current</em>
  * state of the simulation.
  * <p>
  * That is, using the medium is physically impossible, but using the medium is
- * sometimes possible. This is not an {@link IllegalStateException}, (which is a
- * {@link RuntimeException}) because it can be practically impossible, or
- * inconvenient, to determine whether using a medium is possiblem other than
- * trying to use it. This is a checked exception because an {@linkplain Mind
- * actor} must always be prepared to handle attempted actions that become
+ * sometimes possible. This is not an {@link IllegalStateException} (which is a
+ * {@link RuntimeException}), because it can be practically impossible, or
+ * inconvenient, to determine whether using a medium is possible other than
+ * trying to use it. This is a checked exception because a {@linkplain Mind
+ * mind} must always be prepared to handle attempted actions that become
  * unavailable without notice.
  * </p>
  * <p>

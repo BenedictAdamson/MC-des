@@ -18,7 +18,7 @@ public class AbstractMind implements Mind {
 
     /**
      * <p>
-     * Construct an {@linkplain Mind actor}.
+     * Construct a {@linkplain AbstractMind mind}.
      * </p>
      */
     public AbstractMind() {

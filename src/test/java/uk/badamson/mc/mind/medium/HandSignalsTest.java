@@ -3,7 +3,6 @@ package uk.badamson.mc.mind.medium;
 import org.junit.Test;
 
 import uk.badamson.mc.ObjectTest;
-import uk.badamson.mc.mind.medium.HandSignals;
 
 /**
  * <p>

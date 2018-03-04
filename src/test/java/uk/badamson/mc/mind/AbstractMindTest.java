@@ -1,8 +1,6 @@
 package uk.badamson.mc.mind;
 
 import uk.badamson.mc.ObjectTest;
-import uk.badamson.mc.mind.AbstractMind;
-import uk.badamson.mc.mind.MessageTransferInProgress;
 import uk.badamson.mc.mind.message.Message;
 
 /**

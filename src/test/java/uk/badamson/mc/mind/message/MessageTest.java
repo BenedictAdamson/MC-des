@@ -4,8 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 
-import uk.badamson.mc.mind.message.Message;
-
 /**
  * <p>
  * Unit tests of classes that implement the {@link Message} interface.

@@ -23,10 +23,10 @@ import org.eclipse.swt.widgets.Text;
 import net.jcip.annotations.ThreadSafe;
 import uk.badamson.mc.Game;
 import uk.badamson.mc.Main;
-import uk.badamson.mc.mind.Mind;
-import uk.badamson.mc.mind.MindInterface;
 import uk.badamson.mc.mind.MediumUnavailableException;
 import uk.badamson.mc.mind.MessageTransferInProgress;
+import uk.badamson.mc.mind.Mind;
+import uk.badamson.mc.mind.MindInterface;
 import uk.badamson.mc.mind.medium.HandSignals;
 import uk.badamson.mc.mind.medium.Medium;
 import uk.badamson.mc.mind.message.BattleDrillName;
@@ -62,6 +62,7 @@ public final class Gui implements AutoCloseable, Runnable {
      */
     @ThreadSafe
     public final class GameGui {
+
         /**
          * <p>
          * The GUI for the {@linkplain Game#getPerson() played person} of one instance
@@ -633,7 +634,7 @@ public final class Gui implements AutoCloseable, Runnable {
          * <ul>
          * <li>The {@linkplain Game#getPlayedPerson() played person} of the game that
          * his GUI controls becomes the given person.</li>
-         * <li>The {@linkplain Person#getActor() actor} of the given person becomes the
+         * <li>The {@linkplain Person#getPlayer() actor} of the given person becomes the
          * {@linkplain Gui.GameGui.PlayedPersonGui GUI} that this returns.</li>
          * </ul>
          * 

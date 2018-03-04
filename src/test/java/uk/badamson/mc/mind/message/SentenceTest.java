@@ -7,10 +7,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.Objects;
 import java.util.Set;
 
-import uk.badamson.mc.mind.message.Noun;
-import uk.badamson.mc.mind.message.Sentence;
-import uk.badamson.mc.mind.message.Verb;
-
 /**
  * <p>
  * Unit tests of classes that implement the {@link Sentence} interface.

@@ -3,8 +3,6 @@ package uk.badamson.mc.mind.message;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import uk.badamson.mc.mind.message.MessageElement;
-
 /**
  * <p>
  * Unit tests of classes that implement the {@link MessageElement} interface.

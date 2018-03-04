@@ -1,7 +1,5 @@
 package uk.badamson.mc.mind.message;
 
-import uk.badamson.mc.mind.message.Relationship;
-
 /**
  * <p>
  * Unit tests for classes that implement the {@link Relationship} interface.
