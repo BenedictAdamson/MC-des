@@ -65,7 +65,7 @@ public class PersonTest {
 
         assertInvariants(person);
         assertSame("clock", clock, person.getClock());
-        assertNull("actor", person.getPlayer());
+        assertNull("player", person.getPlayer());
         assertEquals("The media through which this actor can send messages consists of hand signals}.",
                 Collections.singleton(HandSignals.INSTANCE), person.getMedia());
         assertEquals("This actor is receiving no messages.", Collections.EMPTY_SET, person.getMessagesBeingReceived());
@@ -469,9 +469,9 @@ public class PersonTest {
 
     private void setPlayer() {
         final Person person = new Person(clock1);
-        final Mind actor = new AbstractMind();
+        final Mind player = new AbstractMind();
 
-        setPlayer(person, actor);
+        setPlayer(person, player);
     }
 
     @Test
