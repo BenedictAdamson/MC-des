@@ -87,6 +87,7 @@ public class AITest {
     public void constructor_B() {
         constructor(clock2);
     }
+
     private void setPlayer() {
         final AI ai = new AI(clock1);
         final Mind player = new AbstractMind();

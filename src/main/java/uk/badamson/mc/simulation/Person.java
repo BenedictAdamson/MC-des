@@ -11,6 +11,7 @@ import uk.badamson.mc.mind.MediumUnavailableException;
 import uk.badamson.mc.mind.MessageTransferInProgress;
 import uk.badamson.mc.mind.Mind;
 import uk.badamson.mc.mind.MindInterface;
+import uk.badamson.mc.mind.ai.AI;
 import uk.badamson.mc.mind.medium.HandSignals;
 import uk.badamson.mc.mind.medium.Medium;
 import uk.badamson.mc.mind.message.IllegalMessageException;
@@ -58,10 +59,10 @@ public final class Person implements MindInterface {
     public static final double MIN_MESSAGE_TRANSMISSION_PROGRESS_INTERVAL = 0.125;
 
     private final Clock clock;
+    private final AI ai;
     private final Map<Medium, Set<Person>> mediaReceivers = new HashMap<>();
     private final Set<MessageTransferInProgress> messagesBeingReceived = new HashSet<>();
 
-    private Mind player;
     private MessageTransferInProgress transmissionInProgress;
     private Message transmittingMessage;
     private long previousUpdate;
@@ -88,6 +89,7 @@ public final class Person implements MindInterface {
      */
     public Person(Clock clock) {
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.ai = new AI(clock);
         mediaReceivers.put(HandSignals.INSTANCE, new HashSet<>());
         previousUpdate = clock.getTime();
     }
@@ -176,8 +178,8 @@ public final class Person implements MindInterface {
             clock.scheduleActionAt(now, new Runnable() {
                 @Override
                 public final void run() {
-                    if (receiver.player != null) {
-                        receiver.player.tellBeginReceivingMessage(messageTransferInProgress0);
+                    if (receiver.ai.getPlayer() != null) {
+                        receiver.ai.getPlayer().tellBeginReceivingMessage(messageTransferInProgress0);
                     }
                 }
             });
@@ -194,8 +196,9 @@ public final class Person implements MindInterface {
         clock.scheduleActionAt(clock.getTime(), new Runnable() {
             @Override
             public final void run() {
+                final Mind player = getPlayer();
                 if (player != null) {
-                    player.tellMessageSendingEnded(finalProgress, fullMessage);
+                    getPlayer().tellMessageSendingEnded(finalProgress, fullMessage);
                     // TODO tell receiver actor tellMessageReceptionProgress
                 }
             }
@@ -235,7 +238,7 @@ public final class Person implements MindInterface {
      * @return The player, or null if this person does not (yet) have a player.
      */
     public final Mind getPlayer() {
-        return player;
+        return ai.getPlayer();
     }
 
     @Override
@@ -273,8 +276,9 @@ public final class Person implements MindInterface {
             @Override
             public void run() {
                 updateState();
+                final Mind player = getPlayer();
                 if (player != null && transmissionInProgress != null) {
-                    player.tellMessageTransmissionProgress(transmissionInProgress, transmittingMessage);
+                    getPlayer().tellMessageTransmissionProgress(transmissionInProgress, transmittingMessage);
                     // TODO tell receiver actor tellMessageReceptionProgress
                     scheduleUpdateMessageTransmission();
                 }
@@ -297,7 +301,7 @@ public final class Person implements MindInterface {
      *             {@code actor} is not this object.
      */
     public final void setPlayer(Mind player) {
-        this.player = player;
+        ai.setPlayer(player);
     }
 
     private void updateState() {
