@@ -1,9 +1,14 @@
 package uk.badamson.mc.mind.ai;
 
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+
 import org.junit.Test;
 
+import uk.badamson.mc.mind.AbstractMind;
 import uk.badamson.mc.mind.AbstractMindTest;
 import uk.badamson.mc.mind.MessageTransferInProgress;
+import uk.badamson.mc.mind.Mind;
 import uk.badamson.mc.mind.message.Message;
 
 /**
@@ -25,8 +30,16 @@ public class AITest {
         final AI ai = new AI();
 
         assertInvariants(ai);
+        assertNull("player", ai.getPlayer());
 
         return ai;
+    }
+
+    public static void setPlayer(AI ai, Mind player) {
+        ai.setPlayer(player);
+
+        assertInvariants(ai);
+        assertSame("player", player, ai.getPlayer());
     }
 
     public static void tellBeginReceivingMessage(AI ai, MessageTransferInProgress receptionStarted) {
@@ -56,4 +69,20 @@ public class AITest {
         constructor();
     }
 
+    private void setPlayer() {
+        final AI ai = new AI();
+        final Mind player = new AbstractMind();
+
+        setPlayer(ai, player);
+    }
+
+    @Test
+    public void setPlayer_A() {
+        setPlayer();
+    }
+
+    @Test
+    public void setPlayer_B() {
+        setPlayer();
+    }
 }
