@@ -9,12 +9,12 @@ import uk.badamson.mc.ObjectTest;
 
 /**
  * <p>
- * Unit tests of the class {@link Orientation3}.
+ * Unit tests of the class {@link OrientationVectors3}.
  * </p>
  */
-public class Orientation3Test {
+public class OrientationVectors3Test {
 
-    public static void assertInvariants(Orientation3 orientation) {
+    public static void assertInvariants(OrientationVectors3 orientation) {
         ObjectTest.assertInvariants(orientation);// inherited
 
         final ImmutableVector e1 = orientation.getE1();
@@ -37,13 +37,13 @@ public class Orientation3Test {
         assertEquals("The e2 vector is orthogonal to vector e3.", 0.0, e2.dot(e3), Double.MIN_NORMAL);
     }
 
-    public static void assertInvariants(Orientation3 orientation1, Orientation3 orientation2) {
+    public static void assertInvariants(OrientationVectors3 orientation1, OrientationVectors3 orientation2) {
         ObjectTest.assertInvariants(orientation1, orientation2);// inherited
     }
 
-    private static Orientation3 createFromOrthogonalUnitBasisVectors(ImmutableVector e1, ImmutableVector e2,
+    private static OrientationVectors3 createFromOrthogonalUnitBasisVectors(ImmutableVector e1, ImmutableVector e2,
             ImmutableVector e3) {
-        final Orientation3 orientation = Orientation3.createFromOrthogonalUnitBasisVectors(e1, e2, e3);
+        final OrientationVectors3 orientation = OrientationVectors3.createFromOrthogonalUnitBasisVectors(e1, e2, e3);
 
         assertNotNull("Not null, result", orientation);// guard
         assertInvariants(orientation);
@@ -94,10 +94,10 @@ public class Orientation3Test {
 
     @Test
     public void statics() {
-        assertNotNull("Not null, blobal basis", Orientation3.GLOBAL_BASIS);// guard
-        assertInvariants(Orientation3.GLOBAL_BASIS);
-        assertEquals("Global basis e1 x.", 1.0, Orientation3.GLOBAL_BASIS.getE1().get(0), Double.MIN_NORMAL);
-        assertEquals("Global basis e2 y.", 1.0, Orientation3.GLOBAL_BASIS.getE2().get(1), Double.MIN_NORMAL);
-        assertEquals("Global basis e3 z.", 1.0, Orientation3.GLOBAL_BASIS.getE3().get(2), Double.MIN_NORMAL);
+        assertNotNull("Not null, blobal basis", OrientationVectors3.GLOBAL_BASIS);// guard
+        assertInvariants(OrientationVectors3.GLOBAL_BASIS);
+        assertEquals("Global basis e1 x.", 1.0, OrientationVectors3.GLOBAL_BASIS.getE1().get(0), Double.MIN_NORMAL);
+        assertEquals("Global basis e2 y.", 1.0, OrientationVectors3.GLOBAL_BASIS.getE2().get(1), Double.MIN_NORMAL);
+        assertEquals("Global basis e3 z.", 1.0, OrientationVectors3.GLOBAL_BASIS.getE3().get(2), Double.MIN_NORMAL);
     }
 }

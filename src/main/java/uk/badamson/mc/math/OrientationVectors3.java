@@ -15,7 +15,7 @@ import net.jcip.annotations.Immutable;
  * </p>
  */
 @Immutable
-public final class Orientation3 {
+public final class OrientationVectors3 {
 
     /**
      * <p>
@@ -23,15 +23,15 @@ public final class Orientation3 {
      * </p>
      * <ul>
      * <li>The global basis is a (non null) orientation.</li>
-     * <li>The {@linkplain Orientation3#getE1() e1} vector of the global basis is
-     * the global x axis.</li>
-     * <li>The {@linkplain Orientation3#getE2() e2} vector of the global basis is
-     * the global y axis.</li>
-     * <li>The {@linkplain Orientation3#getE3() e3} vector of the global basis is
-     * the global z axis.</li>
+     * <li>The {@linkplain OrientationVectors3#getE1() e1} vector of the global
+     * basis is the global x axis.</li>
+     * <li>The {@linkplain OrientationVectors3#getE2() e2} vector of the global
+     * basis is the global y axis.</li>
+     * <li>The {@linkplain OrientationVectors3#getE3() e3} vector of the global
+     * basis is the global z axis.</li>
      * </ul>
      */
-    public static final Orientation3 GLOBAL_BASIS = new Orientation3(ImmutableVector.create(1, 0, 0),
+    public static final OrientationVectors3 GLOBAL_BASIS = new OrientationVectors3(ImmutableVector.create(1, 0, 0),
             ImmutableVector.create(0, 1, 0), ImmutableVector.create(0, 0, 1));
 
     private static final double TOLERANCE = Math.max(Math.nextAfter(1.0, 2.0) - 1.0, 1.0 - Math.nextAfter(1.0, 0.0));
@@ -86,7 +86,7 @@ public final class Orientation3 {
      *             product.</li>
      *             </ul>
      */
-    public static Orientation3 createFromOrthogonalUnitBasisVectors(ImmutableVector e1, ImmutableVector e2,
+    public static OrientationVectors3 createFromOrthogonalUnitBasisVectors(ImmutableVector e1, ImmutableVector e2,
             ImmutableVector e3) {
         requireUnit3Vector(e1, "e1");
         requireUnit3Vector(e2, "e2");
@@ -95,7 +95,7 @@ public final class Orientation3 {
         requireOrthogonal(e1, "e1", e3, "e3");
         requireOrthogonal(e2, "e2", e3, "e3");
 
-        return new Orientation3(e1, e2, e3);
+        return new OrientationVectors3(e1, e2, e3);
     }
 
     private static void requireOrthogonal(ImmutableVector e1, String name1, ImmutableVector e2, String name2) {
@@ -119,7 +119,7 @@ public final class Orientation3 {
 
     private final ImmutableVector e3;
 
-    private Orientation3(ImmutableVector e1, ImmutableVector e2, ImmutableVector e3) {
+    private OrientationVectors3(ImmutableVector e1, ImmutableVector e2, ImmutableVector e3) {
         this.e1 = e1;
         this.e2 = e2;
         this.e3 = e3;
