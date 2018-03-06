@@ -1,5 +1,7 @@
 package uk.badamson.mc.math;
 
+import java.util.Objects;
+
 import net.jcip.annotations.Immutable;
 
 /**
@@ -9,6 +11,13 @@ import net.jcip.annotations.Immutable;
  */
 @Immutable
 public final class Quaternion {
+
+    /**
+     * <p>
+     * The quaternion that has a value of zero for each of its components.
+     * </p>
+     */
+    public static final Quaternion ZERO = new Quaternion(0, 0, 0, 0);
 
     private final double a;
     private final double b;
@@ -111,6 +120,29 @@ public final class Quaternion {
         temp = Double.doubleToLongBits(d);
         result = prime * result + (int) (temp ^ (temp >>> 32));
         return result;
+    }
+
+    /**
+     * <p>
+     * Create the quaternion that is a given quaternion added to this quaternion;
+     * the sum of this quaternion and another.
+     * </p>
+     * 
+     * @param that
+     *            The other quaternion
+     * @return the sum quaternion
+     * 
+     * @throws NullPointerException
+     *             If {@code that} is null.
+     */
+    public final Quaternion plus(Quaternion that) {
+        Objects.requireNonNull(that, "that");
+        return new Quaternion(a + that.a, b + that.b, c + that.c, d + that.d);
+    }
+
+    @Override
+    public final String toString() {
+        return a + "+" + b + "i+" + c + "j+" + d + "k";
     }
 
 }

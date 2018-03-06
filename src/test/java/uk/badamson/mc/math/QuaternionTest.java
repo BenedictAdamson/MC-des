@@ -53,6 +53,33 @@ public class QuaternionTest {
         assertEquals(q1, q2);
     }
 
+    private static Quaternion plus(Quaternion q, Quaternion that) {
+        final Quaternion sum = q.plus(that);
+
+        assertInvariants(sum);
+        assertInvariants(sum, q);
+        assertInvariants(sum, that);
+
+        return sum;
+    }
+
+    private static void plus_0(double a, double b, double c, double d) {
+        final Quaternion q = new Quaternion(a, b, c, d);
+
+        final Quaternion sum = plus(q, Quaternion.ZERO);
+
+        assertEquals("Unchanged", q, sum);
+    }
+
+    private static void plus_negative(double a, double b, double c, double d) {
+        final Quaternion p = new Quaternion(a, b, c, d);
+        final Quaternion m = new Quaternion(-a, -b, -c, -d);
+
+        final Quaternion sum = plus(p, m);
+
+        assertEquals("sum", Quaternion.ZERO, sum);
+    }
+
     @Test
     public void constructor_2differentA() {
         final double b = 2.0;
@@ -119,5 +146,25 @@ public class QuaternionTest {
     @Test
     public void constructor_B() {
         constructor(9.0, 7.0, 6.0, 5.0);
+    }
+
+    @Test
+    public void plus_0A() {
+        plus_0(1, 2, 3, 4);
+    }
+
+    @Test
+    public void plus_0B() {
+        plus_0(-9, -8, -7, -6);
+    }
+
+    @Test
+    public void plus_negativeA() {
+        plus_negative(1, 2, 3, 4);
+    }
+
+    @Test
+    public void plus_negativeB() {
+        plus_negative(-9, -8, -7, -6);
     }
 }
