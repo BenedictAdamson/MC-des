@@ -1,8 +1,6 @@
 package uk.badamson.mc.math;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 
@@ -19,20 +17,12 @@ public class PointNTest {
 
     public static void assertInvariants(PointN point) {
         ObjectTest.assertInvariants(point);// inherited
-
-        assertTrue("The number of dimensions is positive", 0 < point.getDimensions());
+        PointTest.assertInvariants(point);// inherited
     }
 
     public static void assertInvariants(PointN point1, PointN point2) {
         ObjectTest.assertInvariants(point1, point2);// inherited
-
-        final boolean equals = point1.equals(point2);
-        final int dimensions1 = point1.getDimensions();
-        assertFalse("Value semantics, dimensions", equals && dimensions1 != point2.getDimensions());
-        for (int i = 0; i < dimensions1; ++i) {
-            assertFalse("Value semantics, x[" + i + "]",
-                    equals && Double.doubleToLongBits(point1.getX(i)) != Double.doubleToLongBits(point2.getX(i)));
-        }
+        PointTest.assertInvariants(point1, point2);// inherited
     }
 
     private static PointN create(double[] x) {
