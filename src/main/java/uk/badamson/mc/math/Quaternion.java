@@ -326,15 +326,8 @@ public final class Quaternion {
         final double n = norm();
         final Quaternion v = vector();
         final Quaternion direction = v.versor();
-        final double theta;
-        if (EXP_TOL < n) {
-            final double cos = a / n;
-            final double y = direction.conjugate().product(v).getA();
-            final double sin = y / n;
-            theta = Math.atan2(sin, cos);
-        } else {
-            theta = 0.0;
-        }
+        final double y = direction.conjugate().product(v).getA();
+        final double theta = Math.atan2(y, a);
         return direction.scale(theta * p).exp().scale(Math.pow(n, p));
     }
 
