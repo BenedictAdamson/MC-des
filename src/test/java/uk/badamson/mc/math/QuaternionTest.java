@@ -52,7 +52,7 @@ public class QuaternionTest {
     }
 
     private static Quaternion constructor(double a, double b, double c, double d) {
-        final Quaternion q = new Quaternion(a, b, c, d);
+        final Quaternion q = Quaternion.create(a, b, c, d);
 
         assertInvariants(q);
         assertEquals("a", Double.doubleToLongBits(a), Double.doubleToLongBits(q.getA()));
@@ -64,8 +64,8 @@ public class QuaternionTest {
     }
 
     private static void constructor_2equivalent(double a, double b, double c, double d) {
-        final Quaternion q1 = new Quaternion(a, b, c, d);
-        final Quaternion q2 = new Quaternion(a, b, c, d);
+        final Quaternion q1 = Quaternion.create(a, b, c, d);
+        final Quaternion q2 = Quaternion.create(a, b, c, d);
 
         assertInvariants(q1, q2);
         assertEquals(q1, q2);
@@ -82,7 +82,7 @@ public class QuaternionTest {
     }
 
     private static void plus_0(double a, double b, double c, double d) {
-        final Quaternion q = new Quaternion(a, b, c, d);
+        final Quaternion q = Quaternion.create(a, b, c, d);
 
         final Quaternion sum = plus(q, Quaternion.ZERO);
 
@@ -90,8 +90,8 @@ public class QuaternionTest {
     }
 
     private static void plus_negative(double a, double b, double c, double d) {
-        final Quaternion p = new Quaternion(a, b, c, d);
-        final Quaternion m = new Quaternion(-a, -b, -c, -d);
+        final Quaternion p = Quaternion.create(a, b, c, d);
+        final Quaternion m = Quaternion.create(-a, -b, -c, -d);
 
         final Quaternion sum = plus(p, m);
 
@@ -118,7 +118,7 @@ public class QuaternionTest {
     }
 
     private static void product_a(Quaternion q, double a) {
-        final Quaternion multiplier = new Quaternion(a, 0, 0, 0);
+        final Quaternion multiplier = Quaternion.create(a, 0, 0, 0);
 
         final Quaternion p = product(q, multiplier);
 
@@ -129,7 +129,7 @@ public class QuaternionTest {
     }
 
     private static void product_b(Quaternion q, double b) {
-        final Quaternion multiplier = new Quaternion(0, b, 0, 0);
+        final Quaternion multiplier = Quaternion.create(0, b, 0, 0);
 
         final Quaternion p = product(q, multiplier);
 
@@ -140,7 +140,7 @@ public class QuaternionTest {
     }
 
     private static void product_c(Quaternion q, double c) {
-        final Quaternion multiplier = new Quaternion(0, 0, c, 0);
+        final Quaternion multiplier = Quaternion.create(0, 0, c, 0);
 
         final Quaternion p = product(q, multiplier);
 
@@ -151,7 +151,7 @@ public class QuaternionTest {
     }
 
     private static void product_d(Quaternion q, double d) {
-        final Quaternion multiplier = new Quaternion(0, 0, 0, d);
+        final Quaternion multiplier = Quaternion.create(0, 0, 0, d);
 
         final Quaternion p = product(q, multiplier);
 
@@ -178,12 +178,12 @@ public class QuaternionTest {
 
     @Test
     public void conjugate_1() {
-        conjugate(new Quaternion(1, 1, 1, 1));
+        conjugate(Quaternion.create(1, 1, 1, 1));
     }
 
     @Test
     public void conjugate_A() {
-        conjugate(new Quaternion(2, 3, 4, 5));
+        conjugate(Quaternion.create(2, 3, 4, 5));
     }
 
     @Test
@@ -199,8 +199,8 @@ public class QuaternionTest {
         final double b = 2.0;
         final double c = 3.0;
         final double d = 4.0;
-        final Quaternion q1 = new Quaternion(1.0, b, c, d);
-        final Quaternion q2 = new Quaternion(-1.0, b, c, d);
+        final Quaternion q1 = Quaternion.create(1.0, b, c, d);
+        final Quaternion q2 = Quaternion.create(-1.0, b, c, d);
 
         assertInvariants(q1, q2);
         assertNotEquals(q1, q2);
@@ -211,8 +211,8 @@ public class QuaternionTest {
         final double a = 1.0;
         final double c = 3.0;
         final double d = 4.0;
-        final Quaternion q1 = new Quaternion(a, 2.0, c, d);
-        final Quaternion q2 = new Quaternion(a, -2.0, c, d);
+        final Quaternion q1 = Quaternion.create(a, 2.0, c, d);
+        final Quaternion q2 = Quaternion.create(a, -2.0, c, d);
 
         assertInvariants(q1, q2);
         assertNotEquals(q1, q2);
@@ -223,8 +223,8 @@ public class QuaternionTest {
         final double a = 1.0;
         final double b = 2.0;
         final double d = 4.0;
-        final Quaternion q1 = new Quaternion(a, b, 3.0, d);
-        final Quaternion q2 = new Quaternion(a, b, -3.0, d);
+        final Quaternion q1 = Quaternion.create(a, b, 3.0, d);
+        final Quaternion q2 = Quaternion.create(a, b, -3.0, d);
 
         assertInvariants(q1, q2);
         assertNotEquals(q1, q2);
@@ -235,8 +235,8 @@ public class QuaternionTest {
         final double a = 1.0;
         final double b = 2.0;
         final double c = 3.0;
-        final Quaternion q1 = new Quaternion(a, b, c, 4.0);
-        final Quaternion q2 = new Quaternion(a, b, c, -4.0);
+        final Quaternion q1 = Quaternion.create(a, b, c, 4.0);
+        final Quaternion q2 = Quaternion.create(a, b, c, -4.0);
 
         assertInvariants(q1, q2);
         assertNotEquals(q1, q2);
@@ -346,52 +346,52 @@ public class QuaternionTest {
 
     @Test
     public void product_0A() {
-        product_0(new Quaternion(1, 2, 3, 4));
+        product_0(Quaternion.create(1, 2, 3, 4));
     }
 
     @Test
     public void product_0B() {
-        product_0(new Quaternion(8, 7, 6, 5));
+        product_0(Quaternion.create(8, 7, 6, 5));
     }
 
     @Test
     public void product_a1() {
-        product_a(new Quaternion(1, 2, 3, 4), 1);
+        product_a(Quaternion.create(1, 2, 3, 4), 1);
     }
 
     @Test
     public void product_a2() {
-        product_a(new Quaternion(-1, -2, -3, -4), 2);
+        product_a(Quaternion.create(-1, -2, -3, -4), 2);
     }
 
     @Test
     public void product_b1() {
-        product_b(new Quaternion(1, 2, 3, 4), 1);
+        product_b(Quaternion.create(1, 2, 3, 4), 1);
     }
 
     @Test
     public void product_b2() {
-        product_b(new Quaternion(-1, -2, -3, -4), 2);
+        product_b(Quaternion.create(-1, -2, -3, -4), 2);
     }
 
     @Test
     public void product_c1() {
-        product_c(new Quaternion(1, 2, 3, 4), 1);
+        product_c(Quaternion.create(1, 2, 3, 4), 1);
     }
 
     @Test
     public void product_c2() {
-        product_c(new Quaternion(-1, -2, -3, -4), 2);
+        product_c(Quaternion.create(-1, -2, -3, -4), 2);
     }
 
     @Test
     public void product_d1() {
-        product_d(new Quaternion(1, 2, 3, 4), 1);
+        product_d(Quaternion.create(1, 2, 3, 4), 1);
     }
 
     @Test
     public void product_d2() {
-        product_d(new Quaternion(-1, -2, -3, -4), 2);
+        product_d(Quaternion.create(-1, -2, -3, -4), 2);
     }
 
     @Test
@@ -410,7 +410,7 @@ public class QuaternionTest {
 
     @Test
     public void scale_1A() {
-        final Quaternion one = new Quaternion(1, 1, 1, 1);
+        final Quaternion one = Quaternion.create(1, 1, 1, 1);
 
         final Quaternion scaled = scale(one, 1);
 
@@ -419,7 +419,7 @@ public class QuaternionTest {
 
     @Test
     public void scale_1B() {
-        final Quaternion one = new Quaternion(1, 1, 1, 1);
+        final Quaternion one = Quaternion.create(1, 1, 1, 1);
 
         final Quaternion scaled = scale(one, -2.0);
 
@@ -431,7 +431,7 @@ public class QuaternionTest {
 
     @Test
     public void scale_B() {
-        final Quaternion original = new Quaternion(2, 3, 4, 5);
+        final Quaternion original = Quaternion.create(2, 3, 4, 5);
 
         final Quaternion scaled = scale(original, 4);
 

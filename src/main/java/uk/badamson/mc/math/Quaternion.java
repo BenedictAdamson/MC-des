@@ -19,14 +19,9 @@ public final class Quaternion {
      */
     public static final Quaternion ZERO = new Quaternion(0, 0, 0, 0);
 
-    private final double a;
-    private final double b;
-    private final double c;
-    private final double d;
-
     /**
      * <p>
-     * Construct a quaternion with given components.
+     * Create a quaternion with given components.
      * </p>
      * 
      * @param a
@@ -38,7 +33,16 @@ public final class Quaternion {
      * @param d
      *            The <b>k</b> component of this quaternion.
      */
-    public Quaternion(double a, double b, double c, double d) {
+    public static Quaternion create(double a, double b, double c, double d) {
+        return new Quaternion(a, b, c, d);
+    }
+    private final double a;
+    private final double b;
+    private final double c;
+
+    private final double d;
+
+    private Quaternion(double a, double b, double c, double d) {
         this.a = a;
         this.b = b;
         this.c = c;
@@ -247,4 +251,5 @@ public final class Quaternion {
     public final String toString() {
         return a + "+" + b + "i+" + c + "j+" + d + "k";
     }
+
 }
