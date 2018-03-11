@@ -187,6 +187,14 @@ public class QuaternionTest {
     }
 
     @Test
+    public void constructor_1() {
+        final Quaternion q = constructor(1, 1, 1, 1);
+
+        assertEquals("norm^2", 4.0, q.norm2(), Double.MIN_NORMAL);
+        assertEquals(" norm", 2.0, q.norm(), Double.MIN_NORMAL);
+    }
+
+    @Test
     public void constructor_2differentA() {
         final double b = 2.0;
         final double c = 3.0;
@@ -245,13 +253,75 @@ public class QuaternionTest {
     }
 
     @Test
-    public void constructor_A() {
-        constructor(1.0, 2.0, 3.0, 4.0);
+    public void constructor_a1() {
+        final Quaternion q = constructor(1, 0, 0, 0);
+
+        assertEquals("norm^2", 1.0, q.norm2(), Double.MIN_NORMAL);
+        assertEquals(" norm", 1.0, q.norm(), Double.MIN_NORMAL);
     }
 
     @Test
-    public void constructor_B() {
-        constructor(9.0, 7.0, 6.0, 5.0);
+    public void constructor_a2() {
+        final Quaternion q = constructor(-2, 0, 0, 0);
+
+        assertEquals("norm^2", 4.0, q.norm2(), Double.MIN_NORMAL);
+        assertEquals(" norm", 2.0, q.norm(), Double.MIN_NORMAL);
+    }
+
+    @Test
+    public void constructor_aMax() {
+        final Quaternion q = constructor(Double.MAX_VALUE, 0, 0, 0);
+
+        assertEquals("norm", Double.MAX_VALUE, q.norm(),
+                (Math.nextAfter(1.0, Double.MAX_VALUE) - 1.0) * Double.MAX_VALUE);
+    }
+
+    @Test
+    public void constructor_b1() {
+        final Quaternion q = constructor(0, 1, 0, 0);
+
+        assertEquals("norm^2", 1.0, q.norm2(), Double.MIN_NORMAL);
+        assertEquals(" norm", 1.0, q.norm(), Double.MIN_NORMAL);
+    }
+
+    @Test
+    public void constructor_b2() {
+        final Quaternion q = constructor(0, -2, 0, 0);
+
+        assertEquals("norm^2", 4.0, q.norm2(), Double.MIN_NORMAL);
+        assertEquals(" norm", 2.0, q.norm(), Double.MIN_NORMAL);
+    }
+
+    @Test
+    public void constructor_c1() {
+        final Quaternion q = constructor(0, 0, 1, 0);
+
+        assertEquals("norm^2", 1.0, q.norm2(), Double.MIN_NORMAL);
+        assertEquals(" norm", 1.0, q.norm(), Double.MIN_NORMAL);
+    }
+
+    @Test
+    public void constructor_c2() {
+        final Quaternion q = constructor(0, 0, -2, 0);
+
+        assertEquals("norm^2", 4.0, q.norm2(), Double.MIN_NORMAL);
+        assertEquals(" norm", 2.0, q.norm(), Double.MIN_NORMAL);
+    }
+
+    @Test
+    public void constructor_d1() {
+        final Quaternion q = constructor(0, 0, 0, 1);
+
+        assertEquals("norm^2", 1.0, q.norm2(), Double.MIN_NORMAL);
+        assertEquals(" norm", 1.0, q.norm(), Double.MIN_NORMAL);
+    }
+
+    @Test
+    public void constructor_d2() {
+        final Quaternion q = constructor(0, 0, 0, -2);
+
+        assertEquals("norm^2", 4.0, q.norm2(), Double.MIN_NORMAL);
+        assertEquals(" norm", 2.0, q.norm(), Double.MIN_NORMAL);
     }
 
     @Test
@@ -369,5 +439,13 @@ public class QuaternionTest {
         assertEquals("scaled b", 12, scaled.getB(), Double.MIN_NORMAL);
         assertEquals("scaled c", 16, scaled.getC(), Double.MIN_NORMAL);
         assertEquals("scaled d", 20, scaled.getD(), Double.MIN_NORMAL);
+    }
+
+    @Test
+    public void static_values() {
+        assertInvariants(Quaternion.ZERO);
+
+        assertEquals("zero norm^2", 0.0, Quaternion.ZERO.norm2(), Double.MIN_NORMAL);
+        assertEquals("zero norm", 0.0, Quaternion.ZERO.norm(), Double.MIN_NORMAL);
     }
 }

@@ -117,6 +117,16 @@ public final class Quaternion {
         return d;
     }
 
+    private double getScale() {
+        final double s = Double.max(Double.max(Math.abs(a), Math.abs(b)), Double.max(Math.abs(c), Math.abs(d)));
+        if (Double.isFinite(s) && Double.MIN_NORMAL < s) {
+            return s;
+        } else {
+            /* Must accept overflow or underflow. */
+            return 1.0;
+        }
+    }
+
     @Override
     public final int hashCode() {
         final int prime = 31;
@@ -131,6 +141,48 @@ public final class Quaternion {
         temp = Double.doubleToLongBits(d);
         result = prime * result + (int) (temp ^ (temp >>> 32));
         return result;
+    }
+
+    /**
+     * <p>
+     * The norm of this quaternion.
+     * </p>
+     * <p>
+     * The method takes care to properly handle quaternions with components that are
+     * large, not numbers, or which differ greatly in magnitude.
+     * </p>
+     * 
+     * @return the norm
+     */
+    public final double norm() {
+        final double s = getScale();
+        final double f = 1.0 / s;
+        final double as = a * f;
+        final double bs = b * f;
+        final double cs = c * f;
+        final double ds = d * f;
+        return Math.sqrt(as * as + bs * bs + cs * cs + ds * ds) * s;
+    }
+
+    /**
+     * <p>
+     * The square of the {@linkplain #norm() norm} of this quaternion.
+     * </p>
+     * <p>
+     * The method takes care to properly handle quaternions with components that are
+     * large, not numbers, or which differ greatly in magnitude.
+     * </p>
+     * 
+     * @return the square of the norm.
+     */
+    public final double norm2() {
+        final double s = getScale();
+        final double f = 1.0 / s;
+        final double as = a * f;
+        final double bs = b * f;
+        final double cs = c * f;
+        final double ds = d * f;
+        return (as * as + bs * bs + cs * cs + ds * ds) * s * s;
     }
 
     /**
