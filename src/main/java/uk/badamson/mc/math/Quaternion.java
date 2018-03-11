@@ -142,6 +142,29 @@ public final class Quaternion {
 
     /**
      * <p>
+     * Create a quaternion that is the product of this quaternion and a given
+     * quaternion.
+     * </p>
+     * <ul>
+     * <li>Always returns a (non null) quaternion.
+     * <li>
+     * </ul>
+     * 
+     * @param that
+     *            the other quaternion
+     * @return the product
+     * @throws NullPointerException
+     *             If {@code that} is null.
+     */
+    public final Quaternion product(Quaternion that) {
+        Objects.requireNonNull(that, "that");
+        return new Quaternion(a * that.a - b * that.b - c * that.c - d * that.d,
+                a * that.b + b * that.a + c * that.d - d * that.c, a * that.c - b * that.d + c * that.a + d * that.b,
+                a * that.d + b * that.c - c * that.b + d * that.a);
+    }
+
+    /**
+     * <p>
      * Create a quaternion that is this quaternion scaled by a given scalar.
      * </p>
      * <ul>
