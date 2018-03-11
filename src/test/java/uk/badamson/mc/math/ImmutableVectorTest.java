@@ -552,8 +552,6 @@ public class ImmutableVectorTest {
         assertEquals("scaled[0]", 0.0, scaled.get(0), Double.MIN_NORMAL);
     }
 
-    //////////////////////////
-
     @Test
     public void scale_1C() {
         final ImmutableVector scaled = scale(ImmutableVector.create(1.0), 1.0);
