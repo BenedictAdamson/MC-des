@@ -3,6 +3,7 @@ package uk.badamson.mc.math;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 
 import org.junit.Test;
 
@@ -78,6 +79,16 @@ public class QuaternionTest {
         final Quaternion sum = plus(p, m);
 
         assertEquals("sum", Quaternion.ZERO, sum);
+    }
+
+    private static Quaternion scale(Quaternion x, double f) {
+        final Quaternion scaled = x.scale(f);
+
+        assertNotNull("Not null, result", scaled);
+        assertInvariants(scaled);
+        assertInvariants(x, scaled);
+
+        return scaled;
     }
 
     @Test
@@ -163,8 +174,58 @@ public class QuaternionTest {
         plus_negative(1, 2, 3, 4);
     }
 
+    /////
+
     @Test
     public void plus_negativeB() {
         plus_negative(-9, -8, -7, -6);
     }
+
+    @Test
+    public void scale_0A() {
+        final Quaternion scaled = scale(Quaternion.ZERO, 0.0);
+
+        assertEquals("scaled", Quaternion.ZERO, scaled);
+    }
+
+    @Test
+    public void scale_0B() {
+        final Quaternion scaled = scale(Quaternion.ZERO, 1.0);
+
+        assertEquals("scaled", Quaternion.ZERO, scaled);
+    }
+
+    @Test
+    public void scale_1A() {
+        final Quaternion one = new Quaternion(1, 1, 1, 1);
+
+        final Quaternion scaled = scale(one, 1);
+
+        assertEquals("scaled", one, scaled);
+    }
+
+    @Test
+    public void scale_1B() {
+        final Quaternion one = new Quaternion(1, 1, 1, 1);
+
+        final Quaternion scaled = scale(one, -2.0);
+
+        assertEquals("scaled a", -2.0, scaled.getA(), Double.MIN_NORMAL);
+        assertEquals("scaled b", -2.0, scaled.getB(), Double.MIN_NORMAL);
+        assertEquals("scaled c", -2.0, scaled.getC(), Double.MIN_NORMAL);
+        assertEquals("scaled d", -2.0, scaled.getD(), Double.MIN_NORMAL);
+    }
+
+    @Test
+    public void scale_B() {
+        final Quaternion original = new Quaternion(2, 3, 4, 5);
+
+        final Quaternion scaled = scale(original, 4);
+
+        assertEquals("scaled a", 8, scaled.getA(), Double.MIN_NORMAL);
+        assertEquals("scaled b", 12, scaled.getB(), Double.MIN_NORMAL);
+        assertEquals("scaled c", 16, scaled.getC(), Double.MIN_NORMAL);
+        assertEquals("scaled d", 20, scaled.getD(), Double.MIN_NORMAL);
+    }
+
 }

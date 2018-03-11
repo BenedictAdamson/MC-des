@@ -140,9 +140,25 @@ public final class Quaternion {
         return new Quaternion(a + that.a, b + that.b, c + that.c, d + that.d);
     }
 
+    /**
+     * <p>
+     * Create a quaternion that is this quaternion scaled by a given scalar.
+     * </p>
+     * <ul>
+     * <li>Always returns a (non null) quaternion.
+     * <li>
+     * </ul>
+     * 
+     * @param f
+     *            the scalar
+     * @return the scaled quaternion
+     */
+    public final Quaternion scale(double f) {
+        return new Quaternion(a * f, b * f, c * f, d * f);
+    }
+
     @Override
     public final String toString() {
         return a + "+" + b + "i+" + c + "j+" + d + "k";
     }
-
 }
