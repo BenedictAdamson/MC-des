@@ -71,6 +71,32 @@ public class QuaternionTest {
         assertEquals(q1, q2);
     }
 
+    private static Quaternion minus(Quaternion q, Quaternion that) {
+        final Quaternion sum = q.minus(that);
+
+        assertInvariants(sum);
+        assertInvariants(sum, q);
+        assertInvariants(sum, that);
+
+        return sum;
+    }
+
+    private static void minus_0(double a, double b, double c, double d) {
+        final Quaternion q = Quaternion.create(a, b, c, d);
+
+        final Quaternion sum = minus(q, Quaternion.ZERO);
+
+        assertEquals("Unchanged", q, sum);
+    }
+
+    private static void minus_self(double a, double b, double c, double d) {
+        final Quaternion p = Quaternion.create(a, b, c, d);
+
+        final Quaternion sum = minus(p, p);
+
+        assertEquals("sum", Quaternion.ZERO, sum);
+    }
+
     private static Quaternion plus(Quaternion q, Quaternion that) {
         final Quaternion sum = q.plus(that);
 
@@ -87,6 +113,14 @@ public class QuaternionTest {
         final Quaternion sum = plus(q, Quaternion.ZERO);
 
         assertEquals("Unchanged", q, sum);
+    }
+
+    private static void plus_minus(double a, double b, double c, double d) {
+        final Quaternion q = Quaternion.create(a, b, c, d);
+
+        final Quaternion result = Quaternion.ZERO.plus(q).minus(q);
+
+        assertEquals("plus and minus are inverse operations", Quaternion.ZERO, result);
     }
 
     private static void plus_negative(double a, double b, double c, double d) {
@@ -325,6 +359,26 @@ public class QuaternionTest {
     }
 
     @Test
+    public void minus_0A() {
+        minus_0(1, 2, 3, 4);
+    }
+
+    @Test
+    public void minus_0B() {
+        minus_0(-9, -8, -7, -6);
+    }
+
+    @Test
+    public void minus_selfA() {
+        minus_self(1, 2, 3, 4);
+    }
+
+    @Test
+    public void minus_selfB() {
+        minus_self(-9, -8, -7, -6);
+    }
+
+    @Test
     public void plus_0A() {
         plus_0(1, 2, 3, 4);
     }
@@ -332,6 +386,16 @@ public class QuaternionTest {
     @Test
     public void plus_0B() {
         plus_0(-9, -8, -7, -6);
+    }
+
+    @Test
+    public void plus_minusA() {
+        plus_minus(1, 2, 3, 4);
+    }
+
+    @Test
+    public void plus_minusB() {
+        plus_minus(-9, -8, -7, -6);
     }
 
     @Test

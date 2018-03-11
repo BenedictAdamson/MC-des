@@ -36,10 +36,10 @@ public final class Quaternion {
     public static Quaternion create(double a, double b, double c, double d) {
         return new Quaternion(a, b, c, d);
     }
+
     private final double a;
     private final double b;
     private final double c;
-
     private final double d;
 
     private Quaternion(double a, double b, double c, double d) {
@@ -145,6 +145,24 @@ public final class Quaternion {
         temp = Double.doubleToLongBits(d);
         result = prime * result + (int) (temp ^ (temp >>> 32));
         return result;
+    }
+
+    /**
+     * <p>
+     * Create the quaternion that is a given quaternion subtracted from this
+     * quaternion; the difference of this quaternion and another.
+     * </p>
+     * 
+     * @param that
+     *            The other quaternion
+     * @return the difference quaternion
+     * 
+     * @throws NullPointerException
+     *             If {@code that} is null.
+     */
+    public final Quaternion minus(Quaternion that) {
+        Objects.requireNonNull(that, "that");
+        return new Quaternion(a - that.a, b - that.b, c - that.c, d - that.d);
     }
 
     /**
