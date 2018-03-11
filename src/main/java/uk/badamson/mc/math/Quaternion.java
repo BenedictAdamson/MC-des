@@ -182,7 +182,7 @@ public final class Quaternion {
 
     private double getScale() {
         final double s = Double.max(Double.max(Math.abs(a), Math.abs(b)), Double.max(Math.abs(c), Math.abs(d)));
-        if (Double.isFinite(s) && Double.MIN_NORMAL < s) {
+        if (Double.isFinite(s) && Double.MIN_NORMAL <= s) {
             return s;
         } else {
             /* Must accept overflow or underflow. */
@@ -204,6 +204,28 @@ public final class Quaternion {
         temp = Double.doubleToLongBits(d);
         result = prime * result + (int) (temp ^ (temp >>> 32));
         return result;
+    }
+
+    /**
+     * <p>
+     * Create a quaternion that is the natural logarithm of this quaternion.
+     * </p>
+     * <p>
+     * The method takes care to properly handle quaternions with components that are
+     * large, not numbers, or which differ greatly in magnitude, and quaternions
+     * that are close to {@linkplain #ZERO zero}, or which have a small
+     * {@linkplain #vector() vector} part.
+     * </p>
+     * 
+     * @return the natural logarithm; not null
+     * @see Math#log(double)
+     */
+    public final Quaternion log() {
+        final Quaternion v = vector();
+        final double n = norm();
+        final Quaternion sTerm = new Quaternion(Math.log(n), 0, 0, 0);
+        final Quaternion vTerm = v.versor().scale(Math.acos(a / n) / n);
+        return sTerm.plus(vTerm);
     }
 
     /**
@@ -286,6 +308,38 @@ public final class Quaternion {
 
     /**
      * <p>
+     * Create a quaternion that is this quaternion raised to a given real power.
+     * </p>
+     * <p>
+     * The method takes care to properly handle quaternions with components that are
+     * large, not numbers, or which differ greatly in magnitude, and quaternions
+     * that are close to {@linkplain #ZERO zero}, or which have a small
+     * {@linkplain #vector() vector} part.
+     * </p>
+     * 
+     * @param p
+     *            The power to raise this quaternion to
+     * @return the power; not null
+     * @see Math#pow(double, double)
+     */
+    public final Quaternion pow(double p) {
+        final double n = norm();
+        final Quaternion v = vector();
+        final Quaternion direction = v.versor();
+        final double theta;
+        if (EXP_TOL < n) {
+            final double cos = a / n;
+            final double y = direction.conjugate().product(v).getA();
+            final double sin = y / n;
+            theta = Math.atan2(sin, cos);
+        } else {
+            theta = 0.0;
+        }
+        return direction.scale(theta * p).exp().scale(Math.pow(n, p));
+    }
+
+    /**
+     * <p>
      * Create a quaternion that is the Hamilton product of this quaternion and a
      * given quaternion.
      * </p>
@@ -349,5 +403,36 @@ public final class Quaternion {
      */
     public final Quaternion vector() {
         return new Quaternion(0, b, c, d);
+    }
+
+    /**
+     * <p>
+     * Create a versor (a quaternion that has unit {@linkplain #norm() norm}) that
+     * points in the same direction as this quaternion.
+     * </p>
+     * <p>
+     * The method takes care to properly handle quaternions with components that are
+     * large, not numbers, or which differ greatly in magnitude, and quaternions
+     * that are close to {@linkplain #ZERO zero}. In the case of a quaternion very
+     * close to zero, the method returns zero as the versor (rather than a versor
+     * with {@linkplain Double#isFinite(double) non finite} components).
+     * </p>
+     * 
+     * @return the versor; not null
+     */
+    public final Quaternion versor() {
+        final double s = getScale();
+        final double f1 = 1.0 / s;
+        final double as = a * f1;
+        final double bs = b * f1;
+        final double cs = c * f1;
+        final double ds = d * f1;
+        final double hypot = Math.sqrt(as * as + bs * bs + cs * cs + ds * ds);
+        if (Double.MIN_NORMAL < hypot) {
+            final double f2 = f1 / hypot;
+            return scale(f2);
+        } else {
+            return ZERO;
+        }
     }
 }

@@ -116,9 +116,11 @@ public class QuaternionTest {
 
         final Quaternion em = m.exp();
         final Quaternion eqem = eq.product(em);
+        final Quaternion logexp = eq.log();
 
         assertInvariants(eq, em);
         assertTrue("exp(q)*exp(-q) = exp(q-q) = exp(0) = 1", Quaternion.ONE.distance(eqem) < precision);
+        assertTrue("exp and log are inverse operations", q.distance(logexp) < precision);
     }
 
     private static void exp_finiteScalar(double a) {
@@ -131,6 +133,41 @@ public class QuaternionTest {
         assertEquals("exponential b", 0.0, eq.getB(), precision);
         assertEquals("exponential c", 0.0, eq.getC(), precision);
         assertEquals("exponential d", 0.0, eq.getD(), precision);
+    }
+
+    private static Quaternion log(Quaternion q) {
+        final Quaternion log = q.log();
+
+        assertNotNull("Not null, result", log);// guard
+        assertInvariants(q);// check for side-effects
+        assertInvariants(log);
+        assertInvariants(log, q);
+
+        return log;
+    }
+
+    private static void log_finite(double a, double b, double c, double d) {
+        final Quaternion q = Quaternion.create(a, b, c, d);
+        final double precision = q.norm();
+
+        final Quaternion log = log(q);
+
+        final Quaternion explog = log.exp();
+
+        assertInvariants(log, explog);
+        assertTrue("log and exp are inverse operations", q.distance(explog) < precision);
+    }
+
+    private static void log_finitePositiveScalar(double a) {
+        final double precision = Double.MIN_NORMAL * Math.abs(a);
+        final Quaternion q = Quaternion.create(a, 0, 0, 0);
+
+        final Quaternion log = log(q);
+
+        assertEquals("log a", Math.log(a), log.getA(), precision);
+        assertEquals("log b", 0.0, log.getB(), precision);
+        assertEquals("log c", 0.0, log.getC(), precision);
+        assertEquals("log d", 0.0, log.getD(), precision);
     }
 
     private static Quaternion minus(Quaternion q, Quaternion that) {
@@ -192,6 +229,42 @@ public class QuaternionTest {
         final Quaternion sum = plus(p, m);
 
         assertEquals("sum", Quaternion.ZERO, sum);
+    }
+
+    private static Quaternion pow(Quaternion q, double p) {
+        final Quaternion qp = q.pow(p);
+
+        assertNotNull("Not null, result", qp);// guard
+        assertInvariants(q);// checks for side effects
+        assertInvariants(qp);
+        assertInvariants(q);
+
+        return qp;
+    }
+
+    private static void pow_finite(double a, double b, double c, double d, double p) {
+        final Quaternion q = Quaternion.create(a, b, c, d);
+        final double precision = q.norm() * 4.0;
+
+        final Quaternion qp = pow(q, p);
+        final Quaternion qm = pow(q, -p);
+        final Quaternion qpqm = qp.product(qm);
+        final Quaternion qprp = qp.pow(1.0 / p);
+
+        assertTrue("q^p*q^-p = q^(p-p) = q^0 = 1 <" + qpqm + ">", Quaternion.ONE.distance(qpqm) <= precision);
+        assertTrue("(q^p)^(1/p) = q^(p/p) = q^1 = q <" + qprp + ">", q.distance(qprp) <= precision);
+    }
+
+    private static void pow_finiteScalar(double a, double p) {
+        final Quaternion q = Quaternion.create(a, 0, 0, 0);
+        final double precision = Math.abs(a) * 4.0;
+
+        final Quaternion qp = pow(q, p);
+
+        assertEquals("pow a", Math.pow(a, p), qp.getA(), precision);
+        assertEquals("pow b", 0.0, qp.getB(), precision);
+        assertEquals("pow c", 0.0, qp.getC(), precision);
+        assertEquals("pow d", 0.0, qp.getD(), precision);
     }
 
     private static Quaternion product(Quaternion q, Quaternion that) {
@@ -304,6 +377,28 @@ public class QuaternionTest {
         assertEquals("vector d", Double.doubleToLongBits(q.getD()), Double.doubleToLongBits(v.getD()));
 
         return v;
+    }
+
+    private static Quaternion versor(Quaternion q) {
+        final Quaternion v = q.versor();
+
+        assertNotNull("Not null, versor", v);// guard
+        assertInvariants(q);
+        assertInvariants(v);
+        assertInvariants(q, v);
+
+        return v;
+    }
+
+    private static void versor_finite(double a, double b, double c, double d) {
+        final Quaternion q = Quaternion.create(a, b, c, d);
+        final double n = q.norm();
+
+        final Quaternion v = versor(q);
+
+        assertEquals("versor has unit norm", 1.0, v.norm(), Math.nextAfter(1.0, Double.POSITIVE_INFINITY) - 1.0);
+        assertTrue("quaternion is equivalent to its versor <" + v + "> scaled by its norm <" + n + ">",
+                q.distance(v.scale(n)) < Math.max(1.0, n) * Double.MIN_NORMAL);
     }
 
     @Test
@@ -550,6 +645,66 @@ public class QuaternionTest {
     }
 
     @Test
+    public void log_b1() {
+        log_finite(0, 1, 0, 0);
+    }
+
+    @Test
+    public void log_b2() {
+        log_finite(0, 2, 0, 0);
+    }
+
+    @Test
+    public void log_bMinus1() {
+        log_finite(0, -1, 0, 0);
+    }
+
+    @Test
+    public void log_c1() {
+        log_finite(0, 0, 1, 0);
+    }
+
+    @Test
+    public void log_c2() {
+        log_finite(0, 0, 2, 0);
+    }
+
+    @Test
+    public void log_cMinus1() {
+        log_finite(0, 0, -1, 0);
+    }
+
+    @Test
+    public void log_combined() {
+        log_finite(1, 1, 1, 1);
+    }
+
+    @Test
+    public void log_d1() {
+        log_finite(0, 0, 0, 1);
+    }
+
+    @Test
+    public void log_d2() {
+        log_finite(0, 0, 0, 2);
+    }
+
+    @Test
+    public void log_dMinus1() {
+        log_finite(0, 0, 0, -1);
+    }
+
+    @Test
+    public void log_scalar1() {
+        log_finitePositiveScalar(1.0);
+    }
+
+    @Test
+    public void log_scalar2() {
+        log_finitePositiveScalar(2.0);
+    }
+
+    @Test
     public void minus_0A() {
         minus_0(1, 2, 3, 4);
     }
@@ -597,6 +752,71 @@ public class QuaternionTest {
     @Test
     public void plus_negativeB() {
         plus_negative(-9, -8, -7, -6);
+    }
+
+    @Test
+    public void pow_0A() {
+        pow_finiteScalar(0, 2);
+    }
+
+    @Test
+    public void pow_b13() {
+        pow_finite(0, 1, 0, 0, 3);
+    }
+
+    @Test
+    public void pow_b23() {
+        pow_finite(0, 2, 0, 0, 3);
+    }
+
+    @Test
+    public void pow_b25() {
+        pow_finite(0, 2, 0, 0, 5);
+    }
+
+    @Test
+    public void pow_c13() {
+        pow_finite(0, 0, 1, 0, 3);
+    }
+
+    @Test
+    public void pow_c23() {
+        pow_finite(0, 0, 2, 0, 3);
+    }
+
+    @Test
+    public void pow_c25() {
+        pow_finite(0, 0, 2, 0, 5);
+    }
+
+    @Test
+    public void pow_d13() {
+        pow_finite(0, 0, 0, 1, 3);
+    }
+
+    @Test
+    public void pow_d23() {
+        pow_finite(0, 0, 0, 2, 3);
+    }
+
+    @Test
+    public void pow_d25() {
+        pow_finite(0, 0, 0, 2, 5);
+    }
+
+    @Test
+    public void pow_finiteScalarA() {
+        pow_finiteScalar(2, 2);
+    }
+
+    @Test
+    public void pow_finiteScalarB() {
+        pow_finiteScalar(2, 3);
+    }
+
+    @Test
+    public void pow_finiteScalarC() {
+        pow_finiteScalar(-2, 2);
     }
 
     @Test
@@ -757,5 +977,90 @@ public class QuaternionTest {
     @Test
     public void vector_d2() {
         vector(Quaternion.create(0, 0, 0, 2));
+    }
+
+    @Test
+    public void versor_0() {
+        assertEquals("versoer of zero is taken to be zero", Quaternion.ZERO, Quaternion.ZERO.versor());
+    }
+
+    @Test
+    public void versor_a1() {
+        versor_finite(1, 0, 0, 0);
+    }
+
+    @Test
+    public void versor_a2() {
+        versor_finite(2, 0, 0, 0);
+    }
+
+    @Test
+    public void versor_aMinus1() {
+        versor_finite(-1, 0, 0, 0);
+    }
+
+    @Test
+    public void versor_aSmall() {
+        versor_finite(Double.MIN_NORMAL, 0, 0, 0);
+    }
+
+    @Test
+    public void versor_b1() {
+        versor_finite(0, 1, 0, 0);
+    }
+
+    @Test
+    public void versor_b2() {
+        versor_finite(0, 2, 0, 0);
+    }
+
+    @Test
+    public void versor_bMinus1() {
+        versor_finite(0, -1, 0, 0);
+    }
+
+    @Test
+    public void versor_bSmall() {
+        versor_finite(0, Double.MIN_NORMAL, 0, 0);
+    }
+
+    @Test
+    public void versor_c1() {
+        versor_finite(0, 0, 1, 0);
+    }
+
+    @Test
+    public void versor_c2() {
+        versor_finite(0, 0, 2, 0);
+    }
+
+    @Test
+    public void versor_cMinus1() {
+        versor_finite(0, 0, -1, 0);
+    }
+
+    @Test
+    public void versor_cSmall() {
+        versor_finite(0, 0, Double.MIN_NORMAL, 0);
+    }
+
+    @Test
+    public void versor_d1() {
+        versor_finite(0, 0, 0, 1);
+    }
+
+    @Test
+    public void versor_d2() {
+        versor_finite(0, 0, 0, 2);
+    }
+
+    @Test
+    public void versor_dMinus1() {
+        versor_finite(0, 0, 0, -1);
+    }
+
+    @Test
+    public void versor_dSmall() {
+        versor_finite(0, 0, 0, Double.MIN_NORMAL);
     }
 }
