@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -69,6 +70,30 @@ public class QuaternionTest {
 
         assertInvariants(q1, q2);
         assertEquals(q1, q2);
+    }
+
+    private static double distance(Quaternion q, Quaternion that) {
+        final double d = q.distance(that);
+
+        assertInvariants(q);
+
+        return d;
+    }
+
+    private static void distance_0(double a, double b, double c, double d) {
+        final Quaternion q = Quaternion.create(a, b, c, d);
+
+        final double distance = distance(q, Quaternion.ZERO);
+
+        assertEquals("The distance of a quaternion from zero is its norm", q.norm(), distance, Double.MIN_NORMAL);
+    }
+
+    private static void distance_self(double a, double b, double c, double d) {
+        final Quaternion p = Quaternion.create(a, b, c, d);
+
+        final double distance = distance(p, p);
+
+        assertEquals("The distance of a quaternion from itself is zero", 0.0, distance, Double.MIN_NORMAL);
     }
 
     private static Quaternion minus(Quaternion q, Quaternion that) {
@@ -193,6 +218,29 @@ public class QuaternionTest {
         assertEquals("product b", q.getC() * d, p.getB(), Double.MIN_NORMAL);
         assertEquals("product c", q.getB() * -d, p.getC(), Double.MIN_NORMAL);
         assertEquals("product d", q.getA() * d, p.getD(), Double.MIN_NORMAL);
+    }
+
+    private static Quaternion reciprocal(Quaternion q) {
+        final Quaternion r = q.reciprocal();
+
+        assertNotNull("Not null, reciprocal", r);// guard
+        assertInvariants(r);
+        assertInvariants(q);
+        assertInvariants(r, q);
+
+        return r;
+    }
+
+    private static void reciprocal_finite(double a, double b, double c, double d) {
+        final Quaternion q = Quaternion.create(a, b, c, d);
+
+        final Quaternion r = reciprocal(q);
+
+        final Quaternion qr = q.product(r);
+        assertTrue("The product of a quaternion with its reciprocal <" + qr + "> is one",
+                qr.distance(Quaternion.ONE) < Double.MIN_NORMAL * 4.0);
+        assertTrue("The reciprocal of a quaternion is its conjugate divided by the square of its norm",
+                r.distance(q.conjugate().scale(1.0 / q.norm2())) < Double.MIN_NORMAL);
     }
 
     private static Quaternion scale(Quaternion x, double f) {
@@ -359,6 +407,26 @@ public class QuaternionTest {
     }
 
     @Test
+    public void distance_0A() {
+        distance_0(1, 2, 3, 4);
+    }
+
+    @Test
+    public void distance_0B() {
+        distance_0(-9, -8, -7, -6);
+    }
+
+    @Test
+    public void distance_selfA() {
+        distance_self(1, 2, 3, 4);
+    }
+
+    @Test
+    public void distance_selfB() {
+        distance_self(-9, -8, -7, -6);
+    }
+
+    @Test
     public void minus_0A() {
         minus_0(1, 2, 3, 4);
     }
@@ -459,6 +527,31 @@ public class QuaternionTest {
     }
 
     @Test
+    public void reciprocal_1() {
+        reciprocal_finite(1, 1, 1, 1);
+    }
+
+    @Test
+    public void reciprocal_a1() {
+        reciprocal_finite(1, 0, 0, 0);
+    }
+
+    @Test
+    public void reciprocal_b1() {
+        reciprocal_finite(0, 1, 0, 0);
+    }
+
+    @Test
+    public void reciprocal_c1() {
+        reciprocal_finite(0, 0, 1, 0);
+    }
+
+    @Test
+    public void reciprocal_d1() {
+        reciprocal_finite(0, 0, 0, 1);
+    }
+
+    @Test
     public void scale_0A() {
         final Quaternion scaled = scale(Quaternion.ZERO, 0.0);
 
@@ -512,4 +605,5 @@ public class QuaternionTest {
         assertEquals("zero norm^2", 0.0, Quaternion.ZERO.norm2(), Double.MIN_NORMAL);
         assertEquals("zero norm", 0.0, Quaternion.ZERO.norm(), Double.MIN_NORMAL);
     }
+
 }

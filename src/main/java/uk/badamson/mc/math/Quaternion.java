@@ -21,6 +21,13 @@ public final class Quaternion {
 
     /**
      * <p>
+     * The real quaternion of unit {@linkplain #norm() norm}.
+     * </p>
+     */
+    public static final Quaternion ONE = new Quaternion(1, 0, 0, 0);
+
+    /**
+     * <p>
      * Create a quaternion with given components.
      * </p>
      * 
@@ -58,6 +65,26 @@ public final class Quaternion {
      */
     public final Quaternion conjugate() {
         return new Quaternion(a, -b, -c, -d);
+    }
+
+    /**
+     * <p>
+     * The distance between this quaternion and another
+     * </p>
+     * <ul>
+     * <li>The distance is nominally equal to
+     * <code>this.minus(that).norm()</code>.</li>
+     * </ul>
+     * 
+     * @param that
+     *            The other quaternion
+     * @return the difference quaternion
+     * 
+     * @throws NullPointerException
+     *             If {@code that} is null.
+     */
+    public final double distance(Quaternion that) {
+        return minus(that).norm();
     }
 
     /**
@@ -246,6 +273,17 @@ public final class Quaternion {
         return new Quaternion(a * that.a - b * that.b - c * that.c - d * that.d,
                 a * that.b + b * that.a + c * that.d - d * that.c, a * that.c - b * that.d + c * that.a + d * that.b,
                 a * that.d + b * that.c - c * that.b + d * that.a);
+    }
+
+    /**
+     * <p>
+     * Create a quaternion that is the reciprocal of this quaternion.
+     * </p>
+     * 
+     * @return the conjugate; not null
+     */
+    public final Quaternion reciprocal() {
+        return conjugate().scale(1.0 / norm2());
     }
 
     /**
