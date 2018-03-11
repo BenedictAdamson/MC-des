@@ -34,6 +34,23 @@ public class QuaternionTest {
                 equals && Double.doubleToLongBits(q1.getD()) != Double.doubleToLongBits(q2.getD()));
     }
 
+    private static Quaternion conjugate(Quaternion q) {
+        final Quaternion c = q.conjugate();
+
+        assertNotNull("Not null, conjugate", c);// guard
+        assertInvariants(q);
+        assertInvariants(c);
+        assertInvariants(q, c);
+
+        assertEquals("Conjugation is an involution (self inverse)", q, c.conjugate());
+        assertEquals("conjugate a", q.getA(), c.getA(), Double.MIN_NORMAL);
+        assertEquals("conjugate b", -q.getB(), c.getB(), Double.MIN_NORMAL);
+        assertEquals("conjugate c", -q.getC(), c.getC(), Double.MIN_NORMAL);
+        assertEquals("conjugate d", -q.getD(), c.getD(), Double.MIN_NORMAL);
+
+        return c;
+    }
+
     private static Quaternion constructor(double a, double b, double c, double d) {
         final Quaternion q = new Quaternion(a, b, c, d);
 
@@ -152,6 +169,21 @@ public class QuaternionTest {
         assertInvariants(x, scaled);
 
         return scaled;
+    }
+
+    @Test
+    public void conjugate_0() {
+        conjugate(Quaternion.ZERO);
+    }
+
+    @Test
+    public void conjugate_1() {
+        conjugate(new Quaternion(1, 1, 1, 1));
+    }
+
+    @Test
+    public void conjugate_A() {
+        conjugate(new Quaternion(2, 3, 4, 5));
     }
 
     @Test

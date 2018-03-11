@@ -47,6 +47,17 @@ public final class Quaternion {
 
     /**
      * <p>
+     * Create a quaternion that is the conjugate of this quaternion.
+     * </p>
+     * 
+     * @return the conjugate; not null
+     */
+    public final Quaternion conjugate() {
+        return new Quaternion(a, -b, -c, -d);
+    }
+
+    /**
+     * <p>
      * Whether this object is <dfn>equivalent</dfn> another object.
      * </p>
      * <p>
@@ -142,8 +153,8 @@ public final class Quaternion {
 
     /**
      * <p>
-     * Create a quaternion that is the product of this quaternion and a given
-     * quaternion.
+     * Create a quaternion that is the Hamilton product of this quaternion and a
+     * given quaternion.
      * </p>
      * <ul>
      * <li>Always returns a (non null) quaternion.
