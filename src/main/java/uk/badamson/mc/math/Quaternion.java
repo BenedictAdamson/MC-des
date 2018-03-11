@@ -26,6 +26,8 @@ public final class Quaternion {
      */
     public static final Quaternion ONE = new Quaternion(1, 0, 0, 0);
 
+    private static double EXP_TOL = Math.pow(Double.MIN_NORMAL, 1.0 / 6.0) * 840.0;
+
     /**
      * <p>
      * Create a quaternion with given components.
@@ -47,6 +49,7 @@ public final class Quaternion {
     private final double a;
     private final double b;
     private final double c;
+
     private final double d;
 
     private Quaternion(double a, double b, double c, double d) {
@@ -114,7 +117,36 @@ public final class Quaternion {
 
     /**
      * <p>
+     * Create a quaternion that is the exponential of this quaternion.
+     * </p>
+     * 
+     * @return the exponential; not null
+     * @see Math#exp(double)
+     */
+    public final Quaternion exp() {
+        final double ea = Math.exp(a);
+        final Quaternion v = vector();
+        final double vn = v.norm();
+        final double cos = Math.cos(vn);
+        final double sinTerm;
+        if (EXP_TOL < Math.abs(vn)) {
+            sinTerm = Math.sin(vn) / vn;
+        } else {
+            /* Special handling for scalars and near scalars. */
+            final double x2 = vn * vn;
+            sinTerm = 1.0 - x2 * (1.0 / 6.0) * (1.0 - x2 * 0.05);
+        }
+        final Quaternion c1 = new Quaternion(ea * cos, 0, 0, 0);
+        final Quaternion s1 = v.scale(ea * sinTerm);
+        return c1.plus(s1);
+    }
+
+    /**
+     * <p>
      * The real-number component of this quaternion.
+     * </p>
+     * <p>
+     * Its <i>scalar part</i>.
      * </p>
      */
     public final double getA() {
@@ -308,4 +340,14 @@ public final class Quaternion {
         return a + "+" + b + "i+" + c + "j+" + d + "k";
     }
 
+    /**
+     * <p>
+     * Create a quaternion that is the vector part of this quaternion.
+     * </p>
+     * 
+     * @return the vector part; not null
+     */
+    public final Quaternion vector() {
+        return new Quaternion(0, b, c, d);
+    }
 }

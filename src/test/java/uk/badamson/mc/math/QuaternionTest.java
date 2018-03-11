@@ -96,6 +96,43 @@ public class QuaternionTest {
         assertEquals("The distance of a quaternion from itself is zero", 0.0, distance, Double.MIN_NORMAL);
     }
 
+    private static Quaternion exp(Quaternion q) {
+        final Quaternion eq = q.exp();
+
+        assertNotNull("Not null, result", eq);// guard
+        assertInvariants(q);// check for side-effects
+        assertInvariants(eq);
+        assertInvariants(eq, q);
+
+        return eq;
+    }
+
+    private static void exp_finite(double a, double b, double c, double d) {
+        final Quaternion q = Quaternion.create(a, b, c, d);
+        final Quaternion m = Quaternion.create(-a, -b, -c, -d);
+        final double precision = q.norm();
+
+        final Quaternion eq = exp(q);
+
+        final Quaternion em = m.exp();
+        final Quaternion eqem = eq.product(em);
+
+        assertInvariants(eq, em);
+        assertTrue("exp(q)*exp(-q) = exp(q-q) = exp(0) = 1", Quaternion.ONE.distance(eqem) < precision);
+    }
+
+    private static void exp_finiteScalar(double a) {
+        final double precision = Double.MIN_NORMAL * Math.abs(a);
+        final Quaternion q = Quaternion.create(a, 0, 0, 0);
+
+        final Quaternion eq = exp(q);
+
+        assertEquals("exponential a", Math.exp(a), eq.getA(), precision);
+        assertEquals("exponential b", 0.0, eq.getB(), precision);
+        assertEquals("exponential c", 0.0, eq.getC(), precision);
+        assertEquals("exponential d", 0.0, eq.getD(), precision);
+    }
+
     private static Quaternion minus(Quaternion q, Quaternion that) {
         final Quaternion sum = q.minus(that);
 
@@ -251,6 +288,22 @@ public class QuaternionTest {
         assertInvariants(x, scaled);
 
         return scaled;
+    }
+
+    private static Quaternion vector(Quaternion q) {
+        final Quaternion v = q.vector();
+
+        assertNotNull("Not null, vector part", v);// guard
+        assertInvariants(q);// side-effects
+        assertInvariants(v);
+        assertInvariants(q, v);
+
+        assertEquals("vector a", 0, v.getA(), Double.MIN_NORMAL);
+        assertEquals("vector b", Double.doubleToLongBits(q.getB()), Double.doubleToLongBits(v.getB()));
+        assertEquals("vector c", Double.doubleToLongBits(q.getC()), Double.doubleToLongBits(v.getC()));
+        assertEquals("vector d", Double.doubleToLongBits(q.getD()), Double.doubleToLongBits(v.getD()));
+
+        return v;
     }
 
     @Test
@@ -424,6 +477,76 @@ public class QuaternionTest {
     @Test
     public void distance_selfB() {
         distance_self(-9, -8, -7, -6);
+    }
+
+    @Test
+    public void exp_b1() {
+        exp_finite(0, 1, 0, 0);
+    }
+
+    @Test
+    public void exp_b2() {
+        exp_finite(0, 2, 0, 0);
+    }
+
+    @Test
+    public void exp_bMinus1() {
+        exp_finite(0, -1, 0, 0);
+    }
+
+    @Test
+    public void exp_c1() {
+        exp_finite(0, 0, 1, 0);
+    }
+
+    @Test
+    public void exp_c2() {
+        exp_finite(0, 0, 2, 0);
+    }
+
+    @Test
+    public void exp_cMinus1() {
+        exp_finite(0, 0, -1, 0);
+    }
+
+    @Test
+    public void exp_combined() {
+        exp_finite(1, 1, 1, 1);
+    }
+
+    @Test
+    public void exp_d1() {
+        exp_finite(0, 0, 0, 1);
+    }
+
+    @Test
+    public void exp_d2() {
+        exp_finite(0, 0, 0, 2);
+    }
+
+    @Test
+    public void exp_dMinus1() {
+        exp_finite(0, 0, 0, -1);
+    }
+
+    @Test
+    public void exp_scalar0() {
+        exp_finiteScalar(0.0);
+    }
+
+    @Test
+    public void exp_scalar1() {
+        exp_finiteScalar(1.0);
+    }
+
+    @Test
+    public void exp_scalar2() {
+        exp_finiteScalar(2.0);
+    }
+
+    @Test
+    public void exp_scalarMinus1() {
+        exp_finiteScalar(-1.0);
     }
 
     @Test
@@ -606,4 +729,33 @@ public class QuaternionTest {
         assertEquals("zero norm", 0.0, Quaternion.ZERO.norm(), Double.MIN_NORMAL);
     }
 
+    @Test
+    public void vector_0() {
+        vector(Quaternion.ZERO);
+    }
+
+    @Test
+    public void vector_1() {
+        vector(Quaternion.ONE);
+    }
+
+    @Test
+    public void vector_a2() {
+        vector(Quaternion.create(2, 0, 0, 0));
+    }
+
+    @Test
+    public void vector_b2() {
+        vector(Quaternion.create(0, 2, 0, 0));
+    }
+
+    @Test
+    public void vector_c2() {
+        vector(Quaternion.create(0, 0, 2, 0));
+    }
+
+    @Test
+    public void vector_d2() {
+        vector(Quaternion.create(0, 0, 0, 2));
+    }
 }
