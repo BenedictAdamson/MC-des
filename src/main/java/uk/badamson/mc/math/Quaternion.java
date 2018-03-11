@@ -182,7 +182,7 @@ public final class Quaternion {
         final double bs = b * f;
         final double cs = c * f;
         final double ds = d * f;
-        return (as * as + bs * bs + cs * cs + ds * ds) * s * s;
+        return (as * as + bs * bs + cs * cs + ds * ds) * (s * s);
     }
 
     /**
