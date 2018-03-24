@@ -84,6 +84,6 @@ public interface Matrix {
      *             {@code x} is not equal to the {@linkplain #getColumns() number of
      *             columns} of this.
      */
-    public ImmutableVectorN multiply(ImmutableVectorN x);
+    public Vector multiply(Vector x);
 
 }

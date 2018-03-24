@@ -4,8 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import uk.badamson.mc.ObjectTest;
-
 /**
  * <p>
  * Unit tests of classes that implement the {@link Matrix} interface.
@@ -19,8 +17,6 @@ public class MatrixTest {
     }
 
     public static void assertInvariants(Matrix matrix1, Matrix matrix2) {
-        ObjectTest.assertInvariants(matrix1, matrix2);// inherited
-
         if (matrix1.equals(matrix2)) {
             final int rows1 = matrix1.getRows();
             final int columns1 = matrix1.getColumns();
@@ -35,13 +31,13 @@ public class MatrixTest {
         }
     }
 
-    public static final ImmutableVectorN multiply(Matrix a, ImmutableVectorN x) {
-        final ImmutableVectorN ax = a.multiply(x);
+    public static final Vector multiply(Matrix a, Vector x) {
+        final Vector ax = a.multiply(x);
 
         assertNotNull("Not null, result", ax);// guard
-        ImmutableVectorNTest.assertInvariants(ax);
+        VectorTest.assertInvariants(ax);
         assertInvariants(a, ax);
-        ImmutableVectorNTest.assertInvariants(x, ax);
+        VectorTest.assertInvariants(x, ax);
 
         assertEquals("The number of rows of the product is equal to the number of rows of this matrix.", a.getRows(),
                 ax.getRows());

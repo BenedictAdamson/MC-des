@@ -15,7 +15,7 @@ import net.jcip.annotations.Immutable;
  * </ul>
  */
 @Immutable
-public final class ImmutableVectorN extends ImmutableMatrixN {
+public final class ImmutableVectorN extends ImmutableMatrixN implements Vector {
 
     /**
      * <p>
@@ -271,6 +271,7 @@ public final class ImmutableVectorN extends ImmutableMatrixN {
      *             If {@code i} is less than 0 or greater than or equal to the
      *             {@linkplain #getDimension() number of dimensions} of thsi vector.
      */
+    @Override
     public final double get(int i) {
         return elements[i];
     }

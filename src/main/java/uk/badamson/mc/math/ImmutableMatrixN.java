@@ -71,10 +71,6 @@ public class ImmutableMatrixN implements Matrix {
         this.elements = elements;
     }
 
-    /**
-     * @param obj
-     * @return
-     */
     @Override
     public final boolean equals(Object obj) {
         if (this == obj)
@@ -87,11 +83,6 @@ public class ImmutableMatrixN implements Matrix {
         return rows == other.rows && Arrays.equals(elements, other.elements);
     }
 
-    /**
-     * @param i
-     * @param j
-     * @return
-     */
     @Override
     public final double get(int i, int j) {
         if (i < 0 || rows <= i) {
@@ -103,17 +94,11 @@ public class ImmutableMatrixN implements Matrix {
         return elements[i * columns + j];
     }
 
-    /**
-     * @return
-     */
     @Override
     public final int getColumns() {
         return columns;
     }
 
-    /**
-     * @return
-     */
     @Override
     public final int getRows() {
         return rows;
@@ -128,12 +113,8 @@ public class ImmutableMatrixN implements Matrix {
         return result;
     }
 
-    /**
-     * @param x
-     * @return
-     */
     @Override
-    public final ImmutableVectorN multiply(ImmutableVectorN x) {
+    public final ImmutableVectorN multiply(Vector x) {
         Objects.requireNonNull(x, "x");
         final int columns = getColumns();
         if (columns != x.getRows()) {
@@ -145,7 +126,7 @@ public class ImmutableMatrixN implements Matrix {
             double dot = 0.0;
             final int j0 = i * columns;
             for (int j = 0; j < columns; ++j) {
-                dot += elements[j0 + j] * x.elements[j];
+                dot += elements[j0 + j] * x.get(j);
             }
             ax[i] = dot;
         }

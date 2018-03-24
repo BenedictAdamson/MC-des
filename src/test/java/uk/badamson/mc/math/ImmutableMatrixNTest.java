@@ -73,15 +73,12 @@ public class ImmutableMatrixNTest {
         return create(elements.length, 1, elements);
     }
 
-    private static final ImmutableVectorN multiply(ImmutableMatrixN a, ImmutableVectorN x) {
-        final ImmutableVectorN ax = MatrixTest.multiply(a, x);// inherited
+    private static final ImmutableVectorN multiply(ImmutableMatrixN a, Vector x) {
+        final ImmutableVectorN ax = (ImmutableVectorN) MatrixTest.multiply(a, x);// inherited
 
         assertNotNull("Not null, result", ax);// guard
         assertInvariants(a);// check for side effects
-        ImmutableVectorNTest.assertInvariants(x);// check for side effects
         ImmutableVectorNTest.assertInvariants(ax);
-        assertInvariants(a, ax);
-        ImmutableVectorNTest.assertInvariants(x, ax);
 
         return ax;
     }
