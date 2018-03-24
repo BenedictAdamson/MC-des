@@ -112,7 +112,7 @@ public final class ImmutableVectorN extends ImmutableMatrixN implements Vector {
         return new ImmutableVectorN(x);
     }
 
-    private static void requireConsistentDimensions(ImmutableVectorN v1, ImmutableVectorN v2) {
+    private static void requireConsistentDimensions(Vector v1, Vector v2) {
         if (v1.getDimension() != v2.getDimension()) {
             throw new IllegalArgumentException(
                     "Inconsistent dimensions, " + v1.getDimension() + ", " + v2.getDimension());
@@ -249,13 +249,27 @@ public final class ImmutableVectorN extends ImmutableMatrixN implements Vector {
      */
     public double dot(ImmutableVectorN that) {
         Objects.requireNonNull(that, "that");
-        requireConsistentDimensions(this, that);
 
         double d = 0.0;
         for (int i = 0, n = elements.length; i < n; ++i) {
             d += elements[i] * that.elements[i];
         }
         return d;
+    }
+
+    @Override
+    public double dot(Vector that) {
+        if (that instanceof ImmutableVector3) {
+            return dot(that);
+        } else {
+            Objects.requireNonNull(that, "that");
+            requireConsistentDimensions(this, that);
+            double d = 0.0;
+            for (int i = 0, n = elements.length; i < n; ++i) {
+                d += elements[i] * that.get(i);
+            }
+            return d;
+        }
     }
 
     /**
@@ -286,6 +300,7 @@ public final class ImmutableVectorN extends ImmutableMatrixN implements Vector {
      * 
      * @return the number of dimensions
      */
+    @Override
     public final int getDimension() {
         return elements.length;
     }
@@ -305,6 +320,7 @@ public final class ImmutableVectorN extends ImmutableMatrixN implements Vector {
      * 
      * @return the magnitude
      */
+    @Override
     public final double magnitude() {
         double scale = getScale();
         if (!Double.isFinite(scale) || scale < Double.MIN_NORMAL) {
@@ -333,6 +349,7 @@ public final class ImmutableVectorN extends ImmutableMatrixN implements Vector {
      * 
      * @return the square of the magnitude.
      */
+    @Override
     public final double magnitude2() {
         /* Use a scaling value to avoid overflow. */
         double scale = getScale();
@@ -381,6 +398,22 @@ public final class ImmutableVectorN extends ImmutableMatrixN implements Vector {
         return new ImmutableVectorN(mean);
     }
 
+    @Override
+    public final ImmutableVectorN mean(Vector that) {
+        if (that instanceof ImmutableVectorN) {
+            return mean((ImmutableVectorN) that);
+        } else {
+            Objects.requireNonNull(that, "that");
+            requireConsistentDimensions(this, that);
+            final int n = elements.length;
+            final double[] mean = new double[n];
+            for (int i = 0; i < n; i++) {
+                mean[i] = (elements[i] + that.get(i)) * 0.5;
+            }
+            return new ImmutableVectorN(mean);
+        }
+    }
+
     /**
      * <p>
      * Create the vector that is opposite in direction of this vector.
@@ -395,6 +428,7 @@ public final class ImmutableVectorN extends ImmutableMatrixN implements Vector {
      * 
      * @return the opposite vector; not null
      */
+    @Override
     public final ImmutableVectorN minus() {
         final int n = elements.length;
         final double[] minus = new double[n];
@@ -439,6 +473,23 @@ public final class ImmutableVectorN extends ImmutableMatrixN implements Vector {
         return new ImmutableVectorN(minus);
     }
 
+    @Override
+    public final ImmutableVectorN minus(Vector that) {
+        if (that instanceof ImmutableVectorN) {
+            return minus((ImmutableVectorN) that);
+        } else {
+            Objects.requireNonNull(that, "that");
+            requireConsistentDimensions(this, that);
+
+            final int n = elements.length;
+            final double[] minus = new double[n];
+            for (int i = 0; i < n; ++i) {
+                minus[i] = elements[i] - that.get(i);
+            }
+            return new ImmutableVectorN(minus);
+        }
+    }
+
     /**
      * <p>
      * Create the vector that is a given vector added to this vector; the sum of
@@ -475,6 +526,23 @@ public final class ImmutableVectorN extends ImmutableMatrixN implements Vector {
         return new ImmutableVectorN(minus);
     }
 
+    @Override
+    public final ImmutableVectorN plus(Vector that) {
+        if (that instanceof ImmutableVectorN) {
+            return plus((ImmutableVectorN) that);
+        } else {
+            Objects.requireNonNull(that, "that");
+            requireConsistentDimensions(this, that);
+
+            final int n = elements.length;
+            final double[] minus = new double[n];
+            for (int i = 0; i < n; ++i) {
+                minus[i] = elements[i] + that.get(i);
+            }
+            return new ImmutableVectorN(minus);
+        }
+    }
+
     /**
      * <p>
      * Create a vector that is this vector scaled by a given scalar.
@@ -490,6 +558,7 @@ public final class ImmutableVectorN extends ImmutableMatrixN implements Vector {
      *            the scalar
      * @return the scaled vector
      */
+    @Override
     public final ImmutableVectorN scale(double f) {
         final int n = elements.length;
         final double[] s = new double[n];

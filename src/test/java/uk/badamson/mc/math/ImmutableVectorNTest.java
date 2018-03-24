@@ -16,6 +16,7 @@ public class ImmutableVectorNTest {
 
     public static void assertInvariants(ImmutableVectorN x) {
         ImmutableMatrixNTest.assertInvariants(x);// inherited
+        VectorTest.assertInvariants(x);// inherited
 
         assertEquals("columns", 1, x.getColumns());
         final int dimensions = x.getDimension();
@@ -24,6 +25,7 @@ public class ImmutableVectorNTest {
 
     public static void assertInvariants(ImmutableVectorN x1, ImmutableVectorN x2) {
         ImmutableMatrixNTest.assertInvariants(x1, x2);// inherited
+        VectorTest.assertInvariants(x1, x2);// inherited
 
         if (x1.equals(x2)) {
             final int dimensions1 = x1.getDimension();
@@ -77,78 +79,75 @@ public class ImmutableVectorNTest {
     }
 
     private static ImmutableVectorN mean(ImmutableVectorN x, ImmutableVectorN that) {
-        final ImmutableVectorN mean = x.mean(that);
+        final ImmutableVectorN mean = (ImmutableVectorN) VectorTest.mean(x, that);// inherited
 
-        assertNotNull("Not null, mean", mean);// guard
         assertInvariants(mean);
         assertInvariants(x, mean);
         assertInvariants(that, mean);
-        assertEquals("dimension", x.getDimension(), mean.getDimension());
 
         return mean;
     }
 
-    private static final ImmutableVectorN minus(ImmutableVectorN x) {
-        final ImmutableVectorN minus = x.minus();
+    public static ImmutableVectorN mean(ImmutableVectorN x, Vector that) {
+        final ImmutableVectorN mean = (ImmutableVectorN) VectorTest.mean(x, that);// inherited
 
-        assertNotNull("Not null, result", minus);// guard
+        assertInvariants(mean);
+        assertInvariants(x, mean);
+
+        return mean;
+    }
+
+    public static final ImmutableVectorN minus(ImmutableVectorN x) {
+        final ImmutableVectorN minus = (ImmutableVectorN) VectorTest.minus(x);// inherited
+
         assertInvariants(minus);
         assertInvariants(x, minus);
-
-        final int dimension = minus.getDimension();
-        assertEquals("dimension", x.getDimension(), dimension);
-        for (int i = 0; i < dimension; i++) {
-            final double xI = x.get(i);
-            final double minusI = minus.get(i);
-            final boolean signed = Double.isInfinite(xI) || Double.isFinite(xI);
-            assertTrue("minus[" + i + "] <" + xI + "," + minusI + ">",
-                    !signed || Double.doubleToLongBits(-xI) == Double.doubleToLongBits(minus.get(i)));
-        }
 
         return minus;
     }
 
     private static final ImmutableVectorN minus(ImmutableVectorN x, ImmutableVectorN that) {
-        final ImmutableVectorN diff = x.minus(that);
+        final ImmutableVectorN diff = (ImmutableVectorN) VectorTest.minus(x, that);// inherited
 
-        assertNotNull("Not null, result", diff);// guard
         assertInvariants(diff);
         assertInvariants(diff, x);
         assertInvariants(diff, that);
+        return diff;
+    }
 
-        final int dimension = diff.getDimension();
-        assertEquals("dimension", x.getDimension(), dimension);// guard
-        for (int i = 0; i < dimension; i++) {
-            assertEquals("diff[" + i + "]", x.get(i) - that.get(i), diff.get(i), Double.MIN_NORMAL);
-        }
+    public static final ImmutableVectorN minus(ImmutableVectorN x, Vector that) {
+        final ImmutableVectorN diff = (ImmutableVectorN) VectorTest.minus(x, that);// inherited
+
+        assertInvariants(diff);
+        assertInvariants(diff, x);
 
         return diff;
     }
 
     private static final ImmutableVectorN plus(ImmutableVectorN x, ImmutableVectorN that) {
-        final ImmutableVectorN diff = x.plus(that);
+        final ImmutableVectorN diff = (ImmutableVectorN) VectorTest.plus(x, that);// inherited
 
-        assertNotNull("Not null, result", diff);// guard
         assertInvariants(diff);
         assertInvariants(diff, x);
         assertInvariants(diff, that);
 
-        final int dimension = diff.getDimension();
-        assertEquals("dimension", x.getDimension(), dimension);// guard
-        for (int i = 0; i < dimension; i++) {
-            assertEquals("plus[" + i + "]", x.get(i) + that.get(i), diff.get(i), Double.MIN_NORMAL);
-        }
+        return diff;
+    }
+
+    public static final ImmutableVectorN plus(ImmutableVectorN x, Vector that) {
+        final ImmutableVectorN diff = (ImmutableVectorN) VectorTest.plus(x, that);// inherited
+
+        assertInvariants(diff);
+        assertInvariants(diff, x);
 
         return diff;
     }
 
-    private static ImmutableVectorN scale(ImmutableVectorN x, double f) {
-        final ImmutableVectorN scaled = x.scale(f);
+    public static ImmutableVectorN scale(ImmutableVectorN x, double f) {
+        final ImmutableVectorN scaled = (ImmutableVectorN) VectorTest.scale(x, f);// inherited
 
-        assertNotNull("Not null, result", scaled);
         assertInvariants(scaled);
         assertInvariants(x, scaled);
-        assertEquals("dimension", x.getDimension(), scaled.getDimension());
 
         return scaled;
     }
