@@ -15,7 +15,7 @@ import org.junit.Test;
 public class ImmutableVectorTest {
 
     public static void assertInvariants(ImmutableVector x) {
-        ImmutableMatrixTest.assertInvariants(x);// inherited
+        ImmutableMatrixNTest.assertInvariants(x);// inherited
 
         assertEquals("columns", 1, x.getColumns());
         final int dimensions = x.getDimension();
@@ -23,7 +23,7 @@ public class ImmutableVectorTest {
     }
 
     public static void assertInvariants(ImmutableVector x1, ImmutableVector x2) {
-        ImmutableMatrixTest.assertInvariants(x1, x2);// inherited
+        ImmutableMatrixNTest.assertInvariants(x1, x2);// inherited
 
         if (x1.equals(x2)) {
             final int dimensions1 = x1.getDimension();

@@ -10,7 +10,7 @@ package uk.badamson.mc.math;
  * <li>A 3D rotation matrix has 3 {@linkplain #getColumns() columns}.</li>
  * </ul>
  */
-public final class RotationMatrix3 extends ImmutableMatrix {
+public final class RotationMatrix3 extends ImmutableMatrixN {
 
     RotationMatrix3(double[] elements) {
         super(3, 3, elements);

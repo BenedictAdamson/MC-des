@@ -7,11 +7,11 @@ import net.jcip.annotations.Immutable;
 
 /**
  * <p>
- * A constant (immutable) array of real numbers.
+ * A constant (immutable) 2D array of real numbers of any size.
  * </p>
  */
 @Immutable
-public class ImmutableMatrix {
+public class ImmutableMatrixN {
 
     /**
      * <p>
@@ -42,7 +42,7 @@ public class ImmutableMatrix {
      *             {@code rows} multiplied by {@code columns}.</li>
      *             </ul>
      */
-    public static ImmutableMatrix create(int rows, int columns, double[] elements) {
+    public static ImmutableMatrixN create(int rows, int columns, double[] elements) {
         Objects.requireNonNull(elements, "elements");
         if (rows < 1) {
             throw new IllegalArgumentException("rows " + rows);
@@ -57,7 +57,7 @@ public class ImmutableMatrix {
         if (columns == 1) {
             return ImmutableVector.create(elements);
         } else {
-            return new ImmutableMatrix(rows, columns, Arrays.copyOf(elements, elements.length));
+            return new ImmutableMatrixN(rows, columns, Arrays.copyOf(elements, elements.length));
         }
     }
 
@@ -65,7 +65,7 @@ public class ImmutableMatrix {
     private final int columns;
     protected final double[] elements;
 
-    ImmutableMatrix(int rows, int columns, double[] elements) {
+    ImmutableMatrixN(int rows, int columns, double[] elements) {
         this.rows = rows;
         this.columns = columns;
         this.elements = elements;
@@ -76,9 +76,9 @@ public class ImmutableMatrix {
      * Whether this object is <dfn>equivalent</dfn> to another object.
      * </p>
      * <p>
-     * The {@link ImmutableMatrix} class has <i>value semantics</i>: this object is
+     * The {@link ImmutableMatrixN} class has <i>value semantics</i>: this object is
      * equivalent to another if, and only if, the other object is also an
-     * {@link ImmutableMatrix} and they have equivalent attribtues.
+     * {@link ImmutableMatrixN} and they have equivalent attribtues.
      * </p>
      */
     @Override
@@ -87,9 +87,9 @@ public class ImmutableMatrix {
             return true;
         if (obj == null)
             return false;
-        if (!(obj instanceof ImmutableMatrix))
+        if (!(obj instanceof ImmutableMatrixN))
             return false;
-        ImmutableMatrix other = (ImmutableMatrix) obj;
+        ImmutableMatrixN other = (ImmutableMatrixN) obj;
         return rows == other.rows && Arrays.equals(elements, other.elements);
     }
 

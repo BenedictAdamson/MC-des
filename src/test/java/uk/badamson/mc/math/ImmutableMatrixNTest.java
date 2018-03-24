@@ -11,19 +11,19 @@ import uk.badamson.mc.ObjectTest;
 
 /**
  * <p>
- * Unit tests of the class {@link ImmutableMatrix}
+ * Unit tests of the class {@link ImmutableMatrixN}
  * </p>
  */
-public class ImmutableMatrixTest {
+public class ImmutableMatrixNTest {
 
-    public static void assertInvariants(ImmutableMatrix matrix) {
+    public static void assertInvariants(ImmutableMatrixN matrix) {
         ObjectTest.assertInvariants(matrix);// inherited
 
         assertTrue("rows is positive", 0 < matrix.getRows());
         assertTrue("columns is positive", 0 < matrix.getColumns());
     }
 
-    public static void assertInvariants(ImmutableMatrix matrix1, ImmutableMatrix matrix2) {
+    public static void assertInvariants(ImmutableMatrixN matrix1, ImmutableMatrixN matrix2) {
         ObjectTest.assertInvariants(matrix1, matrix2);// inherited
 
         if (matrix1.equals(matrix2)) {
@@ -40,8 +40,8 @@ public class ImmutableMatrixTest {
         }
     }
 
-    private static ImmutableMatrix create(int rows, int columns, double[] elements) {
-        final ImmutableMatrix matrix = ImmutableMatrix.create(rows, columns, elements);
+    private static ImmutableMatrixN create(int rows, int columns, double[] elements) {
+        final ImmutableMatrixN matrix = ImmutableMatrixN.create(rows, columns, elements);
 
         assertNotNull("Always creates a matrix", matrix);// guard
         assertInvariants(matrix);
@@ -61,8 +61,8 @@ public class ImmutableMatrixTest {
     }
 
     private static void create_equals(int rows, int columns, double[] elements) {
-        final ImmutableMatrix matrix1 = ImmutableMatrix.create(rows, columns, elements);
-        final ImmutableMatrix matrix2 = ImmutableMatrix.create(rows, columns, elements);
+        final ImmutableMatrixN matrix1 = ImmutableMatrixN.create(rows, columns, elements);
+        final ImmutableMatrixN matrix2 = ImmutableMatrixN.create(rows, columns, elements);
 
         assertInvariants(matrix1, matrix2);
         assertEquals("Equivalent", matrix1, matrix2);
@@ -77,18 +77,18 @@ public class ImmutableMatrixTest {
     }
 
     private static void create_notEquals_1x1(double x1, double x2) {
-        final ImmutableMatrix matrix1 = ImmutableMatrix.create(1, 1, new double[] { x1 });
-        final ImmutableMatrix matrix2 = ImmutableMatrix.create(1, 1, new double[] { x2 });
+        final ImmutableMatrixN matrix1 = ImmutableMatrixN.create(1, 1, new double[] { x1 });
+        final ImmutableMatrixN matrix2 = ImmutableMatrixN.create(1, 1, new double[] { x2 });
 
         assertInvariants(matrix1, matrix2);
         assertNotEquals("Not equivalent", matrix1, matrix2);
     }
 
-    private static ImmutableMatrix create_vector(double... elements) {
+    private static ImmutableMatrixN create_vector(double... elements) {
         return create(elements.length, 1, elements);
     }
 
-    private static final ImmutableVector multiply(ImmutableMatrix a, ImmutableVector x) {
+    private static final ImmutableVector multiply(ImmutableMatrixN a, ImmutableVector x) {
         final ImmutableVector ax = a.multiply(x);
 
         assertNotNull("Not null, result", ax);// guard
@@ -103,7 +103,7 @@ public class ImmutableMatrixTest {
     }
 
     private static void multiply_1x1(double a11, double x11) {
-        final ImmutableMatrix a = ImmutableMatrix.create(1, 1, new double[] { a11 });
+        final ImmutableMatrixN a = ImmutableMatrixN.create(1, 1, new double[] { a11 });
         final ImmutableVector x = ImmutableVector.create(x11);
 
         final ImmutableVector ax = multiply(a, x);
@@ -112,7 +112,7 @@ public class ImmutableMatrixTest {
     }
 
     private static void multiply_1x2(double a11, double a12, double x11, double x21) {
-        final ImmutableMatrix a = ImmutableMatrix.create(1, 2, new double[] { a11, a12 });
+        final ImmutableMatrixN a = ImmutableMatrixN.create(1, 2, new double[] { a11, a12 });
         final ImmutableVector x = ImmutableVector.create(x11, x21);
 
         final ImmutableVector ax = multiply(a, x);
@@ -121,7 +121,7 @@ public class ImmutableMatrixTest {
     }
 
     private static void multiply_2x1(double a11, double a21, double x11) {
-        final ImmutableMatrix a = ImmutableMatrix.create(2, 1, new double[] { a11, a21 });
+        final ImmutableMatrixN a = ImmutableMatrixN.create(2, 1, new double[] { a11, a21 });
         final ImmutableVector x = ImmutableVector.create(x11);
 
         final ImmutableVector ax = multiply(a, x);
@@ -191,8 +191,8 @@ public class ImmutableMatrixTest {
     @Test
     public void create_notEquals_C() {
         final double[] elements = new double[] { 1.0, 2.1 };
-        final ImmutableMatrix matrix1 = ImmutableMatrix.create(2, 1, elements);
-        final ImmutableMatrix matrix2 = ImmutableMatrix.create(1, 2, elements);
+        final ImmutableMatrixN matrix1 = ImmutableMatrixN.create(2, 1, elements);
+        final ImmutableMatrixN matrix2 = ImmutableMatrixN.create(1, 2, elements);
 
         assertInvariants(matrix1, matrix2);
         assertNotEquals("Not equivalent", matrix1, matrix2);

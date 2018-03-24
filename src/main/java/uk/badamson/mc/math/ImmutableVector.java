@@ -10,12 +10,12 @@ import net.jcip.annotations.Immutable;
  * A constant (immutable) mathematical vector or pseudo vector.
  * </p>
  * <ul>
- * <li>A vector is a {@linkplain ImmutableMatrix matrix} that has only one
+ * <li>A vector is a {@linkplain ImmutableMatrixN matrix} that has only one
  * {@linkplain #getColumns() column}.</li>
  * </ul>
  */
 @Immutable
-public final class ImmutableVector extends ImmutableMatrix {
+public final class ImmutableVector extends ImmutableMatrixN {
 
     /**
      * <p>
