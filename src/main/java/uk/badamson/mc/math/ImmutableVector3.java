@@ -15,6 +15,13 @@ public final class ImmutableVector3 implements Vector {
 
     /**
      * <p>
+     * The 3 dimensional zero vector.
+     * </p>
+     */
+    public static final ImmutableVector3 ZERO = new ImmutableVector3(0, 0, 0);
+
+    /**
+     * <p>
      * Create a vector from its components.
      * </p>
      * <ul>
@@ -38,11 +45,13 @@ public final class ImmutableVector3 implements Vector {
     public static ImmutableVector3 create(double x, double y, double z) {
         return new ImmutableVector3(x, y, z);
     }
+
     private static void requireDimension3(Vector vector) {
         if (vector.getDimension() != 3) {
             throw new IllegalArgumentException("Inconsistent dimension, " + vector.getDimension());
         }
     }
+
     /**
      * <p>
      * Calculate the sum of several 3 dimensional vectors.
