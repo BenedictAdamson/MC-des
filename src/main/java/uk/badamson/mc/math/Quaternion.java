@@ -26,6 +26,30 @@ public final class Quaternion {
      */
     public static final Quaternion ONE = new Quaternion(1, 0, 0, 0);
 
+    /**
+     * <p>
+     * The quaternion having using {@linkplain #getB() i component} with all other
+     * components zero.
+     * </p>
+     */
+    public static final Quaternion I = new Quaternion(0, 1, 0, 0);
+
+    /**
+     * <p>
+     * The quaternion having using {@linkplain #getC() j component} with all other
+     * components zero.
+     * </p>
+     */
+    public static final Quaternion J = new Quaternion(0, 0, 1, 0);
+
+    /**
+     * <p>
+     * The quaternion having using {@linkplain #getD() k component} with all other
+     * components zero.
+     * </p>
+     */
+    public static final Quaternion K = new Quaternion(0, 0, 0, 1);
+
     private static double EXP_TOL = Math.pow(Double.MIN_NORMAL, 1.0 / 6.0) * 840.0;
 
     /**
@@ -68,6 +92,26 @@ public final class Quaternion {
      */
     public final Quaternion conjugate() {
         return new Quaternion(a, -b, -c, -d);
+    }
+
+    /**
+     * <p>
+     * Create a quaternion that is the conjugation of a quaternion by this
+     * quaternion.
+     * </p>
+     * <p>
+     * That is, if this is <var>q</var> and the other quaternion is <var>p</var>,
+     * the method computes <var>q</var><var>p</var><var>q</var><sup>-1</sup>.
+     * 
+     * @param p
+     *            The quaternion to be conjugated.
+     * @return the conjugation; not null
+     * @throws NullPointerException
+     *             If {@code p} is null
+     */
+    public final Quaternion conjugation(Quaternion p) {
+        Objects.requireNonNull(p, "p");
+        return product(p).product(conjugate()).scale(1.0 / norm2());
     }
 
     /**

@@ -52,6 +52,24 @@ public class QuaternionTest {
         return c;
     }
 
+    public static final Quaternion conjugation(Quaternion q, Quaternion p) {
+        final double tolerance = Math.max(q.norm() * p.norm(), Double.MIN_NORMAL);
+        final Quaternion expected = q.product(p).product(q.reciprocal());
+
+        final Quaternion c = q.conjugation(p);
+
+        assertNotNull("Not null, result", c);
+        assertInvariants(q);// check for side effects
+        assertInvariants(p);// check for side effects
+        assertInvariants(p, q);// check for side effects
+        assertInvariants(c);
+        assertInvariants(p, c);
+        assertInvariants(q, c);
+        assertTrue("Expected result", expected.distance(c) < tolerance);
+
+        return c;
+    }
+
     private static Quaternion constructor(double a, double b, double c, double d) {
         final Quaternion q = Quaternion.create(a, b, c, d);
 
@@ -414,6 +432,66 @@ public class QuaternionTest {
     @Test
     public void conjugate_A() {
         conjugate(Quaternion.create(2, 3, 4, 5));
+    }
+
+    @Test
+    public void conjugation_11() {
+        conjugation(Quaternion.ONE, Quaternion.ONE);
+    }
+
+    @Test
+    public void conjugation_12() {
+        conjugation(Quaternion.ONE, Quaternion.create(2, 0, 0, 0));
+    }
+
+    @Test
+    public void conjugation_21() {
+        conjugation(Quaternion.create(2, 0, 0, 0), Quaternion.ONE);
+    }
+
+    @Test
+    public void conjugation_ii() {
+        conjugation(Quaternion.I, Quaternion.I);
+    }
+
+    @Test
+    public void conjugation_ij() {
+        conjugation(Quaternion.I, Quaternion.J);
+    }
+
+    @Test
+    public void conjugation_ik() {
+        conjugation(Quaternion.I, Quaternion.K);
+    }
+
+    @Test
+    public void conjugation_ji() {
+        conjugation(Quaternion.J, Quaternion.I);
+    }
+
+    @Test
+    public void conjugation_jj() {
+        conjugation(Quaternion.J, Quaternion.J);
+    }
+
+    @Test
+    public void conjugation_jk() {
+        conjugation(Quaternion.J, Quaternion.K);
+    }
+
+    @Test
+    public void conjugation_ki() {
+        conjugation(Quaternion.K, Quaternion.I);
+    }
+
+    @Test
+    public void conjugation_kj() {
+        conjugation(Quaternion.K, Quaternion.J);
+    }
+
+    @Test
+    public void conjugation_kk() {
+        conjugation(Quaternion.K, Quaternion.K);
     }
 
     @Test
