@@ -11,7 +11,7 @@ import net.jcip.annotations.Immutable;
  * </p>
  */
 @Immutable
-public class ImmutableMatrixN {
+public class ImmutableMatrixN implements Matrix {
 
     /**
      * <p>
@@ -72,14 +72,8 @@ public class ImmutableMatrixN {
     }
 
     /**
-     * <p>
-     * Whether this object is <dfn>equivalent</dfn> to another object.
-     * </p>
-     * <p>
-     * The {@link ImmutableMatrixN} class has <i>value semantics</i>: this object is
-     * equivalent to another if, and only if, the other object is also an
-     * {@link ImmutableMatrixN} and they have equivalent attribtues.
-     * </p>
+     * @param obj
+     * @return
      */
     @Override
     public final boolean equals(Object obj) {
@@ -94,27 +88,11 @@ public class ImmutableMatrixN {
     }
 
     /**
-     * <p>
-     * The value of an element of this matrix.</li>
-     * 
      * @param i
-     *            the cardinal number of the row of the element (0 for the first
-     *            row, 1 for the second row, and so on).
      * @param j
-     *            the cardinal number of the column of the element (0 for the first
-     *            column, 1 for the solcumn row, and so on).
-     * @return the value of the element
-     * 
-     * @throws IndexOutOfBoundsException
-     *             <ul>
-     *             <li>If {@code i} is negative.</li>
-     *             <li>If {@code i} is greater than or equal to the number of
-     *             {@linkplain #getRows() rows} of this matrix.</li>
-     *             <li>If {@code j} is negative.</li>
-     *             <li>If {@code j} is greater than or equal to the number of
-     *             {@linkplain #getColumns() columns} of this matrix.</li>
-     *             </ul>
+     * @return
      */
+    @Override
     public final double get(int i, int j) {
         if (i < 0 || rows <= i) {
             throw new IndexOutOfBoundsException("i " + i);
@@ -126,22 +104,17 @@ public class ImmutableMatrixN {
     }
 
     /**
-     * <p>
-     * The number of columns of this matrix.
-     * </p>
-     *
-     * @return the columns of rows; positive.
+     * @return
      */
+    @Override
     public final int getColumns() {
         return columns;
     }
 
     /**
-     * <p>
-     * The number of rows of this matrix.
-     *
-     * @return the number of rows; positive.
+     * @return
      */
+    @Override
     public final int getRows() {
         return rows;
     }
@@ -156,26 +129,10 @@ public class ImmutableMatrixN {
     }
 
     /**
-     * <p>
-     * Calculate the result of multiplying a vector by this matrix.
-     * </p>
-     * <ul>
-     * <li>Always returns a (non null) vector.</li>
-     * <li>The {@linkplain ImmutableVectorN#getRows() number of rows} of the product
-     * is equal to the number of rows of this matrix.</li>
-     * </ul>
-     * 
      * @param x
-     *            The vector to multiply
-     * @return the product of this and the given vector.
-     * 
-     * @throws NullPointerException
-     *             If {@code x} is null.
-     * @throws IllegalArgumentException
-     *             If the {@linkplain ImmutableVectorN#getRows() number of rows} of
-     *             {@code x} is not equal to the {@linkplain #getColumns() number of
-     *             columns} of this.
+     * @return
      */
+    @Override
     public final ImmutableVectorN multiply(ImmutableVectorN x) {
         Objects.requireNonNull(x, "x");
         final int columns = getColumns();

@@ -3,7 +3,6 @@ package uk.badamson.mc.math;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -18,26 +17,12 @@ public class ImmutableMatrixNTest {
 
     public static void assertInvariants(ImmutableMatrixN matrix) {
         ObjectTest.assertInvariants(matrix);// inherited
-
-        assertTrue("rows is positive", 0 < matrix.getRows());
-        assertTrue("columns is positive", 0 < matrix.getColumns());
+        MatrixTest.assertInvariants(matrix);// inherited
     }
 
     public static void assertInvariants(ImmutableMatrixN matrix1, ImmutableMatrixN matrix2) {
         ObjectTest.assertInvariants(matrix1, matrix2);// inherited
-
-        if (matrix1.equals(matrix2)) {
-            final int rows1 = matrix1.getRows();
-            final int columns1 = matrix1.getColumns();
-            assertEquals("Equality requires equal rows", rows1, matrix2.getRows());// guard
-            assertEquals("Equality requires equal columns", columns1, matrix2.getColumns());// guard
-            for (int i = 0; i < rows1; i++) {
-                for (int j = 0; j < columns1; j++) {
-                    assertEquals("Equality requires equal components [" + i + "," + j + "]", matrix1.get(i, j),
-                            matrix2.get(i, j), Double.MIN_NORMAL);
-                }
-            }
-        }
+        MatrixTest.assertInvariants(matrix1, matrix2);// inherited
     }
 
     private static ImmutableMatrixN create(int rows, int columns, double[] elements) {
@@ -89,15 +74,14 @@ public class ImmutableMatrixNTest {
     }
 
     private static final ImmutableVectorN multiply(ImmutableMatrixN a, ImmutableVectorN x) {
-        final ImmutableVectorN ax = a.multiply(x);
+        final ImmutableVectorN ax = MatrixTest.multiply(a, x);// inherited
 
         assertNotNull("Not null, result", ax);// guard
+        assertInvariants(a);// check for side effects
+        ImmutableVectorNTest.assertInvariants(x);// check for side effects
         ImmutableVectorNTest.assertInvariants(ax);
         assertInvariants(a, ax);
         ImmutableVectorNTest.assertInvariants(x, ax);
-
-        assertEquals("The number of rows of the product is equal to the number of rows of this matrix.", a.getRows(),
-                ax.getRows());
 
         return ax;
     }
