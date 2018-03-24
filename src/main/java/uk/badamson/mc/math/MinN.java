@@ -146,7 +146,7 @@ public final class MinN {
      *             </ul>
      * @throws IllegalArgumentException
      *             <ul>
-     *             <li>If the {@linkplain ImmutableVector#getDimension() dimension}
+     *             <li>If the {@linkplain ImmutableVectorN#getDimension() dimension}
      *             of {code x0} is different from the dimension of
      *             {@code dx}.</li></li>
      *             <li>If the dimension of {code x0} is different from the
@@ -154,8 +154,8 @@ public final class MinN {
      *             {@code f}.</li></li>
      *             </ul>
      */
-    public static Function1WithGradient createLineFunction(final FunctionNWithGradient f, final ImmutableVector x0,
-            final ImmutableVector dx) {
+    public static Function1WithGradient createLineFunction(final FunctionNWithGradient f, final ImmutableVectorN x0,
+            final ImmutableVectorN dx) {
         Objects.requireNonNull(f, "f");
         Objects.requireNonNull(x0, "x0");
         Objects.requireNonNull(dx, "dx");
@@ -180,20 +180,20 @@ public final class MinN {
 
             @Override
             public Function1WithGradientValue value(double w) {
-                final ImmutableVector x = ImmutableVector.createOnLine(x0, dx, w);
+                final ImmutableVectorN x = ImmutableVectorN.createOnLine(x0, dx, w);
                 final FunctionNWithGradientValue v = f.value(x);
                 return new Function1WithGradientValue(w, v.getF(), v.getDfDx().dot(dx));
             }
         };
     }
 
-    private static ImmutableVector downSlope(FunctionNWithGradientValue fx) {
-        final ImmutableVector dfDx = fx.getDfDx();
+    private static ImmutableVectorN downSlope(FunctionNWithGradientValue fx) {
+        final ImmutableVectorN dfDx = fx.getDfDx();
         if (dfDx.magnitude2() < Double.MIN_NORMAL) {
             /* Avoid division by zero when close to a minimum */
             final double[] x = new double[fx.getX().getDimension()];
             x[0] = 1.0;
-            return ImmutableVector.create(x);
+            return ImmutableVectorN.create(x);
         } else {
             return dfDx.minus();
         }
@@ -223,7 +223,7 @@ public final class MinN {
      *             </ul>
      * @throws IllegalArgumentException
      *             <ul>
-     *             <li>If the {@linkplain ImmutableVector#getDimension() dimension}
+     *             <li>If the {@linkplain ImmutableVectorN#getDimension() dimension}
      *             of {code x} is different from the
      *             {@linkplain FunctionN#getDimension() dimension} of
      *             {@code f}.</li></li>
@@ -238,7 +238,7 @@ public final class MinN {
      *             </ul>
      */
     public static FunctionNWithGradientValue findFletcherReevesPolakRibere(final FunctionNWithGradient f,
-            ImmutableVector x0, double tolerance) throws PoorlyConditionedFunctionException {
+            ImmutableVectorN x0, double tolerance) throws PoorlyConditionedFunctionException {
         Objects.requireNonNull(f, "f");
         Objects.requireNonNull(x0, "x");
         requireToleranceInRange(tolerance);
@@ -248,13 +248,13 @@ public final class MinN {
         }
 
         FunctionNWithGradientValue fx = f.value(x0);
-        ImmutableVector g = downSlope(fx);
-        ImmutableVector dx = g;
-        ImmutableVector h = g;
+        ImmutableVectorN g = downSlope(fx);
+        ImmutableVectorN dx = g;
+        ImmutableVectorN h = g;
         double fScale = 0.0;
 
         while (true) {
-            final ImmutableVector x = fx.getX();
+            final ImmutableVectorN x = fx.getX();
             FunctionNWithGradientValue fXNew;
             try {
                 fXNew = minimiseAlongLine(f, x, dx);
@@ -275,7 +275,7 @@ public final class MinN {
                 break;// converged
             }
 
-            final ImmutableVector gNew = downSlope(fXNew);
+            final ImmutableVectorN gNew = downSlope(fXNew);
             final double gamma = (gNew.minus(g)).dot(gNew) / g.magnitude2();
 
             if (Math.abs(gamma) <= tolerance) {
@@ -287,7 +287,7 @@ public final class MinN {
                 fx = fXNew;
                 break;// converged
             }
-            final ImmutableVector hNew = ImmutableVector.createOnLine(gNew, h, gamma);
+            final ImmutableVectorN hNew = ImmutableVectorN.createOnLine(gNew, h, gamma);
 
             g = gNew;
             h = hNew;
@@ -488,8 +488,8 @@ public final class MinN {
      *             <li>The magnitude of {@code dx} is zero (or very small).</li>
      *             </ul>
      */
-    static FunctionNWithGradientValue minimiseAlongLine(final FunctionNWithGradient f, final ImmutableVector x,
-            ImmutableVector dx) throws PoorlyConditionedFunctionException {
+    static FunctionNWithGradientValue minimiseAlongLine(final FunctionNWithGradient f, final ImmutableVectorN x,
+            ImmutableVectorN dx) throws PoorlyConditionedFunctionException {
         final Function1WithGradient fLine = createLineFunction(f, x, dx);
         final Function1 f1Line = new Function1() {
 
@@ -506,7 +506,7 @@ public final class MinN {
         };
         final Min1.Bracket bracket = Min1.findBracket(f1Line, 0.0, 1.0);
         final Function1WithGradientValue p = Min1.findBrent(fLine, bracket, Min1.TOLERANCE);
-        final ImmutableVector xMin = ImmutableVector.createOnLine(x, dx, p.getX());
+        final ImmutableVectorN xMin = ImmutableVectorN.createOnLine(x, dx, p.getX());
         return f.value(xMin);
     }
 

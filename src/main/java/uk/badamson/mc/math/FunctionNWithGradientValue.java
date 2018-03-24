@@ -16,8 +16,8 @@ import net.jcip.annotations.Immutable;
 public final class FunctionNWithGradientValue {
 
     private final double f;
-    private final ImmutableVector x;
-    private final ImmutableVector dfdx;
+    private final ImmutableVectorN x;
+    private final ImmutableVectorN dfdx;
 
     /**
      * <p>
@@ -38,9 +38,9 @@ public final class FunctionNWithGradientValue {
      *             </ul>
      * @throws IllegalArgumentException
      *             If {@code x} and {@code dfdx} have different
-     *             {@linkplain ImmutableVector#getDimension() dimensions}.
+     *             {@linkplain ImmutableVectorN#getDimension() dimensions}.
      */
-    public FunctionNWithGradientValue(ImmutableVector x, double f, ImmutableVector dfdx) {
+    public FunctionNWithGradientValue(ImmutableVectorN x, double f, ImmutableVectorN dfdx) {
         Objects.requireNonNull(x, "x");
         Objects.requireNonNull(dfdx, "dfdx");
         if (x.getDimension() != dfdx.getDimension()) {
@@ -83,12 +83,12 @@ public final class FunctionNWithGradientValue {
      * </p>
      * <ul>
      * <li>Always have a (non null) gradient vector.</li>
-     * <li>The {@linkplain ImmutableVector#getDimension() dimension} of the gradient
-     * vector is equal to the dimension of the {@linkplain #getX() domain
+     * <li>The {@linkplain ImmutableVectorN#getDimension() dimension} of the
+     * gradient vector is equal to the dimension of the {@linkplain #getX() domain
      * vector}.</li>
      * </ul>
      */
-    public final ImmutableVector getDfDx() {
+    public final ImmutableVectorN getDfDx() {
         return dfdx;
     }
 
@@ -110,7 +110,7 @@ public final class FunctionNWithGradientValue {
      * <li>Always have a (non null) domain vector.</li>
      * </ul>
      */
-    public final ImmutableVector getX() {
+    public final ImmutableVectorN getX() {
         return x;
     }
 

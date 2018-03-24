@@ -16,12 +16,12 @@ public class FunctionNWithGradientTest {
     }
 
     public static void assertValueConsistentWithGradientAlongLine(final FunctionNWithGradient f, final double w1,
-            final double w2, final int n, final ImmutableVector x0, final ImmutableVector dx) {
+            final double w2, final int n, final ImmutableVectorN x0, final ImmutableVectorN dx) {
         final Function1WithGradient fLine = MinN.createLineFunction(f, x0, dx);
         Function1WithGradientTest.assertValueConsistentWithGradient(fLine, w1, w2, n);
     }
 
-    public static FunctionNWithGradientValue value(FunctionNWithGradient f, ImmutableVector x) {
+    public static FunctionNWithGradientValue value(FunctionNWithGradient f, ImmutableVectorN x) {
         final FunctionNWithGradientValue v = f.value(x);
 
         assertNotNull("Not null, result", v);// guard

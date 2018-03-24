@@ -3,7 +3,7 @@ package uk.badamson.mc.physics;
 import java.util.Arrays;
 import java.util.Objects;
 
-import uk.badamson.mc.math.ImmutableVector;;
+import uk.badamson.mc.math.ImmutableVectorN;;
 
 /**
  * <p>
@@ -26,21 +26,21 @@ public abstract class AbstractTimeStepEnergyErrorFunctionTerm implements TimeSte
         return copy;
     }
 
-    protected static final ImmutableVector extract(ImmutableVector x, int term[]) {
+    protected static final ImmutableVectorN extract(ImmutableVectorN x, int term[]) {
         final int n = term.length;
         final double[] extract = new double[n];
         for (int i = 0; i < n; i++) {
             extract[i] = x.get(term[i]);
         }
-        return ImmutableVector.create(extract);
+        return ImmutableVectorN.create(extract);
     }
 
-    protected static final ImmutableVector extract(ImmutableVector x, int term[], int i0, int n) {
+    protected static final ImmutableVectorN extract(ImmutableVectorN x, int term[], int i0, int n) {
         final double[] extract = new double[n];
         for (int i = 0; i < n; i++) {
             extract[i] = x.get(term[i0 + i]);
         }
-        return ImmutableVector.create(extract);
+        return ImmutableVectorN.create(extract);
     }
 
     protected static void requireConsistentLengths(int[] index1, String name1, int[] index2, String name2) {
@@ -87,11 +87,11 @@ public abstract class AbstractTimeStepEnergyErrorFunctionTerm implements TimeSte
      *             {@inheritDoc}
      * @throws IllegalArgumentException
      *             If the length of {@code dedx} does not equal the
-     *             {@linkplain ImmutableVector#getDimension() dimension} of
+     *             {@linkplain ImmutableVectorN#getDimension() dimension} of
      *             {@code state0}.
      */
     @Override
-    public double evaluate(double[] dedx, ImmutableVector state0, ImmutableVector state, double dt) {
+    public double evaluate(double[] dedx, ImmutableVectorN state0, ImmutableVectorN state, double dt) {
         Objects.requireNonNull(dedx, "dedx");
         Objects.requireNonNull(state0, "x0");
         Objects.requireNonNull(state, "x");

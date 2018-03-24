@@ -5,7 +5,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import uk.badamson.mc.math.ImmutableVector;
+import uk.badamson.mc.math.ImmutableVectorN;
 import uk.badamson.mc.physics.AbstractTimeStepEnergyErrorFunctionTermTest;
 
 /**
@@ -41,7 +41,7 @@ public class PositionErrorTest {
         AbstractTimeStepEnergyErrorFunctionTermTest.assertInvariants(term1, term2);// inherited
     }
 
-    private static PositionError constructor(ImmutableVector direction, double mass, int[] positionTerm,
+    private static PositionError constructor(ImmutableVectorN direction, double mass, int[] positionTerm,
             int[] velocityTerm) {
         final PositionError term = new PositionError(mass, positionTerm, velocityTerm);
 
@@ -57,7 +57,7 @@ public class PositionErrorTest {
         return term;
     }
 
-    private static double evaluate(PositionError term, double[] dedx, ImmutableVector x0, ImmutableVector x,
+    private static double evaluate(PositionError term, double[] dedx, ImmutableVectorN x0, ImmutableVectorN x,
             double dt) {
         final double e = AbstractTimeStepEnergyErrorFunctionTermTest.evaluate(term, dedx, x0, x, dt);
 
@@ -72,7 +72,7 @@ public class PositionErrorTest {
         final PositionError term = new PositionError(mass, new int[] { positionTerm }, new int[] { velocityTerm });
         final double[] dedx = { dedx0, dedv0 };
 
-        final double e = evaluate(term, dedx, ImmutableVector.create(x0, v0), ImmutableVector.create(x, v), dt);
+        final double e = evaluate(term, dedx, ImmutableVectorN.create(x0, v0), ImmutableVectorN.create(x, v), dt);
 
         assertEquals("energy", eExpected, e, tolerance);
         assertEquals("dedx[positionTerm]", dEDXExpected, dedx[positionTerm], tolerance);
@@ -92,7 +92,7 @@ public class PositionErrorTest {
 
     @Test
     public void constructor_1A() {
-        final ImmutableVector direction = ImmutableVector.create(1.0);
+        final ImmutableVectorN direction = ImmutableVectorN.create(1.0);
         final double mass = 2.0;
         final int[] positionTerm = { 3 };
         final int[] velocityTerm = { 4 };
@@ -102,7 +102,7 @@ public class PositionErrorTest {
 
     @Test
     public void constructor_1B() {
-        final ImmutableVector direction = ImmutableVector.create(-1.0);
+        final ImmutableVectorN direction = ImmutableVectorN.create(-1.0);
         final double mass = 1E24;
         final int[] positionTerm = { 7 };
         final int[] velocityTerm = { 11 };
@@ -113,7 +113,7 @@ public class PositionErrorTest {
     @Test
     public void constructor_2() {
         final double e = Math.sqrt(2.0) / 2.0;
-        final ImmutableVector direction = ImmutableVector.create(e, e);
+        final ImmutableVectorN direction = ImmutableVectorN.create(e, e);
         final double mass = 1000.0;
         final int[] positionTerm = { 3, 4 };
         final int[] velocityTerm = { 5, 6 };

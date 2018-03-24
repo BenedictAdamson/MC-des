@@ -7,7 +7,7 @@ import net.jcip.annotations.Immutable;
 
 /**
  * <p>
- * A constant (immutable) mathematical vector or pseudo vector.
+ * A constant (immutable) mathematical vector or pseudo vector of any size.
  * </p>
  * <ul>
  * <li>A vector is a {@linkplain ImmutableMatrixN matrix} that has only one
@@ -15,7 +15,7 @@ import net.jcip.annotations.Immutable;
  * </ul>
  */
 @Immutable
-public final class ImmutableVector extends ImmutableMatrixN {
+public final class ImmutableVectorN extends ImmutableMatrixN {
 
     /**
      * <p>
@@ -37,13 +37,13 @@ public final class ImmutableVector extends ImmutableMatrixN {
      * @throws IllegalArgumentException
      *             If {@code x} is empty (length 0)
      */
-    public static ImmutableVector create(double... x) {
+    public static ImmutableVectorN create(double... x) {
         Objects.requireNonNull(x, "x");
         final int n = x.length;
         if (n == 0) {
             throw new IllegalArgumentException("x is empty");
         }
-        return new ImmutableVector(Arrays.copyOf(x, n));
+        return new ImmutableVectorN(Arrays.copyOf(x, n));
     }
 
     /**
@@ -63,11 +63,11 @@ public final class ImmutableVector extends ImmutableMatrixN {
      * @throws IllegalArgumentException
      *             If {@code dimension} is not positive
      */
-    public static ImmutableVector create0(int dimension) {
+    public static ImmutableVectorN create0(int dimension) {
         if (dimension <= 0) {
             throw new IllegalArgumentException("dimension " + dimension);
         }
-        return new ImmutableVector(new double[dimension]);
+        return new ImmutableVectorN(new double[dimension]);
     }
 
     /**
@@ -77,8 +77,8 @@ public final class ImmutableVector extends ImmutableMatrixN {
      * </p>
      * <ul>
      * <li>Always returns a (non null) vector.</li>
-     * <li>The {@linkplain ImmutableVector#getDimension() dimension} of the returned
-     * vector is equal to the dimension of thetwo input vectors.</li>
+     * <li>The {@linkplain ImmutableVectorN#getDimension() dimension} of the
+     * returned vector is equal to the dimension of thetwo input vectors.</li>
      * <li>Returns the vector <code>x0 + w dx</code></li>
      * </ul>
      * 
@@ -97,9 +97,9 @@ public final class ImmutableVector extends ImmutableMatrixN {
      *             </ul>
      * @throws IllegalArgumentException
      *             If {@code x0} and {@code dx} have different
-     *             {@linkplain ImmutableVector#getDimension() dimensions}.
+     *             {@linkplain ImmutableVectorN#getDimension() dimensions}.
      */
-    public static ImmutableVector createOnLine(final ImmutableVector x0, ImmutableVector dx, double w) {
+    public static ImmutableVectorN createOnLine(final ImmutableVectorN x0, ImmutableVectorN dx, double w) {
         Objects.requireNonNull(x0, "x0");
         Objects.requireNonNull(dx, "dx");
         requireConsistentDimensions(x0, dx);
@@ -109,10 +109,10 @@ public final class ImmutableVector extends ImmutableMatrixN {
         for (int i = 0; i < n; i++) {
             x[i] = x0.elements[i] + w * dx.elements[i];
         }
-        return new ImmutableVector(x);
+        return new ImmutableVectorN(x);
     }
 
-    private static void requireConsistentDimensions(ImmutableVector v1, ImmutableVector v2) {
+    private static void requireConsistentDimensions(ImmutableVectorN v1, ImmutableVectorN v2) {
         if (v1.getDimension() != v2.getDimension()) {
             throw new IllegalArgumentException(
                     "Inconsistent dimensions, " + v1.getDimension() + ", " + v2.getDimension());
@@ -141,9 +141,9 @@ public final class ImmutableVector extends ImmutableMatrixN {
      * @throws IllegalArgumentException
      *             If the elements of {@code x} do not have the same
      *             {@linkplain #getDimension() dimension}.
-     * @see #plus(ImmutableVector)
+     * @see #plus(ImmutableVectorN)
      */
-    public static ImmutableVector sum(ImmutableVector... x) {
+    public static ImmutableVectorN sum(ImmutableVectorN... x) {
         Objects.requireNonNull(x, "x");
         final int n = x.length;
         if (n == 0) {
@@ -154,7 +154,7 @@ public final class ImmutableVector extends ImmutableMatrixN {
         final int d = x[0].getDimension();
         final double[] sum = new double[d];
         for (int j = 0; j < n; ++j) {
-            final ImmutableVector xj = x[j];
+            final ImmutableVectorN xj = x[j];
             Objects.requireNonNull(xj, "x[j]");
             if (xj.getDimension() != d) {
                 throw new IllegalArgumentException("Inconsistent dimension " + d + ", " + xj.getDimension());
@@ -165,7 +165,7 @@ public final class ImmutableVector extends ImmutableMatrixN {
             }
         }
 
-        return new ImmutableVector(sum);
+        return new ImmutableVectorN(sum);
     }
 
     /**
@@ -198,7 +198,7 @@ public final class ImmutableVector extends ImmutableMatrixN {
      *             {@linkplain #getDimension() dimension}.</li>
      *             </ul>
      */
-    public static ImmutableVector weightedSum(double[] weight, ImmutableVector[] x) {
+    public static ImmutableVectorN weightedSum(double[] weight, ImmutableVectorN[] x) {
         Objects.requireNonNull(weight, "weight");
         Objects.requireNonNull(x, "x");
         final int n = weight.length;
@@ -214,7 +214,7 @@ public final class ImmutableVector extends ImmutableMatrixN {
         final double[] sum = new double[d];
         for (int j = 0; j < n; ++j) {
             final double wj = weight[j];
-            final ImmutableVector xj = x[j];
+            final ImmutableVectorN xj = x[j];
             Objects.requireNonNull(xj, "x[j]");
             if (xj.getDimension() != d) {
                 throw new IllegalArgumentException("Inconsistent dimension " + d + ", " + xj.getDimension());
@@ -225,10 +225,10 @@ public final class ImmutableVector extends ImmutableMatrixN {
             }
         }
 
-        return new ImmutableVector(sum);
+        return new ImmutableVectorN(sum);
     }
 
-    ImmutableVector(double... x) {
+    ImmutableVectorN(double... x) {
         super(x.length, 1, x);
     }
 
@@ -247,7 +247,7 @@ public final class ImmutableVector extends ImmutableMatrixN {
      *             If the {@linkplain #getDimension() dimension} of {@code that} is
      *             not equal to the dimension of this.
      */
-    public double dot(ImmutableVector that) {
+    public double dot(ImmutableVectorN that) {
         Objects.requireNonNull(that, "that");
         requireConsistentDimensions(this, that);
 
@@ -326,7 +326,7 @@ public final class ImmutableVector extends ImmutableMatrixN {
      * <p>
      * The method takes care to properly handle vectors with components that are
      * large, not numbers, or which differ greatly in magnitude. It is otherwise
-     * similar to the {@linkplain #dot(ImmutableVector) dot product} of the vector
+     * similar to the {@linkplain #dot(ImmutableVectorN) dot product} of the vector
      * with itself.
      * </p>
      * 
@@ -355,7 +355,7 @@ public final class ImmutableVector extends ImmutableMatrixN {
      * </p>
      * <ul>
      * <li>Always returns a (non null) vector.</li>
-     * <li>The {@linkplain ImmutableVector#getDimension() dimension} of the mean
+     * <li>The {@linkplain ImmutableVectorN#getDimension() dimension} of the mean
      * vector is equal to the dimension of this vector.</li>
      * </ul>
      * 
@@ -366,10 +366,10 @@ public final class ImmutableVector extends ImmutableMatrixN {
      * @throws NullPointerException
      *             If {@code that} is null.
      * @throws IllegalArgumentException
-     *             If the {@linkplain ImmutableVector#getDimension() dimension} of
+     *             If the {@linkplain ImmutableVectorN#getDimension() dimension} of
      *             }@code that} is not equal to ehe dimension of this vector.
      */
-    public final ImmutableVector mean(ImmutableVector that) {
+    public final ImmutableVectorN mean(ImmutableVectorN that) {
         Objects.requireNonNull(that, "that");
         requireConsistentDimensions(this, that);
         final int n = elements.length;
@@ -377,7 +377,7 @@ public final class ImmutableVector extends ImmutableMatrixN {
         for (int i = 0; i < n; i++) {
             mean[i] = (elements[i] + that.elements[i]) * 0.5;
         }
-        return new ImmutableVector(mean);
+        return new ImmutableVectorN(mean);
     }
 
     /**
@@ -394,13 +394,13 @@ public final class ImmutableVector extends ImmutableMatrixN {
      * 
      * @return the opposite vector; not null
      */
-    public final ImmutableVector minus() {
+    public final ImmutableVectorN minus() {
         final int n = elements.length;
         final double[] minus = new double[n];
         for (int i = 0; i < n; ++i) {
             minus[i] = -elements[i];
         }
-        return new ImmutableVector(minus);
+        return new ImmutableVectorN(minus);
     }
 
     /**
@@ -426,7 +426,7 @@ public final class ImmutableVector extends ImmutableMatrixN {
      *             If the {@linkplain #getDimension() dimension} of {@code that} is
      *             not equal to the dimension of this.
      */
-    public final ImmutableVector minus(ImmutableVector that) {
+    public final ImmutableVectorN minus(ImmutableVectorN that) {
         Objects.requireNonNull(that, "that");
         requireConsistentDimensions(this, that);
 
@@ -435,7 +435,7 @@ public final class ImmutableVector extends ImmutableMatrixN {
         for (int i = 0; i < n; ++i) {
             minus[i] = elements[i] - that.elements[i];
         }
-        return new ImmutableVector(minus);
+        return new ImmutableVectorN(minus);
     }
 
     /**
@@ -460,9 +460,9 @@ public final class ImmutableVector extends ImmutableMatrixN {
      * @throws IllegalArgumentException
      *             If the {@linkplain #getDimension() dimension} of {@code that} is
      *             not equal to the dimension of this.
-     * @see #sum(ImmutableVector...)
+     * @see #sum(ImmutableVectorN...)
      */
-    public final ImmutableVector plus(ImmutableVector that) {
+    public final ImmutableVectorN plus(ImmutableVectorN that) {
         Objects.requireNonNull(that, "that");
         requireConsistentDimensions(this, that);
 
@@ -471,7 +471,7 @@ public final class ImmutableVector extends ImmutableMatrixN {
         for (int i = 0; i < n; ++i) {
             minus[i] = elements[i] + that.elements[i];
         }
-        return new ImmutableVector(minus);
+        return new ImmutableVectorN(minus);
     }
 
     /**
@@ -481,7 +481,7 @@ public final class ImmutableVector extends ImmutableMatrixN {
      * <ul>
      * <li>Always returns a (non null) vector.
      * <li>
-     * <li>The {@linkplain ImmutableVector#getDimension() dimension} of the scaled
+     * <li>The {@linkplain ImmutableVectorN#getDimension() dimension} of the scaled
      * vector is equal to the dimension of this vector.</li>
      * </ul>
      * 
@@ -489,13 +489,13 @@ public final class ImmutableVector extends ImmutableMatrixN {
      *            the scalar
      * @return the scaled vector
      */
-    public final ImmutableVector scale(double f) {
+    public final ImmutableVectorN scale(double f) {
         final int n = elements.length;
         final double[] s = new double[n];
         for (int i = 0; i < n; ++i) {
             s[i] = elements[i] * f;
         }
-        return new ImmutableVector(s);
+        return new ImmutableVectorN(s);
     }
 
     @Override

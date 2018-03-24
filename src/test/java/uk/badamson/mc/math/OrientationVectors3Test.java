@@ -17,9 +17,9 @@ public class OrientationVectors3Test {
     public static void assertInvariants(OrientationVectors3 orientation) {
         ObjectTest.assertInvariants(orientation);// inherited
 
-        final ImmutableVector e1 = orientation.getE1();
-        final ImmutableVector e2 = orientation.getE2();
-        final ImmutableVector e3 = orientation.getE3();
+        final ImmutableVectorN e1 = orientation.getE1();
+        final ImmutableVectorN e2 = orientation.getE2();
+        final ImmutableVectorN e3 = orientation.getE3();
 
         assertNotNull("Not null, e1", e1);// guard
         assertNotNull("Not null, e2", e2);// guard
@@ -41,8 +41,8 @@ public class OrientationVectors3Test {
         ObjectTest.assertInvariants(orientation1, orientation2);// inherited
     }
 
-    private static OrientationVectors3 createFromOrthogonalUnitBasisVectors(ImmutableVector e1, ImmutableVector e2,
-            ImmutableVector e3) {
+    private static OrientationVectors3 createFromOrthogonalUnitBasisVectors(ImmutableVectorN e1, ImmutableVectorN e2,
+            ImmutableVectorN e3) {
         final OrientationVectors3 orientation = OrientationVectors3.createFromOrthogonalUnitBasisVectors(e1, e2, e3);
 
         assertNotNull("Not null, result", orientation);// guard
@@ -56,18 +56,18 @@ public class OrientationVectors3Test {
 
     @Test
     public void createFromOrthogonalUnitBasisVectors_A() {
-        final ImmutableVector e1 = ImmutableVector.create(1, 0, 0);
-        final ImmutableVector e2 = ImmutableVector.create(0, 1, 0);
-        final ImmutableVector e3 = ImmutableVector.create(0, 0, 1);
+        final ImmutableVectorN e1 = ImmutableVectorN.create(1, 0, 0);
+        final ImmutableVectorN e2 = ImmutableVectorN.create(0, 1, 0);
+        final ImmutableVectorN e3 = ImmutableVectorN.create(0, 0, 1);
 
         createFromOrthogonalUnitBasisVectors(e1, e2, e3);
     }
 
     @Test
     public void createFromOrthogonalUnitBasisVectors_B() {
-        final ImmutableVector e1 = ImmutableVector.create(0, 1, 0);
-        final ImmutableVector e2 = ImmutableVector.create(0, 0, 1);
-        final ImmutableVector e3 = ImmutableVector.create(1, 0, 0);
+        final ImmutableVectorN e1 = ImmutableVectorN.create(0, 1, 0);
+        final ImmutableVectorN e2 = ImmutableVectorN.create(0, 0, 1);
+        final ImmutableVectorN e3 = ImmutableVectorN.create(1, 0, 0);
 
         createFromOrthogonalUnitBasisVectors(e1, e2, e3);
     }
@@ -75,9 +75,9 @@ public class OrientationVectors3Test {
     @Test
     public void createFromOrthogonalUnitBasisVectors_C() {
         final double f = 1.0 / Math.sqrt(2.0);
-        final ImmutableVector e1 = ImmutableVector.create(f, f, 0);
-        final ImmutableVector e2 = ImmutableVector.create(-f, f, 0);
-        final ImmutableVector e3 = ImmutableVector.create(0, 0, 1);
+        final ImmutableVectorN e1 = ImmutableVectorN.create(f, f, 0);
+        final ImmutableVectorN e2 = ImmutableVectorN.create(-f, f, 0);
+        final ImmutableVectorN e3 = ImmutableVectorN.create(0, 0, 1);
 
         createFromOrthogonalUnitBasisVectors(e1, e2, e3);
     }
@@ -85,9 +85,9 @@ public class OrientationVectors3Test {
     @Test
     public void createFromOrthogonalUnitBasisVectors_D() {
         final double f = 1.0 / Math.sqrt(2.0);
-        final ImmutableVector e1 = ImmutableVector.create(1, 0, 0);
-        final ImmutableVector e2 = ImmutableVector.create(0, f, f);
-        final ImmutableVector e3 = ImmutableVector.create(0, -f, f);
+        final ImmutableVectorN e1 = ImmutableVectorN.create(1, 0, 0);
+        final ImmutableVectorN e2 = ImmutableVectorN.create(0, f, f);
+        final ImmutableVectorN e3 = ImmutableVectorN.create(0, -f, f);
 
         createFromOrthogonalUnitBasisVectors(e1, e2, e3);
     }

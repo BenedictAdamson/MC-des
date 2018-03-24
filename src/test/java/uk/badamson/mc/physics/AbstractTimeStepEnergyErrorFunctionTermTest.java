@@ -1,7 +1,7 @@
 package uk.badamson.mc.physics;
 
 import uk.badamson.mc.ObjectTest;
-import uk.badamson.mc.math.ImmutableVector;
+import uk.badamson.mc.math.ImmutableVectorN;
 
 /**
  * <p>
@@ -22,8 +22,8 @@ public class AbstractTimeStepEnergyErrorFunctionTermTest {
         TimeStepEnergyErrorFunctionTermTest.assertInvariants(term1, term2);// inherited
     }
 
-    public static double evaluate(AbstractTimeStepEnergyErrorFunctionTerm term, double[] dedx, ImmutableVector state0,
-            ImmutableVector state, double dt) {
+    public static double evaluate(AbstractTimeStepEnergyErrorFunctionTerm term, double[] dedx, ImmutableVectorN state0,
+            ImmutableVectorN state, double dt) {
         final double e = TimeStepEnergyErrorFunctionTermTest.evaluate(term, dedx, state0, state, dt);
 
         assertInvariants(term);

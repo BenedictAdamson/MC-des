@@ -55,7 +55,7 @@ public class ImmutableMatrixN {
                     "Inconsistent rows " + rows + " columns " + columns + " elements.length " + elements.length);
         }
         if (columns == 1) {
-            return ImmutableVector.create(elements);
+            return ImmutableVectorN.create(elements);
         } else {
             return new ImmutableMatrixN(rows, columns, Arrays.copyOf(elements, elements.length));
         }
@@ -161,7 +161,7 @@ public class ImmutableMatrixN {
      * </p>
      * <ul>
      * <li>Always returns a (non null) vector.</li>
-     * <li>The {@linkplain ImmutableVector#getRows() number of rows} of the product
+     * <li>The {@linkplain ImmutableVectorN#getRows() number of rows} of the product
      * is equal to the number of rows of this matrix.</li>
      * </ul>
      * 
@@ -172,11 +172,11 @@ public class ImmutableMatrixN {
      * @throws NullPointerException
      *             If {@code x} is null.
      * @throws IllegalArgumentException
-     *             If the {@linkplain ImmutableVector#getRows() number of rows} of
+     *             If the {@linkplain ImmutableVectorN#getRows() number of rows} of
      *             {@code x} is not equal to the {@linkplain #getColumns() number of
      *             columns} of this.
      */
-    public final ImmutableVector multiply(ImmutableVector x) {
+    public final ImmutableVectorN multiply(ImmutableVectorN x) {
         Objects.requireNonNull(x, "x");
         final int columns = getColumns();
         if (columns != x.getRows()) {
@@ -192,7 +192,7 @@ public class ImmutableMatrixN {
             }
             ax[i] = dot;
         }
-        return new ImmutableVector(ax);
+        return new ImmutableVectorN(ax);
     }
 
 }

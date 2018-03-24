@@ -19,8 +19,8 @@ public class FunctionNWithGradientValueTest {
     public static void assertInvariants(FunctionNWithGradientValue f) {
         ObjectTest.assertInvariants(f);
 
-        final ImmutableVector x = f.getX();
-        final ImmutableVector dfdx = f.getDfDx();
+        final ImmutableVectorN x = f.getX();
+        final ImmutableVectorN dfdx = f.getDfDx();
 
         assertNotNull("Not null, x", x);// guard
         assertNotNull("Not null, dfdx", dfdx);// guard
@@ -38,7 +38,7 @@ public class FunctionNWithGradientValueTest {
         assertFalse("Equality requires equivalent attributes, dfdx", equals && !f1.getDfDx().equals(f2.getDfDx()));
     }
 
-    private static FunctionNWithGradientValue constructor(ImmutableVector x, double f, ImmutableVector dfdx) {
+    private static FunctionNWithGradientValue constructor(ImmutableVectorN x, double f, ImmutableVectorN dfdx) {
         final FunctionNWithGradientValue v = new FunctionNWithGradientValue(x, f, dfdx);
 
         assertInvariants(v);
@@ -49,7 +49,7 @@ public class FunctionNWithGradientValueTest {
         return v;
     }
 
-    private static void constructor_equals(ImmutableVector x, double f, ImmutableVector dfdx) {
+    private static void constructor_equals(ImmutableVectorN x, double f, ImmutableVectorN dfdx) {
         final FunctionNWithGradientValue v1 = new FunctionNWithGradientValue(x, f, dfdx);
         final FunctionNWithGradientValue v2 = new FunctionNWithGradientValue(x, f, dfdx);
 
@@ -59,40 +59,40 @@ public class FunctionNWithGradientValueTest {
 
     @Test
     public void constructor_1A() {
-        constructor(ImmutableVector.create(0.0), 0.0, ImmutableVector.create(0.0));
+        constructor(ImmutableVectorN.create(0.0), 0.0, ImmutableVectorN.create(0.0));
     }
 
     @Test
     public void constructor_1B() {
-        constructor(ImmutableVector.create(1.0), 2.0, ImmutableVector.create(3.0));
+        constructor(ImmutableVectorN.create(1.0), 2.0, ImmutableVectorN.create(3.0));
     }
 
     @Test
     public void constructor_2() {
-        constructor(ImmutableVector.create(0.0, 1.0), 2.0, ImmutableVector.create(3.0, 4.0));
+        constructor(ImmutableVectorN.create(0.0, 1.0), 2.0, ImmutableVectorN.create(3.0, 4.0));
     }
 
     @Test
     public void constructor_equals1A() {
-        constructor_equals(ImmutableVector.create(0.0), 0.0, ImmutableVector.create(0.0));
+        constructor_equals(ImmutableVectorN.create(0.0), 0.0, ImmutableVectorN.create(0.0));
     }
 
     @Test
     public void constructor_equals1B() {
-        constructor_equals(ImmutableVector.create(1.0), 2.0, ImmutableVector.create(3.0));
+        constructor_equals(ImmutableVectorN.create(1.0), 2.0, ImmutableVectorN.create(3.0));
     }
 
     @Test
     public void constructor_equals2() {
-        constructor_equals(ImmutableVector.create(0.0, 1.0), 2.0, ImmutableVector.create(3.0, 4.0));
+        constructor_equals(ImmutableVectorN.create(0.0, 1.0), 2.0, ImmutableVectorN.create(3.0, 4.0));
     }
 
     @Test
     public void constructor_notEqualsDfDx() {
-        final ImmutableVector x = ImmutableVector.create(1.0);
+        final ImmutableVectorN x = ImmutableVectorN.create(1.0);
         final double f = 2.0;
-        final FunctionNWithGradientValue v1 = new FunctionNWithGradientValue(x, f, ImmutableVector.create(3.0));
-        final FunctionNWithGradientValue v2 = new FunctionNWithGradientValue(x, f, ImmutableVector.create(4.0));
+        final FunctionNWithGradientValue v1 = new FunctionNWithGradientValue(x, f, ImmutableVectorN.create(3.0));
+        final FunctionNWithGradientValue v2 = new FunctionNWithGradientValue(x, f, ImmutableVectorN.create(4.0));
 
         assertInvariants(v1, v2);
         assertNotEquals(v1, v2);
@@ -100,8 +100,8 @@ public class FunctionNWithGradientValueTest {
 
     @Test
     public void constructor_notEqualsF() {
-        final ImmutableVector x = ImmutableVector.create(1.0);
-        final ImmutableVector dfdx = ImmutableVector.create(4.0);
+        final ImmutableVectorN x = ImmutableVectorN.create(1.0);
+        final ImmutableVectorN dfdx = ImmutableVectorN.create(4.0);
         final FunctionNWithGradientValue v1 = new FunctionNWithGradientValue(x, 2.0, dfdx);
         final FunctionNWithGradientValue v2 = new FunctionNWithGradientValue(x, 3.0, dfdx);
 
@@ -112,9 +112,9 @@ public class FunctionNWithGradientValueTest {
     @Test
     public void constructor_notEqualsX() {
         final double f = 3.0;
-        final ImmutableVector dfdx = ImmutableVector.create(4.0);
-        final FunctionNWithGradientValue v1 = new FunctionNWithGradientValue(ImmutableVector.create(1.0), f, dfdx);
-        final FunctionNWithGradientValue v2 = new FunctionNWithGradientValue(ImmutableVector.create(2.0), f, dfdx);
+        final ImmutableVectorN dfdx = ImmutableVectorN.create(4.0);
+        final FunctionNWithGradientValue v1 = new FunctionNWithGradientValue(ImmutableVectorN.create(1.0), f, dfdx);
+        final FunctionNWithGradientValue v2 = new FunctionNWithGradientValue(ImmutableVectorN.create(2.0), f, dfdx);
 
         assertInvariants(v1, v2);
         assertNotEquals(v1, v2);

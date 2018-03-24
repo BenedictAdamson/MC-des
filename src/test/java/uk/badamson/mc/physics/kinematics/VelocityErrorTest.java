@@ -5,7 +5,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import uk.badamson.mc.math.ImmutableVector;
+import uk.badamson.mc.math.ImmutableVectorN;
 import uk.badamson.mc.physics.AbstractTimeStepEnergyErrorFunctionTermTest;
 
 /**
@@ -56,7 +56,7 @@ public class VelocityErrorTest {
         return term;
     }
 
-    private static double evaluate(VelocityError term, double[] dedx, ImmutableVector x0, ImmutableVector x,
+    private static double evaluate(VelocityError term, double[] dedx, ImmutableVectorN x0, ImmutableVectorN x,
             double dt) {
         final double e = AbstractTimeStepEnergyErrorFunctionTermTest.evaluate(term, dedx, x0, x, dt);
 
@@ -70,8 +70,8 @@ public class VelocityErrorTest {
         final int velocityTerm = 0;
         final int accelerationTerm = 1;
         final double[] dedx = { dedv0, deda0 };
-        final ImmutableVector state0 = ImmutableVector.create(v0, a0);
-        final ImmutableVector state = ImmutableVector.create(v, a);
+        final ImmutableVectorN state0 = ImmutableVectorN.create(v0, a0);
+        final ImmutableVectorN state = ImmutableVectorN.create(v, a);
         final VelocityError term = new VelocityError(mass, new int[] { velocityTerm }, new int[] { accelerationTerm });
 
         final double e = evaluate(term, dedx, state0, state, dt);

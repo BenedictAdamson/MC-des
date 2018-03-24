@@ -3,7 +3,7 @@ package uk.badamson.mc.physics;
 import java.util.Arrays;
 
 import net.jcip.annotations.Immutable;
-import uk.badamson.mc.math.ImmutableVector;
+import uk.badamson.mc.math.ImmutableVectorN;
 
 /**
  * <p>
@@ -125,11 +125,11 @@ public final class MassConservationError extends AbstractTimeStepEnergyErrorFunc
      *             {@inheritDoc}
      * @throws IllegalArgumentException
      *             If the length of {@code dedx} does not equal the
-     *             {@linkplain ImmutableVector#getDimension() dimension} of
+     *             {@linkplain ImmutableVectorN#getDimension() dimension} of
      *             {@code state0}.
      */
     @Override
-    public final double evaluate(double[] dedx, ImmutableVector state0, ImmutableVector state, double dt) {
+    public final double evaluate(double[] dedx, ImmutableVectorN state0, ImmutableVectorN state, double dt) {
         super.evaluate(dedx, state0, state, dt);// check preconditions
 
         final int nm = getNumberOfMassTransfers();

@@ -1,7 +1,7 @@
 package uk.badamson.mc.physics;
 
 import net.jcip.annotations.Immutable;
-import uk.badamson.mc.math.ImmutableVector;
+import uk.badamson.mc.math.ImmutableVectorN;
 
 /**
  * <p>
@@ -46,18 +46,18 @@ public interface TimeStepEnergyErrorFunctionTerm {
      *             <li>If {@code dt} is not positive and
      *             {@linkplain Double#isInfinite() finite}.</li>
      *             <li>If {@code x0} and {@code state} have different
-     *             {@linkplain ImmutableVector dimensions}.</li>
+     *             {@linkplain ImmutableVectorN dimensions}.</li>
      *             <li>If this is not {@linkplain #isValidForDimension(int) valid}
      *             for the dimension of {@code x0}.</li>
      *             </ul>
      * @throws RuntimeException
      *             If the length of {@code dedx} does not equal the
-     *             {@linkplain ImmutableVector#getDimension() dimension} of
+     *             {@linkplain ImmutableVectorN#getDimension() dimension} of
      *             {@code x0}. For a typical implementation this would be an
      *             {@link IndexOutOfBoundsException}, but it could be an
      *             {@link IllegalArgumentException}.
      */
-    public double evaluate(double[] dedx, ImmutableVector state0, ImmutableVector state, double dt);
+    public double evaluate(double[] dedx, ImmutableVectorN state0, ImmutableVectorN state, double dt);
 
     /**
      * <p>

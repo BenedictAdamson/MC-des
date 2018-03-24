@@ -3,7 +3,7 @@ package uk.badamson.mc.physics.dynamics;
 import java.util.Arrays;
 
 import net.jcip.annotations.Immutable;
-import uk.badamson.mc.math.ImmutableVector;
+import uk.badamson.mc.math.ImmutableVectorN;
 import uk.badamson.mc.physics.AbstractTimeStepEnergyErrorFunctionTerm;
 import uk.badamson.mc.physics.TimeStepEnergyErrorFunction;
 import uk.badamson.mc.physics.TimeStepEnergyErrorFunctionTerm;
@@ -193,11 +193,11 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
      *             {@inheritDoc}
      * @throws IllegalArgumentException
      *             If the length of {@code dedx} does not equal the
-     *             {@linkplain ImmutableVector#getDimension() dimension} of
+     *             {@linkplain ImmutableVectorN#getDimension() dimension} of
      *             {@code state0}.
      */
     @Override
-    public final double evaluate(double[] dedx, ImmutableVector state0, ImmutableVector state, double dt) {
+    public final double evaluate(double[] dedx, ImmutableVectorN state0, ImmutableVectorN state, double dt) {
         super.evaluate(dedx, state0, state, dt);// check preconditions
 
         final int ns = getSpaceDimension();
@@ -207,12 +207,12 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
 
         final double m = state.get(massTerm);
 
-        final ImmutableVector a = extract(state, accelerationTerm);
-        final ImmutableVector v = extract(state, velocityTerm);
+        final ImmutableVectorN a = extract(state, accelerationTerm);
+        final ImmutableVectorN v = extract(state, velocityTerm);
 
         double massRateTotal = 0.0;
         final double[] massRate = new double[nm];
-        final ImmutableVector[] vrel = new ImmutableVector[nm];
+        final ImmutableVectorN[] vrel = new ImmutableVectorN[nm];
         for (int j = 0; j < nm; ++j) {
             final double sign = massTransferInto[j] ? 1.0 : -1.0;
             final double massRateJ = sign * state.get(advectionMassRateTerm[j]);
@@ -221,20 +221,20 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
             vrel[j] = extract(state, advectionVelocityTerm, j * ns, ns).minus(v);
         }
 
-        final ImmutableVector[] f = new ImmutableVector[nf];
+        final ImmutableVectorN[] f = new ImmutableVectorN[nf];
         final double[] fs = new double[nf];
         for (int k = 0; k < nf; ++k) {
             f[k] = extract(state, forceTerm, k * ns, ns);
             fs[k] = forceOn[k] ? 1.0 : -1.0;
         }
 
-        final ImmutableVector advectionTotal = 0 < nm ? ImmutableVector.weightedSum(massRate, vrel)
-                : ImmutableVector.create0(ns);
-        final ImmutableVector fTotal = 0 < nf ? ImmutableVector.weightedSum(fs, f) : ImmutableVector.create0(ns);
+        final ImmutableVectorN advectionTotal = 0 < nm ? ImmutableVectorN.weightedSum(massRate, vrel)
+                : ImmutableVectorN.create0(ns);
+        final ImmutableVectorN fTotal = 0 < nf ? ImmutableVectorN.weightedSum(fs, f) : ImmutableVectorN.create0(ns);
 
-        final ImmutableVector fe = a.scale(m).minus(advectionTotal).minus(fTotal);
-        final ImmutableVector ve = fe.scale(getTimeReference() / mRef2);
-        final ImmutableVector xe = ve.scale(getTimeReference());
+        final ImmutableVectorN fe = a.scale(m).minus(advectionTotal).minus(fTotal);
+        final ImmutableVectorN ve = fe.scale(getTimeReference() / mRef2);
+        final ImmutableVectorN xe = ve.scale(getTimeReference());
         final double e = 0.5 * massReference * ve.magnitude2();
 
         dedx[massTerm] += xe.dot(a);
@@ -246,7 +246,7 @@ public final class Newton2Error extends AbstractTimeStepEnergyErrorFunctionTerm 
 
         for (int j = 0; j < nm; ++j) {
             final double dedmrate = xe.dot(vrel[j]);
-            final ImmutableVector dedu = xe.scale(-massRate[j]);
+            final ImmutableVectorN dedu = xe.scale(-massRate[j]);
             if (massTransferInto[j]) {
                 dedx[advectionMassRateTerm[j]] -= dedmrate;
             } else {

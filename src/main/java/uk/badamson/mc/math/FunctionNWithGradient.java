@@ -42,9 +42,9 @@ public interface FunctionNWithGradient {
      * @throws NullPointerException
      *             If {@code x} is null.
      * @throws IllegalArgumentException
-     *             If the {@linkplain ImmutableVector#getDimension() dimension} of
+     *             If the {@linkplain ImmutableVectorN#getDimension() dimension} of
      *             {@code x} does not equal the {@linkplain #getDimension()
      *             dimension} of this functor.
      */
-    public FunctionNWithGradientValue value(ImmutableVector x);
+    public FunctionNWithGradientValue value(ImmutableVectorN x);
 }

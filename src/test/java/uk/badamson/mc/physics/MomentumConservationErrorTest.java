@@ -5,7 +5,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import uk.badamson.mc.math.ImmutableVector;
+import uk.badamson.mc.math.ImmutableVectorN;
 
 /**
  * <p>
@@ -79,8 +79,8 @@ public class MomentumConservationErrorTest {
         return term;
     }
 
-    private static double evaluate(MomentumConservationError term, double[] dedx, ImmutableVector state0,
-            ImmutableVector state, double dt) {
+    private static double evaluate(MomentumConservationError term, double[] dedx, ImmutableVectorN state0,
+            ImmutableVectorN state, double dt) {
         final double e = AbstractTimeStepEnergyErrorFunctionTermTest.evaluate(term, dedx, state0, state, dt);// inherited
 
         assertInvariants(term);
@@ -100,8 +100,8 @@ public class MomentumConservationErrorTest {
         final int[] forceTerm = {};
 
         final double[] dedx = { 0.0, 0.0, dedmrate0, dedu0 };
-        final ImmutableVector state0 = ImmutableVector.create(m0, v0, mrate0, u0);
-        final ImmutableVector state = ImmutableVector.create(m, v, mrate, u);
+        final ImmutableVectorN state0 = ImmutableVectorN.create(m0, v0, mrate0, u0);
+        final ImmutableVectorN state = ImmutableVectorN.create(m, v, mrate, u);
 
         final MomentumConservationError term = new MomentumConservationError(massTerm, velocityTerm,
                 new boolean[] { massTransferInto }, advectionMassRateTerm, advectionVelocityTerm, forceOn, forceTerm);
@@ -126,8 +126,8 @@ public class MomentumConservationErrorTest {
         final int[] forceTerm = {};
 
         final double[] dedx = { dedm0, dedv0 };
-        final ImmutableVector state0 = ImmutableVector.create(m0, v0);
-        final ImmutableVector state = ImmutableVector.create(m, v);
+        final ImmutableVectorN state0 = ImmutableVectorN.create(m0, v0);
+        final ImmutableVectorN state = ImmutableVectorN.create(m, v);
 
         final MomentumConservationError term = new MomentumConservationError(massTerm, velocityTerm, massTransferInto,
                 advectionMassRateTerm, advectionVelocityTerm, forceOn, forceTerm);
@@ -149,8 +149,8 @@ public class MomentumConservationErrorTest {
         final int[] forceTerm = { 2 };
 
         final double[] dedx = { 0.0, 0.0, dedf0 };
-        final ImmutableVector state0 = ImmutableVector.create(m0, v0, f0);
-        final ImmutableVector state = ImmutableVector.create(m, v, f);
+        final ImmutableVectorN state0 = ImmutableVectorN.create(m0, v0, f0);
+        final ImmutableVectorN state = ImmutableVectorN.create(m, v, f);
 
         final MomentumConservationError term = new MomentumConservationError(massTerm, velocityTerm, massTransferInto,
                 advectionMassRateTerm, advectionVelocityTerm, new boolean[] { forceOn }, forceTerm);

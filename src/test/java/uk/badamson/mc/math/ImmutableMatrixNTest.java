@@ -88,13 +88,13 @@ public class ImmutableMatrixNTest {
         return create(elements.length, 1, elements);
     }
 
-    private static final ImmutableVector multiply(ImmutableMatrixN a, ImmutableVector x) {
-        final ImmutableVector ax = a.multiply(x);
+    private static final ImmutableVectorN multiply(ImmutableMatrixN a, ImmutableVectorN x) {
+        final ImmutableVectorN ax = a.multiply(x);
 
         assertNotNull("Not null, result", ax);// guard
-        ImmutableVectorTest.assertInvariants(ax);
+        ImmutableVectorNTest.assertInvariants(ax);
         assertInvariants(a, ax);
-        ImmutableVectorTest.assertInvariants(x, ax);
+        ImmutableVectorNTest.assertInvariants(x, ax);
 
         assertEquals("The number of rows of the product is equal to the number of rows of this matrix.", a.getRows(),
                 ax.getRows());
@@ -104,27 +104,27 @@ public class ImmutableMatrixNTest {
 
     private static void multiply_1x1(double a11, double x11) {
         final ImmutableMatrixN a = ImmutableMatrixN.create(1, 1, new double[] { a11 });
-        final ImmutableVector x = ImmutableVector.create(x11);
+        final ImmutableVectorN x = ImmutableVectorN.create(x11);
 
-        final ImmutableVector ax = multiply(a, x);
+        final ImmutableVectorN ax = multiply(a, x);
 
         assertEquals("product element", a11 * x11, ax.get(0), Double.MIN_NORMAL);
     }
 
     private static void multiply_1x2(double a11, double a12, double x11, double x21) {
         final ImmutableMatrixN a = ImmutableMatrixN.create(1, 2, new double[] { a11, a12 });
-        final ImmutableVector x = ImmutableVector.create(x11, x21);
+        final ImmutableVectorN x = ImmutableVectorN.create(x11, x21);
 
-        final ImmutableVector ax = multiply(a, x);
+        final ImmutableVectorN ax = multiply(a, x);
 
         assertEquals("product element", a11 * x11 + a12 * x21, ax.get(0), Double.MIN_NORMAL);
     }
 
     private static void multiply_2x1(double a11, double a21, double x11) {
         final ImmutableMatrixN a = ImmutableMatrixN.create(2, 1, new double[] { a11, a21 });
-        final ImmutableVector x = ImmutableVector.create(x11);
+        final ImmutableVectorN x = ImmutableVectorN.create(x11);
 
-        final ImmutableVector ax = multiply(a, x);
+        final ImmutableVectorN ax = multiply(a, x);
 
         assertEquals("ax[0]", a11 * x11, ax.get(0), Double.MIN_NORMAL);
         assertEquals("ax[1]", a21 * x11, ax.get(1), Double.MIN_NORMAL);

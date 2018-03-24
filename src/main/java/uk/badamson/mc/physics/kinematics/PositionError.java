@@ -2,7 +2,7 @@ package uk.badamson.mc.physics.kinematics;
 
 import java.util.Objects;
 
-import uk.badamson.mc.math.ImmutableVector;
+import uk.badamson.mc.math.ImmutableVectorN;
 import uk.badamson.mc.physics.AbstractTimeStepEnergyErrorFunctionTerm;
 import uk.badamson.mc.physics.TimeStepEnergyErrorFunction;
 import uk.badamson.mc.physics.TimeStepEnergyErrorFunctionTerm;;
@@ -105,11 +105,11 @@ public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm
      *             {@inheritDoc}
      * @throws IllegalArgumentException
      *             If the length of {@code dedx} does not equal the
-     *             {@linkplain ImmutableVector#getDimension() dimension} of
+     *             {@linkplain ImmutableVectorN#getDimension() dimension} of
      *             {@code state0}.
      */
     @Override
-    public final double evaluate(double[] dedState, ImmutableVector state0, ImmutableVector state, double dt) {
+    public final double evaluate(double[] dedState, ImmutableVectorN state0, ImmutableVectorN state, double dt) {
         Objects.requireNonNull(dedState, "dedState");
         Objects.requireNonNull(state0, "state0");
         Objects.requireNonNull(state, "state");
@@ -128,18 +128,18 @@ public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm
 
         final double rate = 1.0 / dt;
 
-        final ImmutableVector x0 = extract(state0, positionTerm);
-        final ImmutableVector v0 = extract(state0, velocityTerm);
-        final ImmutableVector x = extract(state, positionTerm);
-        final ImmutableVector v = extract(state, velocityTerm);
+        final ImmutableVectorN x0 = extract(state0, positionTerm);
+        final ImmutableVectorN v0 = extract(state0, velocityTerm);
+        final ImmutableVectorN x = extract(state, positionTerm);
+        final ImmutableVectorN v = extract(state, velocityTerm);
 
-        final ImmutableVector dx = x.minus(x0);
-        final ImmutableVector vMean = v.mean(v0);
-        final ImmutableVector ve = dx.scale(rate).minus(vMean);
+        final ImmutableVectorN dx = x.minus(x0);
+        final ImmutableVectorN vMean = v.mean(v0);
+        final ImmutableVectorN ve = dx.scale(rate).minus(vMean);
 
         final double e = 0.5 * mass * ve.magnitude2();
-        final ImmutableVector dedx = ve.scale(mass * rate);
-        final ImmutableVector dedv = ve.scale(-0.5 * mass);
+        final ImmutableVectorN dedx = ve.scale(mass * rate);
+        final ImmutableVectorN dedv = ve.scale(-0.5 * mass);
 
         for (int i = 0, n = positionTerm.length; i < n; ++i) {
             dedState[positionTerm[i]] += dedx.get(i);

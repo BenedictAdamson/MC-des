@@ -9,7 +9,7 @@ import org.junit.Test;
 
 import uk.badamson.mc.math.FunctionNWithGradientTest;
 import uk.badamson.mc.math.FunctionNWithGradientValue;
-import uk.badamson.mc.math.ImmutableVector;
+import uk.badamson.mc.math.ImmutableVectorN;
 import uk.badamson.mc.math.MinN;
 import uk.badamson.mc.physics.AbstractTimeStepEnergyErrorFunctionTerm;
 import uk.badamson.mc.physics.TimeStepEnergyErrorFunction;
@@ -32,7 +32,7 @@ public class IntegrationTest {
         }
 
         @Override
-        public final double evaluate(double[] dedx, ImmutableVector state0, ImmutableVector state, double dt) {
+        public final double evaluate(double[] dedx, ImmutableVectorN state0, ImmutableVectorN state, double dt) {
             final double v0 = state0.get(1);
             final double v = state.get(1);
             final double vError = v - v0;
@@ -52,19 +52,19 @@ public class IntegrationTest {
     private static void assertConstantVelocityErrorFunctionConsitentWithGradientAlongLine(double x0, double v0,
             double dt, double dx, double dv, double da, double mass, double tolerance, double w1, double w2, int n) {
         final TimeStepEnergyErrorFunction errorFunction = create1DconstantVelocityErrorFunction(x0, v0, dt, mass);
-        final ImmutableVector s0 = create1DStateVector(x0, v0, 0.0);
-        final ImmutableVector ds = create1DStateVector(dx, dv, da);
+        final ImmutableVectorN s0 = create1DStateVector(x0, v0, 0.0);
+        final ImmutableVectorN ds = create1DStateVector(dx, dv, da);
         FunctionNWithGradientTest.assertValueConsistentWithGradientAlongLine(errorFunction, w1, w2, n, s0, ds);
     }
 
     private static void constantVelocitySolution(double x0, double v0, double dt, double mass, double tolerance) {
         final TimeStepEnergyErrorFunction errorFunction = create1DconstantVelocityErrorFunction(x0, v0, dt, mass);
-        final ImmutableVector state0 = create1DStateVector(x0, v0, 0.0);
+        final ImmutableVectorN state0 = create1DStateVector(x0, v0, 0.0);
 
         final FunctionNWithGradientValue solution = MinN.findFletcherReevesPolakRibere(errorFunction, state0,
                 tolerance);
 
-        final ImmutableVector state = solution.getX();
+        final ImmutableVectorN state = solution.getX();
         final double x = state.get(0);
         final double v = state.get(1);
         final double a = state.get(2);
@@ -88,8 +88,8 @@ public class IntegrationTest {
         return errorFunction;
     }
 
-    private static ImmutableVector create1DStateVector(double x, double v, double a) {
-        return ImmutableVector.create(x, v, a);
+    private static ImmutableVectorN create1DStateVector(double x, double v, double a) {
+        return ImmutableVectorN.create(x, v, a);
     }
 
     @Test

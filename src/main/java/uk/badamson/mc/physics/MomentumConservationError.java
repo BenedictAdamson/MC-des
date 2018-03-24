@@ -3,7 +3,7 @@ package uk.badamson.mc.physics;
 import java.util.Arrays;
 
 import net.jcip.annotations.Immutable;
-import uk.badamson.mc.math.ImmutableVector;
+import uk.badamson.mc.math.ImmutableVectorN;
 import uk.badamson.mc.physics.dynamics.Newton2Error;
 
 /**
@@ -181,49 +181,49 @@ public final class MomentumConservationError extends AbstractTimeStepEnergyError
      *             {@inheritDoc}
      * @throws IllegalArgumentException
      *             If the length of {@code dedx} does not equal the
-     *             {@linkplain ImmutableVector#getDimension() dimension} of
+     *             {@linkplain ImmutableVectorN#getDimension() dimension} of
      *             {@code state0}.
      */
     @Override
-    public final double evaluate(double[] dedx, ImmutableVector state0, ImmutableVector state, double dt) {
+    public final double evaluate(double[] dedx, ImmutableVectorN state0, ImmutableVectorN state, double dt) {
         super.evaluate(dedx, state0, state, dt);// check preconditions
 
         final int ns = getSpaceDimension();
         final int nm = getNumberOfMassTransfers();
         final int nf = getNumberOfForces();
-        final ImmutableVector zero = ImmutableVector.create0(ns);
+        final ImmutableVectorN zero = ImmutableVectorN.create0(ns);
 
         final double m0 = state0.get(massTerm);
-        final ImmutableVector v0 = extract(state0, velocityTerm);
+        final ImmutableVectorN v0 = extract(state0, velocityTerm);
 
         final double m = state.get(massTerm);
-        final ImmutableVector v = extract(state, velocityTerm);
+        final ImmutableVectorN v = extract(state, velocityTerm);
 
         double massRateTotal = 0.0;
         final double[] massRate = new double[nm];
-        final ImmutableVector[] vrel = new ImmutableVector[nm];
-        final ImmutableVector[] pRateAdvection = new ImmutableVector[nm];
+        final ImmutableVectorN[] vrel = new ImmutableVectorN[nm];
+        final ImmutableVectorN[] pRateAdvection = new ImmutableVectorN[nm];
         for (int j = 0; j < nm; ++j) {
             final double sign = massTransferInto[j] ? 1.0 : -1.0;
             final double massRate0J = sign * state0.get(advectionMassRateTerm[j]);
             final double massRateJ = sign * state.get(advectionMassRateTerm[j]);
-            final ImmutableVector vrel0j = extract(state0, advectionVelocityTerm, j * ns, ns).minus(v0);
-            final ImmutableVector vrelj = extract(state, advectionVelocityTerm, j * ns, ns).minus(v);
+            final ImmutableVectorN vrel0j = extract(state0, advectionVelocityTerm, j * ns, ns).minus(v0);
+            final ImmutableVectorN vrelj = extract(state, advectionVelocityTerm, j * ns, ns).minus(v);
             massRate[j] = massRateJ;
             vrel[j] = vrelj;
             pRateAdvection[j] = vrel0j.scale(massRate0J).mean(vrelj.scale(massRateJ));
             massRateTotal += massRateJ;
         }
 
-        final ImmutableVector pRateAdvectionTotal = 0 < nm ? ImmutableVector.sum(pRateAdvection) : zero;
+        final ImmutableVectorN pRateAdvectionTotal = 0 < nm ? ImmutableVectorN.sum(pRateAdvection) : zero;
 
-        final ImmutableVector[] fMean = new ImmutableVector[nf];
+        final ImmutableVectorN[] fMean = new ImmutableVectorN[nf];
         final double[] fs = new double[nf];
         for (int k = 0; k < nf; ++k) {
             double sign = 1.0;
-            ImmutableVector f0k = extract(state0, forceTerm, k * ns, ns);
-            ImmutableVector fk = extract(state, forceTerm, k * ns, ns);
-            ImmutableVector mean = f0k.mean(fk);
+            ImmutableVectorN f0k = extract(state0, forceTerm, k * ns, ns);
+            ImmutableVectorN fk = extract(state, forceTerm, k * ns, ns);
+            ImmutableVectorN mean = f0k.mean(fk);
             if (!forceOn[k]) {
                 sign = -1.0;
                 mean = mean.minus();
@@ -232,18 +232,18 @@ public final class MomentumConservationError extends AbstractTimeStepEnergyError
             fMean[k] = mean;
         }
 
-        final ImmutableVector fTotal = 0 < nf ? ImmutableVector.sum(fMean) : zero;
+        final ImmutableVectorN fTotal = 0 < nf ? ImmutableVectorN.sum(fMean) : zero;
 
-        final ImmutableVector p0 = v0.scale(m0);
-        final ImmutableVector p = v.scale(m);
-        final ImmutableVector pRate = pRateAdvectionTotal.plus(fTotal);
+        final ImmutableVectorN p0 = v0.scale(m0);
+        final ImmutableVectorN p = v.scale(m);
+        final ImmutableVectorN pRate = pRateAdvectionTotal.plus(fTotal);
 
-        final ImmutableVector pe = (p.minus(p0)).minus(pRate.scale(dt));
-        final ImmutableVector ve = pe.scale(1.0 / m);
+        final ImmutableVectorN pe = (p.minus(p0)).minus(pRate.scale(dt));
+        final ImmutableVectorN ve = pe.scale(1.0 / m);
         final double e = 0.5 * pe.dot(ve);
 
         dedx[massTerm] += ve
-                .dot(ImmutableVector.weightedSum(new double[] { 1.0, -0.5 }, new ImmutableVector[] { v, ve }));
+                .dot(ImmutableVectorN.weightedSum(new double[] { 1.0, -0.5 }, new ImmutableVectorN[] { v, ve }));
         final double mdedv = m - 0.5 * dt * massRateTotal;
         for (int i = 0; i < ns; ++i) {
             dedx[getVelocityTerm(i)] += ve.get(i) * mdedv;

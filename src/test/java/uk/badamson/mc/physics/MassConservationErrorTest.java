@@ -5,7 +5,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import uk.badamson.mc.math.ImmutableVector;
+import uk.badamson.mc.math.ImmutableVectorN;
 
 /**
  * <p>
@@ -62,8 +62,8 @@ public class MassConservationErrorTest {
         return term;
     }
 
-    private static double evaluate(MassConservationError term, double[] dedx, ImmutableVector state0,
-            ImmutableVector state, double dt) {
+    private static double evaluate(MassConservationError term, double[] dedx, ImmutableVectorN state0,
+            ImmutableVectorN state, double dt) {
         final double e = AbstractTimeStepEnergyErrorFunctionTermTest.evaluate(term, dedx, state0, state, dt);// inherited
 
         assertInvariants(term);
@@ -80,8 +80,8 @@ public class MassConservationErrorTest {
         final MassConservationError term = new MassConservationError(massReference, specificEnergyReference, massTerm,
                 massTransferInto, advectionMassRateTerm);
 
-        final ImmutableVector state0 = ImmutableVector.create(m0);
-        final ImmutableVector state = ImmutableVector.create(m);
+        final ImmutableVectorN state0 = ImmutableVectorN.create(m0);
+        final ImmutableVectorN state = ImmutableVectorN.create(m);
         final double[] dedx = { dedm0 };
 
         final double e = evaluate(term, dedx, state0, state, dt);
@@ -98,8 +98,8 @@ public class MassConservationErrorTest {
         final MassConservationError term = new MassConservationError(massReference, specificEnergyReference, massTerm,
                 new boolean[] { massTransferInto }, advectionMassRateTerm);
 
-        final ImmutableVector state0 = ImmutableVector.create(m0, mrate0);
-        final ImmutableVector state = ImmutableVector.create(m, mrate);
+        final ImmutableVectorN state0 = ImmutableVectorN.create(m0, mrate0);
+        final ImmutableVectorN state = ImmutableVectorN.create(m, mrate);
         final double[] dedx = { 0.0, dedmrate0 };
 
         final double e = evaluate(term, dedx, state0, state, dt);

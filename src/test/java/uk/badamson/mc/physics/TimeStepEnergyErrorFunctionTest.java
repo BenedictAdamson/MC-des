@@ -16,7 +16,7 @@ import org.junit.Test;
 import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.math.FunctionNWithGradientTest;
 import uk.badamson.mc.math.FunctionNWithGradientValue;
-import uk.badamson.mc.math.ImmutableVector;
+import uk.badamson.mc.math.ImmutableVectorN;
 
 /**
  * <p>
@@ -36,7 +36,7 @@ public class TimeStepEnergyErrorFunctionTest {
         }
 
         @Override
-        public final double evaluate(double[] dedx, ImmutableVector x0, ImmutableVector x, double dt) {
+        public final double evaluate(double[] dedx, ImmutableVectorN x0, ImmutableVectorN x, double dt) {
             Objects.requireNonNull(dedx, "dsdx");
             Objects.requireNonNull(x0, "x0");
             if (dedx.length != x0.getDimension()) {
@@ -59,7 +59,7 @@ public class TimeStepEnergyErrorFunctionTest {
     private static final class ZeroTerm implements TimeStepEnergyErrorFunctionTerm {
 
         @Override
-        public double evaluate(double[] dedx, ImmutableVector x0, ImmutableVector x, double dt) {
+        public double evaluate(double[] dedx, ImmutableVectorN x0, ImmutableVectorN x, double dt) {
             Objects.requireNonNull(dedx, "dsdx");
             Objects.requireNonNull(x0, "x0");
             if (dedx.length != x0.getDimension()) {
@@ -79,11 +79,11 @@ public class TimeStepEnergyErrorFunctionTest {
     private static final double DT_A = 1.0;
 
     private static final double DT_B = 1E-3;
-    private static final ImmutableVector X_1A = ImmutableVector.create(1.0);
+    private static final ImmutableVectorN X_1A = ImmutableVectorN.create(1.0);
 
-    private static final ImmutableVector X_1B = ImmutableVector.create(2.0);
-    private static final ImmutableVector X_2A = ImmutableVector.create(1.0, 2.0);
-    private static final ImmutableVector X_2B = ImmutableVector.create(3.0, 5.0);
+    private static final ImmutableVectorN X_1B = ImmutableVectorN.create(2.0);
+    private static final ImmutableVectorN X_2A = ImmutableVectorN.create(1.0, 2.0);
+    private static final ImmutableVectorN X_2B = ImmutableVectorN.create(3.0, 5.0);
 
     private static final ZeroTerm TERM_0A = new ZeroTerm();
     private static final ZeroTerm TERM_0B = new ZeroTerm();
@@ -92,7 +92,7 @@ public class TimeStepEnergyErrorFunctionTest {
         ObjectTest.assertInvariants(f);// inherited
         FunctionNWithGradientTest.assertInvariants(f);// inherited
 
-        final ImmutableVector x0 = f.getX0();
+        final ImmutableVectorN x0 = f.getX0();
         final double dt = f.getDt();
         final Collection<TimeStepEnergyErrorFunctionTerm> terms = f.getTerms();
 
@@ -113,7 +113,7 @@ public class TimeStepEnergyErrorFunctionTest {
         ObjectTest.assertInvariants(f1, f2);// inherited
     }
 
-    private static TimeStepEnergyErrorFunction constructor(ImmutableVector x0, double dt,
+    private static TimeStepEnergyErrorFunction constructor(ImmutableVectorN x0, double dt,
             List<TimeStepEnergyErrorFunctionTerm> terms) {
         final TimeStepEnergyErrorFunction f = new TimeStepEnergyErrorFunction(x0, dt, terms);
 
@@ -125,13 +125,13 @@ public class TimeStepEnergyErrorFunctionTest {
         return f;
     }
 
-    private static FunctionNWithGradientValue value(TimeStepEnergyErrorFunction f, ImmutableVector x) {
+    private static FunctionNWithGradientValue value(TimeStepEnergyErrorFunction f, ImmutableVectorN x) {
         final FunctionNWithGradientValue fx = FunctionNWithGradientTest.value(f, x);// inherited
 
         return fx;
     }
 
-    private static void value_0(ImmutableVector x0, double dt, ImmutableVector x) {
+    private static void value_0(ImmutableVectorN x0, double dt, ImmutableVectorN x) {
         final List<TimeStepEnergyErrorFunctionTerm> terms = Collections.emptyList();
         final TimeStepEnergyErrorFunction f = new TimeStepEnergyErrorFunction(x0, dt, terms);
 
@@ -145,9 +145,9 @@ public class TimeStepEnergyErrorFunctionTest {
             double expectedDeDx) {
         final QuadraticTerm1 term = new QuadraticTerm1(xMin, eMin);
         final List<TimeStepEnergyErrorFunctionTerm> terms = Collections.singletonList(term);
-        final TimeStepEnergyErrorFunction f = new TimeStepEnergyErrorFunction(ImmutableVector.create(x0), dt, terms);
+        final TimeStepEnergyErrorFunction f = new TimeStepEnergyErrorFunction(ImmutableVectorN.create(x0), dt, terms);
 
-        final FunctionNWithGradientValue fx = value(f, ImmutableVector.create(x));// inherited
+        final FunctionNWithGradientValue fx = value(f, ImmutableVectorN.create(x));// inherited
 
         assertEquals("value.f", expectedE, fx.getF(), Double.MIN_NORMAL);
         assertEquals("value.dfDx", expectedDeDx, fx.getDfDx().get(0), Double.MIN_NORMAL);
@@ -277,9 +277,9 @@ public class TimeStepEnergyErrorFunctionTest {
 
         final QuadraticTerm1 term = new QuadraticTerm1(xMin, eMin);
         final List<TimeStepEnergyErrorFunctionTerm> terms = Arrays.asList(term, term);
-        final TimeStepEnergyErrorFunction f = new TimeStepEnergyErrorFunction(ImmutableVector.create(x0), dt, terms);
+        final TimeStepEnergyErrorFunction f = new TimeStepEnergyErrorFunction(ImmutableVectorN.create(x0), dt, terms);
 
-        final FunctionNWithGradientValue fx = value(f, ImmutableVector.create(x));// inherited
+        final FunctionNWithGradientValue fx = value(f, ImmutableVectorN.create(x));// inherited
 
         assertEquals("value.f", expectedE, fx.getF(), Double.MIN_NORMAL);
         assertEquals("value.dfDx", expectedDeDx, fx.getDfDx().get(0), Double.MIN_NORMAL);

@@ -5,7 +5,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import uk.badamson.mc.math.ImmutableVector;
+import uk.badamson.mc.math.ImmutableVectorN;
 import uk.badamson.mc.physics.AbstractTimeStepEnergyErrorFunctionTermTest;
 
 /**
@@ -99,7 +99,7 @@ public class Newton2ErrorTest {
         return term;
     }
 
-    private static double evaluate(Newton2Error term, double[] dedx, ImmutableVector state0, ImmutableVector state,
+    private static double evaluate(Newton2Error term, double[] dedx, ImmutableVectorN state0, ImmutableVectorN state,
             double dt) {
         final double e = AbstractTimeStepEnergyErrorFunctionTermTest.evaluate(term, dedx, state0, state, dt);// inherited
 
@@ -122,8 +122,8 @@ public class Newton2ErrorTest {
         final int[] forceTerm = {};
 
         final double[] dedx = { 0.0, 0.0, 0.0, dedmrate0, dedu0 };
-        final ImmutableVector state0 = ImmutableVector.create(m0, v0, a0, mrate0, u0);
-        final ImmutableVector state = ImmutableVector.create(m, v, a, mrate, u);
+        final ImmutableVectorN state0 = ImmutableVectorN.create(m0, v0, a0, mrate0, u0);
+        final ImmutableVectorN state = ImmutableVectorN.create(m, v, a, mrate, u);
 
         final Newton2Error term = new Newton2Error(massReference, timeReference, massTerm, velocityTerm,
                 accelerationTerm, new boolean[] { massTransferInto }, advectionMassRateTerm, advectionVelocityTerm,
@@ -152,8 +152,8 @@ public class Newton2ErrorTest {
         final int[] forceTerm = {};
 
         final double[] dedx = { dedm0, dedv0, deda0 };
-        final ImmutableVector state0 = ImmutableVector.create(m0, v0, a0);
-        final ImmutableVector state = ImmutableVector.create(m, v, a);
+        final ImmutableVectorN state0 = ImmutableVectorN.create(m0, v0, a0);
+        final ImmutableVectorN state = ImmutableVectorN.create(m, v, a);
 
         final Newton2Error term = new Newton2Error(massReference, timeReference, massTerm, velocityTerm,
                 accelerationTerm, massTransferInto, advectionMassRateTerm, advectionVelocityTerm, forceOn, forceTerm);
@@ -178,8 +178,8 @@ public class Newton2ErrorTest {
         final int[] forceTerm = { 3 };
 
         final double[] dedx = { 0.0, 0.0, 0.0, dedf0 };
-        final ImmutableVector state0 = ImmutableVector.create(m0, v0, a0, f0);
-        final ImmutableVector state = ImmutableVector.create(m, v, a, f);
+        final ImmutableVectorN state0 = ImmutableVectorN.create(m0, v0, a0, f0);
+        final ImmutableVectorN state = ImmutableVectorN.create(m, v, a, f);
 
         final Newton2Error term = new Newton2Error(massReference, timeReference, massTerm, velocityTerm,
                 accelerationTerm, massTransferInto, advectionMassRateTerm, advectionVelocityTerm,

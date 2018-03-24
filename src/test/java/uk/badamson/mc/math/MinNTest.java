@@ -61,10 +61,10 @@ public class MinNTest {
         }
 
         @Override
-        public FunctionNWithGradientValue value(ImmutableVector x) {
+        public FunctionNWithGradientValue value(ImmutableVectorN x) {
             final double x0 = x.get(0);
             final double x1 = x.get(1);
-            return new FunctionNWithGradientValue(x, x0 * x0 + x1 * x1, ImmutableVector.create(2.0 * x0, 2.0 * x1));
+            return new FunctionNWithGradientValue(x, x0 * x0 + x1 * x1, ImmutableVectorN.create(2.0 * x0, 2.0 * x1));
         }
     };
 
@@ -81,8 +81,8 @@ public class MinNTest {
         return lineFunction;
     }
 
-    private static Function1WithGradient createLineFunction(final FunctionNWithGradient f, ImmutableVector x0,
-            ImmutableVector dx) {
+    private static Function1WithGradient createLineFunction(final FunctionNWithGradient f, ImmutableVectorN x0,
+            ImmutableVectorN dx) {
         final Function1WithGradient lineFunction = MinN.createLineFunction(f, x0, dx);
 
         assertNotNull("Not null, result", lineFunction);
@@ -92,8 +92,8 @@ public class MinNTest {
 
     private static void createLineFunction_paraboloidWithGradient(double x00, double x01, double dx0, double dx1,
             double w, double expectedF, double expectedDfDw, double toleranceF, double toleranceDfDw) {
-        final ImmutableVector x = ImmutableVector.create(x00, x01);
-        final ImmutableVector dx = ImmutableVector.create(dx0, dx1);
+        final ImmutableVectorN x = ImmutableVectorN.create(x00, x01);
+        final ImmutableVectorN dx = ImmutableVectorN.create(dx0, dx1);
 
         final Function1WithGradient f = createLineFunction(PARABOLOID_WITH_GRADIENT, x, dx);
 
@@ -103,7 +103,7 @@ public class MinNTest {
     }
 
     private static FunctionNWithGradientValue findFletcherReevesPolakRibere(final FunctionNWithGradient f,
-            ImmutableVector x, double tolerance) throws PoorlyConditionedFunctionException {
+            ImmutableVectorN x, double tolerance) throws PoorlyConditionedFunctionException {
         final FunctionNWithGradientValue min = MinN.findFletcherReevesPolakRibere(f, x, tolerance);
 
         assertNotNull("Not null, result", min);// guard
@@ -113,12 +113,12 @@ public class MinNTest {
     }
 
     private static void findFletcherReevesPolakRibere_paraboloid(double x0, double x1, double tolerance) {
-        final ImmutableVector x = ImmutableVector.create(x0, x1);
+        final ImmutableVectorN x = ImmutableVectorN.create(x0, x1);
         final double precision = Math.sqrt(tolerance);
 
         final FunctionNWithGradientValue min = findFletcherReevesPolakRibere(PARABOLOID_WITH_GRADIENT, x, tolerance);
 
-        final ImmutableVector minX = min.getX();
+        final ImmutableVectorN minX = min.getX();
         assertEquals("x[0]", 0.0, minX.get(0), precision);
         assertEquals("x[1]", 0.0, min.getX().get(1), precision);
     }
@@ -167,8 +167,8 @@ public class MinNTest {
         return min;
     }
 
-    private static FunctionNWithGradientValue minimiseAlongLine(final FunctionNWithGradient f, final ImmutableVector x,
-            final ImmutableVector dx) {
+    private static FunctionNWithGradientValue minimiseAlongLine(final FunctionNWithGradient f, final ImmutableVectorN x,
+            final ImmutableVectorN dx) {
         final FunctionNWithGradientValue min = MinN.minimiseAlongLine(f, x, dx);
 
         assertNotNull("Not null, result", min);// guard
@@ -199,13 +199,13 @@ public class MinNTest {
 
     private static void minimiseAlongLine_paraboloidWithGradient(double x0, double x1, double dx0, double dx1,
             double expectedXMin0, double expectedXMin1) {
-        final ImmutableVector x = ImmutableVector.create(x0, x1);
-        final ImmutableVector dx = ImmutableVector.create(dx0, dx1);
+        final ImmutableVectorN x = ImmutableVectorN.create(x0, x1);
+        final ImmutableVectorN dx = ImmutableVectorN.create(dx0, dx1);
         final double precision = adjacentPrecision(dx.magnitude());
 
         final FunctionNWithGradientValue min = minimiseAlongLine(PARABOLOID_WITH_GRADIENT, x, dx);
 
-        final ImmutableVector xMin = min.getX();
+        final ImmutableVectorN xMin = min.getX();
         assertEquals("xMin[0]", expectedXMin0, xMin.get(0), precision);
         assertEquals("xMin[1]", expectedXMin1, min.getX().get(1), precision);
     }

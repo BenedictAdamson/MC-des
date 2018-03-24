@@ -10,7 +10,7 @@ import net.jcip.annotations.Immutable;
 import uk.badamson.mc.math.Function1WithGradientValue;
 import uk.badamson.mc.math.FunctionNWithGradient;
 import uk.badamson.mc.math.FunctionNWithGradientValue;
-import uk.badamson.mc.math.ImmutableVector;
+import uk.badamson.mc.math.ImmutableVectorN;
 import uk.badamson.mc.math.MinN;
 
 /**
@@ -20,7 +20,7 @@ import uk.badamson.mc.math.MinN;
  * <p>
  * The function can be {@linkplain MinN minimised} to calculate the state of the
  * physical system at that future point in time. By solving for a
- * {@linkplain ImmutableVector multi-dimensional state vector}, that
+ * {@linkplain ImmutableVectorN multi-dimensional state vector}, that
  * simultaneously solves for all the physical parameters of the system. By using
  * minimisation to calculate the state, it is straightforward to include
  * non-linear coupling of parameters of the physical system.
@@ -30,7 +30,7 @@ import uk.badamson.mc.math.MinN;
  * {@linkplain FunctionNWithGradientValue#getDfDx() rate of change} of the error
  * with respect to changes in the state vector. That enables the minimisation to
  * be performed using a
- * {@linkplain MinN#findFletcherReevesPolakRibere(FunctionNWithGradient, ImmutableVector, double)
+ * {@linkplain MinN#findFletcherReevesPolakRibere(FunctionNWithGradient, ImmutableVectorN, double)
  * conjugate-gradient method}. The conjugate-gradient method is likely to be
  * efficient because the number of large eigen vectors of the state vector is
  * likely to be far fewer than the number of physical parameters: if the system
@@ -45,7 +45,7 @@ import uk.badamson.mc.math.MinN;
  * scales to convert other errors to energy errors.
  * </p>
  * <p>
- * The function is {@linkplain #value(ImmutableVector) calculated} by summing
+ * The function is {@linkplain #value(ImmutableVectorN) calculated} by summing
  * the contributions of a {@linkplain #getTerms() collection of}
  * {@linkplain TimeStepEnergyErrorFunctionTerm terms}. Multiple physical
  * processes and multiple objects can be modelled by including terms for each of
@@ -55,7 +55,7 @@ import uk.badamson.mc.math.MinN;
 @Immutable
 public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient {
 
-    private final ImmutableVector x0;
+    private final ImmutableVectorN x0;
     private final double dt;
     private final List<TimeStepEnergyErrorFunctionTerm> terms;
 
@@ -81,7 +81,7 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
      *            in time and the current point in time.
      * @param terms
      *            The terms that contribute to the
-     *            {@linkplain #value(ImmutableVector) value} of this function.
+     *            {@linkplain #value(ImmutableVectorN) value} of this function.
      * 
      * @throws NullPointerException
      *             <ul>
@@ -95,11 +95,11 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
      *             {@linkplain Double#isInfinite() finite}.</li>
      *             <li>If and of the {@code terms} is not
      *             {@linkplain TimeStepEnergyErrorFunctionTerm#isValidForDimension(int)
-     *             valid} for the {@linkplain ImmutableVector#getDimension()
+     *             valid} for the {@linkplain ImmutableVectorN#getDimension()
      *             dimension} of {@code x0}.</li>
      *             </ul>
      */
-    public TimeStepEnergyErrorFunction(ImmutableVector x0, double dt, List<TimeStepEnergyErrorFunctionTerm> terms) {
+    public TimeStepEnergyErrorFunction(ImmutableVectorN x0, double dt, List<TimeStepEnergyErrorFunctionTerm> terms) {
         Objects.requireNonNull(x0, "x0");
         Objects.requireNonNull(terms, "terms");
         if (dt <= 0.0 || !Double.isFinite(dt)) {
@@ -126,7 +126,7 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
      * of the physical model.
      * </p>
      * <ul>
-     * <li>The dimension equals the {@linkplain ImmutableVector#getDimension()
+     * <li>The dimension equals the {@linkplain ImmutableVectorN#getDimension()
      * dimension} of the {@linkplain #getX0() state vector of the physical system at
      * the current point in time}.</li>
      * </ul>
@@ -156,7 +156,7 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
 
     /**
      * <p>
-     * The terms that contribute to the {@linkplain #value(ImmutableVector) value}
+     * The terms that contribute to the {@linkplain #value(ImmutableVectorN) value}
      * of this function.
      * </p>
      * <ul>
@@ -186,7 +186,7 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
      *
      * @return the state vector; not null.
      */
-    public final ImmutableVector getX0() {
+    public final ImmutableVectorN getX0() {
         return x0;
     }
 
@@ -207,18 +207,18 @@ public final class TimeStepEnergyErrorFunction implements FunctionNWithGradient 
      * @throws NullPointerException
      *             If {@code state} is null.
      * @throws IllegalArgumentException
-     *             If the {@linkplain ImmutableVector#getDimension() dimension} of
+     *             If the {@linkplain ImmutableVectorN#getDimension() dimension} of
      *             {@code state} does not equal the {@linkplain #getDimension()
      *             dimension} of this functor.
      */
     @Override
-    public final FunctionNWithGradientValue value(ImmutableVector state) {
+    public final FunctionNWithGradientValue value(ImmutableVectorN state) {
         double e = 0.0;
         double[] dedx = new double[getDimension()];
         for (TimeStepEnergyErrorFunctionTerm term : terms) {
             e += term.evaluate(dedx, x0, state, dt);
         }
-        return new FunctionNWithGradientValue(state, e, ImmutableVector.create(dedx));
+        return new FunctionNWithGradientValue(state, e, ImmutableVectorN.create(dedx));
     }
 
 }

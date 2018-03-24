@@ -3,7 +3,7 @@ package uk.badamson.mc.physics.kinematics;
 import java.util.Objects;
 
 import net.jcip.annotations.Immutable;
-import uk.badamson.mc.math.ImmutableVector;
+import uk.badamson.mc.math.ImmutableVectorN;
 import uk.badamson.mc.physics.AbstractTimeStepEnergyErrorFunctionTerm;
 import uk.badamson.mc.physics.TimeStepEnergyErrorFunction;
 import uk.badamson.mc.physics.TimeStepEnergyErrorFunctionTerm;;
@@ -105,11 +105,11 @@ public final class VelocityError extends AbstractTimeStepEnergyErrorFunctionTerm
      *             {@inheritDoc}
      * @throws IllegalArgumentException
      *             If the length of {@code dedx} does not equal the
-     *             {@linkplain ImmutableVector#getDimension() dimension} of
+     *             {@linkplain ImmutableVectorN#getDimension() dimension} of
      *             {@code state0}.
      */
     @Override
-    public final double evaluate(double[] dedx, ImmutableVector state0, ImmutableVector state, double dt) {
+    public final double evaluate(double[] dedx, ImmutableVectorN state0, ImmutableVectorN state, double dt) {
         Objects.requireNonNull(dedx, "dedx");
         Objects.requireNonNull(state0, "state0");
         Objects.requireNonNull(state, "state");
@@ -126,18 +126,18 @@ public final class VelocityError extends AbstractTimeStepEnergyErrorFunctionTerm
                     "Inconsistent length of dedx " + dedx.length + " and dimension of x0 " + nState);
         }
 
-        final ImmutableVector v0 = extract(state0, velocityTerm);
-        final ImmutableVector a0 = extract(state0, accelerationTerm);
-        final ImmutableVector v = extract(state, velocityTerm);
-        final ImmutableVector a = extract(state, accelerationTerm);
+        final ImmutableVectorN v0 = extract(state0, velocityTerm);
+        final ImmutableVectorN a0 = extract(state0, accelerationTerm);
+        final ImmutableVectorN v = extract(state, velocityTerm);
+        final ImmutableVectorN a = extract(state, accelerationTerm);
 
-        final ImmutableVector dv = v.minus(v0);
-        final ImmutableVector aMean = a.mean(a0);
-        final ImmutableVector ve = dv.minus(aMean.scale(dt));
+        final ImmutableVectorN dv = v.minus(v0);
+        final ImmutableVectorN aMean = a.mean(a0);
+        final ImmutableVectorN ve = dv.minus(aMean.scale(dt));
 
         final double e = 0.5 * mass * ve.magnitude2();
-        final ImmutableVector dedv = ve.scale(mass);
-        final ImmutableVector deda = ve.scale(-0.5 * mass * dt);
+        final ImmutableVectorN dedv = ve.scale(mass);
+        final ImmutableVectorN deda = ve.scale(-0.5 * mass * dt);
 
         for (int i = 0, n = velocityTerm.length; i < n; ++i) {
             dedx[velocityTerm[i]] += dedv.get(i);
