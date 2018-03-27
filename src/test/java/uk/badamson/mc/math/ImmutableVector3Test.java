@@ -5,6 +5,10 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import org.hamcrest.Description;
+import org.hamcrest.Factory;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.Test;
 
 /**
@@ -13,6 +17,35 @@ import org.junit.Test;
  * </p>
  */
 public class ImmutableVector3Test {
+
+    private static class IsCloseTo extends TypeSafeMatcher<ImmutableVector3> {
+        private final double tolerance;
+        private final ImmutableVector3 value;
+
+        private IsCloseTo(ImmutableVector3 value, double tolerance) {
+            this.tolerance = tolerance;
+            this.value = value;
+        }
+
+        @Override
+        public void describeMismatchSafely(ImmutableVector3 item, Description mismatchDescription) {
+            mismatchDescription.appendValue(item).appendText(" differed by ").appendValue(distance(item));
+        }
+
+        @Override
+        public void describeTo(Description description) {
+            description.appendText("a vector within ").appendValue(tolerance).appendText(" of ").appendValue(value);
+        }
+
+        private final double distance(ImmutableVector3 item) {
+            return value.minus(item).magnitude();
+        }
+
+        @Override
+        public boolean matchesSafely(ImmutableVector3 item) {
+            return distance(item) <= tolerance;
+        }
+    }
 
     public static void assertInvariants(ImmutableVector3 x) {
         VectorTest.assertInvariants(x);// inherited
@@ -32,6 +65,11 @@ public class ImmutableVector3Test {
                 assertEquals("Equality requires equal components [" + i + "]", x1.get(i), x2.get(i), Double.MIN_NORMAL);
             }
         }
+    }
+
+    @Factory
+    public static Matcher<ImmutableVector3> closeTo(ImmutableVector3 operand, double tolerance) {
+        return new IsCloseTo(operand, tolerance);
     }
 
     private static ImmutableVector3 create(double x, double y, double z) {
@@ -574,5 +612,4 @@ public class ImmutableVector3Test {
 
         assertEquals("sum[0]", 13.0, sum.get(0), Double.MIN_NORMAL);
     }
-
 }
