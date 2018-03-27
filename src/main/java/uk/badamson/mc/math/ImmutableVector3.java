@@ -18,27 +18,27 @@ public final class ImmutableVector3 implements Vector {
      * The 3 dimensional zero vector.
      * </p>
      */
-    public static final ImmutableVector3 ZERO = new ImmutableVector3(0, 0, 0);
+    public static final ImmutableVector3 ZERO = new ImmutableVector3(0.0, 0.0, 0.0);
 
     /**
      * <p>
      * The unit direction vector point along the x axis.
      * </p>
      */
-    public static final ImmutableVector3 I = new ImmutableVector3(1, 0, 0);
+    public static final ImmutableVector3 I = new ImmutableVector3(1.0, 0.0, 0.0);
 
     /**
      * <p>
      * The unit direction vector point along the y
      */
-    public static final ImmutableVector3 J = new ImmutableVector3(0, 1, 0);
+    public static final ImmutableVector3 J = new ImmutableVector3(0.0, 1.0, 0.0);
 
     /**
      * <p>
      * The unit direction vector point along the z axis.
      * </p>
      */
-    public static final ImmutableVector3 K = new ImmutableVector3(0, 0, 1);
+    public static final ImmutableVector3 K = new ImmutableVector3(0.0, 0.0, 1.0);
 
     /**
      * <p>
@@ -465,7 +465,7 @@ public final class ImmutableVector3 implements Vector {
 
     @Override
     public final String toString() {
-        return "(" + x + ", " + y + ", z" + z + ")";
+        return "(" + x + ", " + y + ", " + z + ")";
     }
 
 }
