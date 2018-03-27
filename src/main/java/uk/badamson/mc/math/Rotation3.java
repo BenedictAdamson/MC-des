@@ -98,7 +98,8 @@ public final class Rotation3 {
      */
     public final ImmutableVector3 apply(ImmutableVector3 v) {
         Objects.requireNonNull(v, "v");
-        return v;// FIXME
+        final Quaternion conj = versor.conjugation(Quaternion.create(0, v.get(0), v.get(1), v.get(2)));
+        return ImmutableVector3.create(conj.getB(), conj.getC(), conj.getD());
     }
 
     /**

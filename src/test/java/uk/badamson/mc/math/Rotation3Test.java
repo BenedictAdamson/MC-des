@@ -1,5 +1,6 @@
 package uk.badamson.mc.math;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -52,6 +53,14 @@ public class Rotation3Test {
         assertTrue(
                 "Rotation of a vector that lies along the rotation axis produces a rotated vector equal to the given vector.",
                 axis.minus(rv).magnitude() < TOLERANCE * (magnitude0 + 1.0));
+    }
+
+    private static void apply_basisHalfPi(ImmutableVector3 e, ImmutableVector3 eAxis, ImmutableVector3 expected) {
+        final Rotation3 r = Rotation3.createAxisAngle(eAxis, Math.PI * 0.5);
+
+        final ImmutableVector3 actual = apply(r, e);
+
+        assertThat(actual, ImmutableVector3Test.closeTo(expected, TOLERANCE));
     }
 
     public static void assertInvariants(Rotation3 rotation) {
@@ -126,6 +135,36 @@ public class Rotation3Test {
     @Test
     public void apply_axis_halfPiK() {
         apply_axis(ImmutableVector3.K, Math.PI * 0.5);
+    }
+
+    @Test
+    public void apply_basisHalfPiIJ() {
+        apply_basisHalfPi(ImmutableVector3.I, ImmutableVector3.J, ImmutableVector3.K.minus());
+    }
+
+    @Test
+    public void apply_basisHalfPiIK() {
+        apply_basisHalfPi(ImmutableVector3.I, ImmutableVector3.K, ImmutableVector3.J);
+    }
+
+    @Test
+    public void apply_basisHalfPiJI() {
+        apply_basisHalfPi(ImmutableVector3.J, ImmutableVector3.I, ImmutableVector3.K);
+    }
+
+    @Test
+    public void apply_basisHalfPiJK() {
+        apply_basisHalfPi(ImmutableVector3.J, ImmutableVector3.K, ImmutableVector3.I.minus());
+    }
+
+    @Test
+    public void apply_basisHalfPiKI() {
+        apply_basisHalfPi(ImmutableVector3.K, ImmutableVector3.I, ImmutableVector3.J.minus());
+    }
+
+    @Test
+    public void apply_basisHalfPiKJ() {
+        apply_basisHalfPi(ImmutableVector3.K, ImmutableVector3.J, ImmutableVector3.I);
     }
 
     @Test
