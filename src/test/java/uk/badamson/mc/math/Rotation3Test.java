@@ -1,6 +1,11 @@
 package uk.badamson.mc.math;
 
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.number.IsCloseTo.closeTo;
+import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
+import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -29,8 +34,8 @@ public class Rotation3Test {
         ImmutableVector3Test.assertInvariants(v);// check for side effects
         ImmutableVector3Test.assertInvariants(rv);
         ImmutableVector3Test.assertInvariants(rv, v);
-        assertEquals("The rotated vector has the same magnitude as the given vector.", magnitude0, rv.magnitude(),
-                TOLERANCE * (magnitude0 + 1.0));
+        assertThat("The rotated vector has the same magnitude as the given vector.", rv.magnitude(),
+                closeTo(magnitude0, TOLERANCE * (magnitude0 + 1.0)));
 
         return rv;
     }
@@ -40,8 +45,8 @@ public class Rotation3Test {
 
         final ImmutableVector3 rv = apply(Rotation3.ZERO, v);
 
-        assertTrue("Rotation by the zero rotation produces a rotated vector equal to the given vector.",
-                v.minus(rv).magnitude() < TOLERANCE * (magnitude0 + 1.0));
+        assertThat("Rotation by the zero rotation produces a rotated vector equal to the given vector.", rv,
+                ImmutableVector3Test.closeTo(v, TOLERANCE * (magnitude0 + 1.0)));
     }
 
     private static void apply_axis(ImmutableVector3 axis, double angle) {
@@ -53,6 +58,9 @@ public class Rotation3Test {
         assertTrue(
                 "Rotation of a vector that lies along the rotation axis produces a rotated vector equal to the given vector.",
                 axis.minus(rv).magnitude() < TOLERANCE * (magnitude0 + 1.0));
+        assertThat(
+                "Rotation of a vector that lies along the rotation axis produces a rotated vector equal to the given vector.",
+                rv, ImmutableVector3Test.closeTo(axis, TOLERANCE * (magnitude0 + 1.0)));
     }
 
     private static void apply_basisHalfPi(ImmutableVector3 e, ImmutableVector3 eAxis, ImmutableVector3 expected) {
@@ -77,10 +85,11 @@ public class Rotation3Test {
 
         final double axisMagnitude = axis.magnitude();
 
-        assertEquals("The versor has unit norm.", 1.0, versor.norm(), TOLERANCE);
-        assertTrue("The angle is in the range -2pi to 2pi", -2.0 * Math.PI <= angle && angle <= 2.0 * Math.PI);
-        assertTrue("The axis has a magnitude of 1 or 0.",
-                axisMagnitude < TOLERANCE || Math.abs(axisMagnitude - 1.0) < TOLERANCE);
+        assertThat("The versor has unit norm.", versor.norm(), closeTo(1.0, TOLERANCE));
+        assertThat("The angle is in the range -2pi to 2pi", angle,
+                allOf(greaterThanOrEqualTo(-2.0 * Math.PI), lessThanOrEqualTo(2.0 * Math.PI)));
+        assertThat("The axis has a magnitude of 1 or 0.", axisMagnitude,
+                anyOf(closeTo(0.0, TOLERANCE), closeTo(1.0, TOLERANCE)));
     }
 
     public static void assertInvariants(Rotation3 r1, Rotation3 r2) {
@@ -94,10 +103,10 @@ public class Rotation3Test {
         final Rotation3 rotation = Rotation3.createAxisAngle(axis, angle);
 
         assertNotNull("Always creates a rotation", rotation);// guard
-        assertEquals("rotation cosine", Math.cos(angle), Math.cos(rotation.getAngle()), TOLERANCE);
-        assertEquals("rotation sine", sinAngle, Math.sin(rotation.getAngle()), TOLERANCE);
-        assertEquals("The rotation axis of the created rotation points in the same direction as the given axis",
-                axisMagnitude, axis.dot(rotation.getAxis()), axisMagnitude * TOLERANCE);
+        assertThat("rotation cosine.", Math.cos(angle), closeTo(Math.cos(rotation.getAngle()), TOLERANCE));
+        assertThat("rotation sine.", sinAngle, closeTo(Math.sin(rotation.getAngle()), TOLERANCE));
+        assertThat("The rotation axis of the created rotation points in the same direction as the given axis.",
+                axisMagnitude, closeTo(axis.dot(rotation.getAxis()), axisMagnitude * TOLERANCE));
 
         return rotation;
     }
