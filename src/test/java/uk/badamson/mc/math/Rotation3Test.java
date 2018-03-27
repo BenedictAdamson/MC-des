@@ -18,6 +18,42 @@ public class Rotation3Test {
     private static final double TOLERANCE = Math.nextAfter(1.0, Double.POSITIVE_INFINITY) - 1.0;
     private static final double SMALL_ANGLE = Math.PI * 0.003;
 
+    private static ImmutableVector3 apply(Rotation3 r, ImmutableVector3 v) {
+        final double magnitude0 = v.magnitude();
+
+        final ImmutableVector3 rv = r.apply(v);
+
+        assertNotNull("Always produces a rotated vector.", rv);// guard
+        assertInvariants(r);// check for side effects
+        ImmutableVector3Test.assertInvariants(v);// check for side effects
+        ImmutableVector3Test.assertInvariants(rv);
+        ImmutableVector3Test.assertInvariants(rv, v);
+        assertEquals("The rotated vector has the same magnitude as the given vector.", magnitude0, rv.magnitude(),
+                TOLERANCE * (magnitude0 + 1.0));
+
+        return rv;
+    }
+
+    private static void apply_0(ImmutableVector3 v) {
+        final double magnitude0 = v.magnitude();
+
+        final ImmutableVector3 rv = apply(Rotation3.ZERO, v);
+
+        assertTrue("Rotation by the zero rotation produces a rotated vector equal to the given vector.",
+                v.minus(rv).magnitude() < TOLERANCE * (magnitude0 + 1.0));
+    }
+
+    private static void apply_axis(ImmutableVector3 axis, double angle) {
+        final double magnitude0 = axis.magnitude();
+        final Rotation3 r = Rotation3.createAxisAngle(axis, angle);
+
+        final ImmutableVector3 rv = apply(r, axis);
+
+        assertTrue(
+                "Rotation of a vector that lies along the rotation axis produces a rotated vector equal to the given vector.",
+                axis.minus(rv).magnitude() < TOLERANCE * (magnitude0 + 1.0));
+    }
+
     public static void assertInvariants(Rotation3 rotation) {
         ObjectTest.assertInvariants(rotation);// inherited
 
@@ -55,6 +91,41 @@ public class Rotation3Test {
                 axisMagnitude, axis.dot(rotation.getAxis()), axisMagnitude * TOLERANCE);
 
         return rotation;
+    }
+
+    @Test
+    public void apply_02i() {
+        apply_0(ImmutableVector3.I.scale(2.0));
+    }
+
+    @Test
+    public void apply_0i() {
+        apply_0(ImmutableVector3.I);
+    }
+
+    @Test
+    public void apply_0j() {
+        apply_0(ImmutableVector3.J);
+    }
+
+    @Test
+    public void apply_0k() {
+        apply_0(ImmutableVector3.K);
+    }
+
+    @Test
+    public void apply_axis_halfPiI() {
+        apply_axis(ImmutableVector3.I, Math.PI * 0.5);
+    }
+
+    @Test
+    public void apply_axis_halfPiJ() {
+        apply_axis(ImmutableVector3.J, Math.PI * 0.5);
+    }
+
+    @Test
+    public void apply_axis_halfPiK() {
+        apply_axis(ImmutableVector3.K, Math.PI * 0.5);
     }
 
     @Test
@@ -133,5 +204,4 @@ public class Rotation3Test {
         assertInvariants(Rotation3.ZERO);
         assertEquals("rotation angle of the zero rotation", 0.0, Rotation3.ZERO.getAngle(), Double.MIN_NORMAL);
     }
-
 }

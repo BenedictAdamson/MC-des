@@ -76,6 +76,33 @@ public final class Rotation3 {
 
     /**
      * <p>
+     * Produce the direction vector that results from applying this rotation to a
+     * given direction vector.
+     * </p>
+     * <ul>
+     * <li>Always produces a (non null) rotated vector.</li>
+     * <li>The rotated vector has the same {@linkplain ImmutableVector3#magnitude()
+     * magnitude} as the given vector.</li>
+     * <li>Rotation by the {@linkplain #ZERO zero rotation} produces a rotated
+     * vector {@linkplain ImmutableVector3#equals(Object) equal} to the given
+     * vector.</li>
+     * <li>Rotation of a vector that lies along the {@linkplain #getAxis() rotation
+     * axis} produces a rotated vector equal to the given vector.</li>
+     * </ul>
+     * 
+     * @param v
+     *            The direction vector to be rotated.
+     * @return The rotated vector.
+     * @throws NullPointerException
+     *             If {@code v} is null
+     */
+    public final ImmutableVector3 apply(ImmutableVector3 v) {
+        Objects.requireNonNull(v, "v");
+        return v;// FIXME
+    }
+
+    /**
+     * <p>
      * The angle of rotation of this rotation, in radians.
      * </p>
      * <ul>

@@ -22,6 +22,26 @@ public final class ImmutableVector3 implements Vector {
 
     /**
      * <p>
+     * The unit direction vector point along the x axis.
+     * </p>
+     */
+    public static final ImmutableVector3 I = new ImmutableVector3(1, 0, 0);
+
+    /**
+     * <p>
+     * The unit direction vector point along the y
+     */
+    public static final ImmutableVector3 J = new ImmutableVector3(0, 1, 0);
+
+    /**
+     * <p>
+     * The unit direction vector point along the z axis.
+     * </p>
+     */
+    public static final ImmutableVector3 K = new ImmutableVector3(0, 0, 1);
+
+    /**
+     * <p>
      * Create a vector from its components.
      * </p>
      * <ul>
