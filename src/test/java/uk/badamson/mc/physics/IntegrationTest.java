@@ -63,6 +63,8 @@ public class IntegrationTest {
             1);
     private static final ImmutableVector1StateSpaceMapper velocityVectorMapper = new ImmutableVector1StateSpaceMapper(
             2);
+    private static final ImmutableVector1StateSpaceMapper accelerationVectorMapper = new ImmutableVector1StateSpaceMapper(
+            3);
     private static final int[] velocityTerm = { 2 };
     private static final int[] accelerationTerm = { 3 };
     private static final int[] forceTerm = { 4 };
@@ -112,7 +114,7 @@ public class IntegrationTest {
         final double f0 = m0 * a0;
         final List<TimeStepEnergyErrorFunctionTerm> terms = Arrays.asList(
                 new PositionError<>(massReference, positionVectorMapper, velocityVectorMapper),
-                new VelocityError(massReference, velocityTerm, accelerationTerm),
+                new VelocityError<>(massReference, velocityVectorMapper, accelerationVectorMapper),
                 new Newton2Error(massReference, timeReference, massTerm, velocityTerm, accelerationTerm,
                         massTransferInto, advectionMassRateTerm, advectionVelocityTerm, new boolean[] { forceOn },
                         forceTerm),

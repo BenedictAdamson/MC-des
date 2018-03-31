@@ -1,10 +1,14 @@
 package uk.badamson.mc.physics.kinematics;
 
+import java.util.Objects;
+
 import net.jcip.annotations.Immutable;
 import uk.badamson.mc.math.ImmutableVectorN;
+import uk.badamson.mc.math.Vector;
 import uk.badamson.mc.physics.AbstractTimeStepEnergyErrorFunctionTerm;
 import uk.badamson.mc.physics.TimeStepEnergyErrorFunction;
-import uk.badamson.mc.physics.TimeStepEnergyErrorFunctionTerm;;
+import uk.badamson.mc.physics.TimeStepEnergyErrorFunctionTerm;
+import uk.badamson.mc.physics.VectorStateSpaceMapper;;
 
 /**
  * <p>
@@ -15,11 +19,11 @@ import uk.badamson.mc.physics.TimeStepEnergyErrorFunctionTerm;;
  * </p>
  */
 @Immutable
-public final class VelocityError extends AbstractTimeStepEnergyErrorFunctionTerm {
+public final class VelocityError<VECTOR extends Vector> extends AbstractTimeStepEnergyErrorFunctionTerm {
 
     private final double mass;
-    private final int[] velocityTerm;
-    private final int[] accelerationTerm;
+    private final VectorStateSpaceMapper<VECTOR> velocityVectorMapper;
+    private final VectorStateSpaceMapper<VECTOR> accelerationVectorMapper;
 
     /**
      * <p>
@@ -38,34 +42,29 @@ public final class VelocityError extends AbstractTimeStepEnergyErrorFunctionTerm
      * 
      * @param mass
      *            A reference mass scale.
-     * @param velocityTerm
-     *            Which terms in the solution space vector correspond to the
-     *            components of the velocity vector of the body.
-     *            {@code velocityTerm[i]} is the index of component <var>i</var>.
-     * @param accelerationTerm
-     *            Which terms in the solution space vector correspond to the
-     *            components of the acceleration vector of the body.
-     *            {@code velocityTerm[i]} is the index of component <var>i</var>.
+     * @param velocityVectorMapper
+     *            The Strategy for mapping from an object representation of the
+     *            velocity {@linkplain Vector vector} to (part of) a state-space
+     *            representation, and vice versa.
+     * @param accelerationVectorMapper
+     *            The Strategy for mapping from an object representation of the
+     *            acceleration {@linkplain Vector vector} to (part of) a state-space
+     *            representation, and vice versa.
      *
      * @throws NullPointerException
      *             <ul>
-     *             <li>If {@code velocityTerm} is null.</li>
-     *             <li>If {@code accelerationTerm} is null.</li>
-     * @throws IllegalArgumentException
-     *             <ul>
-     *             <li>If {@code mass} is not a positive and
-     *             {@linkplain Double#isFinite(double) finite}.</li>
-     *             <li>If the length of {@code velocityTerm} does not equal the
-     *             length of {@code accelerationTerm}.</li>
-     *             <li>If {@code velocityTerm} has any negative values.</li>
-     *             <li>If {@code accelerationTerm} has any negative values.</li>
+     *             <li>If {@code velocityVectorMapper} is null.</li>
+     *             <li>If {@code accelerationVectorMapper} is null.</li>
      *             </ul>
+     * @throws IllegalArgumentException
+     *             If {@code mass} is not a positive and
+     *             {@linkplain Double#isFinite(double) finite}.
      */
-    public VelocityError(double mass, int[] velocityTerm, int[] accelerationTerm) {
+    public VelocityError(double mass, VectorStateSpaceMapper<VECTOR> velocityVectorMapper,
+            VectorStateSpaceMapper<VECTOR> accelerationVectorMapper) {
         this.mass = requireReferenceScale(mass, "mass");
-        this.velocityTerm = copyTermIndex(velocityTerm, "velocityTerm");
-        this.accelerationTerm = copyTermIndex(accelerationTerm, "accelerationTerm");
-        requireConsistentLengths(velocityTerm, "velocityTerm", accelerationTerm, "accelerationTerm");
+        this.velocityVectorMapper = Objects.requireNonNull(velocityVectorMapper, "velocityVectorMapper");
+        this.accelerationVectorMapper = Objects.requireNonNull(accelerationVectorMapper, "accelerationVectorMapper");
     }
 
     /**
@@ -110,45 +109,42 @@ public final class VelocityError extends AbstractTimeStepEnergyErrorFunctionTerm
     public final double evaluate(double[] dedx, ImmutableVectorN state0, ImmutableVectorN state, double dt) {
         super.evaluate(dedx, state0, state, dt);
 
-        final ImmutableVectorN v0 = extract(state0, velocityTerm);
-        final ImmutableVectorN a0 = extract(state0, accelerationTerm);
-        final ImmutableVectorN v = extract(state, velocityTerm);
-        final ImmutableVectorN a = extract(state, accelerationTerm);
+        final Vector v0 = velocityVectorMapper.toObject(state0);
+        final Vector a0 = accelerationVectorMapper.toObject(state0);
+        final Vector v = velocityVectorMapper.toObject(state);
+        final Vector a = accelerationVectorMapper.toObject(state);
 
-        final ImmutableVectorN dv = v.minus(v0);
-        final ImmutableVectorN aMean = a.mean(a0);
-        final ImmutableVectorN ve = dv.minus(aMean.scale(dt));
+        final Vector dv = v.minus(v0);
+        final Vector aMean = a.mean(a0);
+        final Vector ve = dv.minus(aMean.scale(dt));
 
         final double e = 0.5 * mass * ve.magnitude2();
-        final ImmutableVectorN dedv = ve.scale(mass);
-        final ImmutableVectorN deda = ve.scale(-0.5 * mass * dt);
+        final Vector dedv = ve.scale(mass);
+        final Vector deda = ve.scale(-0.5 * mass * dt);
 
-        for (int i = 0, n = velocityTerm.length; i < n; ++i) {
-            dedx[velocityTerm[i]] += dedv.get(i);
-            dedx[accelerationTerm[i]] += deda.get(i);
-        }
+        velocityVectorMapper.fromVector(dedx, dedv);
+        accelerationVectorMapper.fromVector(dedx, deda);
+
         return e;
     }
 
     /**
      * <p>
-     * Which terms in the solution space vector correspond to the components of the
-     * acceleration vector of the body.
+     * The Strategy for mapping from an object representation of the acceleration
+     * {@linkplain Vector vector} to (part of) a state-space representation, and
+     * vice versa.
      * </p>
+     * <ul>
+     * <li>Always have a (non null) acceleration vector mapper.</li>
+     * <li>The {@linkplain VectorStateSpaceMapper#getDimension() number of
+     * dimensions} of the acceleration vector mapper is equal to the dimension of
+     * the {@linkplain #getVelocityVectorMapper() velocity vector mapper}.</li>
+     * </ul>
      * 
-     * @param i
-     *            The component of interest.
-     * @return the index of the component of the acceleration vector; not negative
-     * 
-     * @throws IndexOutOfBoundsException
-     *             <ul>
-     *             <li>If {@code i} is negative.</li>
-     *             <li>If {@code i} is not less than the
-     *             {@linkplain #getSpaceDimension() space dimension}.</li>
-     *             </ul>
+     * @return the strategy
      */
-    public final int getAccelerationTerm(int i) {
-        return accelerationTerm[i];
+    public final VectorStateSpaceMapper<VECTOR> getAccelerationVectorMapper() {
+        return accelerationVectorMapper;
     }
 
     /**
@@ -172,58 +168,47 @@ public final class VelocityError extends AbstractTimeStepEnergyErrorFunctionTerm
 
     /**
      * <p>
-     * The number of space dimensions for which this calculates a velocity error.
+     * The number of space dimensions for which this calculates a position error.
      * </p>
+     * 
+     * @return the number of dimensions; equal to the
+     *         {@linkplain VectorStateSpaceMapper#getDimension() number of
+     *         dimensions} of the {@linkplain #getVelocityVectorMapper() velocity
+     *         vector mapper}.
      */
     public final int getSpaceDimension() {
-        return velocityTerm.length;
+        return velocityVectorMapper.getDimension();
     }
 
     /**
      * <p>
-     * Which terms in the solution space vector correspond to the components of the
-     * velocity vector of the body.
+     * The Strategy for mapping from an object representation of the velocity
+     * {@linkplain Vector vector} to (part of) a state-space representation, and
+     * vice versa.
      * </p>
      * 
-     * @param i
-     *            The component of interest.
-     * @return the index of the component of the velocity vector; not negative
-     * 
-     * @throws IndexOutOfBoundsException
-     *             <ul>
-     *             <li>If {@code i} is negative.</li>
-     *             <li>If {@code i} is not less than the
-     *             {@linkplain #getSpaceDimension() space dimension}.</li>
-     *             </ul>
+     * @return the strategy; not null
      */
-    public final int getVelocityTerm(int i) {
-        return velocityTerm[i];
+    public final VectorStateSpaceMapper<VECTOR> getVelocityVectorMapper() {
+        return velocityVectorMapper;
     }
 
     /**
-     * <p>
-     * Whether this term can be calculated for a physical state vector that has a
-     * given number of variables.
-     * </p>
+     * {@inheritDoc}
      * <ul>
-     * <li>This is valid for a given dimension if, and only if, the number of
-     * variables exceeds the largest {@linkplain #getVelocityTerm(int) velocity term
-     * index} and exceeds the largest {@linkplain #getAccelerationTerm(int)
-     * acceleration term index}.</li>
+     * <li>This is valid if, and only if, the {@linkplain #getVelocityVectorMapper()
+     * velocity vector mapper} is valid for the given number of variables and the
+     * {@linkplain #getAccelerationVectorMapper() acceleration vector mapper} is
+     * valid for the given number of variables.</li>
      * </ul>
      * 
-     * @return whether valid.
+     * @return {@inheritDoc}
      * @throws IllegalArgumentException
-     *             If {@code n} is not positive.
+     *             {@inheritDoc}
      */
     @Override
     public boolean isValidForDimension(int n) {
-        for (int i = 0, pn = velocityTerm.length; i < pn; ++i) {
-            if (n < velocityTerm[i] + 1 || n < accelerationTerm[i] + 1) {
-                return false;
-            }
-        }
-        return true;
+        return velocityVectorMapper.isValidForDimension(n) && accelerationVectorMapper.isValidForDimension(n);
     }
 
 }

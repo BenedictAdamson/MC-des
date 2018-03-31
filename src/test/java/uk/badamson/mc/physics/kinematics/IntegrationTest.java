@@ -79,11 +79,11 @@ public class IntegrationTest {
             double mass) {
         final ImmutableVector1StateSpaceMapper positionVectorMapper = new ImmutableVector1StateSpaceMapper(0);
         final ImmutableVector1StateSpaceMapper velocityVectorMapper = new ImmutableVector1StateSpaceMapper(1);
-        final int[] velocityTerm = new int[] { 1 };
-        final int[] accelerationTerm = new int[] { 2 };
+        final ImmutableVector1StateSpaceMapper accelerationVectorMapper = new ImmutableVector1StateSpaceMapper(2);
         final List<TimeStepEnergyErrorFunctionTerm> terms = Arrays.asList(
                 new PositionError<>(mass, positionVectorMapper, velocityVectorMapper),
-                new VelocityError(mass, velocityTerm, accelerationTerm), new ConstantVelocityError(mass));
+                new VelocityError<>(mass, velocityVectorMapper, accelerationVectorMapper),
+                new ConstantVelocityError(mass));
 
         final TimeStepEnergyErrorFunction errorFunction = new TimeStepEnergyErrorFunction(
                 create1DStateVector(x0, v0, 0.0), dt, terms);
