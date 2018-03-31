@@ -1,7 +1,5 @@
 package uk.badamson.mc.physics.kinematics;
 
-import java.util.Objects;
-
 import uk.badamson.mc.math.ImmutableVectorN;
 import uk.badamson.mc.physics.AbstractTimeStepEnergyErrorFunctionTerm;
 import uk.badamson.mc.physics.TimeStepEnergyErrorFunction;
