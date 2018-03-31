@@ -10,8 +10,8 @@ import uk.badamson.mc.math.ImmutableVectorN;
 
 /**
  * <p>
- * Unit tests for classes that implement the {@link VectorStateSpaceMapper}
- * interface.
+ * Unit tests for the {@link ImmutableVector3StateSpaceMapper} class.
+ * </p>
  */
 public class ImmutableVector3StateSpaceMapperTest {
 
