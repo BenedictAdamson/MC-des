@@ -4,12 +4,46 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import org.hamcrest.Description;
+import org.hamcrest.Factory;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
+
 /**
  * <p>
  * Unit tests of classes that implement the {@link Vector} interface.
  * </p>
  */
 public class VectorTest {
+
+    private static class IsCloseTo extends TypeSafeMatcher<Vector> {
+        private final double tolerance;
+        private final Vector value;
+
+        private IsCloseTo(Vector value, double tolerance) {
+            this.tolerance = tolerance;
+            this.value = value;
+        }
+
+        @Override
+        public void describeMismatchSafely(Vector item, Description mismatchDescription) {
+            mismatchDescription.appendValue(item).appendText(" differed by ").appendValue(distance(item));
+        }
+
+        @Override
+        public void describeTo(Description description) {
+            description.appendText("a vector within ").appendValue(tolerance).appendText(" of ").appendValue(value);
+        }
+
+        private final double distance(Vector item) {
+            return value.minus(item).magnitude();
+        }
+
+        @Override
+        public boolean matchesSafely(Vector item) {
+            return distance(item) <= tolerance;
+        }
+    }
 
     public static void assertInvariants(Vector vector) {
         MatrixTest.assertInvariants(vector);// inherited
@@ -19,6 +53,11 @@ public class VectorTest {
 
     public static void assertInvariants(Vector vector1, Vector vector2) {
         MatrixTest.assertInvariants(vector1, vector2);// inherited
+    }
+
+    @Factory
+    public static Matcher<Vector> closeTo(Vector operand, double tolerance) {
+        return new IsCloseTo(operand, tolerance);
     }
 
     public static Vector mean(Vector x, Vector that) {

@@ -4,10 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 
-import org.hamcrest.Description;
 import org.hamcrest.Factory;
 import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeMatcher;
 import org.junit.Test;
 
 /**
@@ -16,35 +14,6 @@ import org.junit.Test;
  * </p>
  */
 public class ImmutableVector1Test {
-
-    private static class IsCloseTo extends TypeSafeMatcher<ImmutableVector1> {
-        private final double tolerance;
-        private final ImmutableVector1 value;
-
-        private IsCloseTo(ImmutableVector1 value, double tolerance) {
-            this.tolerance = tolerance;
-            this.value = value;
-        }
-
-        @Override
-        public void describeMismatchSafely(ImmutableVector1 item, Description mismatchDescription) {
-            mismatchDescription.appendValue(item).appendText(" differed by ").appendValue(distance(item));
-        }
-
-        @Override
-        public void describeTo(Description description) {
-            description.appendText("a vector within ").appendValue(tolerance).appendText(" of ").appendValue(value);
-        }
-
-        private final double distance(ImmutableVector1 item) {
-            return value.minus(item).magnitude();
-        }
-
-        @Override
-        public boolean matchesSafely(ImmutableVector1 item) {
-            return distance(item) <= tolerance;
-        }
-    }
 
     public static void assertInvariants(ImmutableVector1 x) {
         VectorTest.assertInvariants(x);// inherited
@@ -55,8 +24,8 @@ public class ImmutableVector1Test {
     }
 
     @Factory
-    public static Matcher<ImmutableVector1> closeTo(ImmutableVector1 operand, double tolerance) {
-        return new IsCloseTo(operand, tolerance);
+    public static Matcher<Vector> closeTo(ImmutableVector1 operand, double tolerance) {
+        return VectorTest.closeTo(operand, tolerance);
     }
 
     private static ImmutableVector1 create(double x) {
