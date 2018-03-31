@@ -47,14 +47,26 @@ public final class PositionError<VECTOR extends Vector> extends AbstractTimeStep
      *             <li>If {@code positionVectorMapper} is null.</li>
      *             <li>If {@code velocityVectorMapper} is null.</li>
      * @throws IllegalArgumentException
-     *             If {@code mass} is not a positive and
-     *             {@linkplain Double#isFinite(double) finite}.
+     *             <ul>
+     *             <li>If {@code mass} is not a positive and
+     *             {@linkplain Double#isFinite(double) finite}.</li>
+     *             <li>
+     *             <li>If the{@linkplain VectorStateSpaceMapper#getDimension()
+     *             number of dimensions} of {@code positionVectorMapper} is not
+     *             equal to the number of dimensions of the
+     *             {@code velocityVectorMapper}.</li>
+     *             </ul>
      */
     public PositionError(double mass, VectorStateSpaceMapper<VECTOR> positionVectorMapper,
             VectorStateSpaceMapper<VECTOR> velocityVectorMapper) {
         this.mass = requireReferenceScale(mass, "mass");
         this.positionVectorMapper = Objects.requireNonNull(positionVectorMapper, "positionVectorMapper");
         this.velocityVectorMapper = Objects.requireNonNull(velocityVectorMapper, "velocityVectorMapper");
+        if (positionVectorMapper.getDimension() != velocityVectorMapper.getDimension()) {
+            throw new IllegalArgumentException(
+                    "Inconsistent mapper dimensions. positionVectorMapper " + positionVectorMapper.getDimension()
+                            + " velocityVectorMapper " + velocityVectorMapper.getDimension());
+        }
     }
 
     /**
@@ -177,8 +189,9 @@ public final class PositionError<VECTOR extends Vector> extends AbstractTimeStep
      * <ul>
      * <li>Always have a (non null) velocity vector mapper.</li>
      * <li>The {@linkplain VectorStateSpaceMapper#getDimension() number of
-     * dimensions} of the velocity vector mapper is equal to the dimension of the
-     * {@linkplain #getPositionVectorMapper() position vector mapper}.</li>
+     * dimensions} of the velocity vector mapper is equal to the number of
+     * dimensions of the {@linkplain #getPositionVectorMapper() position vector
+     * mapper}.</li>
      * </ul>
      * 
      * @return the strategy; not null

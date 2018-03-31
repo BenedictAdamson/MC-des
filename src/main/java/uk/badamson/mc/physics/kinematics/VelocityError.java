@@ -57,14 +57,26 @@ public final class VelocityError<VECTOR extends Vector> extends AbstractTimeStep
      *             <li>If {@code accelerationVectorMapper} is null.</li>
      *             </ul>
      * @throws IllegalArgumentException
-     *             If {@code mass} is not a positive and
-     *             {@linkplain Double#isFinite(double) finite}.
+     *             <ul>
+     *             <li>If {@code mass} is not a positive and
+     *             {@linkplain Double#isFinite(double) finite}.</li>
+     *             <li>
+     *             <li>If the{@linkplain VectorStateSpaceMapper#getDimension()
+     *             number of dimensions} of {@code velocityVectorMapper} is not
+     *             equal to the number of dimensions of the
+     *             {@code accelerationVectorMapper}.</li>
+     *             </ul>
      */
     public VelocityError(double mass, VectorStateSpaceMapper<VECTOR> velocityVectorMapper,
             VectorStateSpaceMapper<VECTOR> accelerationVectorMapper) {
         this.mass = requireReferenceScale(mass, "mass");
         this.velocityVectorMapper = Objects.requireNonNull(velocityVectorMapper, "velocityVectorMapper");
         this.accelerationVectorMapper = Objects.requireNonNull(accelerationVectorMapper, "accelerationVectorMapper");
+        if (velocityVectorMapper.getDimension() != accelerationVectorMapper.getDimension()) {
+            throw new IllegalArgumentException(
+                    "Inconsistent mapper dimensions. velocityVectorMapper " + velocityVectorMapper.getDimension()
+                            + " accelerationVectorMapper " + accelerationVectorMapper.getDimension());
+        }
     }
 
     /**
@@ -137,8 +149,9 @@ public final class VelocityError<VECTOR extends Vector> extends AbstractTimeStep
      * <ul>
      * <li>Always have a (non null) acceleration vector mapper.</li>
      * <li>The {@linkplain VectorStateSpaceMapper#getDimension() number of
-     * dimensions} of the acceleration vector mapper is equal to the dimension of
-     * the {@linkplain #getVelocityVectorMapper() velocity vector mapper}.</li>
+     * dimensions} of the acceleration vector mapper is equal to the number of
+     * dimensions of the {@linkplain #getVelocityVectorMapper() velocity vector
+     * mapper}.</li>
      * </ul>
      * 
      * @return the strategy
