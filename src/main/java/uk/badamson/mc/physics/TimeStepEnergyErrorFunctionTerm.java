@@ -8,6 +8,9 @@ import uk.badamson.mc.math.ImmutableVectorN;
  * A contributor to the {@linkplain TimeStepEnergyErrorFunction physical
  * modelling error of a system at a future point in time}.
  * </p>
+ * <p>
+ * The term calculates an error value that has dimensions of energy.
+ * </p>
  */
 @Immutable
 public interface TimeStepEnergyErrorFunctionTerm {
@@ -33,7 +36,7 @@ public interface TimeStepEnergyErrorFunctionTerm {
      * @param dt
      *            The size of the time-step; the difference between the future point
      *            in time and the current point in time.
-     * @return the value
+     * @return the value, which has dimensions of energy.
      * 
      * @throws NullPointerException
      *             <ul>

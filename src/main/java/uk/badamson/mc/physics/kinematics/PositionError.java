@@ -25,16 +25,12 @@ public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm
      * <p>
      * Construct a position error term.
      * </p>
-     *
-     * <section>
-     * <h1>Post Conditions</h1>
      * <ul>
      * <li>The constructed object has attribute values equal to the given
      * values.</li>
      * <li>The {@linkplain #getSpaceDimension() space dimension} of the constructed
      * object is equal to the length of the arrays of position terms.</li>
      * </ul>
-     * </section>
      * 
      * @param mass
      *            A reference mass scale.

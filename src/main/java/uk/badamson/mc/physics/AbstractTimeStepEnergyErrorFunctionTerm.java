@@ -26,6 +26,19 @@ public abstract class AbstractTimeStepEnergyErrorFunctionTerm implements TimeSte
         return copy;
     }
 
+    /**
+     * <p>
+     * Extract some terms from a large state vector into a smaller state vector.
+     * </p>
+     * 
+     * @param x
+     *            The state vector.
+     * @param term
+     *            Which terms in the solution large state vector correspond to the
+     *            components of smaller state vector {@code term[i]} is the index of
+     *            component <var>i</var>.
+     * @return the smaller vector
+     */
     protected static final ImmutableVectorN extract(ImmutableVectorN x, int term[]) {
         final int n = term.length;
         final double[] extract = new double[n];
@@ -35,6 +48,25 @@ public abstract class AbstractTimeStepEnergyErrorFunctionTerm implements TimeSte
         return ImmutableVectorN.create(extract);
     }
 
+    /**
+     * <p>
+     * Extract some terms from a large state vector into a smaller state vector for
+     * a case in which multiple smaller state vectors could be extracted.
+     * </p>
+     * 
+     * @param x
+     *            The state vector.
+     * @param term
+     *            Which terms in the solution large state vector correspond to the
+     *            components of smaller state vector {@code term[i0 + i]} is the
+     *            index of component <var>i</var>.
+     * @param i0
+     *            Indicates which part of the {@code term} addressing array
+     *            indicates the terms for this extraction.
+     * @param n
+     *            The number of dimensions of the smaller state vector
+     * @return the smaller vector
+     */
     protected static final ImmutableVectorN extract(ImmutableVectorN x, int term[], int i0, int n) {
         final double[] extract = new double[n];
         for (int i = 0; i < n; i++) {
@@ -43,21 +75,67 @@ public abstract class AbstractTimeStepEnergyErrorFunctionTerm implements TimeSte
         return ImmutableVectorN.create(extract);
     }
 
-    protected static void requireConsistentLengths(int[] index1, String name1, int[] index2, String name2) {
-        if (index1.length != index2.length) {
+    /**
+     * <p>
+     * Throw an {@link IllegalArgumentException} iff two arrays have different
+     * lengths.
+     * </p>
+     * 
+     * @param array1
+     *            The first of the two arrays to compare.
+     * @param name1
+     *            A name or identifier for the first array.
+     * @param array2
+     *            The second of the two arrays to compare.
+     * @param name2
+     *            A name or identifier for the second array.
+     * @throws IllegalArgumentException
+     *             If {@code array1} and {@code array2} have different lengths.
+     */
+    protected static void requireConsistentLengths(int[] array1, String name1, int[] array2, String name2)
+            throws IllegalArgumentException {
+        if (array1.length != array2.length) {
             throw new IllegalArgumentException(
-                    "Inconsistent " + name1 + ".length " + index1.length + " " + name2 + ".length " + index2.length);
+                    "Inconsistent " + name1 + ".length " + array1.length + " " + name2 + ".length " + array2.length);
         }
     }
 
-    protected static double requireReferenceScale(double s, String name) {
+    /**
+     * <p>
+     * Throw an {@link IllegalArgumentException} if a given value is unsuitable as a
+     * reference scale.
+     * </p>
+     * 
+     * @param s
+     *            The value
+     * @param name
+     *            The name or identifier of the value
+     * @return The given value.
+     * @throws IllegalArgumentException
+     *             If {@code s} is not positive and finite.
+     */
+    protected static double requireReferenceScale(double s, String name) throws IllegalArgumentException {
         if (!(0.0 < s && Double.isFinite(s))) {
             throw new IllegalArgumentException(name + " scale " + s);
         }
         return s;
     }
 
-    protected static final int requireTermIndex(int index, String name) {
+    /**
+     * <p>
+     * Throw an {@link IllegalArgumentException} if a given value is unsuitable as a
+     * term index.
+     * </p>
+     * 
+     * @param index
+     *            The index
+     * @param name
+     *            The name or identifier of the value
+     * @return The given index.
+     * @throws IllegalArgumentException
+     *             If {@code index} is negative.
+     */
+    protected static final int requireTermIndex(int index, String name) throws IllegalArgumentException {
         if (index < 0) {
             throw new IllegalArgumentException("Negative index term " + name + " " + index);
         }
@@ -68,7 +146,8 @@ public abstract class AbstractTimeStepEnergyErrorFunctionTerm implements TimeSte
      * {@inheritDoc}
      * 
      * <p>
-     * The provided implementation checks its arguments and returns 0.
+     * The implementation provided for the
+     * {@link AbstractTimeStepEnergyErrorFunctionTerm} type returns 0.
      * </p>
      * 
      * @param dedx
@@ -85,10 +164,11 @@ public abstract class AbstractTimeStepEnergyErrorFunctionTerm implements TimeSte
      *             {@inheritDoc}
      * @throws IllegalArgumentException
      *             {@inheritDoc}
-     * @throws IllegalArgumentException
-     *             If the length of {@code dedx} does not equal the
+     *             <ul>
+     *             <li>If the length of {@code dedx} does not equal the
      *             {@linkplain ImmutableVectorN#getDimension() dimension} of
-     *             {@code state0}.
+     *             {@code state0}.</ul
+     *             </ul>
      */
     @Override
     public double evaluate(double[] dedx, ImmutableVectorN state0, ImmutableVectorN state, double dt) {

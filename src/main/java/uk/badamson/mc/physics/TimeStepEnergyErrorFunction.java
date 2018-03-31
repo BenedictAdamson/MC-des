@@ -36,7 +36,7 @@ import uk.badamson.mc.math.MinN;
  * likely to be far fewer than the number of physical parameters: if the system
  * consists of loosely coupled objects, there is only one large eigen vector per
  * object; if the system has some strongly coupled objects there will be one
- * large eigen vector per vibration mode of the coupled system.
+ * large eigen vector per vibration mode of the coupled objects.
  * </p>
  * <p>
  * The function calculates an error value that has dimensions of energy. It is
