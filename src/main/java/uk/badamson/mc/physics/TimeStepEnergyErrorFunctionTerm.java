@@ -64,8 +64,8 @@ public interface TimeStepEnergyErrorFunctionTerm {
 
     /**
      * <p>
-     * Whether this term can be calculated for a physical state vector that has a
-     * given number of variables.
+     * Whether this term can be calculated for a state vector that has a given
+     * number of variables.
      * </p>
      * 
      * @return whether valid.

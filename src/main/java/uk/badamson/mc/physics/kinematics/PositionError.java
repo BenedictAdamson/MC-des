@@ -1,9 +1,13 @@
 package uk.badamson.mc.physics.kinematics;
 
+import java.util.Objects;
+
 import uk.badamson.mc.math.ImmutableVectorN;
+import uk.badamson.mc.math.Vector;
 import uk.badamson.mc.physics.AbstractTimeStepEnergyErrorFunctionTerm;
 import uk.badamson.mc.physics.TimeStepEnergyErrorFunction;
-import uk.badamson.mc.physics.TimeStepEnergyErrorFunctionTerm;;
+import uk.badamson.mc.physics.TimeStepEnergyErrorFunctionTerm;
+import uk.badamson.mc.physics.VectorStateSpaceMapper;;
 
 /**
  * <p>
@@ -13,11 +17,11 @@ import uk.badamson.mc.physics.TimeStepEnergyErrorFunctionTerm;;
  * of inconsistency of the position and velocity of a body.
  * </p>
  */
-public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm {
+public final class PositionError<VECTOR extends Vector> extends AbstractTimeStepEnergyErrorFunctionTerm {
 
     private final double mass;
-    private final int[] positionTerm;
-    private final int[] velocityTerm;
+    private final VectorStateSpaceMapper<VECTOR> positionVectorMapper;
+    private final VectorStateSpaceMapper<VECTOR> velocityVectorMapper;
 
     /**
      * <p>
@@ -26,40 +30,31 @@ public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm
      * <ul>
      * <li>The constructed object has attribute values equal to the given
      * values.</li>
-     * <li>The {@linkplain #getSpaceDimension() space dimension} of the constructed
-     * object is equal to the length of the arrays of position terms.</li>
      * </ul>
      * 
      * @param mass
      *            A reference mass scale.
-     * @param positionTerm
-     *            Which terms in the solution space vector correspond to the
-     *            components of the position vector of the body.
-     *            {@code positionTerm[i]} is index of component <var>i</var>,
-     * @param velocityTerm
-     *            Which terms in the solution space vector correspond to the
-     *            components of the velocity vector of the body.
-     *            {@code velocityTerm[i]} is index of component <var>i</var>,
-     *
+     * @param positionVectorMapper
+     *            The Strategy for mapping from an object representation of the
+     *            position {@linkplain Vector vector} to (part of) a state-space
+     *            representation, and vice versa.
+     * @param velocityVectorMapper
+     *            The Strategy for mapping from an object representation of the
+     *            velocity {@linkplain Vector vector} to (part of) a state-space
+     *            representation, and vice versa.
      * @throws NullPointerException
      *             <ul>
-     *             <li>If {@code positionTerm} is null.</li>
-     *             <li>If {@code velocityTerm} is null.</li>
+     *             <li>If {@code positionVectorMapper} is null.</li>
+     *             <li>If {@code velocityVectorMapper} is null.</li>
      * @throws IllegalArgumentException
-     *             <ul>
-     *             <li>If {@code mass} is not a positive and
-     *             {@linkplain Double#isFinite(double) finite}.</li>
-     *             <li>If the length of {@code positionTerm} does not equal the
-     *             length of {@code velocityTerm}.</li>
-     *             <li>If {@code positionTerm} has any negative values.</li>
-     *             <li>If {@code velocityTerm} has any negative values.</li>
-     *             </ul>
+     *             If {@code mass} is not a positive and
+     *             {@linkplain Double#isFinite(double) finite}.
      */
-    public PositionError(double mass, int[] positionTerm, int[] velocityTerm) {
+    public PositionError(double mass, VectorStateSpaceMapper<VECTOR> positionVectorMapper,
+            VectorStateSpaceMapper<VECTOR> velocityVectorMapper) {
         this.mass = requireReferenceScale(mass, "mass");
-        this.positionTerm = copyTermIndex(positionTerm, "positionTerm");
-        this.velocityTerm = copyTermIndex(velocityTerm, "velocityTerm");
-        requireConsistentLengths(positionTerm, "positionTerm", velocityTerm, "velocityTerm");
+        this.positionVectorMapper = Objects.requireNonNull(positionVectorMapper, "positionVectorMapper");
+        this.velocityVectorMapper = Objects.requireNonNull(velocityVectorMapper, "velocityVectorMapper");
     }
 
     /**
@@ -108,23 +103,22 @@ public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm
 
         final double rate = 1.0 / dt;
 
-        final ImmutableVectorN x0 = extract(state0, positionTerm);
-        final ImmutableVectorN v0 = extract(state0, velocityTerm);
-        final ImmutableVectorN x = extract(state, positionTerm);
-        final ImmutableVectorN v = extract(state, velocityTerm);
+        final Vector x0 = positionVectorMapper.toObject(state0);
+        final Vector v0 = velocityVectorMapper.toObject(state0);
+        final Vector x = positionVectorMapper.toObject(state);
+        final Vector v = velocityVectorMapper.toObject(state);
 
-        final ImmutableVectorN dx = x.minus(x0);
-        final ImmutableVectorN vMean = v.mean(v0);
-        final ImmutableVectorN ve = dx.scale(rate).minus(vMean);
+        final Vector dx = x.minus(x0);
+        final Vector vMean = v.mean(v0);
+        final Vector ve = dx.scale(rate).minus(vMean);
 
         final double e = 0.5 * mass * ve.magnitude2();
-        final ImmutableVectorN dedx = ve.scale(mass * rate);
-        final ImmutableVectorN dedv = ve.scale(-0.5 * mass);
+        final Vector dedx = ve.scale(mass * rate);
+        final Vector dedv = ve.scale(-0.5 * mass);
 
-        for (int i = 0, n = positionTerm.length; i < n; ++i) {
-            dedState[positionTerm[i]] += dedx.get(i);
-            dedState[velocityTerm[i]] += dedv.get(i);
-        }
+        positionVectorMapper.fromVector(dedState, dedx);
+        velocityVectorMapper.fromVector(dedState, dedv);
+
         return e;
     }
 
@@ -149,23 +143,15 @@ public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm
 
     /**
      * <p>
-     * Which terms in the solution space vector correspond to the components of the
-     * position vector of the body.
+     * The Strategy for mapping from an object representation of the position
+     * {@linkplain Vector vector} to (part of) a state-space representation, and
+     * vice versa.
      * </p>
      * 
-     * @param i
-     *            The component of interest.
-     * @return the index of the component of the position vector; not negative
-     * 
-     * @throws IndexOutOfBoundsException
-     *             <ul>
-     *             <li>If {@code i} is negative.</li>
-     *             <li>If {@code i} is not less than the
-     *             {@linkplain #getSpaceDimension() space dimension}.</li>
-     *             </ul>
+     * @return the strategy; not null
      */
-    public final int getPositionTerm(int i) {
-        return positionTerm[i];
+    public final VectorStateSpaceMapper<VECTOR> getPositionVectorMapper() {
+        return positionVectorMapper;
     }
 
     /**
@@ -173,57 +159,50 @@ public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm
      * The number of space dimensions for which this calculates a position error.
      * </p>
      * 
-     * @return
+     * @return the number of dimensions; equal to the
+     *         {@linkplain VectorStateSpaceMapper#getDimension() number of
+     *         dimensions} of the {@linkplain #getPositionVectorMapper() position
+     *         vector mapper}.
      */
     public final int getSpaceDimension() {
-        return positionTerm.length;
+        return positionVectorMapper.getDimension();
     }
 
     /**
      * <p>
-     * Which terms in the solution space vector correspond to the components of the
-     * velocity vector of the body.
-     * </p>
-     * 
-     * @param i
-     *            The component of interest.
-     * @return the index of the component of the velocity vector; not negative
-     * 
-     * @throws IndexOutOfBoundsException
-     *             <ul>
-     *             <li>If {@code i} is negative.</li>
-     *             <li>If {@code i} is not less than the
-     *             {@linkplain #getSpaceDimension() space dimension}.</li>
-     *             </ul>
-     */
-    public final int getVelocityTerm(int i) {
-        return velocityTerm[i];
-    }
-
-    /**
-     * <p>
-     * Whether this term can be calculated for a physical state vector that has a
-     * given number of variables.
+     * The Strategy for mapping from an object representation of the velocity
+     * {@linkplain Vector vector} to (part of) a state-space representation, and
+     * vice versa.
      * </p>
      * <ul>
-     * <li>This is valid for a given dimension if, and only if, the number of
-     * variables exceeds the largest {@linkplain #getPositionTerm(int) position term
-     * index} and exceeds the largest {@linkplain #getVelocityTerm(int) velocity
-     * term index}.</li>
+     * <li>Always have a (non null) velocity vector mapper.</li>
+     * <li>The {@linkplain VectorStateSpaceMapper#getDimension() number of
+     * dimensions} of the velocity vector mapper is equal to the dimension of the
+     * {@linkplain #getPositionVectorMapper() position vector mapper}.</li>
      * </ul>
      * 
-     * @return whether valid.
+     * @return the strategy; not null
+     */
+    public final VectorStateSpaceMapper<VECTOR> getVelocityVectorMapper() {
+        return velocityVectorMapper;
+    }
+
+    /**
+     * {@inheritDoc}
+     * <ul>
+     * <li>This is valid if, and only if, the {@linkplain #getPositionVectorMapper()
+     * position vector mapper} is valid for the given number of variables and the
+     * {@linkplain #getVelocityVectorMapper() velocity vector mapper} is valid for
+     * the given number of variables.</li>
+     * </ul>
+     * 
+     * @return {@inheritDoc}
      * @throws IllegalArgumentException
-     *             If {@code n} is not positive.
+     *             {@inheritDoc}
      */
     @Override
     public boolean isValidForDimension(int n) {
-        for (int i = 0, pn = positionTerm.length; i < pn; ++i) {
-            if (n < positionTerm[i] + 1 || n < velocityTerm[i] + 1) {
-                return false;
-            }
-        }
-        return true;
+        return positionVectorMapper.isValidForDimension(n) && velocityVectorMapper.isValidForDimension(n);
     }
 
 }

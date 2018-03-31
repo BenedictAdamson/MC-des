@@ -5,6 +5,7 @@ import java.util.Objects;
 import net.jcip.annotations.Immutable;
 import uk.badamson.mc.math.ImmutableVector1;
 import uk.badamson.mc.math.ImmutableVectorN;
+import uk.badamson.mc.math.Vector;
 
 /**
  * <p>
@@ -39,39 +40,54 @@ public final class ImmutableVector1StateSpaceMapper implements VectorStateSpaceM
         this.index = index;
     }
 
-    /**
-     * {@inheritDoc}
-     * 
-     * @param state
-     *            {@inheritDoc}
-     * @param object
-     *            {@inheritDoc}
-     * @throws NullPointerException
-     *             {@inheritDoc}
-     * @throws IndexOutOfBoundsException
-     *             {@inheritDoc} If the
-     */
     @Override
     public final void fromObject(double[] state, ImmutableVector1 object) {
+        fromVector(state, object);
+    }
+
+    @Override
+    public final void fromVector(double[] state, Vector vector) {
         Objects.requireNonNull(state, "state");
-        if (state.length < index + 1) {
-            throw new IndexOutOfBoundsException("state.length " + state.length + " index " + index);
+        if (!isValidForDimension(state.length)) {
+            throw new IllegalArgumentException("state.length " + state.length + " index " + index);
         }
-        state[index] = object.get(0);
+        if (vector.getDimension() != 1) {
+            throw new IllegalArgumentException("vector dimension " + vector.getDimension());
+        }
+        state[index] += vector.get(0);
     }
 
     /**
-     * @param state
-     *            {@inheritDoc}
-     * @return {@inheritDoc}
-     * @throws NullPointerException
-     *             {@inheritDoc}
-     * @throws IndexOutOfBoundsException
+     * {@inheritDoc}
+     * <p>
+     * The dimension is 1.
+     * </p>
+     */
+    @Override
+    public final int getDimension() {
+        return 1;
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @throws IllegalArgumentException
      *             {@inheritDoc}
      */
     @Override
+    public final boolean isValidForDimension(int n) {
+        if (n < 1) {
+            throw new IllegalArgumentException("n " + n);
+        }
+        return index + 1 <= n;
+    }
+
+    @Override
     public final ImmutableVector1 toObject(ImmutableVectorN state) {
         Objects.requireNonNull(state, "state");
+        if (!isValidForDimension(state.getDimension())) {
+            throw new IllegalArgumentException("state.dimension " + state.getDimension() + " index " + index);
+        }
         return ImmutableVector1.create(state.get(index));
     }
 

@@ -12,6 +12,7 @@ import uk.badamson.mc.math.FunctionNWithGradientValue;
 import uk.badamson.mc.math.ImmutableVectorN;
 import uk.badamson.mc.math.MinN;
 import uk.badamson.mc.physics.AbstractTimeStepEnergyErrorFunctionTerm;
+import uk.badamson.mc.physics.ImmutableVector1StateSpaceMapper;
 import uk.badamson.mc.physics.TimeStepEnergyErrorFunction;
 import uk.badamson.mc.physics.TimeStepEnergyErrorFunctionTerm;
 
@@ -76,11 +77,12 @@ public class IntegrationTest {
 
     private static TimeStepEnergyErrorFunction create1DconstantVelocityErrorFunction(double x0, double v0, double dt,
             double mass) {
-        final int[] positionTerm = new int[] { 0 };
+        final ImmutableVector1StateSpaceMapper positionVectorMapper = new ImmutableVector1StateSpaceMapper(0);
+        final ImmutableVector1StateSpaceMapper velocityVectorMapper = new ImmutableVector1StateSpaceMapper(1);
         final int[] velocityTerm = new int[] { 1 };
         final int[] accelerationTerm = new int[] { 2 };
         final List<TimeStepEnergyErrorFunctionTerm> terms = Arrays.asList(
-                new PositionError(mass, positionTerm, velocityTerm),
+                new PositionError<>(mass, positionVectorMapper, velocityVectorMapper),
                 new VelocityError(mass, velocityTerm, accelerationTerm), new ConstantVelocityError(mass));
 
         final TimeStepEnergyErrorFunction errorFunction = new TimeStepEnergyErrorFunction(

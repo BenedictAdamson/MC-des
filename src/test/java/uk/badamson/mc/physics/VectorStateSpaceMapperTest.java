@@ -1,6 +1,7 @@
 package uk.badamson.mc.physics;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 import uk.badamson.mc.math.ImmutableVectorN;
 import uk.badamson.mc.math.Vector;
@@ -15,6 +16,9 @@ public class VectorStateSpaceMapperTest {
 
     public static <VECTOR extends Vector> void assertInvariants(VectorStateSpaceMapper<VECTOR> mapper) {
         MatrixStateSpaceMapperTest.assertInvariants(mapper);// inherited
+
+        assertThat("Number of dimensions", mapper.getDimension(),
+                org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo(1));
     }
 
     public static <VECTOR extends Vector> void assertInvariants(VectorStateSpaceMapper<VECTOR> mapper1,
@@ -38,6 +42,24 @@ public class VectorStateSpaceMapperTest {
         final VECTOR reconstructed = toObject(mapper, stateVector);
 
         assertEquals("Symmetric", original, reconstructed);
+    }
+
+    public static <VECTOR extends Vector> void fromToVectorSymmetry(VectorStateSpaceMapper<VECTOR> mapper,
+            double[] state, Vector original) {
+        mapper.fromVector(state, original);
+        final ImmutableVectorN stateVector = ImmutableVectorN.create(state);
+
+        final VECTOR reconstructed = toObject(mapper, stateVector);
+
+        assertEquals("Symmetric", original, reconstructed);
+    }
+
+    public static <VECTOR extends Vector> void fromVector(VectorStateSpaceMapper<VECTOR> mapper, double[] state,
+            Vector vector) {
+        mapper.fromVector(state, vector);
+
+        assertInvariants(mapper);// check for side effects
+        VectorTest.assertInvariants(vector);// check for side-effects
     }
 
     public static <VECTOR extends Vector> VECTOR toObject(VectorStateSpaceMapper<VECTOR> mapper,
