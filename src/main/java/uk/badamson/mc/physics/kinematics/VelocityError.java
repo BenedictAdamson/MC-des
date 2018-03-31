@@ -110,21 +110,7 @@ public final class VelocityError extends AbstractTimeStepEnergyErrorFunctionTerm
      */
     @Override
     public final double evaluate(double[] dedx, ImmutableVectorN state0, ImmutableVectorN state, double dt) {
-        Objects.requireNonNull(dedx, "dedx");
-        Objects.requireNonNull(state0, "state0");
-        Objects.requireNonNull(state, "state");
-        if (!(0.0 < dt && Double.isFinite(dt))) {
-            throw new IllegalArgumentException("dt " + dt);
-        }
-        final int nState = state0.getDimension();
-        if (state.getDimension() != nState) {
-            throw new IllegalArgumentException(
-                    "Inconsistent dimensions x0 " + nState + " and x " + state.getDimension());
-        }
-        if (dedx.length != nState) {
-            throw new IllegalArgumentException(
-                    "Inconsistent length of dedx " + dedx.length + " and dimension of x0 " + nState);
-        }
+        super.evaluate(dedx, state0, state, dt);
 
         final ImmutableVectorN v0 = extract(state0, velocityTerm);
         final ImmutableVectorN a0 = extract(state0, accelerationTerm);

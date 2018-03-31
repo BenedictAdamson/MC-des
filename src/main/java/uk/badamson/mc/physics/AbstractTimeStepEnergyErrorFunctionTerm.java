@@ -15,7 +15,27 @@ import uk.badamson.mc.math.ImmutableVectorN;;
  */
 public abstract class AbstractTimeStepEnergyErrorFunctionTerm implements TimeStepEnergyErrorFunctionTerm {
 
-    protected static final int[] copyTermIndex(int[] index, String name) {
+    /**
+     * <p>
+     * Safely copy a term index array.
+     * </p>
+     * <p>
+     * The copy is <dfn>safe</dfn> in that it the method throws exceptions rather
+     * than copying an invalid term index array.
+     * </p>
+     * 
+     * @param index
+     *            The array to copy.
+     * @param name
+     *            The name or identifier of the term index array.
+     * @return The copy.
+     * @throws NullPointerException
+     *             If {@code index} is null.
+     * @throws IllegalArgumentException
+     *             If and value of {@code index} is negative.
+     */
+    protected static final int[] copyTermIndex(int[] index, String name)
+            throws NullPointerException, IllegalArgumentException {
         Objects.requireNonNull(index, name);
         final int n = index.length;
         final int[] copy = Arrays.copyOf(index, n);

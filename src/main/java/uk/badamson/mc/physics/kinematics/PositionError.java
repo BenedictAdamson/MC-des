@@ -106,21 +106,7 @@ public final class PositionError extends AbstractTimeStepEnergyErrorFunctionTerm
      */
     @Override
     public final double evaluate(double[] dedState, ImmutableVectorN state0, ImmutableVectorN state, double dt) {
-        Objects.requireNonNull(dedState, "dedState");
-        Objects.requireNonNull(state0, "state0");
-        Objects.requireNonNull(state, "state");
-        if (!(0.0 < dt && Double.isFinite(dt))) {
-            throw new IllegalArgumentException("dt " + dt);
-        }
-        final int nState = state0.getDimension();
-        if (state.getDimension() != nState) {
-            throw new IllegalArgumentException(
-                    "Inconsistent dimensions x0 " + nState + " and x " + state.getDimension());
-        }
-        if (dedState.length != nState) {
-            throw new IllegalArgumentException(
-                    "Inconsistent length of dedx " + dedState.length + " and dimension of x0 " + nState);
-        }
+        super.evaluate(dedState, state0, state, dt);
 
         final double rate = 1.0 / dt;
 
