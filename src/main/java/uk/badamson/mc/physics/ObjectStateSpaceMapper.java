@@ -45,7 +45,8 @@ public interface ObjectStateSpaceMapper<OBJECT> {
      * @throws NullPointerException
      *             If {@code state} is null.
      * @throws IndexOutOfBoundsException
-     *             If {@code state} does not have the number of dimensions that this
+     *             If {@code state} does not have the number of
+     *             {@linkplain ImmutableVectorN#getDimension() dimensions} that this
      *             mapper expects.
      */
     public OBJECT toObject(ImmutableVectorN state);

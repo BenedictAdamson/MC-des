@@ -1,5 +1,7 @@
 package uk.badamson.mc.physics;
 
+import static org.junit.Assert.assertEquals;
+
 import uk.badamson.mc.math.ImmutableVectorN;
 import uk.badamson.mc.math.Vector;
 import uk.badamson.mc.math.VectorTest;
@@ -26,6 +28,16 @@ public class VectorStateSpaceMapperTest {
 
         assertInvariants(mapper);// check for side-effects
         VectorTest.assertInvariants(vector);// check for side-effects
+    }
+
+    public static <VECTOR extends Vector> void fromToObjectSymmetry(VectorStateSpaceMapper<VECTOR> mapper,
+            double[] state, VECTOR original) {
+        mapper.fromObject(state, original);
+        final ImmutableVectorN stateVector = ImmutableVectorN.create(state);
+
+        final VECTOR reconstructed = toObject(mapper, stateVector);
+
+        assertEquals("Symmetric", original, reconstructed);
     }
 
     public static <VECTOR extends Vector> VECTOR toObject(VectorStateSpaceMapper<VECTOR> mapper,
