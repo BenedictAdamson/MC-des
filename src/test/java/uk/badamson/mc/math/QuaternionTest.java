@@ -6,6 +6,10 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import org.hamcrest.Description;
+import org.hamcrest.Factory;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.Test;
 
 import uk.badamson.mc.ObjectTest;
@@ -16,6 +20,35 @@ import uk.badamson.mc.ObjectTest;
  * </p>
  */
 public class QuaternionTest {
+
+    private static class IsCloseTo extends TypeSafeMatcher<Quaternion> {
+        private final double tolerance;
+        private final Quaternion value;
+
+        private IsCloseTo(Quaternion value, double tolerance) {
+            this.tolerance = tolerance;
+            this.value = value;
+        }
+
+        @Override
+        public void describeMismatchSafely(Quaternion item, Description mismatchDescription) {
+            mismatchDescription.appendValue(item).appendText(" differed by ").appendValue(distance(item));
+        }
+
+        @Override
+        public void describeTo(Description description) {
+            description.appendText("a quaternion within ").appendValue(tolerance).appendText(" of ").appendValue(value);
+        }
+
+        private final double distance(Quaternion item) {
+            return value.distance(item);
+        }
+
+        @Override
+        public boolean matchesSafely(Quaternion item) {
+            return distance(item) <= tolerance;
+        }
+    }// class
 
     public static void assertInvariants(Quaternion q) {
         ObjectTest.assertInvariants(q);// inherited
@@ -33,6 +66,11 @@ public class QuaternionTest {
                 equals && Double.doubleToLongBits(q1.getC()) != Double.doubleToLongBits(q2.getC()));
         assertFalse("Equality requires equivalent attributes, d",
                 equals && Double.doubleToLongBits(q1.getD()) != Double.doubleToLongBits(q2.getD()));
+    }
+
+    @Factory
+    public static Matcher<Quaternion> closeToQuaternion(Quaternion operand, double tolerance) {
+        return new IsCloseTo(operand, tolerance);
     }
 
     private static Quaternion conjugate(Quaternion q) {
