@@ -29,7 +29,7 @@ public final class ImmutableVector3StateSpaceMapper implements VectorStateSpaceM
      *            to the components of the 3D vector. If the state-space is
      *            {@linkplain ImmutableVectorN vector} <var>v</var>,
      *            {@linkplain ImmutableVectorN#get(int) component}
-     *            <var>v</var><sub>index0</sub> is the x component of the3D vector,
+     *            <var>v</var><sub>index0</sub> is the x component of the 3D vector,
      *            <var>v</var><sub>index0+1</sub> is the y component, and
      *            <var>v</var><sub>index0+2</sub> is the z component.
      * @throws IllegalArgumentException

@@ -53,6 +53,7 @@ public class Rotation3Test {
             return distance(item) <= tolerance;
         }
     }// class
+
     private static final double TOLERANCE = Math.nextAfter(1.0, Double.POSITIVE_INFINITY) - 1.0;
 
     private static final double SMALL_ANGLE = Math.PI * 0.003;
