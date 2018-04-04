@@ -10,6 +10,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import org.hamcrest.Description;
+import org.hamcrest.Factory;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.Test;
 
 import uk.badamson.mc.ObjectTest;
@@ -21,7 +25,36 @@ import uk.badamson.mc.ObjectTest;
  */
 public class Rotation3Test {
 
+    private static class IsCloseTo extends TypeSafeMatcher<Rotation3> {
+        private final double tolerance;
+        private final Rotation3 value;
+
+        private IsCloseTo(Rotation3 value, double tolerance) {
+            this.tolerance = tolerance;
+            this.value = value;
+        }
+
+        @Override
+        public void describeMismatchSafely(Rotation3 item, Description mismatchDescription) {
+            mismatchDescription.appendValue(item).appendText(" differed by ").appendValue(distance(item));
+        }
+
+        @Override
+        public void describeTo(Description description) {
+            description.appendText("a rotation within ").appendValue(tolerance).appendText(" of ").appendValue(value);
+        }
+
+        private final double distance(Rotation3 item) {
+            return value.getVersor().distance(item.getVersor());
+        }
+
+        @Override
+        public boolean matchesSafely(Rotation3 item) {
+            return distance(item) <= tolerance;
+        }
+    }// class
     private static final double TOLERANCE = Math.nextAfter(1.0, Double.POSITIVE_INFINITY) - 1.0;
+
     private static final double SMALL_ANGLE = Math.PI * 0.003;
 
     private static ImmutableVector3 apply(Rotation3 r, ImmutableVector3 v) {
@@ -51,7 +84,7 @@ public class Rotation3Test {
 
     private static void apply_axis(ImmutableVector3 axis, double angle) {
         final double magnitude0 = axis.magnitude();
-        final Rotation3 r = Rotation3.createAxisAngle(axis, angle);
+        final Rotation3 r = Rotation3.valueOfAxisAngle(axis, angle);
 
         final ImmutableVector3 rv = apply(r, axis);
 
@@ -64,7 +97,7 @@ public class Rotation3Test {
     }
 
     private static void apply_basisHalfPi(ImmutableVector3 e, ImmutableVector3 eAxis, ImmutableVector3 expected) {
-        final Rotation3 r = Rotation3.createAxisAngle(eAxis, Math.PI * 0.5);
+        final Rotation3 r = Rotation3.valueOfAxisAngle(eAxis, Math.PI * 0.5);
 
         final ImmutableVector3 actual = apply(r, e);
 
@@ -96,13 +129,42 @@ public class Rotation3Test {
         ObjectTest.assertInvariants(r1, r2);// inherited
     }
 
-    private static Rotation3 createAxisAngle(ImmutableVector3 axis, double angle) {
+    @Factory
+    public static Matcher<Rotation3> closeToRotation3(Rotation3 operand) {
+        return new IsCloseTo(operand, TOLERANCE);
+    }
+
+    @Factory
+    public static Matcher<Rotation3> closeToRotation3(Rotation3 operand, double tolerance) {
+        return new IsCloseTo(operand, tolerance);
+    }
+
+    private static Rotation3 valueOf(Quaternion quaternion) {
+        final Rotation3 rotation = Rotation3.valueOf(quaternion);
+
+        assertNotNull("Always creates a rotation", rotation);// guard
+        assertInvariants(rotation);
+
+        return rotation;
+    }
+
+    private static void valueOf_quaternionForAxisAngle(ImmutableVector3 axis, double angle, double magnitude) {
+        final Rotation3 rotation0 = Rotation3.valueOfAxisAngle(axis, angle);
+        final Quaternion quaternion = rotation0.getVersor().scale(magnitude);
+
+        final Rotation3 rotation = valueOf(quaternion);
+
+        assertThat("rotation", rotation, closeToRotation3(rotation0, TOLERANCE * 2));
+    }
+
+    private static Rotation3 valueOfAxisAngle(ImmutableVector3 axis, double angle) {
         final double sinAngle = Math.sin(angle);
         final double axisMagnitude = Math.abs(sinAngle) < Double.MIN_NORMAL ? 0.0 : axis.magnitude();
 
-        final Rotation3 rotation = Rotation3.createAxisAngle(axis, angle);
+        final Rotation3 rotation = Rotation3.valueOfAxisAngle(axis, angle);
 
         assertNotNull("Always creates a rotation", rotation);// guard
+        assertInvariants(rotation);
         assertThat("rotation cosine.", Math.cos(angle), closeTo(Math.cos(rotation.getAngle()), TOLERANCE));
         assertThat("rotation sine.", sinAngle, closeTo(Math.sin(rotation.getAngle()), TOLERANCE));
         assertThat("The rotation axis of the created rotation points in the same direction as the given axis.",
@@ -177,79 +239,111 @@ public class Rotation3Test {
     }
 
     @Test
-    public void createAxisAngle_0I() {
-        createAxisAngle(ImmutableVector3.create(1, 0, 0), 0);
-    }
-
-    @Test
-    public void createAxisAngle_0J() {
-        createAxisAngle(ImmutableVector3.create(0, 1, 0), 0);
-    }
-
-    @Test
-    public void createAxisAngle_0K() {
-        createAxisAngle(ImmutableVector3.create(0, 0, 1), 0);
-    }
-
-    @Test
-    public void createAxisAngle_2HalfPiI() {
-        createAxisAngle(ImmutableVector3.create(2, 0, 0), Math.PI * 0.5);
-    }
-
-    @Test
-    public void createAxisAngle_2HalfPiJ() {
-        createAxisAngle(ImmutableVector3.create(0, 2, 0), Math.PI * 0.5);
-    }
-
-    @Test
-    public void createAxisAngle_2HalfPiK() {
-        createAxisAngle(ImmutableVector3.create(0, 0, 2), Math.PI * 0.5);
-    }
-
-    @Test
-    public void createAxisAngle_2PiI() {
-        createAxisAngle(ImmutableVector3.create(1, 0, 0), Math.PI * 2.0);
-    }
-
-    @Test
-    public void createAxisAngle_halfPiI() {
-        createAxisAngle(ImmutableVector3.create(1, 0, 0), Math.PI * 0.5);
-    }
-
-    @Test
-    public void createAxisAngle_halfPiJ() {
-        createAxisAngle(ImmutableVector3.create(0, 1, 0), Math.PI * 0.5);
-    }
-
-    @Test
-    public void createAxisAngle_halfPiK() {
-        createAxisAngle(ImmutableVector3.create(0, 0, 1), Math.PI * 0.5);
-    }
-
-    @Test
-    public void createAxisAngle_piI() {
-        createAxisAngle(ImmutableVector3.create(1, 0, 0), Math.PI);
-    }
-
-    @Test
-    public void createAxisAngle_smallI() {
-        createAxisAngle(ImmutableVector3.create(1, 0, 0), SMALL_ANGLE);
-    }
-
-    @Test
-    public void createAxisAngle_smallJ() {
-        createAxisAngle(ImmutableVector3.create(0, 1, 0), SMALL_ANGLE);
-    }
-
-    @Test
-    public void createAxisAngle_smallK() {
-        createAxisAngle(ImmutableVector3.create(0, 0, 1), SMALL_ANGLE);
-    }
-
-    @Test
     public void statics() {
         assertNotNull("Has a zero rotation", Rotation3.ZERO);
         assertInvariants(Rotation3.ZERO);
         assertEquals("rotation angle of the zero rotation", 0.0, Rotation3.ZERO.getAngle(), Double.MIN_NORMAL);
+    }
+
+    @Test
+    public void valueOf_quaternion_0() {
+        final Rotation3 rotation = valueOf(Quaternion.ZERO);
+
+        assertEquals("rotation", rotation, Rotation3.ZERO);
+    }
+
+    @Test
+    public void valueOf_quaternionForAxisAngle_2iSmall() {
+        valueOf_quaternionForAxisAngle(ImmutableVector3.I, SMALL_ANGLE, 2.0);
+    }
+
+    @Test
+    public void valueOf_quaternionForAxisAngle_iHalfPi() {
+        valueOf_quaternionForAxisAngle(ImmutableVector3.I, Math.PI * 0.5, 1.0);
+    }
+
+    @Test
+    public void valueOf_quaternionForAxisAngle_iSmall() {
+        valueOf_quaternionForAxisAngle(ImmutableVector3.I, SMALL_ANGLE, 1.0);
+    }
+
+    @Test
+    public void valueOf_quaternionForAxisAngle_jSmall() {
+        valueOf_quaternionForAxisAngle(ImmutableVector3.J, SMALL_ANGLE, 1.0);
+    }
+
+    @Test
+    public void valueOf_quaternionForAxisAngle_kSmall() {
+        valueOf_quaternionForAxisAngle(ImmutableVector3.K, SMALL_ANGLE, 1.0);
+    }
+
+    @Test
+    public void valueOfAxisAngle_0I() {
+        valueOfAxisAngle(ImmutableVector3.create(1, 0, 0), 0);
+    }
+
+    @Test
+    public void valueOfAxisAngle_0J() {
+        valueOfAxisAngle(ImmutableVector3.create(0, 1, 0), 0);
+    }
+
+    @Test
+    public void valueOfAxisAngle_0K() {
+        valueOfAxisAngle(ImmutableVector3.create(0, 0, 1), 0);
+    }
+
+    @Test
+    public void valueOfAxisAngle_2HalfPiI() {
+        valueOfAxisAngle(ImmutableVector3.create(2, 0, 0), Math.PI * 0.5);
+    }
+
+    @Test
+    public void valueOfAxisAngle_2HalfPiJ() {
+        valueOfAxisAngle(ImmutableVector3.create(0, 2, 0), Math.PI * 0.5);
+    }
+
+    @Test
+    public void valueOfAxisAngle_2HalfPiK() {
+        valueOfAxisAngle(ImmutableVector3.create(0, 0, 2), Math.PI * 0.5);
+    }
+
+    @Test
+    public void valueOfAxisAngle_2PiI() {
+        valueOfAxisAngle(ImmutableVector3.create(1, 0, 0), Math.PI * 2.0);
+    }
+
+    @Test
+    public void valueOfAxisAngle_halfPiI() {
+        valueOfAxisAngle(ImmutableVector3.create(1, 0, 0), Math.PI * 0.5);
+    }
+
+    @Test
+    public void valueOfAxisAngle_halfPiJ() {
+        valueOfAxisAngle(ImmutableVector3.create(0, 1, 0), Math.PI * 0.5);
+    }
+
+    @Test
+    public void valueOfAxisAngle_halfPiK() {
+        valueOfAxisAngle(ImmutableVector3.create(0, 0, 1), Math.PI * 0.5);
+    }
+
+    @Test
+    public void valueOfAxisAngle_piI() {
+        valueOfAxisAngle(ImmutableVector3.create(1, 0, 0), Math.PI);
+    }
+
+    @Test
+    public void valueOfAxisAngle_smallI() {
+        valueOfAxisAngle(ImmutableVector3.create(1, 0, 0), SMALL_ANGLE);
+    }
+
+    @Test
+    public void valueOfAxisAngle_smallJ() {
+        valueOfAxisAngle(ImmutableVector3.create(0, 1, 0), SMALL_ANGLE);
+    }
+
+    @Test
+    public void valueOfAxisAngle_smallK() {
+        valueOfAxisAngle(ImmutableVector3.create(0, 0, 1), SMALL_ANGLE);
     }
 }

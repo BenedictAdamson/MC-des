@@ -26,6 +26,37 @@ public final class Rotation3 {
 
     /**
      * <p>
+     * Create a rotation that has a given quaternion representation.
+     * </p>
+     * <ul>
+     * <li>Always creates a (non null) rotation.</li>
+     * <li>The {@linkplain #getVersor() versor} of the created rotation is derived
+     * from the given quaternion, {@linkplain Quaternion#scale(double) scaled} to
+     * have unit {@linkplain Quaternion#norm() norm} (magnitude).</li>
+     * <li>For the special case of a {@linkplain Quaternion#ZERO zero} (or near
+     * zero) quaternion, the method gives the {@linkplain #ZERO zero} rotation.</li>
+     * </ul>
+     * 
+     * @param quaternion
+     *            The quaternion of the rotation.
+     * @return the rotation
+     * @throws NullPointerException
+     *             If {@code quaternion} is null.
+     */
+    public static Rotation3 valueOf(Quaternion quaternion) {
+        Objects.requireNonNull(quaternion, "quaternion");
+        final double norm = quaternion.norm();
+        if (norm == 1.0) {
+            return new Rotation3(quaternion);
+        } else if (Double.MIN_NORMAL <= norm) {
+            return new Rotation3(quaternion.scale(1.0 / norm));
+        } else {
+            return ZERO;
+        }
+    }
+
+    /**
+     * <p>
      * Create a rotation that has a given axis-angle representation.
      * </p>
      * <ul>
@@ -49,7 +80,7 @@ public final class Rotation3 {
      *             If {@code axis} as zero {@linkplain ImmutableVector3#magnitude()
      *             magnitude} but the rotation amount is not zero.
      */
-    public static Rotation3 createAxisAngle(ImmutableVector3 axis, double angle) {
+    public static Rotation3 valueOfAxisAngle(ImmutableVector3 axis, double angle) {
         Objects.requireNonNull(axis, "axis");
         final double halfAngle = angle * 0.5;
         final double c = Math.cos(halfAngle);
@@ -160,4 +191,10 @@ public final class Rotation3 {
     public final Quaternion getVersor() {
         return versor;
     }
+
+    @Override
+    public final String toString() {
+        return "[" + getAngle() + " radians about " + getAxis() + "]";
+    }
+
 }
