@@ -88,8 +88,19 @@ public final class VersorError extends AbstractTimeStepEnergyErrorFunctionTerm {
      */
     @Override
     public final double evaluate(double[] dedx, ImmutableVectorN state0, ImmutableVectorN state, double dt) {
-        // TODO Auto-generated method stub
-        return super.evaluate(dedx, state0, state, dt);
+        super.evaluate(dedx, state0, state, dt);// check preconditions
+
+        final Quaternion q = quaternionMapper.toObject(state);
+        final double n = q.norm();
+        final double ne = n - 1.0;// TODO smaller
+        final double ve = length * ne / dt;
+        final double deda2 = -mass * length * ve / (dt * n);// TODO sign
+
+        final double e = 0.5 * mass * ve * ve;
+        final Quaternion dedq = q.scale(deda2);
+        quaternionMapper.fromObject(dedx, dedq);
+
+        return e;
     }
 
     /**
