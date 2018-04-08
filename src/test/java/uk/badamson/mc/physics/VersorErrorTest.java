@@ -153,6 +153,11 @@ public class VersorErrorTest {
     }
 
     @Test
+    public void evaluate_smallError_11Smaller() {
+        evaluate_smallError(LENGTH_1, MASS_1, Quaternion.ONE, Quaternion.ONE.scale(-SMALL), DT_1);
+    }
+
+    @Test
     public void evaluate_smallError_1i() {
         evaluate_smallError(LENGTH_1, MASS_1, Quaternion.ONE, Quaternion.I.scale(SMALL), DT_1);
     }
