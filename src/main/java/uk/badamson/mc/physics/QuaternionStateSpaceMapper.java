@@ -5,12 +5,12 @@ import java.util.Objects;
 import net.jcip.annotations.Immutable;
 import uk.badamson.mc.math.ImmutableVectorN;
 import uk.badamson.mc.math.Quaternion;
-import uk.badamson.mc.math.Vector;
 
 /**
  * <p>
- * A Strategy for mapping from an object representation of a {@linkplain Vector
- * vector} to (part of) a state-space representation, and vice versa.
+ * A Strategy for mapping from an object representation of a
+ * {@linkplain Quaternion quaternion} to (part of) a state-space representation,
+ * and vice versa.
  * </p>
  * <p>
  * The mapper maps 4 contiguous components of the state-space vector to the
@@ -25,7 +25,7 @@ public final class QuaternionStateSpaceMapper implements ObjectStateSpaceMapper<
     /**
      * @param index0
      *            The position in the state-space vector of the components that map
-     *            to the components of the 3D vector. If the state-space is
+     *            to the components of the quaternion. If the state-space is
      *            {@linkplain ImmutableVectorN vector} <var>v</var>,
      *            {@linkplain ImmutableVectorN#get(int) component}
      *            <var>v</var><sub>index0</sub> is the real component of the
