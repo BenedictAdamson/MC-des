@@ -2,6 +2,7 @@ package uk.badamson.mc.physics.kinematics;
 
 import java.util.Objects;
 
+import net.jcip.annotations.Immutable;
 import uk.badamson.mc.math.ImmutableVectorN;
 import uk.badamson.mc.math.Vector;
 import uk.badamson.mc.physics.AbstractTimeStepEnergyErrorFunctionTerm;
@@ -17,6 +18,7 @@ import uk.badamson.mc.physics.VectorStateSpaceMapper;;
  * of inconsistency of the position and velocity of a body.
  * </p>
  */
+@Immutable
 public final class PositionError<VECTOR extends Vector> extends AbstractTimeStepEnergyErrorFunctionTerm {
 
     private final double mass;
@@ -46,6 +48,7 @@ public final class PositionError<VECTOR extends Vector> extends AbstractTimeStep
      *             <ul>
      *             <li>If {@code positionVectorMapper} is null.</li>
      *             <li>If {@code velocityVectorMapper} is null.</li>
+     *             </ul>
      * @throws IllegalArgumentException
      *             <ul>
      *             <li>If {@code mass} is not a positive and
@@ -73,10 +76,9 @@ public final class PositionError<VECTOR extends Vector> extends AbstractTimeStep
      * {@inheritDoc}
      * 
      * <ol>
-     * <li>The method uses the {@linkplain #getPositionTerm(int) position term
-     * index} information and {@linkplain #getVelocityTerm(int) velocity term index}
-     * information to extract position and velocity vectors from the given state
-     * vectors.</li>
+     * <li>The method uses the {@linkplain #getPositionVectorMapper() position} and
+     * {@linkplain #getVelocityVectorMapper() velocity} mappers to extract position
+     * and velocity vectors from the given state vectors.</li>
      * <li>It calculates a mean acceleration from the old and new velocity values,
      * and the time-step size.</li>
      * <li>It calculates the extrapolated position from the old position, the old

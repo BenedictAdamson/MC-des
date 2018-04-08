@@ -83,10 +83,9 @@ public final class VelocityError<VECTOR extends Vector> extends AbstractTimeStep
      * {@inheritDoc}
      * 
      * <ol>
-     * <li>The method uses the {@linkplain #getVelocityTerm(int) velocity term
-     * index} information and {@linkplain #getAccelerationTerm(int) acceleration
-     * term index} information to extract velocity and acceleration vectors from the
-     * given state vectors.</li>
+     * <li>The method uses the {@linkplain #getVelocityVectorMapper() velocity} and
+     * {@linkplain #getAccelerationVectorMapper() acceleration} mappers to extract
+     * velocity and acceleration vectors from the given state vectors.</li>
      * <li>It calculates a mean acceleration from the old and new acceleration
      * values.</li>
      * <li>It calculates the extrapolated velocity from the old velocity and the
