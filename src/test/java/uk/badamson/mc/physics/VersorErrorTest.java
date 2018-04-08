@@ -1,12 +1,15 @@
 package uk.badamson.mc.physics;
 
+import static org.hamcrest.number.IsCloseTo.closeTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
 
 import uk.badamson.mc.math.ImmutableVectorN;
+import uk.badamson.mc.math.Quaternion;
 
 /**
  * <p>
@@ -20,6 +23,9 @@ public class VersorErrorTest {
 
     private static final double MASS_1 = 2.0;
     private static final double MASS_2 = 1E24;
+
+    private static final double DT_1 = 1.0;
+    private static final double DT_2 = 1E-3;
 
     public static void assertInvariants(VersorError term) {
         AbstractTimeStepEnergyErrorFunctionTermTest.assertInvariants(term);// inherited
@@ -59,6 +65,24 @@ public class VersorErrorTest {
         return e;
     }
 
+    private static void evaluate_versor(double length, double mass, Quaternion versor, double dt) {
+        final QuaternionStateSpaceMapper quaternionMapper = new QuaternionStateSpaceMapper(0);
+        final VersorError term = new VersorError(length, mass, quaternionMapper);
+        final double[] dedx = new double[4];
+        final ImmutableVectorN x0 = ImmutableVectorN.create0(4);
+        final ImmutableVectorN x = ImmutableVectorN.create(versor.getA(), versor.getB(), versor.getC(), versor.getD());
+
+        final double e = evaluate(term, dedx, x0, x, dt);
+
+        assertInvariants(term);
+
+        assertThat("energy error", e, closeTo(0, Double.MIN_NORMAL));
+        assertThat("dedex[0]", dedx[0], closeTo(0, Double.MIN_NORMAL));
+        assertThat("dedex[1]", dedx[1], closeTo(0, Double.MIN_NORMAL));
+        assertThat("dedex[2]", dedx[2], closeTo(0, Double.MIN_NORMAL));
+        assertThat("dedex[3]", dedx[3], closeTo(0, Double.MIN_NORMAL));
+    }
+
     @Test
     public void constructor_A() {
         constructor(LENGTH_1, MASS_1, new QuaternionStateSpaceMapper(0));
@@ -67,6 +91,26 @@ public class VersorErrorTest {
     @Test
     public void constructor_B() {
         constructor(LENGTH_2, MASS_2, new QuaternionStateSpaceMapper(1));
+    }
+
+    @Test
+    public void evaluate_versor_ia() {
+        evaluate_versor(LENGTH_1, MASS_1, Quaternion.I, DT_1);
+    }
+
+    @Test
+    public void evaluate_versor_ib() {
+        evaluate_versor(LENGTH_2, MASS_2, Quaternion.I, DT_2);
+    }
+
+    @Test
+    public void evaluate_versor_j() {
+        evaluate_versor(LENGTH_1, MASS_1, Quaternion.J, DT_1);
+    }
+
+    @Test
+    public void evaluate_versor_k() {
+        evaluate_versor(LENGTH_1, MASS_1, Quaternion.K, DT_1);
     }
 
 }
