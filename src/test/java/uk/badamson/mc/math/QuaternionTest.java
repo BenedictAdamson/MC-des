@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import org.hamcrest.Description;
@@ -224,6 +225,17 @@ public class QuaternionTest {
         assertEquals("log b", 0.0, log.getB(), precision);
         assertEquals("log c", 0.0, log.getC(), precision);
         assertEquals("log d", 0.0, log.getD(), precision);
+    }
+
+    public static Quaternion mean(Quaternion x, Quaternion that) {
+        final Quaternion mean = x.mean(that);
+
+        assertNotNull("Not null, mean", mean);// guard
+        assertInvariants(mean);
+        assertInvariants(x, mean);
+        assertInvariants(that, mean);
+
+        return mean;
     }
 
     private static Quaternion minus(Quaternion q, Quaternion that) {
@@ -818,6 +830,42 @@ public class QuaternionTest {
     @Test
     public void log_scalar2() {
         log_finitePositiveScalar(2.0);
+    }
+
+    @Test
+    public void mean_all() {
+        final Quaternion mean = mean(Quaternion.create(3, 4, 5, 6), Quaternion.create(7, 8, 9, 10));
+        assertThat("mean", mean, closeToQuaternion(Quaternion.create(5, 6, 7, 8), Double.MIN_NORMAL));
+    }
+
+    @Test
+    public void mean_x01() {
+        final Quaternion mean = mean(Quaternion.ZERO, Quaternion.ONE);
+        assertThat("mean", mean, closeToQuaternion(Quaternion.create(0.5, 0, 0, 0), Double.MIN_NORMAL));
+    }
+
+    @Test
+    public void mean_x02() {
+        final Quaternion mean = mean(Quaternion.ZERO, Quaternion.create(2, 0, 0, 0));
+        assertThat("mean", mean, closeToQuaternion(Quaternion.create(1, 0, 0, 0), Double.MIN_NORMAL));
+    }
+
+    @Test
+    public void mean_x0i() {
+        final Quaternion mean = mean(Quaternion.ZERO, Quaternion.I);
+        assertThat("mean", mean, closeToQuaternion(Quaternion.create(0, 0.5, 0, 0), Double.MIN_NORMAL));
+    }
+
+    @Test
+    public void mean_x0j() {
+        final Quaternion mean = mean(Quaternion.ZERO, Quaternion.J);
+        assertThat("mean", mean, closeToQuaternion(Quaternion.create(0, 0, 0.5, 0), Double.MIN_NORMAL));
+    }
+
+    @Test
+    public void mean_x0k() {
+        final Quaternion mean = mean(Quaternion.ZERO, Quaternion.K);
+        assertThat("mean", mean, closeToQuaternion(Quaternion.create(0, 0, 0, 0.5), Double.MIN_NORMAL));
     }
 
     @Test

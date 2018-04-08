@@ -274,6 +274,23 @@ public final class Quaternion {
 
     /**
      * <p>
+     * Create the quaternion that is the mean of this quaternion with another
+     * quaternion.
+     * </p>
+     * 
+     * @param that
+     *            The quaternion to take the mean with
+     * @return the mean quaternion; not null.
+     * 
+     * @throws NullPointerException
+     *             If {@code quaternion} is null.
+     */
+    public final Quaternion mean(Quaternion that) {
+        return new Quaternion((a + that.a) * 0.5, (b + that.b) * 0.5, (c + that.c) * 0.5, (d + that.d) * 0.5);
+    }
+
+    /**
+     * <p>
      * Create the quaternion that is a given quaternion subtracted from this
      * quaternion; the difference of this quaternion and another.
      * </p>
