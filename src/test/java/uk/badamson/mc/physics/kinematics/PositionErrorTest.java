@@ -1,9 +1,9 @@
 package uk.badamson.mc.physics.kinematics;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -35,8 +35,8 @@ public class PositionErrorTest {
         final VectorStateSpaceMapper<VECTOR> positionVectorMapper = term.getPositionVectorMapper();
         final VectorStateSpaceMapper<VECTOR> velocityVectorMapper = term.getVelocityVectorMapper();
 
-        assertThat("positionVectorMapper", positionVectorMapper, org.hamcrest.core.IsNull.notNullValue());// guard
-        assertThat("velocityVectorMapper", velocityVectorMapper, org.hamcrest.core.IsNull.notNullValue());// guard
+        assertNotNull("positionVectorMapper", positionVectorMapper);// guard
+        assertNotNull("velocityVectorMapper", velocityVectorMapper);// guard
 
         VectorStateSpaceMapperTest.assertInvariants(positionVectorMapper);
         VectorStateSpaceMapperTest.assertInvariants(velocityVectorMapper);
@@ -44,7 +44,7 @@ public class PositionErrorTest {
 
         final int positionVectorMapperDimension = positionVectorMapper.getDimension();
 
-        assertTrue("Mass <" + mass + "> is positive and  finite", 0.0 < mass && Double.isFinite(mass));
+        AbstractTimeStepEnergyErrorFunctionTermTest.assertIsReferenceScale("mass", mass);
         assertThat("spaceDimension", spaceDimension, org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo(1));
         assertEquals("The number of dimensions equals the number of dimensions of the position vector mapper.",
                 positionVectorMapperDimension, spaceDimension);
