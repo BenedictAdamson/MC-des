@@ -6,15 +6,16 @@ import net.jcip.annotations.Immutable;
 
 /**
  * <p>
- * A rotation in 3D space.
+ * A rotation in 3D space represented by a versor (a {@linkplain Quaternion
+ * quaternion} of unit {@linkplain Quaternion#norm() norm}).
  * </p>
  */
 @Immutable
-public final class Rotation3Quaternion {
+public final class Rotation3Quaternion implements Rotation3 {
 
     /**
      * <p>
-     * A zero rotation.
+     * A zero rotation quaternion.
      * </p>
      * <ul>
      * <li>Has a (non null) zero rotation.</li>
@@ -57,7 +58,7 @@ public final class Rotation3Quaternion {
 
     /**
      * <p>
-     * Create a rotation that has a given axis-angle representation.
+     * Create a rotation quaternion that has a given axis-angle representation.
      * </p>
      * <ul>
      * <li>Always creates a (non null) rotation.</li>
@@ -105,28 +106,7 @@ public final class Rotation3Quaternion {
         this.versor = versor;
     }
 
-    /**
-     * <p>
-     * Produce the direction vector that results from applying this rotation to a
-     * given direction vector.
-     * </p>
-     * <ul>
-     * <li>Always produces a (non null) rotated vector.</li>
-     * <li>The rotated vector has the same {@linkplain ImmutableVector3#magnitude()
-     * magnitude} as the given vector.</li>
-     * <li>Rotation by the {@linkplain #ZERO zero rotation} produces a rotated
-     * vector {@linkplain ImmutableVector3#equals(Object) equal} to the given
-     * vector.</li>
-     * <li>Rotation of a vector that lies along the {@linkplain #getAxis() rotation
-     * axis} produces a rotated vector equal to the given vector.</li>
-     * </ul>
-     * 
-     * @param v
-     *            The direction vector to be rotated.
-     * @return The rotated vector.
-     * @throws NullPointerException
-     *             If {@code v} is null
-     */
+    @Override
     public final ImmutableVector3 apply(ImmutableVector3 v) {
         Objects.requireNonNull(v, "v");
         final Quaternion conj = versor.conjugation(Quaternion.create(0, v.get(0), v.get(1), v.get(2)));
@@ -143,25 +123,14 @@ public final class Rotation3Quaternion {
      * 
      * @return the angle
      */
+    @Override
     public final double getAngle() {
         final double c = versor.getA();
         final double s = versor.vector().norm();
         return Math.atan2(s, c) * 2.0;
     }
 
-    /**
-     * <p>
-     * The direction vector about which this rotation takes place.
-     * </p>
-     * <ul>
-     * <li>Always have a (non-null) axis.</li>
-     * <li>The axis has a {@linkplain ImmutableVector3#magnitude() magnitude} of 1
-     * or 0.</li>
-     * <li>The axis has a 0 magnitude for a zero rotation.</li>
-     * </ul>
-     * 
-     * @return
-     */
+    @Override
     public final ImmutableVector3 getAxis() {
         final ImmutableVector3 su = ImmutableVector3.create(versor.getB(), versor.getC(), versor.getD());
         final double magnitude = su.magnitude();
@@ -172,22 +141,7 @@ public final class Rotation3Quaternion {
         }
     }
 
-    /**
-     * <p>
-     * The quaternion that represents this rotation.
-     * </p>
-     * <ul>
-     * <li>Always have a (non null) versor.</li>
-     * <li>The versor has unit {@linkplain Quaternion#norm() norm} (magnitude).</li>
-     * <li>The {@linkplain Quaternion#getA() real component} of the versor is the
-     * cosine of half the {@linkplain #getAngle() rotation angle}.</li>
-     * <li>The {@linkplain Quaternion#vector() vector part} of the versor is the
-     * unit direction vector of the {@linkplain #getAxis() rotation axis} multiplied
-     * by the sine of half the rotation angle.</li>
-     * </ul>
-     * 
-     * @return the versor.
-     */
+    @Override
     public final Quaternion getVersor() {
         return versor;
     }

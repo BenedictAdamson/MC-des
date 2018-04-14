@@ -2,6 +2,7 @@ package uk.badamson.mc.physics;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static uk.badamson.mc.math.Rotation3Test.closeToRotation3;
 
 import org.junit.Test;
 
@@ -71,7 +72,7 @@ public class Rotation3QuaternionStateSpaceMapperTest {
 
         final Rotation3Quaternion reconstructed = toObject(mapper, stateVector);
 
-        assertThat("symmetric", reconstructed, Rotation3QuaternionTest.closeToRotation3Quaternion(original));
+        assertThat("symmetric", reconstructed, closeToRotation3(original));
     }
 
     public static Rotation3Quaternion toObject(Rotation3QuaternionStateSpaceMapper mapper, ImmutableVectorN state) {
