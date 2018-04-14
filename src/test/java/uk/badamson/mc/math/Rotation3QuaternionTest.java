@@ -219,17 +219,17 @@ public class Rotation3QuaternionTest {
 
     @Test
     public void valueOfAxisAngle_0I() {
-        valueOfAxisAngle(ImmutableVector3.create(1, 0, 0), 0);
+        valueOfAxisAngle(ImmutableVector3.I, 0);
     }
 
     @Test
     public void valueOfAxisAngle_0J() {
-        valueOfAxisAngle(ImmutableVector3.create(0, 1, 0), 0);
+        valueOfAxisAngle(ImmutableVector3.J, 0);
     }
 
     @Test
     public void valueOfAxisAngle_0K() {
-        valueOfAxisAngle(ImmutableVector3.create(0, 0, 1), 0);
+        valueOfAxisAngle(ImmutableVector3.K, 0);
     }
 
     @Test
@@ -249,41 +249,41 @@ public class Rotation3QuaternionTest {
 
     @Test
     public void valueOfAxisAngle_2PiI() {
-        valueOfAxisAngle(ImmutableVector3.create(1, 0, 0), Math.PI * 2.0);
+        valueOfAxisAngle(ImmutableVector3.I, Math.PI * 2.0);
     }
 
     @Test
     public void valueOfAxisAngle_halfPiI() {
-        valueOfAxisAngle(ImmutableVector3.create(1, 0, 0), Math.PI * 0.5);
+        valueOfAxisAngle(ImmutableVector3.I, Math.PI * 0.5);
     }
 
     @Test
     public void valueOfAxisAngle_halfPiJ() {
-        valueOfAxisAngle(ImmutableVector3.create(0, 1, 0), Math.PI * 0.5);
+        valueOfAxisAngle(ImmutableVector3.J, Math.PI * 0.5);
     }
 
     @Test
     public void valueOfAxisAngle_halfPiK() {
-        valueOfAxisAngle(ImmutableVector3.create(0, 0, 1), Math.PI * 0.5);
+        valueOfAxisAngle(ImmutableVector3.K, Math.PI * 0.5);
     }
 
     @Test
     public void valueOfAxisAngle_piI() {
-        valueOfAxisAngle(ImmutableVector3.create(1, 0, 0), Math.PI);
+        valueOfAxisAngle(ImmutableVector3.I, Math.PI);
     }
 
     @Test
     public void valueOfAxisAngle_smallI() {
-        valueOfAxisAngle(ImmutableVector3.create(1, 0, 0), SMALL_ANGLE);
+        valueOfAxisAngle(ImmutableVector3.I, SMALL_ANGLE);
     }
 
     @Test
     public void valueOfAxisAngle_smallJ() {
-        valueOfAxisAngle(ImmutableVector3.create(0, 1, 0), SMALL_ANGLE);
+        valueOfAxisAngle(ImmutableVector3.J, SMALL_ANGLE);
     }
 
     @Test
     public void valueOfAxisAngle_smallK() {
-        valueOfAxisAngle(ImmutableVector3.create(0, 0, 1), SMALL_ANGLE);
+        valueOfAxisAngle(ImmutableVector3.K, SMALL_ANGLE);
     }
 }
