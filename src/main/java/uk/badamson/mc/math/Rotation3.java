@@ -36,7 +36,7 @@ public interface Rotation3 {
      * </p>
      * <ul>
      * <li>Rotation by a complete circle has no effect. The angle might therefore be
-     * forced to be in the range -2&pi; to 2&pi;</li>
+     * forced to be in the range -2&pi; to 2&pi.</li>
      * </ul>
      * 
      * @return the angle
@@ -76,4 +76,28 @@ public interface Rotation3 {
      */
     public Quaternion getVersor();
 
+    /**
+     * <p>
+     * Create the rotation that is equivalent to this rotation followed by a given
+     * rotation; the sum of this rotation and another.
+     * </p>
+     * <ul>
+     * <li>Always returns a (non null) rotation.</li>
+     * <li>Rotation addition is not commutative.</li>
+     * <li>The sum of two rotations that have the same {@linkplain #getAxis()} has
+     * the same axis, with the {@linkplain #getAngle() angle} of the sum nominally
+     * equal to the sum of the angles of the two rotations. However, the sum might
+     * be constrained to the range -2&pi; to 2&pi.</li>
+     * <li>Adding a zero rotation with produces an equivalent rotation to the
+     * original.</li>
+     * </ul>
+     * 
+     * @param that
+     *            The other rotation
+     * @return the sum rotation
+     * 
+     * @throws NullPointerException
+     *             If {@code that} is null.
+     */
+    public Rotation3 plus(Rotation3 that);
 }

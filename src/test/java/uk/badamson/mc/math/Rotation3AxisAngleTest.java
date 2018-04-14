@@ -5,6 +5,7 @@ import static org.hamcrest.number.IsCloseTo.closeTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static uk.badamson.mc.math.ImmutableVector3Test.closeToImmutableVector3;
 import static uk.badamson.mc.math.Rotation3Test.closeToRotation3;
 
 import org.junit.Test;
@@ -69,6 +70,39 @@ public class Rotation3AxisAngleTest {
     public static void assertInvariants(Rotation3AxisAngle r1, Rotation3AxisAngle r2) {
         ObjectTest.assertInvariants(r1, r2);// inherited
         Rotation3Test.assertInvariants(r1, r2);// inherited
+    }
+
+    private static double normalizedAngle(double a) {
+        return a % (2.0 * Math.PI);
+    }
+
+    public static Rotation3 plus(Rotation3AxisAngle r, Rotation3 that) {
+        final Rotation3 sum = Rotation3Test.plus(r, that);
+
+        assertInvariants(r);// check for side effects
+
+        return sum;
+    }
+
+    private static void plus_0r(Rotation3AxisAngle that) {
+        final Rotation3 sum = plus(Rotation3AxisAngle.ZERO, that);
+        assertThat("sum", sum, closeToRotation3(that));
+    }
+
+    private static void plus_r0(Rotation3AxisAngle r) {
+        final Rotation3 sum = plus(r, Rotation3AxisAngle.ZERO);
+        assertThat("sum", sum, closeToRotation3(r));
+    }
+
+    private static void plus_sameAxis(ImmutableVector3 axis, double angle1, double angle2) {
+        final Rotation3AxisAngle r1 = Rotation3AxisAngle.valueOfAxisAngle(axis, angle1);
+        final Rotation3AxisAngle r2 = Rotation3AxisAngle.valueOfAxisAngle(axis, angle2);
+
+        final Rotation3 sum = plus(r1, r2);
+
+        assertThat("axis", sum.getAxis(), closeToImmutableVector3(axis, TOLERANCE));
+        assertThat("normalized angle", normalizedAngle(sum.getAngle()),
+                closeTo(normalizedAngle(angle1 + angle2), TOLERANCE));
     }
 
     private static Rotation3AxisAngle valueOf(Quaternion quaternion) {
@@ -167,6 +201,56 @@ public class Rotation3AxisAngleTest {
     @Test
     public void apply_basisHalfPiKJ() {
         apply_basisHalfPi(ImmutableVector3.K, ImmutableVector3.J, ImmutableVector3.I);
+    }
+
+    @Test
+    public void plus_00() {
+        plus_0r(Rotation3AxisAngle.ZERO);
+    }
+
+    @Test
+    public void plus_0ISmall() {
+        plus_0r(Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.I, SMALL_ANGLE));
+    }
+
+    @Test
+    public void plus_0JSmall() {
+        plus_0r(Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.J, SMALL_ANGLE));
+    }
+
+    @Test
+    public void plus_0KSmall() {
+        plus_0r(Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.K, SMALL_ANGLE));
+    }
+
+    @Test
+    public void plus_ISmall0() {
+        plus_r0(Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.I, SMALL_ANGLE));
+    }
+
+    @Test
+    public void plus_JSmall0() {
+        plus_r0(Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.J, SMALL_ANGLE));
+    }
+
+    @Test
+    public void plus_KSmall0() {
+        plus_r0(Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.K, SMALL_ANGLE));
+    }
+
+    @Test
+    public void plus_sameAxisISmallSmall() {
+        plus_sameAxis(ImmutableVector3.I, SMALL_ANGLE, SMALL_ANGLE);
+    }
+
+    @Test
+    public void plus_sameAxisJSmallSmall() {
+        plus_sameAxis(ImmutableVector3.J, SMALL_ANGLE, SMALL_ANGLE);
+    }
+
+    @Test
+    public void plus_sameAxisKSmallSmall() {
+        plus_sameAxis(ImmutableVector3.K, SMALL_ANGLE, SMALL_ANGLE);
     }
 
     @Test

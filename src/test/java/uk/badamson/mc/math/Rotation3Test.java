@@ -94,4 +94,18 @@ public class Rotation3Test {
     public static Matcher<Rotation3> closeToRotation3(Rotation3 operand, double tolerance) {
         return new IsCloseTo(operand, tolerance);
     }
+
+    public static Rotation3 plus(Rotation3 r, Rotation3 that) {
+        final Rotation3 sum = r.plus(that);
+
+        assertNotNull("Not null, result", sum);
+        assertInvariants(r);// check for side effects
+        assertInvariants(that);// check for side effects
+        assertInvariants(r, that);// check for side effects
+        assertInvariants(sum);
+        assertInvariants(sum, r);
+        assertInvariants(sum, that);
+
+        return sum;
+    }
 }

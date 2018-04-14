@@ -132,7 +132,14 @@ public final class Rotation3AxisAngle implements Rotation3 {
     }
 
     @Override
+    public final Rotation3 plus(Rotation3 that) {
+        Objects.requireNonNull(that, "that");
+        return asRotation3Quaternion().plus(that);
+    }
+
+    @Override
     public final String toString() {
         return "Rotation3AxisAngle[" + getAngle() + " radians about " + getAxis() + "]";
     }
+
 }
