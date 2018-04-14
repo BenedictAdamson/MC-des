@@ -44,7 +44,15 @@ public final class Rotation3AxisAngle implements Rotation3 {
      *             If {@code quaternion} is null.
      */
     public static Rotation3AxisAngle valueOf(Quaternion quaternion) {
-        return null;// FIXME
+        Objects.requireNonNull(quaternion, "quaternion");
+        final Quaternion versor = quaternion.versor();
+        final double c = versor.getA();
+        final double s = versor.vector().norm();
+        final double angle = Math.atan2(s, c) * 2.0;
+        final ImmutableVector3 axis = Double.MIN_NORMAL < Math.abs(s)
+                ? ImmutableVector3.create(versor.getB(), versor.getC(), versor.getD()).scale(1.0 / s)
+                : ImmutableVector3.ZERO;
+        return new Rotation3AxisAngle(axis, angle);
     }
 
     /**
@@ -74,7 +82,18 @@ public final class Rotation3AxisAngle implements Rotation3 {
      */
     public static Rotation3AxisAngle valueOfAxisAngle(ImmutableVector3 axis, double angle) {
         Objects.requireNonNull(axis, "axis");
-        return null;// FIXME
+        final ImmutableVector3 normalizedAxis = Double.MIN_NORMAL < Math.abs(angle) ? axis.scale(1.0 / axis.magnitude())
+                : ImmutableVector3.ZERO;// FIXME handle 2pi multiples
+        return new Rotation3AxisAngle(normalizedAxis, angle);
+    }
+
+    private final ImmutableVector3 axis;
+
+    private final double angle;
+
+    private Rotation3AxisAngle(ImmutableVector3 axis, double angle) {
+        this.axis = axis;
+        this.angle = angle;
     }
 
     @Override
@@ -83,22 +102,30 @@ public final class Rotation3AxisAngle implements Rotation3 {
         return null;
     }
 
+    /**
+     * <p>
+     * The angle of rotation of this rotation, in radians.
+     * </p>
+     * <ul>
+     * <li>This representation can representation by multiple turns, so the angle is
+     * not constrained to the range -2&pi; to 2&pi;</li>
+     * </ul>
+     * 
+     * @return the angle
+     */
     @Override
     public final double getAngle() {
-        // TODO Auto-generated method stub
-        return 0;
+        return angle;
     }
 
     @Override
     public final ImmutableVector3 getAxis() {
-        // TODO Auto-generated method stub
-        return null;
+        return axis;
     }
 
     @Override
     public final Quaternion getVersor() {
-        // TODO Auto-generated method stub
-        return null;
+        return Rotation3Quaternion.valueOfAxisAngle(axis, angle).getVersor();
     }
 
 }

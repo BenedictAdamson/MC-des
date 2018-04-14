@@ -97,8 +97,7 @@ public class Rotation3AxisAngleTest {
 
         assertNotNull("Always creates a rotation", rotation);// guard
         assertInvariants(rotation);
-        assertThat("rotation cosine.", Math.cos(angle), closeTo(Math.cos(rotation.getAngle()), TOLERANCE));
-        assertThat("rotation sine.", sinAngle, closeTo(Math.sin(rotation.getAngle()), TOLERANCE));
+        assertEquals("angle.", angle, rotation.getAngle(), TOLERANCE);
         assertThat("The rotation axis of the created rotation points in the same direction as the given axis.",
                 axisMagnitude, closeTo(axis.dot(rotation.getAxis()), axisMagnitude * TOLERANCE));
 
