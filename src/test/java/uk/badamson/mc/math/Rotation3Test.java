@@ -52,8 +52,6 @@ public class Rotation3Test {
 
     private static final double TOLERANCE = 4.0 * (Math.nextAfter(1.0, Double.POSITIVE_INFINITY) - 1.0);
 
-    private static final double SMALL_ANGLE = Math.PI * 0.003;
-
     public static ImmutableVector3 apply(Rotation3 r, ImmutableVector3 v) {
         final double magnitude0 = v.magnitude();
 
