@@ -67,7 +67,6 @@ public class Rotation3Test {
 
     public static void assertInvariants(Rotation3 rotation) {
         final Quaternion versor = rotation.getVersor();
-        final double angle = rotation.getAngle();
         final ImmutableVector3 axis = rotation.getAxis();
 
         assertNotNull("Always have a versor.", versor);// guard
