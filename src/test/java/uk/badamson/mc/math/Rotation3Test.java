@@ -4,6 +4,7 @@ import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.number.IsCloseTo.closeTo;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import org.hamcrest.Description;
 import org.hamcrest.Factory;
@@ -47,7 +48,9 @@ public class Rotation3Test {
         }
     }// class
 
-    private static final double TOLERANCE = 4.0 * (Math.nextAfter(1.0, Double.POSITIVE_INFINITY) - 1.0);
+    private static final double TOLERANCE = 4.0 * (Math.nextUp(1.0) - 1.0);
+
+    public static final double SMALL_ANGLE = Math.PI * 0.003;
 
     public static ImmutableVector3 apply(Rotation3 r, ImmutableVector3 v) {
         final double magnitude0 = v.magnitude();
@@ -95,6 +98,10 @@ public class Rotation3Test {
         return new IsCloseTo(operand, tolerance);
     }
 
+    public static double normalizedAngle(double a) {
+        return a % (2.0 * Math.PI);
+    }
+
     public static Rotation3 plus(Rotation3 r, Rotation3 that) {
         final Rotation3 sum = r.plus(that);
 
@@ -107,5 +114,22 @@ public class Rotation3Test {
         assertInvariants(sum, that);
 
         return sum;
+    }
+
+    public static Rotation3 scale(Rotation3 r, double f) {
+        final Rotation3 fr = r.scale(f);
+
+        assertNotNull("Not null, result", fr);
+        assertInvariants(r);// check for side effects
+        assertInvariants(fr);
+        assertInvariants(fr, r);
+
+        assertTrue("The scaled rotation has same axis as this, unless the scaling factor is zero",
+                Math.abs(f) < Double.MIN_NORMAL
+                        || ImmutableVector3Test.closeTo(r.getAxis(), TOLERANCE).matches(fr.getAxis()));
+        assertThat("The scaled rotation has its angle nominally scaled by the scaling factor.",
+                normalizedAngle(fr.getAngle()), closeTo(normalizedAngle(r.getAngle() * f), TOLERANCE));
+
+        return fr;
     }
 }

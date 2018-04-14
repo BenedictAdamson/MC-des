@@ -21,7 +21,7 @@ public class Rotation3AxisAngleTest {
 
     private static final double TOLERANCE = 4.0 * (Math.nextAfter(1.0, Double.POSITIVE_INFINITY) - 1.0);
 
-    private static final double SMALL_ANGLE = Math.PI * 0.003;
+    private static final double SMALL_ANGLE = Rotation3Test.SMALL_ANGLE;
 
     private static ImmutableVector3 apply(Rotation3AxisAngle r, ImmutableVector3 v) {
         final ImmutableVector3 rv = Rotation3Test.apply(r, v);// inherited
@@ -103,6 +103,16 @@ public class Rotation3AxisAngleTest {
         assertThat("axis", sum.getAxis(), closeToImmutableVector3(axis, TOLERANCE));
         assertThat("normalized angle", normalizedAngle(sum.getAngle()),
                 closeTo(normalizedAngle(angle1 + angle2), TOLERANCE));
+    }
+
+    public static Rotation3AxisAngle scale(Rotation3AxisAngle r, double f) {
+        final Rotation3AxisAngle fr = (Rotation3AxisAngle) Rotation3Test.scale(r, f);
+
+        assertInvariants(r);// check for side effects
+        assertInvariants(fr);
+        assertInvariants(fr, r);
+
+        return fr;
     }
 
     private static Rotation3AxisAngle valueOf(Quaternion quaternion) {
@@ -251,6 +261,46 @@ public class Rotation3AxisAngleTest {
     @Test
     public void plus_sameAxisKSmallSmall() {
         plus_sameAxis(ImmutableVector3.K, SMALL_ANGLE, SMALL_ANGLE);
+    }
+
+    @Test
+    public void scale_00() {
+        scale(Rotation3AxisAngle.ZERO, 0);
+    }
+
+    @Test
+    public void scale_01() {
+        scale(Rotation3AxisAngle.ZERO, 1);
+    }
+
+    @Test
+    public void scale_ISmall1() {
+        scale(Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.I, SMALL_ANGLE), 1);
+    }
+
+    @Test
+    public void scale_ISmall2() {
+        scale(Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.I, SMALL_ANGLE), 2);
+    }
+
+    @Test
+    public void scale_JSmall1() {
+        scale(Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.J, SMALL_ANGLE), 1);
+    }
+
+    @Test
+    public void scale_JSmall2() {
+        scale(Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.J, SMALL_ANGLE), 2);
+    }
+
+    @Test
+    public void scale_KSmall1() {
+        scale(Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.K, SMALL_ANGLE), 1);
+    }
+
+    @Test
+    public void scale_KSmall2() {
+        scale(Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.K, SMALL_ANGLE), 2);
     }
 
     @Test

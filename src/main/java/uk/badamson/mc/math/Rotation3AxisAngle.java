@@ -138,6 +138,11 @@ public final class Rotation3AxisAngle implements Rotation3 {
     }
 
     @Override
+    public Rotation3AxisAngle scale(double f) {
+        return new Rotation3AxisAngle(axis, angle * f);
+    }
+
+    @Override
     public final String toString() {
         return "Rotation3AxisAngle[" + getAngle() + " radians about " + getAxis() + "]";
     }

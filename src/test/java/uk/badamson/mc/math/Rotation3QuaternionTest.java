@@ -22,9 +22,7 @@ import uk.badamson.mc.ObjectTest;
  */
 public class Rotation3QuaternionTest {
 
-    private static final double TOLERANCE = 4.0 * (Math.nextAfter(1.0, Double.POSITIVE_INFINITY) - 1.0);
-
-    private static final double SMALL_ANGLE = Math.PI * 0.003;
+    private static final double TOLERANCE = 4.0 * (Math.nextUp(1.0) - 1.0);
 
     private static ImmutableVector3 apply(Rotation3Quaternion r, ImmutableVector3 v) {
         final ImmutableVector3 rv = Rotation3Test.apply(r, v);// inherited
@@ -79,14 +77,12 @@ public class Rotation3QuaternionTest {
         Rotation3Test.assertInvariants(r1, r2);// inherited
     }
 
-    private static double normalizedAngle(double a) {
-        return a % (2.0 * Math.PI);
-    }
-
-    public static Rotation3 plus(Rotation3Quaternion r, Rotation3 that) {
-        final Rotation3 sum = Rotation3Test.plus(r, that);
+    public static Rotation3Quaternion plus(Rotation3Quaternion r, Rotation3 that) {
+        final Rotation3Quaternion sum = (Rotation3Quaternion) Rotation3Test.plus(r, that);
 
         assertInvariants(r);// check for side effects
+        assertInvariants(sum);
+        assertInvariants(sum, r);
 
         return sum;
     }
@@ -108,8 +104,18 @@ public class Rotation3QuaternionTest {
         final Rotation3 sum = plus(r1, r2);
 
         assertThat("axis", sum.getAxis(), closeToImmutableVector3(axis, TOLERANCE));
-        assertThat("normalized angle", normalizedAngle(sum.getAngle()),
-                closeTo(normalizedAngle(angle1 + angle2), TOLERANCE));
+        assertThat("normalized angle", Rotation3Test.normalizedAngle(sum.getAngle()),
+                closeTo(Rotation3Test.normalizedAngle(angle1 + angle2), TOLERANCE));
+    }
+
+    public static Rotation3Quaternion scale(Rotation3Quaternion r, double f) {
+        final Rotation3Quaternion fr = (Rotation3Quaternion) Rotation3Test.scale(r, f);
+
+        assertInvariants(r);// check for side effects
+        assertInvariants(fr);
+        assertInvariants(fr, r);
+
+        return fr;
     }
 
     private static Rotation3Quaternion valueOf(Quaternion quaternion) {
@@ -218,47 +224,87 @@ public class Rotation3QuaternionTest {
 
     @Test
     public void plus_0ISmall() {
-        plus_0r(Rotation3Quaternion.valueOfAxisAngle(ImmutableVector3.I, SMALL_ANGLE));
+        plus_0r(Rotation3Quaternion.valueOfAxisAngle(ImmutableVector3.I, Rotation3Test.SMALL_ANGLE));
     }
 
     @Test
     public void plus_0JSmall() {
-        plus_0r(Rotation3Quaternion.valueOfAxisAngle(ImmutableVector3.J, SMALL_ANGLE));
+        plus_0r(Rotation3Quaternion.valueOfAxisAngle(ImmutableVector3.J, Rotation3Test.SMALL_ANGLE));
     }
 
     @Test
     public void plus_0KSmall() {
-        plus_0r(Rotation3Quaternion.valueOfAxisAngle(ImmutableVector3.K, SMALL_ANGLE));
+        plus_0r(Rotation3Quaternion.valueOfAxisAngle(ImmutableVector3.K, Rotation3Test.SMALL_ANGLE));
     }
 
     @Test
     public void plus_ISmall0() {
-        plus_r0(Rotation3Quaternion.valueOfAxisAngle(ImmutableVector3.I, SMALL_ANGLE));
+        plus_r0(Rotation3Quaternion.valueOfAxisAngle(ImmutableVector3.I, Rotation3Test.SMALL_ANGLE));
     }
 
     @Test
     public void plus_JSmall0() {
-        plus_r0(Rotation3Quaternion.valueOfAxisAngle(ImmutableVector3.J, SMALL_ANGLE));
+        plus_r0(Rotation3Quaternion.valueOfAxisAngle(ImmutableVector3.J, Rotation3Test.SMALL_ANGLE));
     }
 
     @Test
     public void plus_KSmall0() {
-        plus_r0(Rotation3Quaternion.valueOfAxisAngle(ImmutableVector3.K, SMALL_ANGLE));
+        plus_r0(Rotation3Quaternion.valueOfAxisAngle(ImmutableVector3.K, Rotation3Test.SMALL_ANGLE));
     }
 
     @Test
     public void plus_sameAxisISmallSmall() {
-        plus_sameAxis(ImmutableVector3.I, SMALL_ANGLE, SMALL_ANGLE);
+        plus_sameAxis(ImmutableVector3.I, Rotation3Test.SMALL_ANGLE, Rotation3Test.SMALL_ANGLE);
     }
 
     @Test
     public void plus_sameAxisJSmallSmall() {
-        plus_sameAxis(ImmutableVector3.J, SMALL_ANGLE, SMALL_ANGLE);
+        plus_sameAxis(ImmutableVector3.J, Rotation3Test.SMALL_ANGLE, Rotation3Test.SMALL_ANGLE);
     }
 
     @Test
     public void plus_sameAxisKSmallSmall() {
-        plus_sameAxis(ImmutableVector3.K, SMALL_ANGLE, SMALL_ANGLE);
+        plus_sameAxis(ImmutableVector3.K, Rotation3Test.SMALL_ANGLE, Rotation3Test.SMALL_ANGLE);
+    }
+
+    @Test
+    public void scale_00() {
+        scale(Rotation3Quaternion.ZERO, 0);
+    }
+
+    @Test
+    public void scale_01() {
+        scale(Rotation3Quaternion.ZERO, 1);
+    }
+
+    @Test
+    public void scale_ISmall1() {
+        scale(Rotation3Quaternion.valueOfAxisAngle(ImmutableVector3.I, Rotation3Test.SMALL_ANGLE), 1);
+    }
+
+    @Test
+    public void scale_ISmall2() {
+        scale(Rotation3Quaternion.valueOfAxisAngle(ImmutableVector3.I, Rotation3Test.SMALL_ANGLE), 2);
+    }
+
+    @Test
+    public void scale_JSmall1() {
+        scale(Rotation3Quaternion.valueOfAxisAngle(ImmutableVector3.J, Rotation3Test.SMALL_ANGLE), 1);
+    }
+
+    @Test
+    public void scale_JSmall2() {
+        scale(Rotation3Quaternion.valueOfAxisAngle(ImmutableVector3.J, Rotation3Test.SMALL_ANGLE), 2);
+    }
+
+    @Test
+    public void scale_KSmall1() {
+        scale(Rotation3Quaternion.valueOfAxisAngle(ImmutableVector3.K, Rotation3Test.SMALL_ANGLE), 1);
+    }
+
+    @Test
+    public void scale_KSmall2() {
+        scale(Rotation3Quaternion.valueOfAxisAngle(ImmutableVector3.K, Rotation3Test.SMALL_ANGLE), 2);
     }
 
     @Test
@@ -278,7 +324,7 @@ public class Rotation3QuaternionTest {
 
     @Test
     public void valueOf_quaternionForAxisAngle_2iSmall() {
-        valueOf_quaternionForAxisAngle(ImmutableVector3.I, SMALL_ANGLE, 2.0);
+        valueOf_quaternionForAxisAngle(ImmutableVector3.I, Rotation3Test.SMALL_ANGLE, 2.0);
     }
 
     @Test
@@ -288,17 +334,17 @@ public class Rotation3QuaternionTest {
 
     @Test
     public void valueOf_quaternionForAxisAngle_iSmall() {
-        valueOf_quaternionForAxisAngle(ImmutableVector3.I, SMALL_ANGLE, 1.0);
+        valueOf_quaternionForAxisAngle(ImmutableVector3.I, Rotation3Test.SMALL_ANGLE, 1.0);
     }
 
     @Test
     public void valueOf_quaternionForAxisAngle_jSmall() {
-        valueOf_quaternionForAxisAngle(ImmutableVector3.J, SMALL_ANGLE, 1.0);
+        valueOf_quaternionForAxisAngle(ImmutableVector3.J, Rotation3Test.SMALL_ANGLE, 1.0);
     }
 
     @Test
     public void valueOf_quaternionForAxisAngle_kSmall() {
-        valueOf_quaternionForAxisAngle(ImmutableVector3.K, SMALL_ANGLE, 1.0);
+        valueOf_quaternionForAxisAngle(ImmutableVector3.K, Rotation3Test.SMALL_ANGLE, 1.0);
     }
 
     @Test
@@ -358,16 +404,16 @@ public class Rotation3QuaternionTest {
 
     @Test
     public void valueOfAxisAngle_smallI() {
-        valueOfAxisAngle(ImmutableVector3.I, SMALL_ANGLE);
+        valueOfAxisAngle(ImmutableVector3.I, Rotation3Test.SMALL_ANGLE);
     }
 
     @Test
     public void valueOfAxisAngle_smallJ() {
-        valueOfAxisAngle(ImmutableVector3.J, SMALL_ANGLE);
+        valueOfAxisAngle(ImmutableVector3.J, Rotation3Test.SMALL_ANGLE);
     }
 
     @Test
     public void valueOfAxisAngle_smallK() {
-        valueOfAxisAngle(ImmutableVector3.K, SMALL_ANGLE);
+        valueOfAxisAngle(ImmutableVector3.K, Rotation3Test.SMALL_ANGLE);
     }
 }

@@ -84,11 +84,11 @@ public interface Rotation3 {
      * <ul>
      * <li>Always returns a (non null) rotation.</li>
      * <li>Rotation addition is not commutative.</li>
-     * <li>The sum of two rotations that have the same {@linkplain #getAxis()} has
-     * the same axis, with the {@linkplain #getAngle() angle} of the sum nominally
-     * equal to the sum of the angles of the two rotations. However, the sum might
-     * be constrained to the range -2&pi; to 2&pi.</li>
-     * <li>Adding a zero rotation with produces an equivalent rotation to the
+     * <li>The sum of two rotations that have the same {@linkplain #getAxis() axis}
+     * has the same axis, with the {@linkplain #getAngle() angle} of the sum
+     * nominally equal to the sum of the angles of the two rotations. However, the
+     * sum might be constrained to the range -2&pi; to 2&pi.</li>
+     * <li>Adding a zero rotation produces an equivalent rotation to the
      * original.</li>
      * </ul>
      * 
@@ -100,4 +100,27 @@ public interface Rotation3 {
      *             If {@code that} is null.
      */
     public Rotation3 plus(Rotation3 that);
+
+    /**
+     * <p>
+     * Create a rotation that has an equivalent {@linkplain #getAxis() rotation
+     * axis} to this, but has its {@linkplain #getAngle() rotation angle} scaled by
+     * a given amount.
+     * </p>
+     * <ul>
+     * <li>Always returns a (non null) rotation.</li>
+     * <li>The scaled rotation has same axis as this, unless the scaling factor is
+     * zero.</li>
+     * <li>The scaled rotation has its angle nominally scaled by the scaling factor.
+     * However, the scaled value might be constrained to the range -2&pi; to
+     * 2&pi.</li>
+     * <li>Scaling with a factor of 1 produces an equivalent rotation to the
+     * original.</li>
+     * </ul>
+     * 
+     * @param f
+     *            the scaling factor
+     * @return the scaled rotation
+     */
+    public Rotation3 scale(double f);
 }
