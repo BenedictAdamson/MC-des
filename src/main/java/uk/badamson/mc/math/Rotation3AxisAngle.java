@@ -22,7 +22,7 @@ public final class Rotation3AxisAngle implements Rotation3 {
      * 0.</li>
      * </ul>
      */
-    public static final Rotation3AxisAngle ZERO = null;// FIXME
+    public static final Rotation3AxisAngle ZERO = new Rotation3AxisAngle(ImmutableVector3.ZERO, 0);
 
     /**
      * <p>
@@ -98,8 +98,11 @@ public final class Rotation3AxisAngle implements Rotation3 {
 
     @Override
     public final ImmutableVector3 apply(ImmutableVector3 v) {
-        // TODO Auto-generated method stub
-        return null;
+        return asRotation3Quaternion().apply(v);
+    }
+
+    private Rotation3Quaternion asRotation3Quaternion() {
+        return Rotation3Quaternion.valueOfAxisAngle(axis, angle);
     }
 
     /**
@@ -125,7 +128,11 @@ public final class Rotation3AxisAngle implements Rotation3 {
 
     @Override
     public final Quaternion getVersor() {
-        return Rotation3Quaternion.valueOfAxisAngle(axis, angle).getVersor();
+        return asRotation3Quaternion().getVersor();
     }
 
+    @Override
+    public final String toString() {
+        return "Rotation3AxisAngle[" + getAngle() + " radians about " + getAxis() + "]";
+    }
 }

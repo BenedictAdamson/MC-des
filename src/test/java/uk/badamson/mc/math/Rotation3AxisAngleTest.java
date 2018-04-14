@@ -177,13 +177,6 @@ public class Rotation3AxisAngleTest {
     }
 
     @Test
-    public void valueOf_quaternion_0() {
-        final Rotation3AxisAngle rotation = valueOf(Quaternion.ZERO);
-
-        assertEquals("rotation", rotation, Rotation3AxisAngle.ZERO);
-    }
-
-    @Test
     public void valueOf_quaternionForAxisAngle_2iSmall() {
         valueOf_quaternionForAxisAngle(ImmutableVector3.I, SMALL_ANGLE, 2.0);
     }

@@ -148,7 +148,7 @@ public final class Rotation3Quaternion implements Rotation3 {
 
     @Override
     public final String toString() {
-        return "[" + getAngle() + " radians about " + getAxis() + "]";
+        return "Rotation3Quaternion[" + getAngle() + " radians about " + getAxis() + "]";
     }
 
 }
