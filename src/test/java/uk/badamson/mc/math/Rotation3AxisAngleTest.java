@@ -1,10 +1,7 @@
 package uk.badamson.mc.math;
 
-import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.number.IsCloseTo.closeTo;
-import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
-import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -67,10 +64,6 @@ public class Rotation3AxisAngleTest {
     public static void assertInvariants(Rotation3AxisAngle rotation) {
         ObjectTest.assertInvariants(rotation);// inherited
         Rotation3Test.assertInvariants(rotation);// inherited
-
-        final double angle = rotation.getAngle();
-        assertThat("The angle is in the range -2pi to 2pi", angle,
-                allOf(greaterThanOrEqualTo(-2.0 * Math.PI), lessThanOrEqualTo(2.0 * Math.PI)));
     }
 
     public static void assertInvariants(Rotation3AxisAngle r1, Rotation3AxisAngle r2) {

@@ -1,11 +1,8 @@
 package uk.badamson.mc.math;
 
-import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.number.IsCloseTo.closeTo;
-import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
-import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
 import static org.junit.Assert.assertNotNull;
 
 import org.hamcrest.Description;
@@ -81,8 +78,6 @@ public class Rotation3Test {
         final double axisMagnitude = axis.magnitude();
 
         assertThat("The versor has unit norm.", versor.norm(), closeTo(1.0, TOLERANCE));
-        assertThat("The angle is in the range -2pi to 2pi", angle,
-                allOf(greaterThanOrEqualTo(-2.0 * Math.PI), lessThanOrEqualTo(2.0 * Math.PI)));
         assertThat("The axis has a magnitude of 1 or 0.", axisMagnitude,
                 anyOf(closeTo(0.0, TOLERANCE), closeTo(1.0, TOLERANCE)));
     }
