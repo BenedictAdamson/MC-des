@@ -13,18 +13,19 @@ import uk.badamson.mc.math.Rotation3QuaternionTest;
 
 /**
  * <p>
- * Unit tests for the {@link Rotation3StateSpaceMapper} class.
+ * Unit tests for the {@link Rotation3QuaternionStateSpaceMapper} class.
  * </p>
  */
-public class Rotation3StateSpaceMapperTest {
+public class Rotation3QuaternionStateSpaceMapperTest {
 
     private static final double SMALL_ANGLE = Math.PI * 0.003;
 
-    public static void assertInvariants(Rotation3StateSpaceMapper mapper) {
+    public static void assertInvariants(Rotation3QuaternionStateSpaceMapper mapper) {
         ObjectStateSpaceMapperTest.assertInvariants(mapper);// inherited
     }
 
-    public static void assertInvariants(Rotation3StateSpaceMapper mapper1, Rotation3StateSpaceMapper mapper2) {
+    public static void assertInvariants(Rotation3QuaternionStateSpaceMapper mapper1,
+            Rotation3QuaternionStateSpaceMapper mapper2) {
         ObjectStateSpaceMapperTest.assertInvariants(mapper1, mapper2);// inherited
     }
 
@@ -33,7 +34,8 @@ public class Rotation3StateSpaceMapperTest {
         final double tolerance = 2 * (Math.nextAfter(1.0, 2.0) - 1.0);
         final Quaternion sum = r1.getVersor().plus(r2.getVersor());
         final QuaternionStateSpaceMapper quaternionMapper = new QuaternionStateSpaceMapper(index0);
-        final Rotation3StateSpaceMapper rotationMapper = new Rotation3StateSpaceMapper(quaternionMapper);
+        final Rotation3QuaternionStateSpaceMapper rotationMapper = new Rotation3QuaternionStateSpaceMapper(
+                quaternionMapper);
         final double[] state = new double[stateSize];
         rotationMapper.fromObject(state, r1);
 
@@ -45,7 +47,8 @@ public class Rotation3StateSpaceMapperTest {
         assertEquals("state[index0+3]", sum.getD(), state[index0 + 3], tolerance);
     }
 
-    public static void fromObject(Rotation3StateSpaceMapper mapper, double[] state, Rotation3Quaternion quaternion) {
+    public static void fromObject(Rotation3QuaternionStateSpaceMapper mapper, double[] state,
+            Rotation3Quaternion quaternion) {
         ObjectStateSpaceMapperTest.fromObject(mapper, state, quaternion);
 
         assertInvariants(mapper);// check for side-effects
@@ -54,13 +57,14 @@ public class Rotation3StateSpaceMapperTest {
 
     private static void fromToObjectSymmetry(int index0, int stateSize, Rotation3Quaternion original) {
         final QuaternionStateSpaceMapper quaternionMapper = new QuaternionStateSpaceMapper(index0);
-        final Rotation3StateSpaceMapper rotationMapper = new Rotation3StateSpaceMapper(quaternionMapper);
+        final Rotation3QuaternionStateSpaceMapper rotationMapper = new Rotation3QuaternionStateSpaceMapper(
+                quaternionMapper);
         final double[] state = new double[stateSize];
 
         fromToObjectSymmetry(rotationMapper, state, original);
     }
 
-    private static void fromToObjectSymmetry(Rotation3StateSpaceMapper mapper, double[] state,
+    private static void fromToObjectSymmetry(Rotation3QuaternionStateSpaceMapper mapper, double[] state,
             Rotation3Quaternion original) {
         mapper.fromObject(state, original);
         final ImmutableVectorN stateVector = ImmutableVectorN.create(state);
@@ -70,7 +74,7 @@ public class Rotation3StateSpaceMapperTest {
         assertThat("symmetric", reconstructed, Rotation3QuaternionTest.closeToRotation3Quaternion(original));
     }
 
-    public static Rotation3Quaternion toObject(Rotation3StateSpaceMapper mapper, ImmutableVectorN state) {
+    public static Rotation3Quaternion toObject(Rotation3QuaternionStateSpaceMapper mapper, ImmutableVectorN state) {
         Rotation3Quaternion vector = ObjectStateSpaceMapperTest.toObject(mapper, state);
 
         assertInvariants(mapper);// check for side-effects

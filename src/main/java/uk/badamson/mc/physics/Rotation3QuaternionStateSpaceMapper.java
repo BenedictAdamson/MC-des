@@ -19,7 +19,7 @@ import uk.badamson.mc.math.Rotation3Quaternion;
  * </p>
  */
 @Immutable
-public final class Rotation3StateSpaceMapper implements ObjectStateSpaceMapper<Rotation3Quaternion> {
+public final class Rotation3QuaternionStateSpaceMapper implements ObjectStateSpaceMapper<Rotation3Quaternion> {
 
     private final QuaternionStateSpaceMapper quaternionMapper;
 
@@ -32,7 +32,7 @@ public final class Rotation3StateSpaceMapper implements ObjectStateSpaceMapper<R
      * @throws NullPointerException
      *             If {@code quaternionMapper} is null
      */
-    public Rotation3StateSpaceMapper(QuaternionStateSpaceMapper quaternionMapper) {
+    public Rotation3QuaternionStateSpaceMapper(QuaternionStateSpaceMapper quaternionMapper) {
         this.quaternionMapper = Objects.requireNonNull(quaternionMapper, "quaternionMapper");
     }
 
