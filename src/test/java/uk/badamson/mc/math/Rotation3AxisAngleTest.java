@@ -237,6 +237,11 @@ public class Rotation3AxisAngleTest {
     }
 
     @Test
+    public void valueOfAxisAngle_4PiI() {
+        valueOfAxisAngle(ImmutableVector3.I, Math.PI * 4.0);
+    }
+
+    @Test
     public void valueOfAxisAngle_halfPiI() {
         valueOfAxisAngle(ImmutableVector3.I, Math.PI * 0.5);
     }
