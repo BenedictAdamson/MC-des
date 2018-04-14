@@ -5,13 +5,13 @@ import java.util.Objects;
 import net.jcip.annotations.Immutable;
 import uk.badamson.mc.math.ImmutableVectorN;
 import uk.badamson.mc.math.Quaternion;
-import uk.badamson.mc.math.Rotation3;
+import uk.badamson.mc.math.Rotation3Quaternion;
 
 /**
  * <p>
  * A Strategy for mapping from an object representation of a
- * {@linkplain Rotation3 3D rotation} to (part of) a state-space representation,
- * and vice versa.
+ * {@linkplain Rotation3Quaternion 3D rotation} to (part of) a state-space
+ * representation, and vice versa.
  * </p>
  * <p>
  * The mapper maps 4 contiguous components of the state-space vector to the
@@ -19,7 +19,7 @@ import uk.badamson.mc.math.Rotation3;
  * </p>
  */
 @Immutable
-public final class Rotation3StateSpaceMapper implements ObjectStateSpaceMapper<Rotation3> {
+public final class Rotation3StateSpaceMapper implements ObjectStateSpaceMapper<Rotation3Quaternion> {
 
     private final QuaternionStateSpaceMapper quaternionMapper;
 
@@ -45,7 +45,7 @@ public final class Rotation3StateSpaceMapper implements ObjectStateSpaceMapper<R
      *             {@inheritDoc}
      */
     @Override
-    public final void fromObject(double[] state, Rotation3 object) {
+    public final void fromObject(double[] state, Rotation3Quaternion object) {
         Objects.requireNonNull(state, "state");
         Objects.requireNonNull(object, "object");
         quaternionMapper.fromObject(state, object.getVersor());
@@ -65,8 +65,8 @@ public final class Rotation3StateSpaceMapper implements ObjectStateSpaceMapper<R
      *             {@inheritDoc}
      */
     @Override
-    public final Rotation3 toObject(ImmutableVectorN state) {
-        return Rotation3.valueOf(quaternionMapper.toObject(state));
+    public final Rotation3Quaternion toObject(ImmutableVectorN state) {
+        return Rotation3Quaternion.valueOf(quaternionMapper.toObject(state));
     }
 
 }
