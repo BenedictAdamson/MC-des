@@ -87,7 +87,7 @@ public final class Rotation3Quaternion implements Rotation3 {
         final double c = Math.cos(halfAngle);
         final double s = Math.sin(halfAngle);
         final double magnitude = axis.magnitude();
-        final boolean smallAngle = Double.MIN_NORMAL < Math.abs(s) && (1.0 - c) < Double.MIN_NORMAL;
+        final boolean smallAngle = Math.abs(s) < Double.MIN_NORMAL && (1.0 - c) < Double.MIN_NORMAL;
         if (!smallAngle) {
             if (magnitude < Double.MIN_NORMAL) {
                 throw new IllegalArgumentException("Zero axis " + axis);
