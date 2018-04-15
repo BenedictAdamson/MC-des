@@ -131,6 +131,32 @@ public final class Rotation3AxisAngle implements Rotation3 {
         return asRotation3Quaternion().getVersor();
     }
 
+    /**
+     * <p>
+     * Create the rotation that is the opposite of this rotation.
+     * </p>
+     * <ul>
+     * <li>Always produces a (non null) rotation.
+     * <li>
+     * <li>The opposite rotation has the same {@linkplain #getAxis() axis} but the
+     * negative of the {@linkplain #getAngle() angle} of this rotation.</li>
+     * </ul>
+     * 
+     * @param that
+     *            The other rotation
+     * @return the opposite rotation.
+     */
+    @Override
+    public final Rotation3AxisAngle minus() {
+        return new Rotation3AxisAngle(axis, -angle);
+    }
+
+    @Override
+    public final Rotation3 minus(Rotation3 that) {
+        Objects.requireNonNull(that, "that");
+        return asRotation3Quaternion().minus(that);
+    }
+
     @Override
     public final Rotation3 plus(Rotation3 that) {
         Objects.requireNonNull(that, "that");

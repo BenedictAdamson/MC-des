@@ -78,6 +78,48 @@ public interface Rotation3 {
 
     /**
      * <p>
+     * Create the rotation that is the opposite of this rotation.
+     * </p>
+     * <ul>
+     * <li>Always produces a (non null) rotation.
+     * <li>
+     * <li>The opposite rotation <em>either</em> has the same {@linkplain #getAxis()
+     * axis} but the negative of the {@linkplain #getAngle() angle} of this
+     * rotation, <em>or</em> the same angle but an axis that points in the
+     * {@linkplain Vector#minus() opposite} direction.</li>
+     * </ul>
+     * 
+     * @param that
+     *            The other rotation
+     * @return the opposite rotation.
+     */
+    public Rotation3 minus();
+
+    /**
+     * <p>
+     * Create the rotation that is the difference between this rotation and another.
+     * </p>
+     * <ul>
+     * <li>Always produces a (non null) rotation.
+     * <li>
+     * <li>The difference between this rotation and the given rotation is the
+     * rotation that, if {@linkplain #plus(Rotation3) added} to the given rotation
+     * would produce this rotation.</li>
+     * <li>The difference between a rotation and the zero rotation is itself.</li>
+     * <li>The difference between a rotation and itself is the zero rotation.</li>
+     * </ul>
+     * 
+     * @param that
+     *            The other rotation
+     * @return the rotation difference.
+     * 
+     * @throws NullPointerException
+     *             If {@code that} is null.
+     */
+    public Rotation3 minus(Rotation3 that);
+
+    /**
+     * <p>
      * Create the rotation that is equivalent to this rotation followed by a given
      * rotation; the sum of this rotation and another.
      * </p>

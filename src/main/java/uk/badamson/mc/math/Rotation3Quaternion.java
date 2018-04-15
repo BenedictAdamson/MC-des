@@ -147,6 +147,17 @@ public final class Rotation3Quaternion implements Rotation3 {
     }
 
     @Override
+    public final Rotation3Quaternion minus() {
+        return new Rotation3Quaternion(versor.conjugate());
+    }
+
+    @Override
+    public final Rotation3 minus(Rotation3 that) {
+        Objects.requireNonNull(that, "that");
+        return new Rotation3Quaternion(that.getVersor().conjugate().product(versor));
+    }
+
+    @Override
     public final Rotation3Quaternion plus(Rotation3 that) {
         Objects.requireNonNull(that, "that");
         return new Rotation3Quaternion(versor.product(that.getVersor()));

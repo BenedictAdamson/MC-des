@@ -22,6 +22,7 @@ public class Rotation3AxisAngleTest {
     private static final double TOLERANCE = 4.0 * (Math.nextAfter(1.0, Double.POSITIVE_INFINITY) - 1.0);
 
     private static final double SMALL_ANGLE = Rotation3Test.SMALL_ANGLE;
+    private static final double HALF_PI = Rotation3Test.HALF_PI;
 
     private static ImmutableVector3 apply(Rotation3AxisAngle r, ImmutableVector3 v) {
         final ImmutableVector3 rv = Rotation3Test.apply(r, v);// inherited
@@ -70,6 +71,49 @@ public class Rotation3AxisAngleTest {
     public static void assertInvariants(Rotation3AxisAngle r1, Rotation3AxisAngle r2) {
         ObjectTest.assertInvariants(r1, r2);// inherited
         Rotation3Test.assertInvariants(r1, r2);// inherited
+    }
+
+    public static Rotation3AxisAngle minus(Rotation3AxisAngle r) {
+        final double angle = r.getAngle();
+        final ImmutableVector3 axis = r.getAxis();
+
+        final Rotation3AxisAngle m = (Rotation3AxisAngle) Rotation3Test.minus(r);// inherited
+
+        assertInvariants(r);// check for side effects
+        assertInvariants(m);
+        assertInvariants(m, r);
+
+        assertThat("The opposite rotation has the same axis but the negative of the angle of this rotation.", m,
+                closeToRotation3(Rotation3AxisAngle.valueOfAxisAngle(axis, -angle)));
+
+        return m;
+    }
+
+    public static Rotation3 minus(Rotation3AxisAngle r, Rotation3 that) {
+        final Rotation3 diff = Rotation3Test.minus(r, that);// inherited
+
+        assertInvariants(r);// check for side effects
+
+        return diff;
+    }
+
+    private static void minus_0(Rotation3AxisAngle r) {
+        final Rotation3 diff = minus(r, Rotation3AxisAngle.ZERO);
+
+        assertThat("The difference between a rotation and the zero rotation is itself", diff, closeToRotation3(r));
+    }
+
+    private static void minus_axisAngle(double angle, ImmutableVector3 axis) {
+        final Rotation3AxisAngle r = Rotation3AxisAngle.valueOfAxisAngle(axis, angle);
+
+        minus(r);
+    }
+
+    private static void minus_self(Rotation3AxisAngle r) {
+        final Rotation3 diff = minus(r, r);
+
+        assertThat("The difference between a rotation and itself is the zero rotation.", diff,
+                closeToRotation3(Rotation3AxisAngle.ZERO));
     }
 
     private static double normalizedAngle(double a) {
@@ -211,6 +255,97 @@ public class Rotation3AxisAngleTest {
     @Test
     public void apply_basisHalfPiKJ() {
         apply_basisHalfPi(ImmutableVector3.K, ImmutableVector3.J, ImmutableVector3.I);
+    }
+
+    @Test
+    public void minus_00() {
+        minus_0(Rotation3AxisAngle.ZERO);
+    }
+
+    @Test
+    public void minus_i() {
+        minus_axisAngle(HALF_PI, ImmutableVector3.I);
+    }
+
+    @Test
+    public void minus_i0() {
+        minus_0(Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.I, SMALL_ANGLE));
+    }
+
+    @Test
+    public void minus_iJ() {
+        minus(Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.I, SMALL_ANGLE),
+                Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.J, SMALL_ANGLE));
+    }
+
+    @Test
+    public void minus_ik() {
+        minus(Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.I, SMALL_ANGLE),
+                Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.K, SMALL_ANGLE));
+    }
+
+    @Test
+    public void minus_iSmall() {
+        minus_axisAngle(SMALL_ANGLE, ImmutableVector3.I);
+    }
+
+    @Test
+    public void minus_j() {
+        minus_axisAngle(HALF_PI, ImmutableVector3.J);
+    }
+
+    @Test
+    public void minus_j0() {
+        minus_0(Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.J, SMALL_ANGLE));
+    }
+
+    @Test
+    public void minus_jI() {
+        minus(Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.J, SMALL_ANGLE),
+                Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.I, SMALL_ANGLE));
+    }
+
+    @Test
+    public void minus_jK() {
+        minus(Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.J, SMALL_ANGLE),
+                Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.K, SMALL_ANGLE));
+    }
+
+    @Test
+    public void minus_k() {
+        minus_axisAngle(HALF_PI, ImmutableVector3.K);
+    }
+
+    @Test
+    public void minus_k0() {
+        minus_0(Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.K, SMALL_ANGLE));
+    }
+
+    @Test
+    public void minus_kI() {
+        minus(Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.K, SMALL_ANGLE),
+                Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.I, SMALL_ANGLE));
+    }
+
+    @Test
+    public void minus_kJ() {
+        minus(Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.K, SMALL_ANGLE),
+                Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.I, SMALL_ANGLE));
+    }
+
+    @Test
+    public void minus_selfI() {
+        minus_self(Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.I, SMALL_ANGLE));
+    }
+
+    @Test
+    public void minus_selfJ() {
+        minus_self(Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.J, SMALL_ANGLE));
+    }
+
+    @Test
+    public void minus_selfK() {
+        minus_self(Rotation3AxisAngle.valueOfAxisAngle(ImmutableVector3.K, SMALL_ANGLE));
     }
 
     @Test

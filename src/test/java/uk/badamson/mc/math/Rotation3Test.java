@@ -5,6 +5,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.number.IsCloseTo.closeTo;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static uk.badamson.mc.math.VectorTest.closeToVector;
 
 import org.hamcrest.Description;
 import org.hamcrest.Factory;
@@ -50,7 +51,9 @@ public class Rotation3Test {
 
     private static final double TOLERANCE = 4.0 * (Math.nextUp(1.0) - 1.0);
 
-    public static final double SMALL_ANGLE = Math.PI * 0.003;
+    public static final double SMALL_ANGLE = Math.PI / 180.0;
+
+    public static final double HALF_PI = Math.PI * 0.5;
 
     public static ImmutableVector3 apply(Rotation3 r, ImmutableVector3 v) {
         final double magnitude0 = v.magnitude();
@@ -96,6 +99,51 @@ public class Rotation3Test {
     @Factory
     public static Matcher<Rotation3> closeToRotation3(Rotation3 operand, double tolerance) {
         return new IsCloseTo(operand, tolerance);
+    }
+
+    public static Rotation3 minus(Rotation3 r) {
+        final double angle = r.getAngle();
+        final ImmutableVector3 axis = r.getAxis();
+
+        final Rotation3 m = r.minus();
+
+        assertNotNull("Not null, result", m);
+
+        assertInvariants(r);// check for side effects
+        assertInvariants(m);
+        assertInvariants(m, r);
+
+        final double minusAngle = r.getAngle();
+        final ImmutableVector3 minusAxis = r.getAxis();
+
+        assertThat(
+                "The opposite rotation either has the same axis but the negative of the angle of this rotation, "
+                        + "or the same angle but an axis that points in the opposite direction (angle).",
+                minusAngle, anyOf(closeTo(angle, TOLERANCE), closeTo(-angle, TOLERANCE)));
+        assertThat(
+                "The opposite rotation either has the same axis but the negative of the angle of this rotation, "
+                        + "or the same angle but an axis that points in the opposite direction (axis).",
+                minusAxis, anyOf(closeToVector(axis, TOLERANCE), closeToVector(axis.minus(), TOLERANCE)));
+
+        return m;
+    }
+
+    public static Rotation3 minus(Rotation3 r, Rotation3 that) {
+        final Rotation3 diff = r.minus(that);
+
+        assertNotNull("Not null, result", diff);
+
+        assertInvariants(r);// check for side effects
+        assertInvariants(diff);
+        assertInvariants(diff, r);
+        assertInvariants(diff, that);
+
+        assertThat(
+                "The difference between this rotation and the given rotation is the rotation that, "
+                        + "if added to the given rotation would produce this rotation.",
+                that.plus(diff), closeToRotation3(r));
+
+        return diff;
     }
 
     public static double normalizedAngle(double a) {
