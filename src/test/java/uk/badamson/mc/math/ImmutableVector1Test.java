@@ -25,7 +25,7 @@ public class ImmutableVector1Test {
 
     @Factory
     public static Matcher<Vector> closeTo(ImmutableVector1 operand, double tolerance) {
-        return VectorTest.closeTo(operand, tolerance);
+        return VectorTest.closeToVector(operand, tolerance);
     }
 
     private static ImmutableVector1 create(double x) {

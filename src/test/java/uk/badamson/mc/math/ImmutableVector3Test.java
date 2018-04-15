@@ -69,7 +69,7 @@ public class ImmutableVector3Test {
 
     @Factory
     public static Matcher<Vector> closeTo(ImmutableVector3 operand, double tolerance) {
-        return VectorTest.closeTo(operand, tolerance);
+        return VectorTest.closeToVector(operand, tolerance);
     }
 
     @Factory

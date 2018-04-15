@@ -56,7 +56,7 @@ public class VectorTest {
     }
 
     @Factory
-    public static Matcher<Vector> closeTo(Vector operand, double tolerance) {
+    public static Matcher<Vector> closeToVector(Vector operand, double tolerance) {
         return new IsCloseTo(operand, tolerance);
     }
 

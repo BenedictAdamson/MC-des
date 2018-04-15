@@ -398,8 +398,7 @@ public final class Quaternion {
      * given quaternion.
      * </p>
      * <ul>
-     * <li>Always returns a (non null) quaternion.
-     * <li>
+     * <li>Always returns a (non null) quaternion.</li>
      * </ul>
      * 
      * @param that
