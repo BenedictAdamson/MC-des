@@ -1,5 +1,6 @@
 package uk.badamson.mc.math;
 
+import static org.hamcrest.number.IsCloseTo.closeTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -151,6 +152,16 @@ public class QuaternionTest {
         final double distance = distance(p, p);
 
         assertEquals("The distance of a quaternion from itself is zero", 0.0, distance, Double.MIN_NORMAL);
+    }
+
+    private static double dot(Quaternion q, Quaternion that) {
+        final double p = q.dot(that);
+
+        assertInvariants(q);// check for side-effects
+        assertInvariants(that);// check for side-effects
+        assertInvariants(q, that);// check for side-effects
+
+        return p;
     }
 
     private static Quaternion exp(Quaternion q) {
@@ -700,6 +711,41 @@ public class QuaternionTest {
     @Test
     public void distance_selfB() {
         distance_self(-9, -8, -7, -6);
+    }
+
+    @Test
+    public void dot_a() {
+        final double p = dot(Quaternion.ONE, Quaternion.create(5, 4, 3, 2));
+
+        assertThat("result", p, closeTo(5, Double.MIN_NORMAL));
+    }
+
+    @Test
+    public void dot_b() {
+        final double p = dot(Quaternion.I, Quaternion.create(4, 5, 3, 2));
+
+        assertThat("result", p, closeTo(5, Double.MIN_NORMAL));
+    }
+
+    @Test
+    public void dot_c() {
+        final double p = dot(Quaternion.J, Quaternion.create(3, 4, 5, 2));
+
+        assertThat("result", p, closeTo(5, Double.MIN_NORMAL));
+    }
+
+    @Test
+    public void dot_d() {
+        final double p = dot(Quaternion.K, Quaternion.create(2, 4, 3, 5));
+
+        assertThat("result", p, closeTo(5, Double.MIN_NORMAL));
+    }
+
+    @Test
+    public void dot_mixed() {
+        final double p = dot(Quaternion.create(1, 2, 3, 4), Quaternion.create(5, 4, 3, 2));
+
+        assertThat("result", p, closeTo(30, Double.MIN_NORMAL));
     }
 
     @Test

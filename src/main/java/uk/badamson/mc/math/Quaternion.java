@@ -136,6 +136,23 @@ public final class Quaternion {
 
     /**
      * <p>
+     * Calculate the dot product (inner product) of this quaternion with another
+     * quaternion.
+     * </p>
+     * 
+     * @param that
+     *            The other quaternion with which to calculate the dot product.
+     * @return the dot product; not null.
+     * @throws NullPointerException
+     *             If {@code that} is null.
+     */
+    public final double dot(Quaternion that) {
+        Objects.requireNonNull(that, "that");
+        return a * that.a + b * that.b + c * that.c + d * that.d;
+    }
+
+    /**
+     * <p>
      * Whether this object is <dfn>equivalent</dfn> another object.
      * </p>
      * <p>
