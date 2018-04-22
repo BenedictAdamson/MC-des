@@ -80,6 +80,16 @@ public class Rotation3QuaternionTest {
         Rotation3Test.assertInvariants(r1, r2);// inherited
     }
 
+    public static final Quaternion getAngleGradient(Rotation3Quaternion r) {
+        final Quaternion dtdq = r.getAngleGradient();
+
+        assertNotNull("Not null, result", dtdq);// guard
+        assertInvariants(r);// check for side effects
+        QuaternionTest.assertInvariants(dtdq);
+
+        return dtdq;
+    }
+
     public static Rotation3Quaternion minus(Rotation3Quaternion r) {
         final Rotation3Quaternion m = (Rotation3Quaternion) Rotation3Test.minus(r);// inherited
 
@@ -568,4 +578,5 @@ public class Rotation3QuaternionTest {
     public void valueOfAxisAngle_smallK() {
         valueOfAxisAngle(ImmutableVector3.K, SMALL_ANGLE);
     }
+
 }
