@@ -32,26 +32,26 @@ public class SimpleStatement extends AbstractMessage {
      * </p>
      */
     public static enum SimplePredicate implements MessageElement {
-        /**
-         * <p>
-         * The subject (a person) acknowledges a message that was sent to them.
-         * </p>
-         */
-        ACKNOWLEDGE_MESSAGE,
-        /**
-         * <p>
-         * The subject (a location) is the location where an enemy is visible.
-         * </p>
-         */
-        HAS_ENEMY_IN_SIGHT,
+    /**
+     * <p>
+     * The subject (a person) acknowledges a message that was sent to them.
+     * </p>
+     */
+    ACKNOWLEDGE_MESSAGE,
+    /**
+     * <p>
+     * The subject (a location) is the location where an enemy is visible.
+     * </p>
+     */
+    HAS_ENEMY_IN_SIGHT,
 
-        /**
-         * <p>
-         * The subject (a location) is a <dfn>danger area</dfn>, which is (or might be)
-         * exposed to enemy observation or fire.
-         * </p>
-         */
-        IS_DANGER_AREA;
+    /**
+     * <p>
+     * The subject (a location) is a <dfn>danger area</dfn>, which is (or might be)
+     * exposed to enemy observation or fire.
+     * </p>
+     */
+    IS_DANGER_AREA;
 
         public static final double INFORMATION_CONTENT = Math.log(values().length) / Math.log(2);
 
