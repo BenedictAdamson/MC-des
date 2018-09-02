@@ -130,22 +130,6 @@ public final class Rotation3Quaternion implements Rotation3 {
         return Math.atan2(s, c) * 2.0;
     }
 
-    /**
-     * <p>
-     * The rate of change of the {@linkplain #getAngle() angle} of this rotation
-     * with respect to changes of its {@linkplain #getVersor() versor}.
-     * </p>
-     * 
-     * @return the gradient, not null
-     */
-    public final Quaternion getAngleGradient() {
-        // Hard to test
-        final double c = versor.getA();
-        final double s = versor.vector().norm();
-        final double t2 = -2.0 * s / c;
-        return Quaternion.create(-2.0 / s, t2 / versor.getB(), t2 / versor.getC(), t2 / versor.getD());
-    }
-
     @Override
     public final ImmutableVector3 getAxis() {
         final ImmutableVector3 su = ImmutableVector3.create(versor.getB(), versor.getC(), versor.getD());
@@ -188,4 +172,5 @@ public final class Rotation3Quaternion implements Rotation3 {
     public final String toString() {
         return "Rotation3Quaternion[" + getAngle() + " radians about " + getAxis() + "]";
     }
+
 }
