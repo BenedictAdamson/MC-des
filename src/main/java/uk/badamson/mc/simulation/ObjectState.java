@@ -56,6 +56,24 @@ public interface ObjectState {
 
     /**
      * <p>
+     * Whether this {@link ObjectState} is equivalent to another object.
+     * </p>
+     * <p>
+     * The semantics of an {@link ObjectState} is that the combination of its
+     * {@linkplain #getObjectId() object ID} and {@linkplain #getWhen() time-stamp}
+     * actual as a unique ID. Therefore two {@link ObjectState} objects are
+     * equivalent if, and only if, they have equals object IDs and time-stamps.
+     * </p>
+     * 
+     * @param that
+     *            The object to compare with this object.
+     * @return whether this object is equivalent to {@code that} object.
+     */
+    @Override
+    public boolean equals(Object that);
+
+    /**
+     * <p>
      * The unique ID of the object for which this is a state.
      * </p>
      * 
@@ -75,4 +93,5 @@ public interface ObjectState {
      * @return the amount of time since the epoch; not null.
      */
     public Duration getWhen();
+
 }

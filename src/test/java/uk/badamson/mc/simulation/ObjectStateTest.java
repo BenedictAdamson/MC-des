@@ -1,6 +1,9 @@
 package uk.badamson.mc.simulation;
 
+import static org.hamcrest.collection.IsMapContaining.hasValue;
+import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -10,8 +13,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import uk.badamson.mc.ObjectTest;
-import static org.hamcrest.number.OrderingComparison.greaterThan;
-import static org.hamcrest.collection.IsMapContaining.hasValue;
 
 /**
  * <p>
@@ -33,6 +34,12 @@ public class ObjectStateTest {
 
     public static void assertInvariants(ObjectState state1, ObjectState state2) {
         ObjectTest.assertInvariants(state1, state2);// inherited
+
+        final boolean equals = state1.equals(state2);
+        assertFalse("ObjectState objects are equivalent only if they have equals object IDs",
+                equals && !state1.getObjectId().equals(state2.getObjectId()));
+        assertFalse("ObjectState objects are equivalent only if they have equals timestamps",
+                equals && !state1.getWhen().equals(state2.getWhen()));
     }
 
     public static Map<UUID, ObjectState> createNextStates(ObjectState state) {
