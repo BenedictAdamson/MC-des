@@ -1,5 +1,6 @@
 package uk.badamson.mc.simulation;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -23,13 +24,11 @@ public class ObjectStateTest {
     public static void assertInvariants(ObjectState state) {
         ObjectTest.assertInvariants(state);// inherited
 
-        Duration duration = state.getDurationUntilNextEvent();
         final UUID objectId = state.getObjectId();
+        final Duration when = state.getWhen();
 
-        assertNotNull("duration", duration);// guard
         assertNotNull("objectId", objectId);
-
-        assertThat("duration", duration, greaterThan(Duration.ZERO));
+        assertNotNull("when", when);
     }
 
     public static void assertInvariants(ObjectState state1, ObjectState state2) {
@@ -38,11 +37,14 @@ public class ObjectStateTest {
 
     public static Map<UUID, ObjectState> createNextStates(ObjectState state) {
         final UUID objectId = state.getObjectId();
+        final Duration when = state.getWhen();
 
         final Map<UUID, ObjectState> nextStates = state.createNextStates();
 
         assertInvariants(state);
         assertNotNull("Always return a map of object states", nextStates);// guard
+
+        Duration nextWhen = null;
         for (Map.Entry<UUID, ObjectState> entry : nextStates.entrySet()) {
             final UUID nextObject = entry.getKey();
             final ObjectState nextState = entry.getValue();
@@ -53,6 +55,16 @@ public class ObjectStateTest {
             if (nextState != null) {
                 assertInvariants(nextState);
                 assertInvariants(state, nextState);
+                final Duration nextWhen1 = nextState.getWhen();
+                if (nextWhen == null) {
+                    nextWhen = nextWhen1;
+                    assertThat(
+                            "All the values in the next states map are for a point in time after the point in time of this state.",
+                            nextWhen, greaterThan(when));
+                } else {
+                    assertEquals("All the values  in the next states map are equal points in time.", nextWhen,
+                            nextWhen);
+                }
             }
         }
         assertThat("The map of object states has an entry for the object ID of the object for which this is a state.",

@@ -26,6 +26,10 @@ public interface ObjectState {
      * objects it creates, just after the {@link #getDurationUntilNextEvent next
      * state change of the object}.
      * </p>
+     * <p>
+     * This computation may be expensive; recomputing future states should be
+     * avoided.
+     * </p>
      * <ul>
      * <li>Always return a (non null) map of object states.</li>
      * <li>The map of object states does not have a null key.</li>
@@ -34,8 +38,10 @@ public interface ObjectState {
      * <li>The map has no null values for objects other than the
      * {@link #getObjectId() object ID} of the object for which this is a
      * state.</li>
-     * <li>This computation may be expensive; recomputing future states should be
-     * avoided.</li>
+     * <li>All the values (states) in the next states map are
+     * {@link Duration#equals(Object) equal} {@link #getWhen() points in time}.</li>
+     * <li>All the values (states) in the next states map are for a
+     * {@link #getWhen() point in time} after the point in time of this state.</li>
      * </ul>
      * 
      * @return A mapping of object IDs to the states of those objects at the future
@@ -50,28 +56,23 @@ public interface ObjectState {
 
     /**
      * <p>
-     * How long until the next event.
-     * </p>
-     * <p>
-     * The time duration between the event that caused the @link
-     * {@link #getObjectId()} object} to enter this state the the state after that.
-     * </p>
-     * <ul>
-     * <li>Always have a (non null) duration until the next event.</li>
-     * <li>The duration until the next event {@link Duration#compareTo(Duration) is
-     * greater than} {@link Duration#ZERO zero}.</li>
-     * </ul>
-     * 
-     * @return the duration
-     */
-    public Duration getDurationUntilNextEvent();
-
-    /**
-     * <p>
      * The unique ID of the object for which this is a state.
      * </p>
      * 
      * @return The object ID; not null.
      */
     public UUID getObjectId();
+
+    /**
+     * <p>
+     * The point in time that the {@linkplain #getObjectId() object} had this state.
+     * </p>
+     * <p>
+     * Expressed as the duration since an epoch. All {@link ObjectState} objects in
+     * a simulation should use the same peoch.
+     * </p>
+     * 
+     * @return the amount of time since the epoch; not null.
+     */
+    public Duration getWhen();
 }
