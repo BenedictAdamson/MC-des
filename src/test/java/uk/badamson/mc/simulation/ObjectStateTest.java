@@ -2,6 +2,7 @@ package uk.badamson.mc.simulation;
 
 import static org.hamcrest.collection.IsMapContaining.hasValue;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
+import static org.hamcrest.number.OrderingComparison.lessThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -9,7 +10,9 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import uk.badamson.mc.ObjectTest;
@@ -57,9 +60,24 @@ public class ObjectStateTest {
         ObjectTest.assertInvariants(state);// inherited
 
         final ObjectState.Id id = state.getId();
+        final Set<ObjectState.Id> dependencies = state.getDependencies();
 
         assertNotNull("id", id);// guard
+        assertNotNull("dependencies", dependencies);// guard
+
         ObjectStateTest.IdTest.assertInvariants(id);
+
+        Set<UUID> dependentObjects = new HashSet<>(dependencies.size());
+        for (ObjectState.Id dependency : dependencies) {
+            assertNotNull("The set of dependencies does not have a null entry.", dependency);// guard
+            ObjectStateTest.IdTest.assertInvariants(dependency);
+            ObjectStateTest.IdTest.assertInvariants(dependency, id);
+            assertFalse("The set of dependencies does not have entries with duplicate object IDs.",
+                    dependentObjects.contains(dependency.getObject()));
+            assertThat("The set of dependencies has time-stamps after the time-stamp of the ID of this state.",
+                    dependency.getWhen(), lessThan(id.getWhen()));
+            dependentObjects.add(dependency.getObject());
+        }
     }
 
     public static void assertInvariants(ObjectState state1, ObjectState state2) {

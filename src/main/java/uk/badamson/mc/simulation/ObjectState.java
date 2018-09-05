@@ -2,6 +2,7 @@ package uk.badamson.mc.simulation;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import net.jcip.annotations.Immutable;
@@ -82,7 +83,8 @@ public interface ObjectState {
      * avoided.
      * </p>
      * <ul>
-     * <li>Always return a (non null) map of object states.</li>
+     * <li>Always has a (non null) map of object states.</li>
+     * <li>The map of object states may be unmodifiable.</li>
      * <li>The map of object states does not have a null key.</li>
      * <li>The map of object states has an entry (key) for the
      * {@link ObjectState.Id#getObject() object ID} of the {@linkplain #getId()
@@ -133,5 +135,25 @@ public interface ObjectState {
      * @return the ID; not null.
      */
     public Id getId();
+    
+    
+    /**
+     * <p>
+     * The (earlier) object states directly used to compute this object state.
+     * </p>
+     * <p>
+     * Implicitly, if the object state computations were done differently for the dependent objects,
+     * this {@link ObjectState} would be incorrect.
+     * </p>
+     * <ul>
+     * <li>Always has a (non null) set of dependencies.</li>
+     * <li>The set of dependencies does not have a null entry.</li>
+     * <li>The set of dependencies does not have entries with duplicate {@linkplain ObjectState.Id#getObject() object IDs}.</li>
+     * <li>The set of dependencies has {@linkplain ObjectState.Id#getWhen() time-stamps} after the time-stamp of the {@linkplain #getId() ID} of this state.</li>
+     * </ul>
+     * 
+     * @return The set of the IDs of the {@link ObjectState} states that this state directly depends on.
+     */
+    public Set<Id> getDependencies();
 
 }
