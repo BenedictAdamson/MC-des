@@ -34,7 +34,7 @@ public class ObjectStateTest {
         public static void assertInvariants(ObjectState.Id id) {
             ObjectTest.assertInvariants(id);// inherited
 
-            final UUID objectId = id.getObjectId();
+            final UUID objectId = id.getObject();
             final Duration when = id.getWhen();
 
             assertNotNull("objectId", objectId);
@@ -46,7 +46,7 @@ public class ObjectStateTest {
 
             final boolean equals = id1.equals(id2);
             assertFalse("ObjectState.Id objects are equivalent only if they have equals object IDs",
-                    equals && !id1.getObjectId().equals(id2.getObjectId()));
+                    equals && !id1.getObject().equals(id2.getObject()));
             assertFalse("ObjectState.Id objects are equivalent only if they have equals timestamps",
                     equals && !id1.getWhen().equals(id2.getWhen()));
         }
@@ -86,15 +86,16 @@ public class ObjectStateTest {
             final UUID nextObject = entry.getKey();
             final ObjectState nextState = entry.getValue();
             assertNotNull("The map of object states does not have a null key.", nextObject);
-            assertTrue(
-                    "The map has no null values for objects other than the object ID of the of the ID of this state.",
-                    nextObject.equals(id.getObjectId()) || nextState != null);
+            assertTrue("The map has no null values for objects other than the object ID of the ID of this state.",
+                    nextObject.equals(id.getObject()) || nextState != null);
             if (nextState != null) {
                 assertInvariants(nextState);
                 assertInvariants(state, nextState);
+
+                final Id nextId = nextState.getId();
                 assertEquals("Non null next state values have the object ID of their ID equal to their key.",
-                        nextObject, nextState.getId().getObjectId());
-                final Duration nextWhen1 = nextState.getId().getWhen();
+                        nextObject, nextId.getObject());
+                final Duration nextWhen1 = nextId.getWhen();
                 if (nextWhen == null) {
                     nextWhen = nextWhen1;
                     assertThat(
@@ -102,12 +103,12 @@ public class ObjectStateTest {
                             nextWhen, greaterThan(id.getWhen()));
                 } else {
                     assertEquals("All the values  in the next states map are equal points in time.", nextWhen,
-                            nextWhen);
+                            nextWhen1);
                 }
             }
         }
         assertThat("The map of object states has an entry for the object ID of the ID of this state.", nextStates,
-                hasValue(id.getObjectId()));
+                hasValue(id.getObject()));
 
         return nextStates;
     }

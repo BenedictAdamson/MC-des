@@ -34,8 +34,8 @@ public interface ObjectState {
          * </p>
          * <p>
          * {@link ObjectState.Id} objects have value semantics: two IDs are equivalent
-         * if, and only if, they have equivalent {@linkplain #getObjectId() object IDs}
-         * and {@linkplain #getWhen() timestamps}.
+         * if, and only if, they have equivalent {@linkplain #getObject() object IDs}
+         * and {@linkplain #getWhen() time-stamps}.
          * </p>
          * 
          * @param that
@@ -53,11 +53,11 @@ public interface ObjectState {
          * 
          * @return The object ID; not null.
          */
-        public UUID getObjectId();
+        public UUID getObject();
 
         /**
          * <p>
-         * The point in time that the {@linkplain #getObjectId() object} has the state
+         * The point in time that the {@linkplain #getObject() object} has the state
          * identified by this ID.
          * </p>
          * <p>
@@ -73,7 +73,7 @@ public interface ObjectState {
 
     /**
      * <p>
-     * Compute the state of the {@link {@link #getObjectId()} object}, and any
+     * Compute the state of the {@link {@link #getObject()} object}, and any
      * objects it creates, just after the {@link #getDurationUntilNextEvent next
      * state change of the object}.
      * </p>
@@ -85,12 +85,12 @@ public interface ObjectState {
      * <li>Always return a (non null) map of object states.</li>
      * <li>The map of object states does not have a null key.</li>
      * <li>The map of object states has an entry (key) for the
-     * {@link ObjectState.Id#getObjectId() object ID} of the {@linkplain #getId()
+     * {@link ObjectState.Id#getObject() object ID} of the {@linkplain #getId()
      * ID} of this state.</li>
      * <li>The map has no null values for objects other than the
-     * {@link ObjectId.Id#getObjectId() object ID} of the of the
+     * {@link ObjectId.Id#getObject() object ID} of the of the
      * {@linkplain #getId() ID} of this state.</li>
-     * <li>Non null next state values have the {@link ObjectState.Id#getObjectId()
+     * <li>Non null next state values have the {@link ObjectState.Id#getObject()
      * object ID} of their {@linkplain #getId() ID} equal to their key.</li>
      * <li>All the values (states) in the next states map are
      * {@link Duration#equals(Object) equal} {@link #getWhen() points in time}.</li>
@@ -100,7 +100,7 @@ public interface ObjectState {
      * 
      * @return A mapping of object IDs to the states of those objects at the future
      *         point in time. This will usually be a singleton map, containing an
-     *         entry for the @link {@link #getObjectId()} object} for which this is
+     *         entry for the @link {@link #getObject()} object} for which this is
      *         a state. A null value for the object for which this is a state
      *         indicates that the object no longer exists at the future point in
      *         time. A map with more than one entry indicates that the object has
