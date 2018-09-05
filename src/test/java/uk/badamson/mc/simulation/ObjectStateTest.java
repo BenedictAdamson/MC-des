@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import uk.badamson.mc.ObjectTest;
+import uk.badamson.mc.simulation.ObjectState.Id;
 
 /**
  * <p>
@@ -22,29 +23,58 @@ import uk.badamson.mc.ObjectTest;
  */
 public class ObjectStateTest {
 
+    /**
+     * <p>
+     * Auxiliary test code for classes implementing the {@link ObjectState.Id}
+     * interface.
+     * </p>
+     */
+    public static class IdTest {
+
+        public static void assertInvariants(ObjectState.Id id) {
+            ObjectTest.assertInvariants(id);// inherited
+
+            final UUID objectId = id.getObjectId();
+            final Duration when = id.getWhen();
+
+            assertNotNull("objectId", objectId);
+            assertNotNull("when", when);
+        }
+
+        public static void assertInvariants(ObjectState.Id id1, ObjectState.Id id2) {
+            ObjectTest.assertInvariants(id1, id2);// inherited
+
+            final boolean equals = id1.equals(id2);
+            assertFalse("ObjectState.Id objects are equivalent only if they have equals object IDs",
+                    equals && !id1.getObjectId().equals(id2.getObjectId()));
+            assertFalse("ObjectState.Id objects are equivalent only if they have equals timestamps",
+                    equals && !id1.getWhen().equals(id2.getWhen()));
+        }
+
+    }// class
+
     public static void assertInvariants(ObjectState state) {
         ObjectTest.assertInvariants(state);// inherited
 
-        final UUID objectId = state.getObjectId();
-        final Duration when = state.getWhen();
+        final ObjectState.Id id = state.getId();
 
-        assertNotNull("objectId", objectId);
-        assertNotNull("when", when);
+        assertNotNull("id", id);// guard
+        ObjectStateTest.IdTest.assertInvariants(id);
     }
 
     public static void assertInvariants(ObjectState state1, ObjectState state2) {
         ObjectTest.assertInvariants(state1, state2);// inherited
 
-        final boolean equals = state1.equals(state2);
-        assertFalse("ObjectState objects are equivalent only if they have equals object IDs",
-                equals && !state1.getObjectId().equals(state2.getObjectId()));
-        assertFalse("ObjectState objects are equivalent only if they have equals timestamps",
-                equals && !state1.getWhen().equals(state2.getWhen()));
+        final Id id1 = state1.getId();
+        final Id id2 = state2.getId();
+
+        ObjectStateTest.IdTest.assertInvariants(id1, id2);
+        assertEquals("Two ObjectState objects are equivalent if, and only if, they have equals IDs.", id1.equals(id2),
+                state1.equals(state2));
     }
 
     public static Map<UUID, ObjectState> createNextStates(ObjectState state) {
-        final UUID objectId = state.getObjectId();
-        final Duration when = state.getWhen();
+        final ObjectState.Id id = state.getId();
 
         final Map<UUID, ObjectState> nextStates = state.createNextStates();
 
@@ -57,25 +87,27 @@ public class ObjectStateTest {
             final ObjectState nextState = entry.getValue();
             assertNotNull("The map of object states does not have a null key.", nextObject);
             assertTrue(
-                    "The map has no null values for objects other than the object ID of the object for which this is a state.",
-                    nextObject.equals(objectId) || nextState != null);
+                    "The map has no null values for objects other than the object ID of the of the ID of this state.",
+                    nextObject.equals(id.getObjectId()) || nextState != null);
             if (nextState != null) {
                 assertInvariants(nextState);
                 assertInvariants(state, nextState);
-                final Duration nextWhen1 = nextState.getWhen();
+                assertEquals("Non null next state values have the object ID of their ID equal to their key.",
+                        nextObject, nextState.getId().getObjectId());
+                final Duration nextWhen1 = nextState.getId().getWhen();
                 if (nextWhen == null) {
                     nextWhen = nextWhen1;
                     assertThat(
                             "All the values in the next states map are for a point in time after the point in time of this state.",
-                            nextWhen, greaterThan(when));
+                            nextWhen, greaterThan(id.getWhen()));
                 } else {
                     assertEquals("All the values  in the next states map are equal points in time.", nextWhen,
                             nextWhen);
                 }
             }
         }
-        assertThat("The map of object states has an entry for the object ID of the object for which this is a state.",
-                nextStates, hasValue(objectId));
+        assertThat("The map of object states has an entry for the object ID of the ID of this state.", nextStates,
+                hasValue(id.getObjectId()));
 
         return nextStates;
     }

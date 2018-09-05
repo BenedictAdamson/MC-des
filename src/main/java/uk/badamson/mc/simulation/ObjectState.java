@@ -8,7 +8,7 @@ import net.jcip.annotations.Immutable;
 
 /**
  * <p>
- * The state of a simulated object at one point in time, just after a state
+ * A state of a simulated object at one point in time, just after a state
  * change, also encapsulating how to compute the state of the object at future
  * points in time, and creation and destruction of objects.
  * </p>
@@ -19,6 +19,57 @@ import net.jcip.annotations.Immutable;
  */
 @Immutable
 public interface ObjectState {
+
+    /**
+     * <p>
+     * An identifier (unique key) for an {@link ObjectState}.
+     * </p>
+     */
+    @Immutable
+    public interface Id {
+
+        /**
+         * <p>
+         * Whether this {@link ObjectState.Id} is equivalent to another object.
+         * </p>
+         * <p>
+         * {@link ObjectState.Id} objects have value semantics: two IDs are equivalent
+         * if, and only if, they have equivalent {@linkplain #getObjectId() object IDs}
+         * and {@linkplain #getWhen() timestamps}.
+         * </p>
+         * 
+         * @param that
+         *            The object to compare with this object.
+         * @return whether this object is equivalent to {@code that} object.
+         */
+        @Override
+        public boolean equals(Object that);
+
+        /**
+         * <p>
+         * The unique ID of the object for which the {@link ObjectState} this identifies
+         * is a state.
+         * </p>
+         * 
+         * @return The object ID; not null.
+         */
+        public UUID getObjectId();
+
+        /**
+         * <p>
+         * The point in time that the {@linkplain #getObjectId() object} has the state
+         * identified by this ID.
+         * </p>
+         * <p>
+         * Expressed as the duration since an epoch. All {@link ObjectState} objects in
+         * a simulation should use the same epoch.
+         * </p>
+         * 
+         * @return the amount of time since the epoch; not null.
+         */
+        public Duration getWhen();
+
+    }// interface
 
     /**
      * <p>
@@ -33,11 +84,14 @@ public interface ObjectState {
      * <ul>
      * <li>Always return a (non null) map of object states.</li>
      * <li>The map of object states does not have a null key.</li>
-     * <li>The map of object states has an entry (key) for the {@link #getObjectId()
-     * object ID} of the object for which this is a state.</li>
+     * <li>The map of object states has an entry (key) for the
+     * {@link ObjectState.Id#getObjectId() object ID} of the {@linkplain #getId()
+     * ID} of this state.</li>
      * <li>The map has no null values for objects other than the
-     * {@link #getObjectId() object ID} of the object for which this is a
-     * state.</li>
+     * {@link ObjectId.Id#getObjectId() object ID} of the of the
+     * {@linkplain #getId() ID} of this state.</li>
+     * <li>Non null next state values have the {@link ObjectState.Id#getObjectId()
+     * object ID} of their {@linkplain #getId() ID} equal to their key.</li>
      * <li>All the values (states) in the next states map are
      * {@link Duration#equals(Object) equal} {@link #getWhen() points in time}.</li>
      * <li>All the values (states) in the next states map are for a
@@ -59,10 +113,9 @@ public interface ObjectState {
      * Whether this {@link ObjectState} is equivalent to another object.
      * </p>
      * <p>
-     * The semantics of an {@link ObjectState} is that the combination of its
-     * {@linkplain #getObjectId() object ID} and {@linkplain #getWhen() time-stamp}
-     * actual as a unique ID. Therefore two {@link ObjectState} objects are
-     * equivalent if, and only if, they have equals object IDs and time-stamps.
+     * The semantics of an {@link ObjectState} is that the its {@linkplain #getId()
+     * ID} attribute is a unique ID. Therefore two {@link ObjectState} objects are
+     * equivalent if, and only if, they have equals IDs.
      * </p>
      * 
      * @param that
@@ -74,24 +127,11 @@ public interface ObjectState {
 
     /**
      * <p>
-     * The unique ID of the object for which this is a state.
+     * The identifier (unique key) for this object state
      * </p>
      * 
-     * @return The object ID; not null.
+     * @return the ID; not null.
      */
-    public UUID getObjectId();
-
-    /**
-     * <p>
-     * The point in time that the {@linkplain #getObjectId() object} had this state.
-     * </p>
-     * <p>
-     * Expressed as the duration since an epoch. All {@link ObjectState} objects in
-     * a simulation should use the same peoch.
-     * </p>
-     * 
-     * @return the amount of time since the epoch; not null.
-     */
-    public Duration getWhen();
+    public Id getId();
 
 }
