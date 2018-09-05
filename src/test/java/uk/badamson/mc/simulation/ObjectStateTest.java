@@ -15,8 +15,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import uk.badamson.mc.ObjectTest;
-
 /**
  * <p>
  * Auxiliary test code for classes implementing the {@link ObjectState}
@@ -26,8 +24,6 @@ import uk.badamson.mc.ObjectTest;
 public class ObjectStateTest {
 
     public static void assertInvariants(ObjectState state) {
-        ObjectTest.assertInvariants(state);// inherited
-
         final ObjectStateId id = state.getId();
         final Set<ObjectStateId> dependencies = state.getDependencies();
 
@@ -50,8 +46,6 @@ public class ObjectStateTest {
     }
 
     public static void assertInvariants(ObjectState state1, ObjectState state2) {
-        ObjectTest.assertInvariants(state1, state2);// inherited
-
         final ObjectStateId id1 = state1.getId();
         final ObjectStateId id2 = state2.getId();
 

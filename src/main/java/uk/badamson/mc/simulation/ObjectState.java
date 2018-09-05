@@ -101,7 +101,7 @@ public interface ObjectState {
 
     /**
      * <p>
-     * The identifier (unique key) for this object state
+     * The identifier (unique key) for this object state.
      * </p>
      * 
      * @return the ID; not null.

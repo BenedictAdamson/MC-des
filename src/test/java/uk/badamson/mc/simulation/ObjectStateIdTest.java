@@ -22,10 +22,10 @@ import uk.badamson.mc.ObjectTest;
  */
 public class ObjectStateIdTest {
 
-    private static final UUID OBJECT_A = UUID.randomUUID();
-    private static final UUID OBJECT_B = UUID.randomUUID();
-    private static final Duration DURATION_A = Duration.ZERO;
-    private static final Duration DURATION_B = Duration.ofSeconds(15);
+    static final UUID OBJECT_A = UUID.randomUUID();
+    static final UUID OBJECT_B = UUID.randomUUID();
+    static final Duration DURATION_A = Duration.ZERO;
+    static final Duration DURATION_B = Duration.ofSeconds(15);
 
     public static void assertInvariants(ObjectStateId id) {
         ObjectTest.assertInvariants(id);// inherited
