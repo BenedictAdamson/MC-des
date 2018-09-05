@@ -16,7 +16,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import uk.badamson.mc.ObjectTest;
-import uk.badamson.mc.simulation.ObjectState.Id;
 
 /**
  * <p>
@@ -26,52 +25,22 @@ import uk.badamson.mc.simulation.ObjectState.Id;
  */
 public class ObjectStateTest {
 
-    /**
-     * <p>
-     * Auxiliary test code for classes implementing the {@link ObjectState.Id}
-     * interface.
-     * </p>
-     */
-    public static class IdTest {
-
-        public static void assertInvariants(ObjectState.Id id) {
-            ObjectTest.assertInvariants(id);// inherited
-
-            final UUID objectId = id.getObject();
-            final Duration when = id.getWhen();
-
-            assertNotNull("objectId", objectId);
-            assertNotNull("when", when);
-        }
-
-        public static void assertInvariants(ObjectState.Id id1, ObjectState.Id id2) {
-            ObjectTest.assertInvariants(id1, id2);// inherited
-
-            final boolean equals = id1.equals(id2);
-            assertFalse("ObjectState.Id objects are equivalent only if they have equals object IDs",
-                    equals && !id1.getObject().equals(id2.getObject()));
-            assertFalse("ObjectState.Id objects are equivalent only if they have equals timestamps",
-                    equals && !id1.getWhen().equals(id2.getWhen()));
-        }
-
-    }// class
-
     public static void assertInvariants(ObjectState state) {
         ObjectTest.assertInvariants(state);// inherited
 
-        final ObjectState.Id id = state.getId();
-        final Set<ObjectState.Id> dependencies = state.getDependencies();
+        final ObjectStateId id = state.getId();
+        final Set<ObjectStateId> dependencies = state.getDependencies();
 
         assertNotNull("id", id);// guard
         assertNotNull("dependencies", dependencies);// guard
 
-        ObjectStateTest.IdTest.assertInvariants(id);
+        ObjectStateIdTest.assertInvariants(id);
 
         Set<UUID> dependentObjects = new HashSet<>(dependencies.size());
-        for (ObjectState.Id dependency : dependencies) {
+        for (ObjectStateId dependency : dependencies) {
             assertNotNull("The set of dependencies does not have a null entry.", dependency);// guard
-            ObjectStateTest.IdTest.assertInvariants(dependency);
-            ObjectStateTest.IdTest.assertInvariants(dependency, id);
+            ObjectStateIdTest.assertInvariants(dependency);
+            ObjectStateIdTest.assertInvariants(dependency, id);
             assertFalse("The set of dependencies does not have entries with duplicate object IDs.",
                     dependentObjects.contains(dependency.getObject()));
             assertThat("The set of dependencies has time-stamps after the time-stamp of the ID of this state.",
@@ -83,16 +52,16 @@ public class ObjectStateTest {
     public static void assertInvariants(ObjectState state1, ObjectState state2) {
         ObjectTest.assertInvariants(state1, state2);// inherited
 
-        final Id id1 = state1.getId();
-        final Id id2 = state2.getId();
+        final ObjectStateId id1 = state1.getId();
+        final ObjectStateId id2 = state2.getId();
 
-        ObjectStateTest.IdTest.assertInvariants(id1, id2);
+        ObjectStateIdTest.assertInvariants(id1, id2);
         assertEquals("Two ObjectState objects are equivalent if, and only if, they have equals IDs.", id1.equals(id2),
                 state1.equals(state2));
     }
 
     public static Map<UUID, ObjectState> createNextStates(ObjectState state) {
-        final ObjectState.Id id = state.getId();
+        final ObjectStateId id = state.getId();
 
         final Map<UUID, ObjectState> nextStates = state.createNextStates();
 
@@ -110,7 +79,7 @@ public class ObjectStateTest {
                 assertInvariants(nextState);
                 assertInvariants(state, nextState);
 
-                final Id nextId = nextState.getId();
+                final ObjectStateId nextId = nextState.getId();
                 assertEquals("Non null next state values have the object ID of their ID equal to their key.",
                         nextObject, nextId.getObject());
                 final Duration nextWhen1 = nextId.getWhen();
