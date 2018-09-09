@@ -35,6 +35,11 @@ public class AbstractObjectStateTest {
             return Collections.singletonMap(getId().getObject(), (ObjectState) null);
         }
 
+        @Override
+        public String toString() {
+            return "TestObjectState[" + getId() + "]";
+        }
+
     }// class
 
     private static final UUID OBJECT_A = ObjectStateIdTest.OBJECT_A;

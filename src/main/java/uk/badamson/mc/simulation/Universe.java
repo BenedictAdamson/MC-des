@@ -68,11 +68,20 @@ public class Universe {
      */
     public final void append(ObjectState objectState) {
         Objects.requireNonNull(objectState, "objectState");
+
         final ObjectStateId id = objectState.getId();
-        // TODO
-        SortedMap<Duration, ObjectState> stateHistory = new TreeMap<>();
-        stateHistory.put(id.getWhen(), objectState);
-        objectStateHistories.put(id.getObject(), stateHistory);
+        final UUID object = id.getObject();
+        final Duration when = id.getWhen();
+
+        SortedMap<Duration, ObjectState> stateHistory = objectStateHistories.get(object);
+        if (stateHistory == null) {
+            stateHistory = new TreeMap<>();
+            objectStateHistories.put(object, stateHistory);
+        } else if (0 <= stateHistory.lastKey().compareTo(when)) {
+            throw new IllegalStateException(
+                    "Already have a state at or after <" + stateHistory.lastKey() + "> that time <" + when + ">");
+        }
+        stateHistory.put(when, objectState);
         objectStates.put(id, objectState);
     }
 

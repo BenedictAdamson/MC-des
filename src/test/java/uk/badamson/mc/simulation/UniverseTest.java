@@ -33,8 +33,9 @@ public class UniverseTest {
 
     private static final UUID OBJECT_A = ObjectStateIdTest.OBJECT_A;
     private static final UUID OBJECT_B = ObjectStateIdTest.OBJECT_B;
-    private static final Duration DURATION_A = Duration.ofSeconds(23);
-    private static final Duration DURATION_B = ObjectStateIdTest.DURATION_B;
+    private static final Duration DURATION_1 = Duration.ofSeconds(13);
+    private static final Duration DURATION_2 = Duration.ofSeconds(17);
+    private static final Duration DURATION_3 = Duration.ofSeconds(23);
     private static final UUID VERSION_A = ObjectStateIdTest.VERSION_A;
 
     public static void append(final Universe universe, ObjectState objectState) {
@@ -75,8 +76,8 @@ public class UniverseTest {
 
     private static void append_2DifferentObjects(final UUID object1, final UUID object2) {
         assert !object1.equals(object2);
-        final ObjectStateId id1 = new ObjectStateId(object1, DURATION_A, VERSION_A);
-        final ObjectStateId id2 = new ObjectStateId(object2, DURATION_A, VERSION_A);
+        final ObjectStateId id1 = new ObjectStateId(object1, DURATION_1, VERSION_A);
+        final ObjectStateId id2 = new ObjectStateId(object2, DURATION_1, VERSION_A);
         final Set<ObjectStateId> dependencies = Collections.emptySet();
         final ObjectState objectState1 = new AbstractObjectStateTest.TestObjectState(id1, dependencies);
         final ObjectState objectState2 = new AbstractObjectStateTest.TestObjectState(id2, dependencies);
@@ -91,6 +92,27 @@ public class UniverseTest {
         assertEquals("Object IDs", Set.of(object1, object2), universe.getObjectIds());
         assertEquals("The object state histories of other objects are unchanged.", objectStateHistory1,
                 universe.getObjectStateHistory(object1));
+    }
+
+    private static void append_2SuccessiveStates(final Duration when1, final Duration when2) {
+        final UUID object = OBJECT_A;
+        final ObjectStateId id1 = new ObjectStateId(object, when1, VERSION_A);
+        final ObjectStateId id2 = new ObjectStateId(object, when2, VERSION_A);
+        final Set<ObjectStateId> dependencies1 = Collections.emptySet();
+        final Set<ObjectStateId> dependencies2 = Collections.singleton(id1);
+        final ObjectState objectState1 = new AbstractObjectStateTest.TestObjectState(id1, dependencies1);
+        final ObjectState objectState2 = new AbstractObjectStateTest.TestObjectState(id2, dependencies2);
+        final SortedMap<Duration, ObjectState> expectedObjectStateHistory = new TreeMap<>();
+        expectedObjectStateHistory.put(when1, objectState1);
+        expectedObjectStateHistory.put(when2, objectState2);
+
+        final Universe universe = new Universe();
+        universe.append(objectState1);
+
+        append(universe, objectState2);
+
+        assertEquals("Object IDs.", Collections.singleton(object), universe.getObjectIds());
+        assertEquals("Object state history.", expectedObjectStateHistory, universe.getObjectStateHistory(object));
     }
 
     public static void assertInvariants(Universe universe) {
@@ -166,12 +188,12 @@ public class UniverseTest {
 
     @Test
     public void append_1A() {
-        append_1(OBJECT_A, DURATION_A);
+        append_1(OBJECT_A, DURATION_1);
     }
 
     @Test
     public void append_1B() {
-        append_1(OBJECT_B, DURATION_B);
+        append_1(OBJECT_B, DURATION_2);
     }
 
     @Test
@@ -182,6 +204,21 @@ public class UniverseTest {
     @Test
     public void append_2DifferentObjectsB() {
         append_2DifferentObjects(OBJECT_B, OBJECT_A);
+    }
+
+    @Test
+    public void append_2SuccessiveStatesA() {
+        append_2SuccessiveStates(DURATION_1, DURATION_2);
+    }
+
+    @Test
+    public void append_2SuccessiveStatesB() {
+        append_2SuccessiveStates(DURATION_2, DURATION_3);
+    }
+
+    @Test
+    public void append_2SuccessiveStatesClose() {
+        append_2SuccessiveStates(DURATION_1, DURATION_1.plusNanos(1));
     }
 
     @Test
