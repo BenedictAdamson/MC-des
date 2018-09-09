@@ -1,6 +1,7 @@
 package uk.badamson.mc.simulation;
 
 import static org.hamcrest.collection.IsMapContaining.hasValue;
+import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.hamcrest.number.OrderingComparison.lessThan;
 import static org.junit.Assert.assertEquals;
@@ -87,6 +88,9 @@ public class ObjectStateTest {
                     assertEquals("All the values  in the next states map are equal points in time.", nextWhen,
                             nextWhen1);
                 }
+                assertThat(
+                        "All the values in the next states map have the ID of this state as one of their dependencies.",
+                        nextState.getDependencies(), hasItem(id));
             }
         }
         assertThat("The map of object states has an entry for the object ID of the ID of this state.", nextStates,

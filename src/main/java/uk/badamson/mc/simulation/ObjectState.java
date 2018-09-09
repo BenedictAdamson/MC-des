@@ -47,6 +47,9 @@ public interface ObjectState {
      * {@link Duration#equals(Object) equal} {@link #getWhen() points in time}.</li>
      * <li>All the values (states) in the next states map are for a
      * {@link #getWhen() point in time} after the point in time of this state.</li>
+     * <li>All the values (states) in the next states map have the
+     * {@linkplain #getId() ID} of this state as one of their
+     * {@linkplain #getDependencies() dependencies}.</li>
      * </ul>
      * 
      * @return A mapping of object IDs to the states of those objects at the future
@@ -93,6 +96,11 @@ public interface ObjectState {
      * time-stamps} before the time-stamp of the {@linkplain #getId() ID} of this
      * state.</li>
      * </ul>
+     * <p>
+     * The dependencies typically have an entry for the previous state of the
+     * {@linkplain ObjectStateId#getObject() object} of the {@linkplain #getId() ID}
+     * of this state.
+     * </p>
      * 
      * @return The set of the IDs of the {@link ObjectState} states that this state
      *         directly depends on.
