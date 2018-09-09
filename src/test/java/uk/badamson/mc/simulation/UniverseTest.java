@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import org.junit.Test;
@@ -70,6 +71,26 @@ public class UniverseTest {
         assertThat(
                 "The given object state is the last value in the object state history of the object of the ID of the given object state (value).",
                 universe.getObjectStateHistory(object), equalTo(Collections.singletonMap(when, objectState)));
+    }
+
+    private static void append_2DifferentObjects(final UUID object1, final UUID object2) {
+        assert !object1.equals(object2);
+        final ObjectStateId id1 = new ObjectStateId(object1, DURATION_A, VERSION_A);
+        final ObjectStateId id2 = new ObjectStateId(object2, DURATION_A, VERSION_A);
+        final Set<ObjectStateId> dependencies = Collections.emptySet();
+        final ObjectState objectState1 = new AbstractObjectStateTest.TestObjectState(id1, dependencies);
+        final ObjectState objectState2 = new AbstractObjectStateTest.TestObjectState(id2, dependencies);
+
+        final Universe universe = new Universe();
+        universe.append(objectState1);
+        final SortedMap<Duration, ObjectState> objectStateHistory1 = new TreeMap<>(
+                universe.getObjectStateHistory(object1));
+
+        append(universe, objectState2);
+
+        assertEquals("Object IDs", Set.of(object1, object2), universe.getObjectIds());
+        assertEquals("The object state histories of other objects are unchanged.", objectStateHistory1,
+                universe.getObjectStateHistory(object1));
     }
 
     public static void assertInvariants(Universe universe) {
@@ -151,6 +172,16 @@ public class UniverseTest {
     @Test
     public void append_1B() {
         append_1(OBJECT_B, DURATION_B);
+    }
+
+    @Test
+    public void append_2DifferentObjectsA() {
+        append_2DifferentObjects(OBJECT_A, OBJECT_B);
+    }
+
+    @Test
+    public void append_2DifferentObjectsB() {
+        append_2DifferentObjects(OBJECT_B, OBJECT_A);
     }
 
     @Test

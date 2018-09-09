@@ -48,6 +48,8 @@ public class Universe {
      * in the {@linkplain #getObjectStateHistory(UUID) object state history} of the
      * {@linkplain ObjectStateId#getObject() object} of the
      * {@linkplain ObjectState#getId() ID} of the given object state.</li>
+     * <li>The {@linkplain #getObjectStateHistory(UUID) object state histories} of
+     * other objects are unchanged.</li>
      * </ul>
      * 
      * @param objectState
