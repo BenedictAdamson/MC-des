@@ -1,7 +1,13 @@
 package uk.badamson.mc.simulation;
 
+import java.time.Duration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.UUID;
 
 /**
  * <p>
@@ -12,17 +18,83 @@ import java.util.Map;
 public class Universe {
 
     private final Map<ObjectStateId, ObjectState> objectStates = new HashMap<>();
+    private final Map<UUID, SortedMap<Duration, ObjectState>> objectStateHistories = new HashMap<>();
 
     /**
      * <p>
      * Construct an empty universe.
      * </p>
      * <ul>
-     * <li>The map of IDs to object states {@linkplain Map#isEmpty() is empty}.</li>
+     * <li>The {@linkplain #getObjectIds() set of object IDs}
+     * {@linkplain Set#isEmpty() is empty}.</li>
+     * <li>The {@linkplain #getObjectStates() map of IDs to object states}
+     * {@linkplain Map#isEmpty() is empty}.</li>
      * </ul>
      */
     public Universe() {
         // Do nothing
+    }
+
+    /**
+     * <p>
+     * The unique IDs of the simulated objects in this universe.
+     * </p>
+     * <ul>
+     * <li>Always have a (non null) set of object IDs.</li>
+     * <li>The set of object IDs does not have a null element.</li>
+     * <li>The set of object IDs may be immutable.</li>
+     * <li>The set of object IDs might or might not be a copy of an internal map,and
+     * so might or might not reflect subsequent changes to this universe.</li>
+     * </ul>
+     * 
+     * @return the object IDs.
+     */
+    public final Set<UUID> getObjectIds() {
+        return new HashSet<>(objectStateHistories.keySet());
+    }
+
+    /**
+     * <p>
+     * The (currently known) history of the state transitions (succession of object
+     * states) of a given object in this universe.
+     * </p>
+     * <ul>
+     * <li>A universe has a (non null) object state history for a given object if,
+     * and only if, that object is one of the {@linkplain #getObjectIds() objects}
+     * in the universe.</li>
+     * <li>A (non null) object state history for a given object is not
+     * {@linkplain Map#isEmpty() empty}.</li>
+     * <li>Only the {@linkplain SortedMap#lastKey() last} entry in a (non null)
+     * object state history may map to a null state (indicating that the object
+     * ceased to exist at that time).</li>
+     * <li>A (non null) object state history for a given object maps to a null value
+     * or an object state with a {@linkplain ObjectStateId#getWhen() time-stamp}
+     * equal to the key of the map.</li>
+     * <li>All non null object states in the state history of a given object have
+     * the given object ID as the {@linkplain ObjectStateId#getObject() object ID}
+     * of the {@linkplain ObjectState#getId() state ID}.</li>
+     * <li>All non null object states in the state history of a given object belong
+     * to the {@linkplain Map#values() values collection} of the
+     * {@linkplain #getObjectStates() object states map}.</li>
+     * <li>All non null object states in the state history of a given object, except
+     * for the {@linkplain SortedMap#firstKey() first}, have as a
+     * {@linkplain ObjectState#getDependencies() dependency} on the previous object
+     * state in the state history.</li>
+     * </ul>
+     * 
+     * @param object
+     *            The object of interest
+     * @return The state history of the given object, as a map of the times of a
+     *         state transition to the state just after that transition, or null if
+     *         this universe does not {@linkplain #getObjectIds() include} the given
+     *         object. A null value indicates that the object ceased to exist at
+     *         that time.
+     * @throws NullPointerException
+     *             If {@code object} is null
+     */
+    public final SortedMap<Duration, ObjectState> getObjectStateHistory(UUID object) {
+        Objects.requireNonNull(object, "object");
+        return null;// TODO
     }
 
     /**
@@ -33,6 +105,9 @@ public class Universe {
      * <ul>
      * <li>Always have a (non null) map of IDs to object states.</li>
      * <li>The map of IDs to object states does not have a null key.</li>
+     * <li>The map of IDs to object states does not have IDs (keys) for
+     * {@linkplain ObjectStateId#getObject() object IDs} that are in the
+     * {@linkplain #getObjectIds() set of objects in this universe}.</li>
      * <li>The map of IDs to object states does not have null values.</li>
      * <li>The map of IDs to object states maps an ID to an object state that has
      * the same {@linkplain ObjectState#getId() ID}.</li>
