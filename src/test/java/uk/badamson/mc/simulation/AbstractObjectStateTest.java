@@ -24,7 +24,7 @@ import uk.badamson.mc.ObjectTest;
  */
 public class AbstractObjectStateTest {
 
-    private static final class TestObjectState extends AbstractObjectState {
+    static final class TestObjectState extends AbstractObjectState {
 
         public TestObjectState(ObjectStateId id, Set<ObjectStateId> dependencies) {
             super(id, dependencies);

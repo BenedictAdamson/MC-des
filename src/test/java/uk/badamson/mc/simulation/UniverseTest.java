@@ -30,6 +30,48 @@ import uk.badamson.mc.ObjectTest;
  */
 public class UniverseTest {
 
+    private static final UUID OBJECT_A = ObjectStateIdTest.OBJECT_A;
+    private static final UUID OBJECT_B = ObjectStateIdTest.OBJECT_B;
+    private static final Duration DURATION_A = Duration.ofSeconds(23);
+    private static final Duration DURATION_B = ObjectStateIdTest.DURATION_B;
+    private static final UUID VERSION_A = ObjectStateIdTest.VERSION_A;
+
+    public static void append(final Universe universe, ObjectState objectState) {
+        final ObjectStateId id = objectState.getId();
+        final UUID object = id.getObject();
+        final Duration when = id.getWhen();
+
+        universe.append(objectState);
+
+        assertInvariants(universe);
+        assertThat("The object ID of the ID of the given object state is one of the object IDs of this universe.",
+                universe.getObjectIds(), hasItem(object));
+        final SortedMap<Duration, ObjectState> objectStateHistory = universe.getObjectStateHistory(object);
+        assertNotNull("Object has a state history", objectStateHistory);// guard
+        assertThat(
+                "The given object state is the last value in the object state history of the object of the ID of the given object state (time-stamp).",
+                objectStateHistory.lastKey(), sameInstance(when));
+        assertThat(
+                "The given object state is the last value in the object state history of the object of the ID of the given object state (value).",
+                objectStateHistory.get(when), sameInstance(objectState));
+    }
+
+    private static void append_1(final UUID object, final Duration when) {
+        final ObjectStateId id = new ObjectStateId(object, when, VERSION_A);
+        final Set<ObjectStateId> dependencies = Collections.emptySet();
+        final ObjectState objectState = new AbstractObjectStateTest.TestObjectState(id, dependencies);
+
+        final Universe universe = new Universe();
+
+        append(universe, objectState);
+
+        assertThat("The object ID of the ID of the given object state is one of the object IDs of this universe.",
+                universe.getObjectIds(), equalTo(Collections.singleton(object)));
+        assertThat(
+                "The given object state is the last value in the object state history of the object of the ID of the given object state (value).",
+                universe.getObjectStateHistory(object), equalTo(Collections.singletonMap(when, objectState)));
+    }
+
     public static void assertInvariants(Universe universe) {
         ObjectTest.assertInvariants(universe);// inherited
 
@@ -102,6 +144,16 @@ public class UniverseTest {
     }
 
     @Test
+    public void append_1A() {
+        append_1(OBJECT_A, DURATION_A);
+    }
+
+    @Test
+    public void append_1B() {
+        append_1(OBJECT_B, DURATION_B);
+    }
+
+    @Test
     public void constructor() {
         final Universe universe = new Universe();
 
@@ -109,5 +161,4 @@ public class UniverseTest {
         assertEquals("The set of object IDs is empty.", Collections.emptySet(), universe.getObjectIds());
         assertEquals("The map of IDs to object states is empty.", Collections.emptyMap(), universe.getObjectStates());
     }
-
 }

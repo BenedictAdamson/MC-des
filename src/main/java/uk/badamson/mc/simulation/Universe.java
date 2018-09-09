@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.UUID;
 
 /**
@@ -33,6 +34,44 @@ public class Universe {
      */
     public Universe() {
         // Do nothing
+    }
+
+    /**
+     * <p>
+     * Add an object state to this universe.
+     * <p>
+     * <ul>
+     * <li>The {@linkplain ObjectStateId#getObject() object ID} of the
+     * {@linkplain ObjectState#getId() ID} of the given object state is one of the
+     * {@linkplain #getObjectIds() object IDs} of this universe.</li>
+     * <li>The given object state is the {@linkplain SortedMap#lastKey() last} value
+     * in the {@linkplain #getObjectStateHistory(UUID) object state history} of the
+     * {@linkplain ObjectStateId#getObject() object} of the
+     * {@linkplain ObjectState#getId() ID} of the given object state.</li>
+     * </ul>
+     * 
+     * @param objectState
+     *            The state to add.
+     * @throws NullPointerException
+     *             If {@code objectState} is null
+     * @throws IllegalStateException
+     *             If the {@linkplain ObjectStateId#getObject() object} of the
+     *             {@linkplain ObjectState#getId() ID} of {@code objectState} is
+     *             already an {@linkplain #getObjectIds() object IDs} of this
+     *             universe, but the {@linkplain ObjectStateId#getWhen() time-stamp}
+     *             of (the ID of) {@code objectState} is not
+     *             {@linkplain Duration#compareTo(Duration) after} the
+     *             {@linkplain SortedMap#lastKey() last} state in the
+     *             {@linkplain #getObjectStateHistory(UUID) object state history}.
+     */
+    public final void append(ObjectState objectState) {
+        Objects.requireNonNull(objectState, "objectState");
+        final ObjectStateId id = objectState.getId();
+        // TODO
+        SortedMap<Duration, ObjectState> stateHistory = new TreeMap<>();
+        stateHistory.put(id.getWhen(), objectState);
+        objectStateHistories.put(id.getObject(), stateHistory);
+        objectStates.put(id, objectState);
     }
 
     /**
@@ -94,7 +133,9 @@ public class Universe {
      */
     public final SortedMap<Duration, ObjectState> getObjectStateHistory(UUID object) {
         Objects.requireNonNull(object, "object");
-        return null;// TODO
+        SortedMap<Duration, ObjectState> objectStateHistory = objectStateHistories.get(object);
+        // TODO
+        return new TreeMap<>(objectStateHistory);
     }
 
     /**
@@ -118,7 +159,7 @@ public class Universe {
      * @return the objectStates
      */
     public final Map<ObjectStateId, ObjectState> getObjectStates() {
-        return objectStates;
+        return new HashMap<>(objectStates);
     }
 
 }
