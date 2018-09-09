@@ -29,8 +29,9 @@ public class ObjectStateTest {
 
         assertNotNull("id", id);// guard
         assertNotNull("dependencies", dependencies);// guard
-
         ObjectStateIdTest.assertInvariants(id);
+
+        final Duration when = id.getWhen();
 
         Set<UUID> dependentObjects = new HashSet<>(dependencies.size());
         for (ObjectStateId dependency : dependencies) {
@@ -39,8 +40,8 @@ public class ObjectStateTest {
             ObjectStateIdTest.assertInvariants(dependency, id);
             assertFalse("The set of dependencies does not have entries with duplicate object IDs.",
                     dependentObjects.contains(dependency.getObject()));
-            assertThat("The set of dependencies has time-stamps after the time-stamp of the ID of this state.",
-                    dependency.getWhen(), lessThan(id.getWhen()));
+            assertThat("The set of dependencies has time-stamps before the time-stamp of the ID of this state.",
+                    dependency.getWhen(), lessThan(when));
             dependentObjects.add(dependency.getObject());
         }
     }

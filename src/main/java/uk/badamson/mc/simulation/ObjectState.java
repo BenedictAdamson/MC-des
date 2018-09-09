@@ -90,7 +90,7 @@ public interface ObjectState {
      * <li>The set of dependencies does not have entries with duplicate
      * {@linkplain ObjectStateId#getObject() object IDs}.</li>
      * <li>The set of dependencies has {@linkplain ObjectStateId#getWhen()
-     * time-stamps} after the time-stamp of the {@linkplain #getId() ID} of this
+     * time-stamps} before the time-stamp of the {@linkplain #getId() ID} of this
      * state.</li>
      * </ul>
      * 
