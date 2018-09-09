@@ -36,17 +36,22 @@ public class AbstractObjectStateTest {
         }
 
     }// class
+
     private static final UUID OBJECT_A = ObjectStateIdTest.OBJECT_A;
     private static final UUID OBJECT_B = ObjectStateIdTest.OBJECT_B;
     private static final UUID OBJECT_C = UUID.randomUUID();
     private static final Duration DURATION_A = Duration.ofSeconds(23);
     private static final Duration DURATION_B = ObjectStateIdTest.DURATION_B;
-
     private static final Duration DURATION_C = ObjectStateIdTest.DURATION_A;
+    private static final UUID VERSION_A = ObjectStateIdTest.VERSION_A;
+    private static final UUID VERSION_B = ObjectStateIdTest.VERSION_B;
+    private static final UUID VERSION_C = UUID.randomUUID();
+
     public static void assertInvariants(AbstractObjectState state) {
         ObjectTest.assertInvariants(state);// inherited
         ObjectStateTest.assertInvariants(state);// inherited
     }
+
     public static void assertInvariants(AbstractObjectState state1, AbstractObjectState state2) {
         ObjectTest.assertInvariants(state1, state2);// inherited
         ObjectStateTest.assertInvariants(state1, state2);// inherited
@@ -62,7 +67,7 @@ public class AbstractObjectStateTest {
     }
 
     private static void constructor_2Equal(ObjectStateId id, Set<ObjectStateId> dependencies) {
-        final ObjectStateId id2 = new ObjectStateId(id.getObject(), id.getWhen());
+        final ObjectStateId id2 = new ObjectStateId(id.getObject(), id.getWhen(), id.getVersion());
         final Set<ObjectStateId> dependencies2 = new HashSet<>(dependencies);
 
         final AbstractObjectState state1 = new TestObjectState(id, dependencies);
@@ -88,7 +93,6 @@ public class AbstractObjectStateTest {
 
     @Test
     public void constructor_2DifferentDependencies() {
-        final Set<ObjectStateId> dependencies = Set.of(idC);
         final AbstractObjectState state1 = new TestObjectState(idA, Set.of(idB));
         final AbstractObjectState state2 = new TestObjectState(idA, Set.of(idC));
 
@@ -128,8 +132,8 @@ public class AbstractObjectStateTest {
 
     @Before
     public void setUp() {
-        idA = new ObjectStateId(OBJECT_A, DURATION_A);
-        idB = new ObjectStateId(OBJECT_B, DURATION_B);
-        idC = new ObjectStateId(OBJECT_C, DURATION_C);
+        idA = new ObjectStateId(OBJECT_A, DURATION_A, VERSION_A);
+        idB = new ObjectStateId(OBJECT_B, DURATION_B, VERSION_B);
+        idC = new ObjectStateId(OBJECT_C, DURATION_C, VERSION_C);
     }
 }

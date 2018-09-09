@@ -16,6 +16,7 @@ public final class ObjectStateId {
 
     private final UUID object;
     private final Duration when;
+    private final UUID version;
 
     /**
      * <p>
@@ -26,6 +27,8 @@ public final class ObjectStateId {
      * ID.</li>
      * <li>The {@linkplain #getWhen() time-stamp} of this ID is the given
      * time-stamp.</li>
+     * <li>The {@linkplain #getVersion() version ID} of this ID is the given version
+     * ID.</li>
      * </ul>
      * 
      * @param object
@@ -34,15 +37,19 @@ public final class ObjectStateId {
      * @param when
      *            The point in time that the {@linkplain #getObject() object} has
      *            the state identified by this ID.
+     * @param version
+     *            The version identifier of the object state that this identifies.
      * @throws NullPointerException
      *             <ul>
      *             <li>If {@code object} is null.</li>
      *             <li>If {@code when} is null.</li>
+     *             <li>If {@code version} is null.</li>
      *             </ul>
      */
-    public ObjectStateId(UUID object, Duration when) {
+    public ObjectStateId(UUID object, Duration when, UUID version) {
         this.object = Objects.requireNonNull(object, "object");
         this.when = Objects.requireNonNull(when, "when");
+        this.version = Objects.requireNonNull(version, "version");
     }
 
     /**
@@ -68,7 +75,7 @@ public final class ObjectStateId {
         if (getClass() != that.getClass())
             return false;
         ObjectStateId other = (ObjectStateId) that;
-        return when.equals(other.when) && object.equals(other.object);
+        return when.equals(other.when) && object.equals(other.object) && version.equals(other.version);
     }
 
     /**
@@ -81,6 +88,29 @@ public final class ObjectStateId {
      */
     public final UUID getObject() {
         return object;
+    }
+
+    /**
+     * <p>
+     * The version identifier of the object state that this identifies.
+     * </p>
+     * <p>
+     * Computation of object states can be provisional, with later versions revising
+     * the computed state as more information becomes available. This attribute
+     * enables different versions of the computation for an {@linkplain #getObject()
+     * object} to be distinguished, even if they are for equal
+     * {@linkplain #getWhen() points in time}.
+     * </p>
+     * <p>
+     * Although {@link UUID} are {@linkplain UUID#compareTo(UUID) comparable}, the
+     * ordering of version ID values is not significant: the {@link UUID} order need
+     * not be the same as the computation order.
+     * </p>
+     * 
+     * @return the version; not null.
+     */
+    public final UUID getVersion() {
+        return version;
     }
 
     /**
@@ -105,12 +135,13 @@ public final class ObjectStateId {
         int result = 1;
         result = prime * result + object.hashCode();
         result = prime * result + when.hashCode();
+        result = prime * result + version.hashCode();
         return result;
     }
 
     @Override
     public String toString() {
-        return object + "@" + when;
+        return object + "@" + when + "/" + version;
     }
 
 }
