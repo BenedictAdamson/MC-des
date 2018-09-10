@@ -82,7 +82,9 @@ public class UniverseTest {
     private static final Duration DURATION_1 = Duration.ofSeconds(13);
     private static final Duration DURATION_2 = Duration.ofSeconds(17);
     private static final Duration DURATION_3 = Duration.ofSeconds(23);
+    private static final Duration DURATION_4 = Duration.ofSeconds(29);
     private static final UUID VERSION_A = ObjectStateIdTest.VERSION_A;
+    private static final UUID VERSION_B = ObjectStateIdTest.VERSION_B;
 
     public static void append(final Universe universe, ObjectState objectState)
             throws Universe.InvalidEventTimeStampOrderException {
@@ -129,6 +131,18 @@ public class UniverseTest {
         assertThat(
                 "The given object state is the last value in the object state history of the object of the ID of the given object state (value).",
                 universe.getObjectStateHistory(object), equalTo(Collections.singletonMap(when, objectState)));
+    }
+
+    private static void append_1PrehistoricDependency(final Duration when1, final Duration earliestCompleteState,
+            final Duration when2) {
+        final ObjectStateId dependency = new ObjectStateId(OBJECT_A, when1, VERSION_A);
+        final ObjectStateId id = new ObjectStateId(OBJECT_B, when2, VERSION_B);
+        final ObjectState objectState = new AbstractObjectStateTest.TestObjectState(id,
+                Collections.singleton(dependency));
+
+        final Universe universe = new Universe(earliestCompleteState);
+
+        append(universe, objectState);
     }
 
     private static void append_2DifferentObjects(final UUID object1, final UUID object2) {
@@ -205,18 +219,33 @@ public class UniverseTest {
         assertNotNull("Always have a set of object IDs.", objectIds);// guard
         assertNotNull("Always have a map of IDs to object states.", objectStates);// guard
 
+        final Set<ObjectStateId> allObjectStateIds = objectStates.keySet();
         for (Map.Entry<ObjectStateId, ObjectState> entry : objectStates.entrySet()) {
             final ObjectStateId id = entry.getKey();
             final ObjectState objectState = entry.getValue();
             assertNotNull("The map of IDs to object states does not have a null key.", id);// guard
+            assertNotNull("The map of IDs to object states does not have null values.", objectState);// guard
+
+            ObjectStateIdTest.assertInvariants(id);
+            ObjectStateTest.assertInvariants(objectState);
+
+            final Set<ObjectStateId> dependencies = objectState.getDependencies();
+
             assertThat(
                     "The map of IDs to object states does not have IDs for object IDs that are in the set of objects in this universe.",
                     id.getObject(), isIn(objectIds));
-            assertNotNull("The map of IDs to object states does not have null values.", objectState);// guard
-            ObjectStateIdTest.assertInvariants(id);
-            ObjectStateTest.assertInvariants(objectState);
             assertThat("The map of IDs to object states maps an ID to an object state that has the same ID.",
                     objectState.getId(), sameInstance(id));
+
+            for (ObjectStateId dependency : dependencies) {
+                ObjectStateIdTest.assertInvariants(id, dependency);
+                assertTrue(
+                        "All the dependencies of the object states either "
+                                + "have a time-stamp before the earliest complete state time-stamp of the universe, "
+                                + "or are themselves known object states.",
+                        dependency.getWhen().compareTo(earliestCompleteState) <= 0
+                                || allObjectStateIds.contains(dependency));
+            }
         }
 
         final Collection<ObjectState> allObjectStates = objectStates.values();
@@ -308,6 +337,21 @@ public class UniverseTest {
     }
 
     @Test
+    public void append_1PrehistoricDependencyA() {
+        append_1PrehistoricDependency(DURATION_1, DURATION_2, DURATION_3);
+    }
+
+    @Test
+    public void append_1PrehistoricDependencyB() {
+        append_1PrehistoricDependency(DURATION_2, DURATION_3, DURATION_4);
+    }
+
+    @Test
+    public void append_1PrehistoricDependencyClose() {
+        append_1PrehistoricDependency(DURATION_2.minusNanos(1L), DURATION_2, DURATION_2);
+    }
+
+    @Test
     public void append_2DifferentObjectsA() {
         append_2DifferentObjects(OBJECT_A, OBJECT_B);
     }
@@ -361,5 +405,4 @@ public class UniverseTest {
     public void constructor_B() {
         constructor(DURATION_2);
     }
-
 }

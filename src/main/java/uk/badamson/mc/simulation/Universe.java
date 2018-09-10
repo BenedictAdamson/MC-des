@@ -113,6 +113,11 @@ public class Universe {
      *             {@linkplain SortedMap#lastKey() last} state in the
      *             {@linkplain #getObjectStateHistory(UUID) object state history}.
      *             In this case, this {@link Universe} is unchanged.
+     * @throws IllegalStateException
+     *             If any {@linkplain ObjectState#getDependencies() dependencies} of
+     *             the {@code objectState} are at or after the
+     *             {@linkplain #getEarliestCompleteState() earliest complete state}
+     *             and are not {@linkplain #getObjectStates() known object states}.
      */
     public final void append(ObjectState objectState) throws InvalidEventTimeStampOrderException {
         Objects.requireNonNull(objectState, "objectState");
@@ -121,6 +126,12 @@ public class Universe {
         final UUID object = id.getObject();
         final Duration when = id.getWhen();
 
+        for (ObjectStateId dependency : objectState.getDependencies()) {
+            Objects.requireNonNull(dependency, "dependency");
+            if (0 <= dependency.getWhen().compareTo(earliestCompleteState) && !objectStates.containsKey(dependency)) {
+                throw new IllegalStateException("Unknown state for dependency " + dependency);
+            }
+        }
         SortedMap<Duration, ObjectState> stateHistory = objectStateHistories.get(object);
         if (stateHistory == null) {
             stateHistory = new TreeMap<>();
@@ -218,7 +229,7 @@ public class Universe {
 
     /**
      * <p>
-     * All the states of objects within this universe, indexed by their
+     * All the known states of objects within this universe, indexed by their
      * {@linkplain ObjectState#getId() IDs}.
      * </p>
      * <ul>
@@ -232,6 +243,11 @@ public class Universe {
      * the same {@linkplain ObjectState#getId() ID}.</li>
      * <li>The map of IDs to object states may be immutable, or it may be a copy of
      * an underlying collection.</li>
+     * <li>All the {@linkplain ObjectState#getDependencies() dependencies} of the
+     * object states either have a {@linkplain ObjectStateId#getWhen() time-stamp}
+     * before the {@linkplain #getEarliestCompleteState() earliest complete state}
+     * time-stamp of the universe, or are themselves {@linkplain #getObjectStates()
+     * known object states}.</li>
      * </ul>
      * 
      * @return the objectStates
