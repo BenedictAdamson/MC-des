@@ -3,11 +3,14 @@ package uk.badamson.mc.simulation;
 import static org.hamcrest.collection.IsIn.isIn;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsSame.sameInstance;
 import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -141,12 +144,18 @@ public class UniverseTest {
         final Collection<ObjectState> allObjectStates = objectStates.values();
         for (UUID object : objectIds) {
             assertNotNull("The set of object IDs does not have a null element.", object);// guard
-            SortedMap<Duration, ObjectState> objectStateHistory = universe.getObjectStateHistory(object);
+            final SortedMap<Duration, ObjectState> objectStateHistory = universe.getObjectStateHistory(object);
+            final Duration whenFirstState = universe.getWhenFirstState(object);
 
             assertNotNull(
                     "A universe has an object state history for a given object if that object is one of the  objects in the universe.",
                     objectStateHistory);// guard
-            assertFalse("A object state history for a given object is not empty.", objectStateHistory.isEmpty());
+            assertNotNull("An object has a first state time-stamp if it is a known object.", whenFirstState);
+
+            assertFalse("A object state history for a given object is not empty.", objectStateHistory.isEmpty());// guard
+            assertSame(
+                    "If an object is known, its first state time-stamp is the first key of the state history of that object.",
+                    objectStateHistory.firstKey(), whenFirstState);
 
             Map.Entry<Duration, ObjectState> previous = null;
             int nNull = 0;
@@ -184,6 +193,14 @@ public class UniverseTest {
 
     public static void assertInvariants(Universe universe1, Universe universe2) {
         ObjectTest.assertInvariants(universe1, universe2);// inherited
+    }
+
+    private static void assertUnknownObjectInvariants(Universe universe, UUID object) {
+        assertThat("Not a known object ID", object, not(isIn(universe.getObjectIds())));
+        assertNull("A universe has an object state history for a given object only if "
+                + "that object is one of the objects in the universe.", universe.getObjectStateHistory(object));
+        assertNull("An object has a first state time-stamp only if it is a known object.",
+                universe.getWhenFirstState(object));
     }
 
     @Test
@@ -226,7 +243,11 @@ public class UniverseTest {
         final Universe universe = new Universe();
 
         assertInvariants(universe);
+
         assertEquals("The set of object IDs is empty.", Collections.emptySet(), universe.getObjectIds());
         assertEquals("The map of IDs to object states is empty.", Collections.emptyMap(), universe.getObjectStates());
+
+        assertUnknownObjectInvariants(universe, OBJECT_A);
+        assertUnknownObjectInvariants(universe, OBJECT_B);
     }
 }

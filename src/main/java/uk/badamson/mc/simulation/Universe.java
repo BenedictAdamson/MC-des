@@ -145,7 +145,11 @@ public class Universe {
     public final SortedMap<Duration, ObjectState> getObjectStateHistory(UUID object) {
         Objects.requireNonNull(object, "object");
         SortedMap<Duration, ObjectState> objectStateHistory = objectStateHistories.get(object);
-        return new TreeMap<>(objectStateHistory);
+        if (objectStateHistory == null) {
+            return null;
+        } else {
+            return new TreeMap<>(objectStateHistory);
+        }
     }
 
     /**
@@ -170,6 +174,35 @@ public class Universe {
      */
     public final Map<ObjectStateId, ObjectState> getObjectStates() {
         return new HashMap<>(objectStates);
+    }
+
+    /**
+     * <p>
+     * The time-stamp of the {@linkplain SortedMap#firstKey() first}
+     * {@linkplain #getObjectStateHistory(UUID) event} of an object.
+     * </p>
+     * <ul>
+     * <li>An object has a (non null) first state time-stamp if, and only if, it is
+     * a {@linkplain #getObjectIds() known object}.</li>
+     * <li>If an object is known, its first state time-stamp is the
+     * {@linkplain SortedMap#firstKey() first key} of the
+     * {@linkplain #getObjectStateHistory(UUID) state history} of that object.</li>
+     * </ul>
+     * 
+     * @param object
+     *            The ID of the object of interest.
+     * @return The time-stamp of the first event of the object with {@code object}
+     *         as its ID, or null if {@code object} is not a
+     *         {@linkplain #getObjectIds() known object ID}.
+     */
+    public final Duration getWhenFirstState(UUID object) {
+        Objects.requireNonNull(object, "object");
+        final SortedMap<Duration, ObjectState> objectStateHistory = objectStateHistories.get(object);
+        if (objectStateHistory == null) {
+            return null;
+        } else {
+            return objectStateHistory.firstKey();
+        }
     }
 
 }
