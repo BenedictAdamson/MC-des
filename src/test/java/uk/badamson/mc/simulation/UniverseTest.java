@@ -34,6 +34,49 @@ import uk.badamson.mc.ObjectTest;
  */
 public class UniverseTest {
 
+    /**
+     * <p>
+     * Unit tests for the {@link Universe.InvalidEventTimeStampOrderException}
+     * class.
+     * </p>
+     */
+    public static class InvalidEventTimeStampOrderExceptionTest {
+
+        public static void assertInvariants(Universe.InvalidEventTimeStampOrderException exception) {
+            ObjectTest.assertInvariants(exception);// inherited
+        }
+
+        public static void assertInvariants(Universe.InvalidEventTimeStampOrderException exception1,
+                Universe.InvalidEventTimeStampOrderException exception2) {
+            ObjectTest.assertInvariants(exception1, exception2);// inherited
+        }
+
+        private static void constructor(Throwable cause) {
+            final Universe.InvalidEventTimeStampOrderException exception = new Universe.InvalidEventTimeStampOrderException(
+                    cause);
+
+            assertInvariants(exception);
+            assertSame("cause", cause, exception.getCause());
+        }
+
+        @Test
+        public void constructor_0() {
+            final Universe.InvalidEventTimeStampOrderException exception = new Universe.InvalidEventTimeStampOrderException();
+
+            assertInvariants(exception);
+        }
+
+        @Test
+        public void constructor_1A() {
+            constructor(new NullPointerException("Test exception"));
+        }
+
+        @Test
+        public void constructor_1B() {
+            constructor(new IllegalArgumentException("Test exception"));
+        }
+    }// class
+
     private static final UUID OBJECT_A = ObjectStateIdTest.OBJECT_A;
     private static final UUID OBJECT_B = ObjectStateIdTest.OBJECT_B;
     private static final Duration DURATION_1 = Duration.ofSeconds(13);
@@ -41,12 +84,22 @@ public class UniverseTest {
     private static final Duration DURATION_3 = Duration.ofSeconds(23);
     private static final UUID VERSION_A = ObjectStateIdTest.VERSION_A;
 
-    public static void append(final Universe universe, ObjectState objectState) {
+    public static void append(final Universe universe, ObjectState objectState)
+            throws Universe.InvalidEventTimeStampOrderException {
         final ObjectStateId id = objectState.getId();
         final UUID object = id.getObject();
         final Duration when = id.getWhen();
+        final Set<UUID> objectIds0 = universe.getObjectIds();
+        final SortedMap<Duration, ObjectState> objectStateHistory0 = universe.getObjectStateHistory(object);
 
-        universe.append(objectState);
+        try {
+            universe.append(objectState);
+        } catch (final Universe.InvalidEventTimeStampOrderException e) {// Permitted
+            assertInvariants(universe);
+            assertEquals("Known object IDs unchanged", objectIds0, universe.getObjectIds());
+            assertEquals("Object state history unchanged", objectStateHistory0, universe.getObjectStateHistory(object));
+            throw e;
+        }
 
         assertInvariants(universe);
         assertThat("The object ID of the ID of the given object state is one of the object IDs of this universe.",
@@ -97,7 +150,26 @@ public class UniverseTest {
                 universe.getObjectStateHistory(object1));
     }
 
+    private static void append_2OutOfOrderStates(final Duration when1, final Duration when2)
+            throws Universe.InvalidEventTimeStampOrderException {
+        assert when1.compareTo(when2) >= 0;
+        final UUID object = OBJECT_A;
+        final ObjectStateId id1 = new ObjectStateId(object, when1, VERSION_A);
+        final ObjectStateId id2 = new ObjectStateId(object, when2, VERSION_A);
+        final Set<ObjectStateId> dependencies = Collections.emptySet();
+        final ObjectState objectState1 = new AbstractObjectStateTest.TestObjectState(id1, dependencies);
+        final ObjectState objectState2 = new AbstractObjectStateTest.TestObjectState(id2, dependencies);
+        final SortedMap<Duration, ObjectState> expectedObjectStateHistory = new TreeMap<>();
+        expectedObjectStateHistory.put(when1, objectState1);
+
+        final Universe universe = new Universe();
+        universe.append(objectState1);
+
+        append(universe, objectState2);// throws
+    }
+
     private static void append_2SuccessiveStates(final Duration when1, final Duration when2) {
+        assert when1.compareTo(when2) < 0;
         final UUID object = OBJECT_A;
         final ObjectStateId id1 = new ObjectStateId(object, when1, VERSION_A);
         final ObjectStateId id2 = new ObjectStateId(object, when2, VERSION_A);
@@ -223,6 +295,26 @@ public class UniverseTest {
         append_2DifferentObjects(OBJECT_B, OBJECT_A);
     }
 
+    @Test(expected = Universe.InvalidEventTimeStampOrderException.class)
+    public void append_2OutOfOrderStatesA() {
+        append_2OutOfOrderStates(DURATION_2, DURATION_1);
+    }
+
+    @Test(expected = Universe.InvalidEventTimeStampOrderException.class)
+    public void append_2OutOfOrderStatesB() {
+        append_2OutOfOrderStates(DURATION_3, DURATION_2);
+    }
+
+    @Test(expected = Universe.InvalidEventTimeStampOrderException.class)
+    public void append_2OutOfOrderStatesClose() {
+        append_2OutOfOrderStates(DURATION_2, DURATION_2.minusNanos(1L));
+    }
+
+    @Test(expected = Universe.InvalidEventTimeStampOrderException.class)
+    public void append_2OutOfOrderStatesSame() {
+        append_2OutOfOrderStates(DURATION_2, DURATION_2);
+    }
+
     @Test
     public void append_2SuccessiveStatesA() {
         append_2SuccessiveStates(DURATION_1, DURATION_2);
@@ -250,4 +342,5 @@ public class UniverseTest {
         assertUnknownObjectInvariants(universe, OBJECT_A);
         assertUnknownObjectInvariants(universe, OBJECT_B);
     }
+
 }

@@ -18,6 +18,41 @@ import java.util.UUID;
  */
 public class Universe {
 
+    /**
+     * <p>
+     * An exception class for indicating that an {@link ObjectState} can not be
+     * {@linkplain Universe#append(ObjectState) appended} because its time-stamp is
+     * not after the current {@linkplain SortedMap#lastKey() last}
+     * {@link ObjectState} of the object.
+     * </p>
+     */
+    public static final class InvalidEventTimeStampOrderException extends IllegalStateException {
+
+        private static final String MESSAGE = "ObjectState time-stamp not after teh current last time-stamp";
+        private static final long serialVersionUID = 1L;
+
+        public InvalidEventTimeStampOrderException() {
+            super(MESSAGE);
+        }
+
+        /**
+         * <p>
+         * Construct an exception for indicating that an {@link ObjectState} can not be
+         * {@linkplain Universe#append(ObjectState) appended} because its time-stamp is
+         * not after the current {@linkplain SortedMap#lastKey() last}
+         * {@link ObjectState} of the object, which has been signalled by an underlying
+         * cause.
+         * </p>
+         * 
+         * @param cause
+         *            The cause of this exception.
+         */
+        public InvalidEventTimeStampOrderException(Throwable cause) {
+            super(MESSAGE, cause);
+        }
+
+    }// class
+
     private final Map<ObjectStateId, ObjectState> objectStates = new HashMap<>();
     private final Map<UUID, SortedMap<Duration, ObjectState>> objectStateHistories = new HashMap<>();
 
@@ -56,7 +91,7 @@ public class Universe {
      *            The state to add.
      * @throws NullPointerException
      *             If {@code objectState} is null
-     * @throws IllegalStateException
+     * @throws InvalidEventTimeStampOrderException
      *             If the {@linkplain ObjectStateId#getObject() object} of the
      *             {@linkplain ObjectState#getId() ID} of {@code objectState} is
      *             already an {@linkplain #getObjectIds() object IDs} of this
@@ -65,8 +100,9 @@ public class Universe {
      *             {@linkplain Duration#compareTo(Duration) after} the
      *             {@linkplain SortedMap#lastKey() last} state in the
      *             {@linkplain #getObjectStateHistory(UUID) object state history}.
+     *             In this case, this {@link Universe} is unchanged.
      */
-    public final void append(ObjectState objectState) {
+    public final void append(ObjectState objectState) throws InvalidEventTimeStampOrderException {
         Objects.requireNonNull(objectState, "objectState");
 
         final ObjectStateId id = objectState.getId();
@@ -78,8 +114,7 @@ public class Universe {
             stateHistory = new TreeMap<>();
             objectStateHistories.put(object, stateHistory);
         } else if (0 <= stateHistory.lastKey().compareTo(when)) {
-            throw new IllegalStateException(
-                    "Already have a state at or after <" + stateHistory.lastKey() + "> that time <" + when + ">");
+            throw new InvalidEventTimeStampOrderException();
         }
         stateHistory.put(when, objectState);
         objectStates.put(id, objectState);
