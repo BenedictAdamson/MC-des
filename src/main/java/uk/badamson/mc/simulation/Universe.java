@@ -145,7 +145,6 @@ public class Universe {
     public final SortedMap<Duration, ObjectState> getObjectStateHistory(UUID object) {
         Objects.requireNonNull(object, "object");
         SortedMap<Duration, ObjectState> objectStateHistory = objectStateHistories.get(object);
-        // TODO
         return new TreeMap<>(objectStateHistory);
     }
 
