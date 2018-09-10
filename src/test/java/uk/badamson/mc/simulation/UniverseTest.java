@@ -115,11 +115,12 @@ public class UniverseTest {
     }
 
     private static void append_1(final UUID object, final Duration when) {
+        final Duration earliestCompleteState = when;
         final ObjectStateId id = new ObjectStateId(object, when, VERSION_A);
         final Set<ObjectStateId> dependencies = Collections.emptySet();
         final ObjectState objectState = new AbstractObjectStateTest.TestObjectState(id, dependencies);
 
-        final Universe universe = new Universe();
+        final Universe universe = new Universe(earliestCompleteState);
 
         append(universe, objectState);
 
@@ -132,13 +133,14 @@ public class UniverseTest {
 
     private static void append_2DifferentObjects(final UUID object1, final UUID object2) {
         assert !object1.equals(object2);
-        final ObjectStateId id1 = new ObjectStateId(object1, DURATION_1, VERSION_A);
-        final ObjectStateId id2 = new ObjectStateId(object2, DURATION_1, VERSION_A);
+        final Duration when = DURATION_1;
+        final ObjectStateId id1 = new ObjectStateId(object1, when, VERSION_A);
+        final ObjectStateId id2 = new ObjectStateId(object2, when, VERSION_A);
         final Set<ObjectStateId> dependencies = Collections.emptySet();
         final ObjectState objectState1 = new AbstractObjectStateTest.TestObjectState(id1, dependencies);
         final ObjectState objectState2 = new AbstractObjectStateTest.TestObjectState(id2, dependencies);
 
-        final Universe universe = new Universe();
+        final Universe universe = new Universe(when);
         universe.append(objectState1);
         final SortedMap<Duration, ObjectState> objectStateHistory1 = new TreeMap<>(
                 universe.getObjectStateHistory(object1));
@@ -154,6 +156,7 @@ public class UniverseTest {
             throws Universe.InvalidEventTimeStampOrderException {
         assert when1.compareTo(when2) >= 0;
         final UUID object = OBJECT_A;
+        final Duration earliestCompleteState = when1;
         final ObjectStateId id1 = new ObjectStateId(object, when1, VERSION_A);
         final ObjectStateId id2 = new ObjectStateId(object, when2, VERSION_A);
         final Set<ObjectStateId> dependencies = Collections.emptySet();
@@ -162,7 +165,7 @@ public class UniverseTest {
         final SortedMap<Duration, ObjectState> expectedObjectStateHistory = new TreeMap<>();
         expectedObjectStateHistory.put(when1, objectState1);
 
-        final Universe universe = new Universe();
+        final Universe universe = new Universe(earliestCompleteState);
         universe.append(objectState1);
 
         append(universe, objectState2);// throws
@@ -171,6 +174,7 @@ public class UniverseTest {
     private static void append_2SuccessiveStates(final Duration when1, final Duration when2) {
         assert when1.compareTo(when2) < 0;
         final UUID object = OBJECT_A;
+        final Duration earliestCompleteState = when1;
         final ObjectStateId id1 = new ObjectStateId(object, when1, VERSION_A);
         final ObjectStateId id2 = new ObjectStateId(object, when2, VERSION_A);
         final Set<ObjectStateId> dependencies1 = Collections.emptySet();
@@ -181,7 +185,7 @@ public class UniverseTest {
         expectedObjectStateHistory.put(when1, objectState1);
         expectedObjectStateHistory.put(when2, objectState2);
 
-        final Universe universe = new Universe();
+        final Universe universe = new Universe(earliestCompleteState);
         universe.append(objectState1);
 
         append(universe, objectState2);
@@ -193,10 +197,12 @@ public class UniverseTest {
     public static void assertInvariants(Universe universe) {
         ObjectTest.assertInvariants(universe);// inherited
 
+        final Duration earliestCompleteState = universe.getEarliestCompleteState();
         final Set<UUID> objectIds = universe.getObjectIds();
         final Map<ObjectStateId, ObjectState> objectStates = universe.getObjectStates();
 
-        assertNotNull("Always have a (non null) set of object IDs.", objectIds);// guard
+        assertNotNull("Always have a earliest complete state time-stamp.", earliestCompleteState);
+        assertNotNull("Always have a set of object IDs.", objectIds);// guard
         assertNotNull("Always have a map of IDs to object states.", objectStates);// guard
 
         for (Map.Entry<ObjectStateId, ObjectState> entry : objectStates.entrySet()) {
@@ -275,6 +281,22 @@ public class UniverseTest {
                 universe.getWhenFirstState(object));
     }
 
+    private static void constructor(final Duration earliestCompleteState) {
+        final Universe universe = new Universe(earliestCompleteState);
+
+        assertInvariants(universe);
+
+        assertSame(
+                "The earliest complete state time-stamp of this universe is "
+                        + "the given earliest complete state time-stamp.",
+                earliestCompleteState, universe.getEarliestCompleteState());
+        assertEquals("The set of object IDs is empty.", Collections.emptySet(), universe.getObjectIds());
+        assertEquals("The map of IDs to object states is empty.", Collections.emptyMap(), universe.getObjectStates());
+
+        assertUnknownObjectInvariants(universe, OBJECT_A);
+        assertUnknownObjectInvariants(universe, OBJECT_B);
+    }
+
     @Test
     public void append_1A() {
         append_1(OBJECT_A, DURATION_1);
@@ -331,16 +353,13 @@ public class UniverseTest {
     }
 
     @Test
-    public void constructor() {
-        final Universe universe = new Universe();
+    public void constructor_A() {
+        constructor(DURATION_1);
+    }
 
-        assertInvariants(universe);
-
-        assertEquals("The set of object IDs is empty.", Collections.emptySet(), universe.getObjectIds());
-        assertEquals("The map of IDs to object states is empty.", Collections.emptyMap(), universe.getObjectStates());
-
-        assertUnknownObjectInvariants(universe, OBJECT_A);
-        assertUnknownObjectInvariants(universe, OBJECT_B);
+    @Test
+    public void constructor_B() {
+        constructor(DURATION_2);
     }
 
 }

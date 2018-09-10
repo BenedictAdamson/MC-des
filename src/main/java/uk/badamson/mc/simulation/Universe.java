@@ -56,19 +56,31 @@ public class Universe {
     private final Map<ObjectStateId, ObjectState> objectStates = new HashMap<>();
     private final Map<UUID, SortedMap<Duration, ObjectState>> objectStateHistories = new HashMap<>();
 
+    private Duration earliestCompleteState;
+
     /**
      * <p>
      * Construct an empty universe.
      * </p>
      * <ul>
+     * <li>The {@linkplain #getEarliestCompleteState() earliest complete state}
+     * time-stamp of this universe is the given earliest complete state
+     * time-stamp.</li>
      * <li>The {@linkplain #getObjectIds() set of object IDs}
      * {@linkplain Set#isEmpty() is empty}.</li>
      * <li>The {@linkplain #getObjectStates() map of IDs to object states}
      * {@linkplain Map#isEmpty() is empty}.</li>
      * </ul>
+     * 
+     * @param earliestCompleteState
+     *            The earliest point in time for which this universe has a known
+     *            {@linkplain ObjectState state} for {@linkplain #getObjectIds() all
+     *            the objects} in the universe.
+     * @throws NullPointerException
+     *             If {@code earliestCompleteState} is null
      */
-    public Universe() {
-        // Do nothing
+    public Universe(final Duration earliestCompleteState) {
+        this.earliestCompleteState = Objects.requireNonNull(earliestCompleteState, "earliestCompleteState");
     }
 
     /**
@@ -118,6 +130,23 @@ public class Universe {
         }
         stateHistory.put(when, objectState);
         objectStates.put(id, objectState);
+    }
+
+    /**
+     * <p>
+     * The earliest point in time for which this universe has a known
+     * {@linkplain ObjectState state} for {@linkplain #getObjectIds() all the
+     * objects} in the universe.
+     * </p>
+     * <ul>
+     * <li>Always have a (non null) earliest complete state time-stamp.</li>
+     * </ul>
+     * 
+     * @return the point in time, expressed as the duration since an epoch; not
+     *         null.
+     */
+    public synchronized final Duration getEarliestCompleteState() {
+        return earliestCompleteState;
     }
 
     /**
