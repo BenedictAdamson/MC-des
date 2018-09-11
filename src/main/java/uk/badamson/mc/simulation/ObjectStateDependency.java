@@ -54,6 +54,32 @@ public final class ObjectStateDependency {
 
     /**
      * <p>
+     * Whether this object is <dfn>equivalent</dfn> to another object.
+     * </p>
+     * <p>
+     * The {@link ObjectStateDependency} class has value semantics: this object is
+     * equivalent to another {@link ObjectStateDependency} iff they have equivalent
+     * attribtues.
+     * </p>
+     * 
+     * @param that
+     *            The other object.
+     * @return Whether rquivalent.
+     */
+    @Override
+    public boolean equals(Object that) {
+        if (this == that)
+            return true;
+        if (that == null)
+            return false;
+        if (getClass() != that.getClass())
+            return false;
+        ObjectStateDependency other = (ObjectStateDependency) that;
+        return previousStateTransition.equals(other.previousStateTransition) && when.equals(other.when);
+    }
+
+    /**
+     * <p>
      * The ID of the depended upon object.
      * </p>
      * <ul>
@@ -103,6 +129,20 @@ public final class ObjectStateDependency {
      */
     public final Duration getWhen() {
         return when;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + previousStateTransition.hashCode();
+        result = prime * result + when.hashCode();
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return previousStateTransition + "<" + when;
     }
 
 }

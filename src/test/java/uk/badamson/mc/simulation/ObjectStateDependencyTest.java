@@ -1,6 +1,9 @@
 package uk.badamson.mc.simulation;
 
 import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
@@ -54,6 +57,11 @@ public class ObjectStateDependencyTest {
             final ObjectStateDependency dependency2) {
         ObjectTest.assertInvariants(dependency1, dependency2);// inherited
 
+        final boolean equals = dependency1.equals(dependency2);
+        assertFalse("Equality requires equal previous state transitions",
+                equals && !(dependency1.getPreviousStateTransition().equals(dependency2.getPreviousStateTransition())));
+        assertFalse("Equality requires equal time-stamps",
+                equals && !(dependency1.getWhen().equals(dependency2.getWhen())));
     }
 
     private static void constructor(Duration when, ObjectStateId previousStateTransition) {
@@ -67,9 +75,50 @@ public class ObjectStateDependencyTest {
                 dependency.getPreviousStateTransition());
     }
 
+    private static void constructor_2Equal(Duration when, ObjectStateId previousStateTransition) {
+        // Tough test: simple case for object identity will fail
+        final Duration when2 = when.plusNanos(0L);
+        final ObjectStateId previousStateTransition2 = new ObjectStateId(previousStateTransition.getObject(),
+                previousStateTransition.getWhen(), previousStateTransition.getVersion());
+
+        final ObjectStateDependency dependency1 = new ObjectStateDependency(when, previousStateTransition);
+        final ObjectStateDependency dependency2 = new ObjectStateDependency(when2, previousStateTransition2);
+
+        assertInvariants(dependency1, dependency2);
+        assertEquals("Equivalent", dependency1, dependency2);
+    }
+
     private ObjectStateId objectStateId1;
 
     private ObjectStateId objectStateId2;
+
+    @Test
+    public void constructor_2DifferentPreviousStateTransition() {
+        final ObjectStateDependency dependency1 = new ObjectStateDependency(WHEN_3, objectStateId1);
+        final ObjectStateDependency dependency2 = new ObjectStateDependency(WHEN_3, objectStateId2);
+
+        assertInvariants(dependency1, dependency2);
+        assertNotEquals("Not equivalent", dependency1, dependency2);
+    }
+
+    @Test
+    public void constructor_2DifferentWhen() {
+        final ObjectStateDependency dependency1 = new ObjectStateDependency(WHEN_2, objectStateId1);
+        final ObjectStateDependency dependency2 = new ObjectStateDependency(WHEN_3, objectStateId1);
+
+        assertInvariants(dependency1, dependency2);
+        assertNotEquals("Not equivalent", dependency1, dependency2);
+    }
+
+    @Test
+    public void constructor_2EqualA() {
+        constructor_2Equal(WHEN_2, objectStateId1);
+    }
+
+    @Test
+    public void constructor_2EqualB() {
+        constructor_2Equal(WHEN_3, objectStateId2);
+    }
 
     @Test
     public void constructor_A() {
