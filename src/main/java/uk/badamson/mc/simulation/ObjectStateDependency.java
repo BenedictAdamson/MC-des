@@ -66,7 +66,7 @@ public final class ObjectStateDependency {
      * @return the object ID.
      */
     public final UUID getDependedUpObject() {
-        return null;// FIXME
+        return previousStateTransition.getObject();
     }
 
     /**

@@ -34,9 +34,11 @@ public class ObjectStateDependencyTest {
 
         final ObjectStateId previousStateTransition = dependency.getPreviousStateTransition();
         final Duration when = dependency.getWhen();
+        final UUID dependedUpObject = dependency.getDependedUpObject();
 
         assertNotNull("Always have a previous state transition.", previousStateTransition);// guard
         assertNotNull("Always have a time at which the depended upon object had the depended upon state.", when);
+        assertNotNull("Always have a depended upon object.", dependedUpObject);
 
         ObjectStateIdTest.assertInvariants(previousStateTransition);
 
@@ -44,7 +46,10 @@ public class ObjectStateDependencyTest {
                 "The time at which the depended upon object had the depended upon state is "
                         + "at or after the time of the previous state transition of the depended upon object.",
                 when, greaterThanOrEqualTo(previousStateTransition.getWhen()));
+        assertSame("The depended upon object is the  object of the previous state transition.",
+                previousStateTransition.getObject(), dependedUpObject);
     }
+
     public static void assertInvariants(final ObjectStateDependency dependency1,
             final ObjectStateDependency dependency2) {
         ObjectTest.assertInvariants(dependency1, dependency2);// inherited
