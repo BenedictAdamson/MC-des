@@ -131,6 +131,11 @@ public class UniverseTest {
         assertThat(
                 "The given object state is the last value in the object state history of the object of the ID of the given object state (value).",
                 universe.getObjectStateHistory(object), equalTo(Collections.singletonMap(when, objectState)));
+        assertSame(
+                "The state of an object at a given point in time is "
+                        + "the state it had at the latest state transition "
+                        + "at or before that point in time (just after transition)",
+                objectState, universe.getObjectState(object, when.plusNanos(1L)));
     }
 
     private static void append_1PrehistoricDependency(final Duration when1, final Duration earliestCompleteState,
@@ -206,6 +211,11 @@ public class UniverseTest {
 
         assertEquals("Object IDs.", Collections.singleton(object), universe.getObjectIds());
         assertEquals("Object state history.", expectedObjectStateHistory, universe.getObjectStateHistory(object));
+        assertSame(
+                "The state of an object at a given point in time is "
+                        + "the state it had at the latest state transition "
+                        + "at or before that point in time (just before second)",
+                objectState1, universe.getObjectState(object, when2.minusNanos(1L)));
     }
 
     public static void assertInvariants(Universe universe) {
@@ -263,12 +273,21 @@ public class UniverseTest {
             assertSame(
                     "If an object is known, its first state time-stamp is the first key of the state history of that object.",
                     objectStateHistory.firstKey(), whenFirstState);
+            assertNull(
+                    "Known objects have an unknown state just before the first known state of the state history of that object.",
+                    universe.getObjectState(object, whenFirstState.minusNanos(1L)));
 
             Map.Entry<Duration, ObjectState> previous = null;
             int nNull = 0;
             for (Map.Entry<Duration, ObjectState> entry : objectStateHistory.entrySet()) {
                 final Duration when = entry.getKey();
                 final ObjectState objectState = entry.getValue();
+
+                assertSame(
+                        "The state of an object at a given point in time is "
+                                + "the state it had at the latest state transition "
+                                + "at or before that point in time (at state transition)",
+                        objectState, universe.getObjectState(object, when));
                 if (objectState != null) {
                     ObjectStateTest.assertInvariants(objectState);
                     final ObjectStateId id = objectState.getId();
@@ -308,6 +327,10 @@ public class UniverseTest {
                 + "that object is one of the objects in the universe.", universe.getObjectStateHistory(object));
         assertNull("An object has a first state time-stamp only if it is a known object.",
                 universe.getWhenFirstState(object));
+        assertNull("Unknown objects have an unknown state for all points in time.",
+                universe.getObjectState(object, DURATION_1));
+        assertNull("Unknown objects have an unknown state for all points in time.",
+                universe.getObjectState(object, DURATION_2));
     }
 
     private static void constructor(final Duration earliestCompleteState) {

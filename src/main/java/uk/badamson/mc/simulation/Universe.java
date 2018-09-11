@@ -180,6 +180,52 @@ public class Universe {
 
     /**
      * <p>
+     * Get the state of a given object at a given point in time.
+     * </p>
+     * <ul>
+     * <li>Unknown {@linkplain #getObjectIds() objects} have an unknown (null) state
+     * for all points in time.</li>
+     * <li>Known {@linkplain #getObjectIds() objects} have an unknown (null) state
+     * for all points before the {@linkplain SortedMap#firstKey() first} known state
+     * of the {@linkplain #getObjectStateHistory(UUID) state history} of that
+     * object.</li>
+     * <li>Returns a (non null) state if the object has a known state at the given
+     * point in time.</li>
+     * <li>The (non null) state of an object at a given point in time is one of the
+     * states ({@linkplain SortedMap#values() values}) in the
+     * {@linkplain #getObjectStateHistory(UUID) state history} of the object.</li>
+     * <li>The (non null) state of an object at a given point in time is the state
+     * it had at the latest state transition at or before that point in time.</li>
+     * </ul>
+     * 
+     * @param object
+     *            The ID of the object of interest.
+     * @param when
+     *            The point in time of interest.
+     * @return The state of the given object at the given point in time.
+     * @throws NullPointerException
+     *             <ul>
+     *             <li>If {@code object} is null.</li>
+     *             <li>If {@code when} is null.</li>
+     *             </ul>
+     */
+    public final ObjectState getObjectState(UUID object, Duration when) {
+        Objects.requireNonNull(object, "object");
+        Objects.requireNonNull(when, "when");
+
+        final SortedMap<Duration, ObjectState> objectStateHistory = objectStateHistories.get(object);
+        if (objectStateHistory == null) {// unknown object
+            return null;
+        }
+        final SortedMap<Duration, ObjectState> eventsAtOrBefore = objectStateHistory.headMap(when.plusNanos(1L));
+        if (eventsAtOrBefore.isEmpty()) {// before first event
+            return null;
+        }
+        return eventsAtOrBefore.get(eventsAtOrBefore.lastKey());
+    }
+
+    /**
+     * <p>
      * The (currently known) history of the state transitions (succession of object
      * states) of a given object in this universe.
      * </p>
