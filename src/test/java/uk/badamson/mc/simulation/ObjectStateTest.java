@@ -10,20 +10,42 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import uk.badamson.mc.ObjectTest;
+
 /**
  * <p>
- * Auxiliary test code for classes implementing the {@link ObjectState}
- * interface.
+ * Unit tests and auxiliary test code for the {@link ObjectState} class.
  * </p>
  */
 public class ObjectStateTest {
 
+    static final class TestObjectState extends ObjectState {
+
+        public TestObjectState(ObjectStateId id, Map<UUID, ObjectStateDependency> dependencies) {
+            super(id, dependencies);
+        }
+
+        @Override
+        public Map<UUID, ObjectState> createNextStates() {
+            return Collections.singletonMap(getId().getObject(), (ObjectState) null);
+        }
+
+        @Override
+        public String toString() {
+            return "TestObjectState[" + getId() + "]";
+        }
+
+    }// class
+
     public static void assertInvariants(ObjectState state) {
+        ObjectTest.assertInvariants(state);// inherited
+
         final ObjectStateId id = state.getId();
         final Map<UUID, ObjectStateDependency> dependencies = state.getDependencies();
 
@@ -53,6 +75,8 @@ public class ObjectStateTest {
     }
 
     public static void assertInvariants(ObjectState state1, ObjectState state2) {
+        ObjectTest.assertInvariants(state1, state2);// inherited
+
         final ObjectStateId id1 = state1.getId();
         final ObjectStateId id2 = state2.getId();
 

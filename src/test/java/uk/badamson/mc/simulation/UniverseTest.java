@@ -121,7 +121,7 @@ public class UniverseTest {
         final Duration earliestCompleteState = when;
         final ObjectStateId id = new ObjectStateId(object, when, VERSION_A);
         final Map<UUID, ObjectStateDependency> dependencies = Collections.emptyMap();
-        final ObjectState objectState = new AbstractObjectStateTest.TestObjectState(id, dependencies);
+        final ObjectState objectState = new ObjectStateTest.TestObjectState(id, dependencies);
 
         final Universe universe = new Universe(earliestCompleteState);
 
@@ -145,7 +145,7 @@ public class UniverseTest {
         final ObjectStateDependency dependency = new ObjectStateDependency(when1, dependentState);
         final Map<UUID, ObjectStateDependency> dependencies = Collections.singletonMap(OBJECT_A, dependency);
         final ObjectStateId id = new ObjectStateId(OBJECT_B, when2, VERSION_B);
-        final ObjectState objectState = new AbstractObjectStateTest.TestObjectState(id, dependencies);
+        final ObjectState objectState = new ObjectStateTest.TestObjectState(id, dependencies);
 
         final Universe universe = new Universe(earliestCompleteState);
 
@@ -158,8 +158,8 @@ public class UniverseTest {
         final ObjectStateId id1 = new ObjectStateId(object1, when, VERSION_A);
         final ObjectStateId id2 = new ObjectStateId(object2, when, VERSION_A);
         final Map<UUID, ObjectStateDependency> dependencies = Collections.emptyMap();
-        final ObjectState objectState1 = new AbstractObjectStateTest.TestObjectState(id1, dependencies);
-        final ObjectState objectState2 = new AbstractObjectStateTest.TestObjectState(id2, dependencies);
+        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(id1, dependencies);
+        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(id2, dependencies);
 
         final Universe universe = new Universe(when);
         universe.append(objectState1);
@@ -181,8 +181,8 @@ public class UniverseTest {
         final ObjectStateId id1 = new ObjectStateId(object, when1, VERSION_A);
         final ObjectStateId id2 = new ObjectStateId(object, when2, VERSION_A);
         final Map<UUID, ObjectStateDependency> dependencies = Collections.emptyMap();
-        final ObjectState objectState1 = new AbstractObjectStateTest.TestObjectState(id1, dependencies);
-        final ObjectState objectState2 = new AbstractObjectStateTest.TestObjectState(id2, dependencies);
+        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(id1, dependencies);
+        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(id2, dependencies);
         final SortedMap<Duration, ObjectState> expectedObjectStateHistory = new TreeMap<>();
         expectedObjectStateHistory.put(when1, objectState1);
 
@@ -201,8 +201,8 @@ public class UniverseTest {
         final Map<UUID, ObjectStateDependency> dependencies1 = Collections.emptyMap();
         final Map<UUID, ObjectStateDependency> dependencies2 = Collections.singletonMap(object,
                 new ObjectStateDependency(when1, id1));
-        final ObjectState objectState1 = new AbstractObjectStateTest.TestObjectState(id1, dependencies1);
-        final ObjectState objectState2 = new AbstractObjectStateTest.TestObjectState(id2, dependencies2);
+        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(id1, dependencies1);
+        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(id2, dependencies2);
         final SortedMap<Duration, ObjectState> expectedObjectStateHistory = new TreeMap<>();
         expectedObjectStateHistory.put(when1, objectState1);
         expectedObjectStateHistory.put(when2, objectState2);
@@ -257,7 +257,7 @@ public class UniverseTest {
                                 + "have a time-stamp before the earliest complete state time-stamp of the universe, "
                                 + "or are themselves known object states.",
                         dependency.getWhen().compareTo(earliestCompleteState) <= 0
-                                || allObjectStateIds.contains(dependency));
+                                || allObjectStateIds.contains(dependency.getPreviousStateTransition()));
             }
         }
 

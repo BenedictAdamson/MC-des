@@ -126,19 +126,7 @@ public class Universe {
         final UUID object = id.getObject();
         final Duration when = id.getWhen();
 
-        for (var entry : objectState.getDependencies().entrySet()) {
-            final UUID dependencyObject = Objects.requireNonNull(entry.getKey(), "dependencyObject");
-            final ObjectStateDependency dependency = Objects.requireNonNull(entry.getValue(), "dependency");
-
-            if (dependencyObject != dependency.getDependedUpObject()) {
-                throw new IllegalArgumentException(
-                        "Object ID key of the dependency map does not map to a value that has that same object ID as its depended upon object.");
-            }
-            if (when.compareTo(dependency.getWhen()) < 0) {
-                throw new IllegalArgumentException(
-                        "The time-stamp of a value in the dependency map is not before the time-stamp of the ID of this state.");
-            }
-            Objects.requireNonNull(dependency, "dependency");
+        for (var dependency : objectState.getDependencies().values()) {
             if (0 <= dependency.getWhen().compareTo(earliestCompleteState)
                     && !objectStates.containsKey(dependency.getPreviousStateTransition())) {
                 throw new IllegalStateException("Unknown state for dependency " + dependency);
