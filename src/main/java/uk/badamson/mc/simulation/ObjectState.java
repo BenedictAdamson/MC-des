@@ -2,7 +2,6 @@ package uk.badamson.mc.simulation;
 
 import java.time.Duration;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import net.jcip.annotations.Immutable;
@@ -88,13 +87,19 @@ public interface ObjectState {
      * dependent objects, this {@link ObjectState} would be incorrect.
      * </p>
      * <ul>
-     * <li>Always has a (non null) set of dependencies.</li>
-     * <li>The set of dependencies does not have a null entry.</li>
-     * <li>The set of dependencies does not have entries with duplicate
-     * {@linkplain ObjectStateId#getObject() object IDs}.</li>
-     * <li>The set of dependencies has {@linkplain ObjectStateId#getWhen()
-     * time-stamps} before the time-stamp of the {@linkplain #getId() ID} of this
-     * state.</li>
+     * <li>Always has a (non null) dependency map.</li>
+     * <li>The dependency map does not have a null key.</li>
+     * <li>The dependency map does not have null values.</li>
+     * <li>The dependency map maps object IDs if objects that have a dependened upon
+     * state to an ID of that depended upon state.</li>
+     * <li>Each object ID {@linkplain Map#keySet() key} of the dependency map maps
+     * to a value that has that same object ID as its
+     * {@linkplain ObjectStateDependency#getDependedUpObject() depended upon
+     * object}.</li>
+     * <li>The {@linkplain ObjectStateDependency#getWhen() time-stamp} of every
+     * {@linkplain Map#values() value} in the dependency map is before the
+     * {@linkplain ObjectStateId#getWhen() time-stamp} of the {@linkplain #getId()
+     * ID} of this state.</li>
      * </ul>
      * <p>
      * The dependencies typically have an entry for the previous state of the
@@ -105,7 +110,7 @@ public interface ObjectState {
      * @return The set of the IDs of the {@link ObjectState} states that this state
      *         directly depends on.
      */
-    public Set<ObjectStateId> getDependencies();
+    public Map<UUID, ObjectStateDependency> getDependencies();
 
     /**
      * <p>

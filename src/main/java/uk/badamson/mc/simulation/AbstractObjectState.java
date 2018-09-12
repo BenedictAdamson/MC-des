@@ -2,9 +2,9 @@ package uk.badamson.mc.simulation;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 
 import net.jcip.annotations.Immutable;
@@ -18,7 +18,7 @@ import net.jcip.annotations.Immutable;
 public abstract class AbstractObjectState implements ObjectState {
 
     private final ObjectStateId id;
-    private final Set<ObjectStateId> dependencies;
+    private final Map<UUID, ObjectStateDependency> dependencies;
 
     /**
      * <p>
@@ -39,36 +39,39 @@ public abstract class AbstractObjectState implements ObjectState {
      *             <ul>
      *             <li>If {@code id} is null.</li>
      *             <li>If {@code dependencies} is null.</li>
-     *             <li>If {@code dependencies} has a null entry.</li>
+     *             <li>If {@code dependencies} has a null key.</li>
+     *             <li>If {@code dependencies} has a null value.</li>
      *             </ul>
      * @throws IllegalArgumentException
      *             <ul>
-     *             <li>If {@code dependencies} has entries with duplicate
-     *             {@linkplain ObjectStateId#getObject() object IDs}.</li>
-     *             <li>If {@code dependencies} has
-     *             {@linkplain ObjectStateId#getWhen() time-stamps} at or after the
-     *             time-stamp of {@code id}.</li>
+     *             <li>If any object ID {@linkplain Map#keySet() key }of the
+     *             {@code dependencies} map maps to a {@linkplain Map#values()
+     *             value} that does not have that same object ID as its
+     *             {@linkplain ObjectStateDependency#getDependedUpObject() depended
+     *             upon object}.</li>
+     *             <li>If the time-stamp of a value in the dependency map is not
+     *             before the time-stamp of the ID of this state.</li>
      *             </ul>
      */
-    protected AbstractObjectState(ObjectStateId id, Set<ObjectStateId> dependencies) {
+    protected AbstractObjectState(ObjectStateId id, Map<UUID, ObjectStateDependency> dependencies) {
         this.id = Objects.requireNonNull(id, "id");
-        this.dependencies = Collections.unmodifiableSet(new HashSet<>(dependencies));
+        this.dependencies = Collections.unmodifiableMap(new HashMap<>(dependencies));
 
         final Duration when = id.getWhen();
-        final Set<UUID> dependentObjects = new HashSet<>(dependencies.size());
         // Check after copy to avoid race hazards
-        for (ObjectStateId dependency : this.dependencies) {
-            Objects.requireNonNull(dependency, "dependency");
-            final Duration dependencyWhen = dependency.getWhen();
-            final UUID dependencyObject = dependency.getObject();
-            if (when.compareTo(dependencyWhen) <= 0) {
-                throw new IllegalArgumentException("dependency has time-stamp <" + dependencyWhen
-                        + "> at or after the time-stamp of id <" + when + ">");
+        for (var entry : this.dependencies.entrySet()) {
+            final UUID dependencyObject = Objects.requireNonNull(entry.getKey(), "dependencyObject");
+            final ObjectStateDependency dependency = Objects.requireNonNull(entry.getValue(), "dependency");
+
+            if (dependencyObject != dependency.getDependedUpObject()) {
+                throw new IllegalArgumentException(
+                        "Object ID key of the dependency map does not map to a value that has that same object ID as its depended upon object.");
             }
-            if (dependentObjects.contains(dependencyObject)) {
-                throw new IllegalArgumentException("dependencies has duplicate object ID <" + dependencyObject + ">");
+            if (when.compareTo(dependency.getWhen()) < 0) {
+                throw new IllegalArgumentException(
+                        "The time-stamp of a value in the dependency map <" + dependency.getWhen()
+                                + "> is not before the time-stamp of the ID of this state<" + when + ">.");
             }
-            dependentObjects.add(dependencyObject);
         }
     }
 
@@ -85,7 +88,7 @@ public abstract class AbstractObjectState implements ObjectState {
     }
 
     @Override
-    public final Set<ObjectStateId> getDependencies() {
+    public final Map<UUID, ObjectStateDependency> getDependencies() {
         return dependencies;
     }
 

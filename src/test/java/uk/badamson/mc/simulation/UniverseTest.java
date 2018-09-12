@@ -1,6 +1,7 @@
 package uk.badamson.mc.simulation;
 
 import static org.hamcrest.collection.IsIn.isIn;
+import static org.hamcrest.collection.IsMapContaining.hasValue;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsNot.not;
@@ -119,7 +120,7 @@ public class UniverseTest {
     private static void append_1(final UUID object, final Duration when) {
         final Duration earliestCompleteState = when;
         final ObjectStateId id = new ObjectStateId(object, when, VERSION_A);
-        final Set<ObjectStateId> dependencies = Collections.emptySet();
+        final Map<UUID, ObjectStateDependency> dependencies = Collections.emptyMap();
         final ObjectState objectState = new AbstractObjectStateTest.TestObjectState(id, dependencies);
 
         final Universe universe = new Universe(earliestCompleteState);
@@ -140,10 +141,11 @@ public class UniverseTest {
 
     private static void append_1PrehistoricDependency(final Duration when1, final Duration earliestCompleteState,
             final Duration when2) {
-        final ObjectStateId dependency = new ObjectStateId(OBJECT_A, when1, VERSION_A);
+        final ObjectStateId dependentState = new ObjectStateId(OBJECT_A, when1, VERSION_A);
+        final ObjectStateDependency dependency = new ObjectStateDependency(when1, dependentState);
+        final Map<UUID, ObjectStateDependency> dependencies = Collections.singletonMap(OBJECT_A, dependency);
         final ObjectStateId id = new ObjectStateId(OBJECT_B, when2, VERSION_B);
-        final ObjectState objectState = new AbstractObjectStateTest.TestObjectState(id,
-                Collections.singleton(dependency));
+        final ObjectState objectState = new AbstractObjectStateTest.TestObjectState(id, dependencies);
 
         final Universe universe = new Universe(earliestCompleteState);
 
@@ -155,7 +157,7 @@ public class UniverseTest {
         final Duration when = DURATION_1;
         final ObjectStateId id1 = new ObjectStateId(object1, when, VERSION_A);
         final ObjectStateId id2 = new ObjectStateId(object2, when, VERSION_A);
-        final Set<ObjectStateId> dependencies = Collections.emptySet();
+        final Map<UUID, ObjectStateDependency> dependencies = Collections.emptyMap();
         final ObjectState objectState1 = new AbstractObjectStateTest.TestObjectState(id1, dependencies);
         final ObjectState objectState2 = new AbstractObjectStateTest.TestObjectState(id2, dependencies);
 
@@ -178,7 +180,7 @@ public class UniverseTest {
         final Duration earliestCompleteState = when1;
         final ObjectStateId id1 = new ObjectStateId(object, when1, VERSION_A);
         final ObjectStateId id2 = new ObjectStateId(object, when2, VERSION_A);
-        final Set<ObjectStateId> dependencies = Collections.emptySet();
+        final Map<UUID, ObjectStateDependency> dependencies = Collections.emptyMap();
         final ObjectState objectState1 = new AbstractObjectStateTest.TestObjectState(id1, dependencies);
         final ObjectState objectState2 = new AbstractObjectStateTest.TestObjectState(id2, dependencies);
         final SortedMap<Duration, ObjectState> expectedObjectStateHistory = new TreeMap<>();
@@ -193,11 +195,12 @@ public class UniverseTest {
     private static void append_2SuccessiveStates(final Duration when1, final Duration when2) {
         assert when1.compareTo(when2) < 0;
         final UUID object = OBJECT_A;
-        final Duration earliestCompleteState = when1;
+        final Duration earliestCompleteState = when2;
         final ObjectStateId id1 = new ObjectStateId(object, when1, VERSION_A);
         final ObjectStateId id2 = new ObjectStateId(object, when2, VERSION_A);
-        final Set<ObjectStateId> dependencies1 = Collections.emptySet();
-        final Set<ObjectStateId> dependencies2 = Collections.singleton(id1);
+        final Map<UUID, ObjectStateDependency> dependencies1 = Collections.emptyMap();
+        final Map<UUID, ObjectStateDependency> dependencies2 = Collections.singletonMap(object,
+                new ObjectStateDependency(when1, id1));
         final ObjectState objectState1 = new AbstractObjectStateTest.TestObjectState(id1, dependencies1);
         final ObjectState objectState2 = new AbstractObjectStateTest.TestObjectState(id2, dependencies2);
         final SortedMap<Duration, ObjectState> expectedObjectStateHistory = new TreeMap<>();
@@ -239,7 +242,7 @@ public class UniverseTest {
             ObjectStateIdTest.assertInvariants(id);
             ObjectStateTest.assertInvariants(objectState);
 
-            final Set<ObjectStateId> dependencies = objectState.getDependencies();
+            final Map<UUID, ObjectStateDependency> dependencies = objectState.getDependencies();
 
             assertThat(
                     "The map of IDs to object states does not have IDs for object IDs that are in the set of objects in this universe.",
@@ -247,8 +250,8 @@ public class UniverseTest {
             assertThat("The map of IDs to object states maps an ID to an object state that has the same ID.",
                     objectState.getId(), sameInstance(id));
 
-            for (ObjectStateId dependency : dependencies) {
-                ObjectStateIdTest.assertInvariants(id, dependency);
+            for (var dependency : dependencies.values()) {
+                ObjectStateIdTest.assertInvariants(id, dependency.getPreviousStateTransition());
                 assertTrue(
                         "All the dependencies of the object states either "
                                 + "have a time-stamp before the earliest complete state time-stamp of the universe, "
@@ -305,7 +308,9 @@ public class UniverseTest {
                         ObjectStateTest.assertInvariants(objectState, previousState);
                         assertThat(
                                 "All non null object states in the state history of a given object, except for the first, have as a dependency on the previous object state in the state history.",
-                                objectState.getDependencies(), hasItem(previousState.getId()));
+                                objectState.getDependencies(),
+                                hasValue(new ObjectStateDependency(previousState.getId().getWhen(),
+                                        previousState.getId())));
                     }
                 }
                 previous = entry;
