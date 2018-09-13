@@ -119,9 +119,8 @@ public class UniverseTest {
 
     private static void append_1(final UUID object, final Duration when) {
         final Duration earliestCompleteState = when;
-        final ObjectStateId id = new ObjectStateId(object, when, VERSION_A);
         final Map<UUID, ObjectStateDependency> dependencies = Collections.emptyMap();
-        final ObjectState objectState = new ObjectStateTest.TestObjectState(id, dependencies);
+        final ObjectState objectState = new ObjectStateTest.TestObjectState(object, when, VERSION_A, dependencies);
 
         final Universe universe = new Universe(earliestCompleteState);
 
@@ -144,8 +143,7 @@ public class UniverseTest {
         final ObjectStateId dependentState = new ObjectStateId(OBJECT_A, when1, VERSION_A);
         final ObjectStateDependency dependency = new ObjectStateDependency(when1, dependentState);
         final Map<UUID, ObjectStateDependency> dependencies = Collections.singletonMap(OBJECT_A, dependency);
-        final ObjectStateId id = new ObjectStateId(OBJECT_B, when2, VERSION_B);
-        final ObjectState objectState = new ObjectStateTest.TestObjectState(id, dependencies);
+        final ObjectState objectState = new ObjectStateTest.TestObjectState(OBJECT_B, when2, VERSION_B, dependencies);
 
         final Universe universe = new Universe(earliestCompleteState);
 
@@ -155,11 +153,9 @@ public class UniverseTest {
     private static void append_2DifferentObjects(final UUID object1, final UUID object2) {
         assert !object1.equals(object2);
         final Duration when = DURATION_1;
-        final ObjectStateId id1 = new ObjectStateId(object1, when, VERSION_A);
-        final ObjectStateId id2 = new ObjectStateId(object2, when, VERSION_A);
         final Map<UUID, ObjectStateDependency> dependencies = Collections.emptyMap();
-        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(id1, dependencies);
-        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(id2, dependencies);
+        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object1, when, VERSION_A, dependencies);
+        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object2, when, VERSION_A, dependencies);
 
         final Universe universe = new Universe(when);
         universe.append(objectState1);
@@ -178,11 +174,9 @@ public class UniverseTest {
         assert when1.compareTo(when2) >= 0;
         final UUID object = OBJECT_A;
         final Duration earliestCompleteState = when1;
-        final ObjectStateId id1 = new ObjectStateId(object, when1, VERSION_A);
-        final ObjectStateId id2 = new ObjectStateId(object, when2, VERSION_A);
         final Map<UUID, ObjectStateDependency> dependencies = Collections.emptyMap();
-        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(id1, dependencies);
-        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(id2, dependencies);
+        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object, when1, VERSION_A, dependencies);
+        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object, when2, VERSION_A, dependencies);
         final SortedMap<Duration, ObjectState> expectedObjectStateHistory = new TreeMap<>();
         expectedObjectStateHistory.put(when1, objectState1);
 
@@ -197,12 +191,11 @@ public class UniverseTest {
         final UUID object = OBJECT_A;
         final Duration earliestCompleteState = when2;
         final ObjectStateId id1 = new ObjectStateId(object, when1, VERSION_A);
-        final ObjectStateId id2 = new ObjectStateId(object, when2, VERSION_A);
         final Map<UUID, ObjectStateDependency> dependencies1 = Collections.emptyMap();
         final Map<UUID, ObjectStateDependency> dependencies2 = Collections.singletonMap(object,
                 new ObjectStateDependency(when1, id1));
-        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(id1, dependencies1);
-        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(id2, dependencies2);
+        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object, when1, VERSION_A, dependencies1);
+        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object, when2, VERSION_A, dependencies2);
         final SortedMap<Duration, ObjectState> expectedObjectStateHistory = new TreeMap<>();
         expectedObjectStateHistory.put(when1, objectState1);
         expectedObjectStateHistory.put(when2, objectState2);

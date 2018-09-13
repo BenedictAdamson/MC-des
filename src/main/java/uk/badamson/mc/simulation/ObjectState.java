@@ -31,19 +31,30 @@ public abstract class ObjectState {
      * Construct an object state with a given ID and dependencies.
      * </p>
      * <ul>
-     * <li>The {@linkplain #getId() ID} of this state is the given ID.</li>
+     * <li>The {@linkplain #getObject() object} of this state is the given
+     * object.</li>
+     * <li>The {@linkplain #getWhen() time-stamp} of this state is the given
+     * time-stamp.</li>
+     * <li>The {@linkplain #getVersion() version} of this state is the given
+     * version.</li>
      * <li>The {@linkplain #getDependencies() dependencies} of this state are equal
      * to the given dependencies.</li>
      * </ul>
      * 
-     * @param id
-     *            The identifier (unique key) for this object state.
+     * @param object
+     *            The unique ID of the object for which this is a state.
+     * @param when
+     *            The point in time that the object has this state.
+     * @param version
+     *            The version identifier of this object state.
      * @param dependencies
      *            The (earlier) object states directly used to compute this object
      *            state.
      * @throws NullPointerException
      *             <ul>
-     *             <li>If {@code id} is null.</li>
+     *             <li>If {@code object} is null.</li>
+     *             <li>If {@code when} is null.</li>
+     *             <li>If {@code version} is null.</li>
      *             <li>If {@code dependencies} is null.</li>
      *             <li>If {@code dependencies} has a null key.</li>
      *             <li>If {@code dependencies} has a null value.</li>
@@ -59,11 +70,10 @@ public abstract class ObjectState {
      *             before the time-stamp of the ID of this state.</li>
      *             </ul>
      */
-    protected ObjectState(ObjectStateId id, Map<UUID, ObjectStateDependency> dependencies) {
-        this.id = Objects.requireNonNull(id, "id");
+    protected ObjectState(UUID object, Duration when, UUID version, Map<UUID, ObjectStateDependency> dependencies) {
+        id = new ObjectStateId(object, when, version);
         this.dependencies = Collections.unmodifiableMap(new HashMap<>(dependencies));
 
-        final Duration when = id.getWhen();
         // Check after copy to avoid race hazards
         for (var entry : this.dependencies.entrySet()) {
             final UUID dependencyObject = Objects.requireNonNull(entry.getKey(), "dependencyObject");
@@ -188,11 +198,68 @@ public abstract class ObjectState {
      * <p>
      * The identifier (unique key) for this object state.
      * </p>
+     * <ul>
+     * <li>The {@linkplain ObjectStateId#getObject() object} of the ID is the same
+     * as the{@linkplain #getObject() object} of this state.</li>
+     * <li>The {@linkplain ObjectStateId#getVersion() version} of the ID is the same
+     * as the{@linkplain #getVersion() version} of this state.</li>
+     * <li>The {@linkplain ObjectStateId#getWhen() time-stamp} of the ID is the same
+     * as the {@linkplain #getWhen() time-stamp} of this state.</li>
+     * </ul>
      * 
      * @return the ID; not null.
      */
     public final ObjectStateId getId() {
         return id;
+    }
+
+    /**
+     * <p>
+     * The unique ID of the object for which this is a state.
+     * </p>
+     * 
+     * @return The object ID; not null.
+     */
+    public final UUID getObject() {
+        return id.getObject();
+    }
+
+    /**
+     * <p>
+     * The version identifier of this object state.
+     * </p>
+     * <p>
+     * Computation of object states can be provisional, with later versions revising
+     * the computed state as more information becomes available. This attribute
+     * enables different versions of the computation for an {@linkplain #getObject()
+     * object} to be distinguished, even if they are for equal
+     * {@linkplain #getWhen() points in time}.
+     * </p>
+     * <p>
+     * Although {@link UUID} are {@linkplain UUID#compareTo(UUID) comparable}, the
+     * ordering of version ID values is not significant: the {@link UUID} order need
+     * not be the same as the computation order.
+     * </p>
+     * 
+     * @return the version; not null.
+     */
+    public final UUID getVersion() {
+        return id.getVersion();
+    }
+
+    /**
+     * <p>
+     * The point in time that the {@linkplain #getObject() object} has this state.
+     * </p>
+     * <p>
+     * Expressed as the duration since an epoch. All objects in a simulation should
+     * use the same epoch.
+     * </p>
+     * 
+     * @return the amount of time since the epoch; not null.
+     */
+    public final Duration getWhen() {
+        return id.getWhen();
     }
 
     @Override

@@ -27,8 +27,9 @@ public class ObjectStateTest {
 
     static final class TestObjectState extends ObjectState {
 
-        public TestObjectState(ObjectStateId id, Map<UUID, ObjectStateDependency> dependencies) {
-            super(id, dependencies);
+        public TestObjectState(UUID object, Duration when, UUID version,
+                Map<UUID, ObjectStateDependency> dependencies) {
+            super(object, when, version, dependencies);
         }
 
         @Override
@@ -48,12 +49,21 @@ public class ObjectStateTest {
 
         final ObjectStateId id = state.getId();
         final Map<UUID, ObjectStateDependency> dependencies = state.getDependencies();
+        final UUID object = state.getObject();
+        final UUID version = state.getVersion();
+        final Duration when = state.getWhen();
 
         assertNotNull("id", id);// guard
         assertNotNull("dependencies", dependencies);// guard
+        assertNotNull("object", object);
+        assertNotNull("version", version);
+        assertNotNull("when", when);// guard
+
         ObjectStateIdTest.assertInvariants(id);
 
-        final Duration when = id.getWhen();
+        assertSame("The object of the ID is the same as the object of this state.", object, id.getObject());
+        assertSame("The version of the ID is the same as the version of this state.", version, id.getVersion());
+        assertSame("The time-stamp of the ID is the same as the time-stamp of this state.", when, id.getWhen());
 
         Set<UUID> dependentObjects = new HashSet<>(dependencies.size());
         for (var entry : dependencies.entrySet()) {
