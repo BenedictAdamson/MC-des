@@ -48,7 +48,7 @@ public final class ObjectStateDependency {
         this.when = Objects.requireNonNull(when, "when");
         this.previousStateTransition = Objects.requireNonNull(previousStateTransition, "previousStateTransition");
         if (when.compareTo(previousStateTransition.getWhen()) < 0) {
-            throw new IllegalArgumentException("when is before time-stamp of teh previous state transition");
+            throw new IllegalArgumentException("when is before time-stamp of the previous state transition");
         }
     }
 

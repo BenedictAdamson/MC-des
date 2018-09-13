@@ -16,6 +16,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.junit.Test;
+
 import uk.badamson.mc.ObjectTest;
 
 /**
@@ -43,6 +45,15 @@ public class ObjectStateTest {
         }
 
     }// class
+
+    private static final UUID OBJECT_A = UUID.randomUUID();
+    private static final UUID OBJECT_B = UUID.randomUUID();
+    private static final Duration WHEN_1 = Duration.ofSeconds(13);
+    private static final Duration WHEN_2 = Duration.ofSeconds(17);
+    private static final Duration WHEN_3 = Duration.ofSeconds(23);
+    private static final UUID VERSION_A = UUID.randomUUID();
+
+    private static final UUID VERSION_B = UUID.randomUUID();
 
     public static void assertInvariants(ObjectState state) {
         ObjectTest.assertInvariants(state);// inherited
@@ -95,6 +106,18 @@ public class ObjectStateTest {
                 state1.equals(state2));
     }
 
+    private static void constructor(UUID object, Duration when, UUID version,
+            Map<UUID, ObjectStateDependency> dependencies) {
+        final ObjectState state = new TestObjectState(object, when, version, dependencies);
+
+        assertInvariants(state);
+        assertSame("The object of this state is the given object.", object, state.getObject());
+        assertSame("The time-stamp of this state is the given time-stamp.", when, state.getWhen());
+        assertSame("The version of this state is the given version.", version, state.getVersion());
+        assertEquals("The dependencies of this state are equal to the given dependencies.", dependencies,
+                state.getDependencies());
+    }
+
     public static Map<UUID, ObjectState> createNextStates(ObjectState state) {
         final ObjectStateId id = state.getId();
 
@@ -137,5 +160,18 @@ public class ObjectStateTest {
                 hasValue(id.getObject()));
 
         return nextStates;
+    }
+
+    @Test
+    public void constructor_A() {
+        final Map<UUID, ObjectStateDependency> dependencies = Collections.emptyMap();
+        constructor(OBJECT_A, WHEN_1, VERSION_A, dependencies);
+    }
+
+    @Test
+    public void constructor_B() {
+        final Map<UUID, ObjectStateDependency> dependencies = Collections.singletonMap(OBJECT_A,
+                new ObjectStateDependency(WHEN_2, new ObjectStateId(OBJECT_A, WHEN_1, VERSION_A)));
+        constructor(OBJECT_B, WHEN_3, VERSION_B, dependencies);
     }
 }
