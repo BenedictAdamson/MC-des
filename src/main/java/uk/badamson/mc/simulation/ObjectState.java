@@ -206,25 +206,27 @@ public abstract class ObjectState {
      * dependent objects, this {@link ObjectState} would be incorrect.
      * </p>
      * <ul>
-     * <li>Always has a (non null) non null set of dependency states.</li>
-     * <li>The set of dependency states does not have a null element.</li>
-     * <li>The {@linkplain ObjectStateId#getWhen() time-stamp} of every dependency
-     * state is before the {@linkplain #getWhen() time-stamp} of this state.</li>
-     * <li>An object state (ID) is one of the dependency states if, and only if, it
-     * is only of the {@linkplain ObjectStateDependency#getPreviousStateTransition()
-     * previous state transitions} of a {@linkplain Map#values() value} in the
+     * <li>Always has a (non null) non null set of depended upon states.</li>
+     * <li>The set of depended upon states does not have a null element.</li>
+     * <li>The {@linkplain ObjectStateId#getWhen() time-stamp} of every depended
+     * upon state is before the {@linkplain #getWhen() time-stamp} of this
+     * state.</li>
+     * <li>An object state (ID) is one of the depended upon states if, and only if,
+     * it is only of the
+     * {@linkplain ObjectStateDependency#getPreviousStateTransition() previous state
+     * transitions} of a {@linkplain Map#values() value} in the
      * {@linkplain #getDependencies() dependencies} map.</li>
-     * <li>The set of dependency states might or might not be a copy of an internal
-     * set.</li>
+     * <li>The set of depended upon states might or might not be a copy of an
+     * internal set.</li>
      * </ul>
      * <p>
-     * The dependencies typically have an entry for the previous state of the
-     * {@linkplain ObjectStateId#getObject() object} of this state.
+     * The depended upon states typically have an entry for the previous state of
+     * the {@linkplain ObjectStateId#getObject() object} of this state.
      * </p>
      * 
      * @return The dependency information
      */
-    public final Set<ObjectStateId> getDepenencyStates() {
+    public final Set<ObjectStateId> getDepenendedUponStates() {
         final Set<ObjectStateId> depenencyStates = new HashSet<>(dependencies.size());
         for (var dependency : dependencies.values()) {
             depenencyStates.add(dependency.getPreviousStateTransition());

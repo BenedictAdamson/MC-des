@@ -61,14 +61,14 @@ public class ObjectStateTest {
 
         final ObjectStateId id = state.getId();
         final Map<UUID, ObjectStateDependency> dependencies = state.getDependencies();
-        final Set<ObjectStateId> depenencyStates = state.getDepenencyStates();
+        final Set<ObjectStateId> depenendedUponStates = state.getDepenendedUponStates();
         final UUID object = state.getObject();
         final UUID version = state.getVersion();
         final Duration when = state.getWhen();
 
         assertNotNull("id", id);// guard
         assertNotNull("dependencies", dependencies);// guard
-        assertNotNull("Always has a (non null) non null set of dependency states.", depenencyStates);
+        assertNotNull("Always has a (non null) non null set of depended upon states.", depenendedUponStates);
         assertNotNull("object", object);
         assertNotNull("version", version);
         assertNotNull("when", when);// guard
@@ -97,21 +97,21 @@ public class ObjectStateTest {
                     "The time-stamp of every value in the dependency map is before the time-stamp of the ID of this state.",
                     dependency.getWhen(), lessThan(when));
             assertThat(
-                    "An object state is one of the dependency states if it is only of the previous state transitions of a value in the dependencies map.",
-                    previousStateTransition, isIn(depenencyStates));
+                    "An object state is one of the depended upon states if it is only of the previous state transitions of a value in the dependencies map.",
+                    previousStateTransition, isIn(depenendedUponStates));
             dependentObjects.add(dependencyObject);
             previousStateTransitions.add(previousStateTransition);
         }
 
-        for (ObjectStateId depenencyState : depenencyStates) {
-            assertNotNull("The set of dependency states does not have a null element.", depenencyState);// guard
-            ObjectStateIdTest.assertInvariants(depenencyState);
-            ObjectStateIdTest.assertInvariants(id, depenencyState);
-            assertThat("The time-stamp of every dependency state is before the time-stamp of  this state.",
-                    depenencyState.getWhen(), lessThan(when));
+        for (ObjectStateId depenendedUponState : depenendedUponStates) {
+            assertNotNull("The set of depended upon states does not have a null element.", depenendedUponState);// guard
+            ObjectStateIdTest.assertInvariants(depenendedUponState);
+            ObjectStateIdTest.assertInvariants(id, depenendedUponState);
+            assertThat("The time-stamp of every depended upon state is before the time-stamp of  this state.",
+                    depenendedUponState.getWhen(), lessThan(when));
             assertThat(
-                    "An object state is one of the dependency states only if it is only of the previous state transitions of a value in the dependencies} map.",
-                    depenencyState, isIn(previousStateTransitions));
+                    "An object state is one of the depended upon states only if it is only of the previous state transitions of a value in the dependencies} map.",
+                    depenendedUponState, isIn(previousStateTransitions));
         }
     }
 
