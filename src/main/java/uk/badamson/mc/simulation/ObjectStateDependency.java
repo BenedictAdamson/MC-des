@@ -30,8 +30,9 @@ public final class ObjectStateDependency {
      * </ul>
      * 
      * @param when
-     *            The point in time at which the {@linkplain #getDependedUpObject()
-     *            depended upon object} had the depended upon state.
+     *            The point in time at which the
+     *            {@linkplain #getDependedUponObject() depended upon object} had the
+     *            depended upon state.
      * @param previousStateTransition
      *            The state transition (at or) before the {@linkplain #getWhen()
      *            point in time} of interest.
@@ -91,14 +92,15 @@ public final class ObjectStateDependency {
      * 
      * @return the object ID.
      */
-    public final UUID getDependedUpObject() {
+    public final UUID getDependedUponObject() {
         return previousStateTransition.getObject();
     }
 
     /**
      * <p>
-     * The state transition of the {@linkplain #getDependedUpObject() depended upon
-     * object} (at or) before the {@linkplain #getWhen() point in time} of interest.
+     * The state transition of the {@linkplain #getDependedUponObject() depended
+     * upon object} (at or) before the {@linkplain #getWhen() point in time} of
+     * interest.
      * </p>
      * <ul>
      * <li>Always have a (non null) previous state transition.</li>
@@ -112,7 +114,7 @@ public final class ObjectStateDependency {
 
     /**
      * <p>
-     * The point in time at which the {@linkplain #getDependedUpObject() depended
+     * The point in time at which the {@linkplain #getDependedUponObject() depended
      * upon object} had the depended upon state.
      * </p>
      * <ul>

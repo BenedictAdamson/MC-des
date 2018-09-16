@@ -166,7 +166,7 @@ public class Universe {
      * @return the point in time, expressed as the duration since an epoch; not
      *         null.
      */
-    public synchronized final Duration getEarliestCompleteState() {
+    public final Duration getEarliestCompleteState() {
         return earliestCompleteState;
     }
 
@@ -178,7 +178,7 @@ public class Universe {
      * <li>Always have a (non null) set of object IDs.</li>
      * <li>The set of object IDs does not have a null element.</li>
      * <li>The set of object IDs may be immutable.</li>
-     * <li>The set of object IDs might or might not be a copy of an internal map,and
+     * <li>The set of object IDs might or might not be a copy of an internal set,and
      * so might or might not reflect subsequent changes to this universe.</li>
      * </ul>
      * 
@@ -207,6 +207,8 @@ public class Universe {
      * known object states}.</li>
      * </ul>
      * 
+     * @param objectStateId
+     *            The ID of the object state of interest.
      * @return the object state
      * @throws NullPointerException
      *             If {@code objectStateId} is null.

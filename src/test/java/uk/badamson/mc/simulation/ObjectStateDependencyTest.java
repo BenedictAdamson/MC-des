@@ -37,7 +37,7 @@ public class ObjectStateDependencyTest {
 
         final ObjectStateId previousStateTransition = dependency.getPreviousStateTransition();
         final Duration when = dependency.getWhen();
-        final UUID dependedUpObject = dependency.getDependedUpObject();
+        final UUID dependedUpObject = dependency.getDependedUponObject();
 
         assertNotNull("Always have a previous state transition.", previousStateTransition);// guard
         assertNotNull("Always have a time at which the depended upon object had the depended upon state.", when);

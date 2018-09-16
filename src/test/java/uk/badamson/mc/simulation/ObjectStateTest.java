@@ -1,5 +1,6 @@
 package uk.badamson.mc.simulation;
 
+import static org.hamcrest.collection.IsIn.isIn;
 import static org.hamcrest.collection.IsMapContaining.hasValue;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.hamcrest.number.OrderingComparison.lessThan;
@@ -60,12 +61,14 @@ public class ObjectStateTest {
 
         final ObjectStateId id = state.getId();
         final Map<UUID, ObjectStateDependency> dependencies = state.getDependencies();
+        final Set<ObjectStateId> depenencyStates = state.getDepenencyStates();
         final UUID object = state.getObject();
         final UUID version = state.getVersion();
         final Duration when = state.getWhen();
 
         assertNotNull("id", id);// guard
         assertNotNull("dependencies", dependencies);// guard
+        assertNotNull("Always has a (non null) non null set of dependency states.", depenencyStates);
         assertNotNull("object", object);
         assertNotNull("version", version);
         assertNotNull("when", when);// guard
@@ -77,21 +80,38 @@ public class ObjectStateTest {
         assertSame("The time-stamp of the ID is the same as the time-stamp of this state.", when, id.getWhen());
 
         Set<UUID> dependentObjects = new HashSet<>(dependencies.size());
+        Set<ObjectStateId> previousStateTransitions = new HashSet<>(dependencies.size());
         for (var entry : dependencies.entrySet()) {
             final UUID dependencyObject = entry.getKey();
             final ObjectStateDependency dependency = entry.getValue();
             assertNotNull("The dependency map does not have a null key.", dependencyObject);
             assertNotNull("The dependency map does not have null values.", dependency);// guard
             ObjectStateDependencyTest.assertInvariants(dependency);
+            final ObjectStateId previousStateTransition = dependency.getPreviousStateTransition();
 
             assertSame(
                     "Each object ID key of the dependency map maps to a value that "
                             + "has that same object ID as its depended upon object.",
-                    dependencyObject, dependency.getDependedUpObject());
+                    dependencyObject, dependency.getDependedUponObject());
             assertThat(
                     "The time-stamp of every value in the dependency map is before the time-stamp of the ID of this state.",
                     dependency.getWhen(), lessThan(when));
+            assertThat(
+                    "An object state is one of the dependency states if it is only of the previous state transitions of a value in the dependencies map.",
+                    previousStateTransition, isIn(depenencyStates));
             dependentObjects.add(dependencyObject);
+            previousStateTransitions.add(previousStateTransition);
+        }
+
+        for (ObjectStateId depenencyState : depenencyStates) {
+            assertNotNull("The set of dependency states does not have a null element.", depenencyState);// guard
+            ObjectStateIdTest.assertInvariants(depenencyState);
+            ObjectStateIdTest.assertInvariants(id, depenencyState);
+            assertThat("The time-stamp of every dependency state is before the time-stamp of  this state.",
+                    depenencyState.getWhen(), lessThan(when));
+            assertThat(
+                    "An object state is one of the dependency states only if it is only of the previous state transitions of a value in the dependencies} map.",
+                    depenencyState, isIn(previousStateTransitions));
         }
     }
 

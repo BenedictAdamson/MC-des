@@ -3,8 +3,10 @@ package uk.badamson.mc.simulation;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 import net.jcip.annotations.Immutable;
@@ -64,8 +66,8 @@ public abstract class ObjectState {
      *             <li>If any object ID {@linkplain Map#keySet() key }of the
      *             {@code dependencies} map maps to a {@linkplain Map#values()
      *             value} that does not have that same object ID as its
-     *             {@linkplain ObjectStateDependency#getDependedUpObject() depended
-     *             upon object}.</li>
+     *             {@linkplain ObjectStateDependency#getDependedUponObject()
+     *             depended upon object}.</li>
      *             <li>If the time-stamp of a value in the dependency map is not
      *             before the time-stamp of the ID of this state.</li>
      *             </ul>
@@ -79,7 +81,7 @@ public abstract class ObjectState {
             final UUID dependencyObject = Objects.requireNonNull(entry.getKey(), "dependencyObject");
             final ObjectStateDependency dependency = Objects.requireNonNull(entry.getValue(), "dependency");
 
-            if (dependencyObject != dependency.getDependedUpObject()) {
+            if (dependencyObject != dependency.getDependedUponObject()) {
                 throw new IllegalArgumentException(
                         "Object ID key of the dependency map does not map to a value that has that same object ID as its depended upon object.");
             }
@@ -160,7 +162,8 @@ public abstract class ObjectState {
 
     /**
      * <p>
-     * The (earlier) object states directly used to compute this object state.
+     * The (earlier) object state information directly used to compute this object
+     * state.
      * </p>
      * <p>
      * Implicitly, if the object state computations were done differently for the
@@ -170,11 +173,11 @@ public abstract class ObjectState {
      * <li>Always has a (non null) dependency map.</li>
      * <li>The dependency map does not have a null key.</li>
      * <li>The dependency map does not have null values.</li>
-     * <li>The dependency map maps object IDs if objects that have a dependened upon
+     * <li>The dependency map maps object IDs if objects that have a depended upon
      * state to an ID of that depended upon state.</li>
      * <li>Each object ID {@linkplain Map#keySet() key} of the dependency map maps
      * to a value that has that same object ID as its
-     * {@linkplain ObjectStateDependency#getDependedUpObject() depended upon
+     * {@linkplain ObjectStateDependency#getDependedUponObject() depended upon
      * object}.</li>
      * <li>The {@linkplain ObjectStateDependency#getWhen() time-stamp} of every
      * {@linkplain Map#values() value} in the dependency map is before the
@@ -187,11 +190,46 @@ public abstract class ObjectState {
      * of this state.
      * </p>
      * 
-     * @return The set of the IDs of the {@link ObjectState} states that this state
-     *         directly depends on.
+     * @return The dependency information
      */
     public final Map<UUID, ObjectStateDependency> getDependencies() {
         return dependencies;
+    }
+
+    /**
+     * <p>
+     * The IDs of the (earlier) object state information directly used to compute
+     * this object state.
+     * </p>
+     * <p>
+     * Implicitly, if the object state computations were done differently for the
+     * dependent objects, this {@link ObjectState} would be incorrect.
+     * </p>
+     * <ul>
+     * <li>Always has a (non null) non null set of dependency states.</li>
+     * <li>The set of dependency states does not have a null element.</li>
+     * <li>The {@linkplain ObjectStateId#getWhen() time-stamp} of every dependency
+     * state is before the {@linkplain #getWhen() time-stamp} of this state.</li>
+     * <li>An object state (ID) is one of the dependency states if, and only if, it
+     * is only of the {@linkplain ObjectStateDependency#getPreviousStateTransition()
+     * previous state transitions} of a {@linkplain Map#values() value} in the
+     * {@linkplain #getDependencies() dependencies} map.</li>
+     * <li>The set of dependency states might or might not be a copy of an internal
+     * set.</li>
+     * </ul>
+     * <p>
+     * The dependencies typically have an entry for the previous state of the
+     * {@linkplain ObjectStateId#getObject() object} of this state.
+     * </p>
+     * 
+     * @return The dependency information
+     */
+    public final Set<ObjectStateId> getDepenencyStates() {
+        final Set<ObjectStateId> depenencyStates = new HashSet<>(dependencies.size());
+        for (var dependency : dependencies.values()) {
+            depenencyStates.add(dependency.getPreviousStateTransition());
+        }
+        return depenencyStates;
     }
 
     /**
