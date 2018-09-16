@@ -53,7 +53,16 @@ public class Universe {
 
     }// class
 
-    private final Map<ObjectStateId, ObjectState> objectStates = new HashMap<>();
+    private static final class ObjectStateData {
+        ObjectState state;
+
+        private ObjectStateData(ObjectState state) {
+            this.state = state;
+        }
+
+    }// class
+
+    private final Map<ObjectStateId, ObjectStateData> objectStates = new HashMap<>();
     private final Map<UUID, SortedMap<Duration, ObjectState>> objectStateHistories = new HashMap<>();
 
     private Duration earliestCompleteState;
@@ -68,8 +77,8 @@ public class Universe {
      * time-stamp.</li>
      * <li>The {@linkplain #getObjectIds() set of object IDs}
      * {@linkplain Set#isEmpty() is empty}.</li>
-     * <li>The {@linkplain #getObjectStates() map of IDs to object states}
-     * {@linkplain Map#isEmpty() is empty}.</li>
+     * <li>The {@linkplain #getObjectStateIds() set of IDs of object states}
+     * {@linkplain Set#isEmpty() is empty}.</li>
      * </ul>
      * 
      * @param earliestCompleteState
@@ -140,7 +149,8 @@ public class Universe {
             throw new InvalidEventTimeStampOrderException();
         }
         stateHistory.put(when, objectState);
-        objectStates.put(id, objectState);
+        final ObjectStateData stateData = new ObjectStateData(objectState);
+        objectStates.put(id, stateData);
     }
 
     /**
@@ -176,6 +186,34 @@ public class Universe {
      */
     public final Set<UUID> getObjectIds() {
         return new HashSet<>(objectStateHistories.keySet());
+    }
+
+    /**
+     * <p>
+     * The state of an object within this universe, given its
+     * {@linkplain ObjectState#getId() ID}.
+     * </p>
+     * <ul>
+     * <li>Have a (non null) object state if, and only if, the given object state ID
+     * is one of the {@linkplain #getObjectStateIds() known object state IDs} of
+     * this universe.</li>
+     * <li>A (non null) object state accessed using a given object state ID has an
+     * {@linkplain ObjectStateId#equals(Object) equivalent} object state ID as its
+     * {@linkplain ObjectState#getId() ID}.</li>
+     * <li>All the {@linkplain ObjectState#getDependencies() dependencies} of the
+     * object states either have a {@linkplain ObjectStateId#getWhen() time-stamp}
+     * before the {@linkplain #getEarliestCompleteState() earliest complete state}
+     * time-stamp of the universe, or are themselves {@linkplain #getObjectStates()
+     * known object states}.</li>
+     * </ul>
+     * 
+     * @return the object state
+     * @throws NullPointerException
+     *             If {@code objectStateId} is null.
+     */
+    public final ObjectState getObjectState(ObjectStateId objectStateId) {
+        Objects.requireNonNull(objectStateId, "objectStateId");
+        return objectStates.get(objectStateId).state;// FIXME
     }
 
     /**
@@ -244,9 +282,9 @@ public class Universe {
      * <li>All non null object states in the state history of a given object have
      * the given object ID as the {@linkplain ObjectStateId#getObject() object ID}
      * of the {@linkplain ObjectState#getId() state ID}.</li>
-     * <li>All non null object states in the state history of a given object belong
-     * to the {@linkplain Map#values() values collection} of the
-     * {@linkplain #getObjectStates() object states map}.</li>
+     * <li>All non null object states in the state history of a given object have an
+     * ID that belongs to the {@linkplain #getObjectIds() set of all known object
+     * IDs}.</li>
      * <li>All non null object states in the state history of a given object, except
      * for the {@linkplain SortedMap#firstKey() first}, have as a
      * {@linkplain ObjectState#getDependencies() dependency} on the previous object
@@ -275,31 +313,23 @@ public class Universe {
 
     /**
      * <p>
-     * All the known states of objects within this universe, indexed by their
-     * {@linkplain ObjectState#getId() IDs}.
+     * All the known {@linkplain ObjectStateId identifiers} of states of objects
+     * within this universe.
      * </p>
      * <ul>
-     * <li>Always have a (non null) map of IDs to object states.</li>
-     * <li>The map of IDs to object states does not have a null key.</li>
-     * <li>The map of IDs to object states does not have IDs (keys) for
-     * {@linkplain ObjectStateId#getObject() object IDs} that are in the
+     * <li>Always have a (non null) set of object state IDs.</li>
+     * <li>The set of IDs of object states does not have a null element.</li>
+     * <li>The set of IDs of object states does not have elements for
+     * {@linkplain ObjectStateId#getObject() object IDs} that are not in the
      * {@linkplain #getObjectIds() set of objects in this universe}.</li>
-     * <li>The map of IDs to object states does not have null values.</li>
-     * <li>The map of IDs to object states maps an ID to an object state that has
-     * the same {@linkplain ObjectState#getId() ID}.</li>
-     * <li>The map of IDs to object states may be immutable, or it may be a copy of
+     * <li>The set of IDs of object states may be immutable, or it may be a copy of
      * an underlying collection.</li>
-     * <li>All the {@linkplain ObjectState#getDependencies() dependencies} of the
-     * object states either have a {@linkplain ObjectStateId#getWhen() time-stamp}
-     * before the {@linkplain #getEarliestCompleteState() earliest complete state}
-     * time-stamp of the universe, or are themselves {@linkplain #getObjectStates()
-     * known object states}.</li>
      * </ul>
      * 
-     * @return the objectStates
+     * @return the IDs
      */
-    public final Map<ObjectStateId, ObjectState> getObjectStates() {
-        return new HashMap<>(objectStates);
+    public final Set<ObjectStateId> getObjectStateIds() {
+        return new HashSet<>(objectStates.keySet());
     }
 
     /**

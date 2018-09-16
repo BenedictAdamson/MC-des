@@ -16,7 +16,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.time.Duration;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -219,42 +218,41 @@ public class UniverseTest {
 
         final Duration earliestCompleteState = universe.getEarliestCompleteState();
         final Set<UUID> objectIds = universe.getObjectIds();
-        final Map<ObjectStateId, ObjectState> objectStates = universe.getObjectStates();
+        final Set<ObjectStateId> objectStateIds = universe.getObjectStateIds();
 
         assertNotNull("Always have a earliest complete state time-stamp.", earliestCompleteState);
         assertNotNull("Always have a set of object IDs.", objectIds);// guard
-        assertNotNull("Always have a map of IDs to object states.", objectStates);// guard
+        assertNotNull("Always have a (non null) set of object state IDs.", objectStateIds);
 
-        final Set<ObjectStateId> allObjectStateIds = objectStates.keySet();
-        for (Map.Entry<ObjectStateId, ObjectState> entry : objectStates.entrySet()) {
-            final ObjectStateId id = entry.getKey();
-            final ObjectState objectState = entry.getValue();
-            assertNotNull("The map of IDs to object states does not have a null key.", id);// guard
-            assertNotNull("The map of IDs to object states does not have null values.", objectState);// guard
-
-            ObjectStateIdTest.assertInvariants(id);
+        for (ObjectStateId objectStateId : objectStateIds) {
+            assertNotNull("The set of IDs of object states does not have a null element.", objectStateId);// guard
+            ObjectStateIdTest.assertInvariants(objectStateId);
+            final ObjectState objectState = universe.getObjectState(objectStateId);
+            final UUID object = objectStateId.getObject();
+            assertThat(
+                    "The set of IDs of object states does not have elements for object IDs that are not in the set of objects in this universe.",
+                    object, isIn(objectIds));
+            assertNotNull(
+                    "Have an object state if the given object state ID is one of the known object state IDs of this universe.",
+                    objectState);// guard
             ObjectStateTest.assertInvariants(objectState);
 
             final Map<UUID, ObjectStateDependency> dependencies = objectState.getDependencies();
-
-            assertThat(
-                    "The map of IDs to object states does not have IDs for object IDs that are in the set of objects in this universe.",
-                    id.getObject(), isIn(objectIds));
-            assertThat("The map of IDs to object states maps an ID to an object state that has the same ID.",
-                    objectState.getId(), sameInstance(id));
+            assertEquals(
+                    "An object state accessed using a given object state ID has an equivalent object state ID as its ID.",
+                    objectStateId, objectState.getId());
 
             for (var dependency : dependencies.values()) {
-                ObjectStateIdTest.assertInvariants(id, dependency.getPreviousStateTransition());
+                ObjectStateIdTest.assertInvariants(objectStateId, dependency.getPreviousStateTransition());
                 assertTrue(
                         "All the dependencies of the object states either "
                                 + "have a time-stamp before the earliest complete state time-stamp of the universe, "
                                 + "or are themselves known object states.",
                         dependency.getWhen().compareTo(earliestCompleteState) <= 0
-                                || allObjectStateIds.contains(dependency.getPreviousStateTransition()));
+                                || objectStateIds.contains(dependency.getPreviousStateTransition()));
             }
         }
 
-        final Collection<ObjectState> allObjectStates = objectStates.values();
         for (UUID object : objectIds) {
             assertNotNull("The set of object IDs does not have a null element.", object);// guard
             final SortedMap<Duration, ObjectState> objectStateHistory = universe.getObjectStateHistory(object);
@@ -294,8 +292,8 @@ public class UniverseTest {
                             "An object state history for a given object maps to a null value or an object state with a time-stamp equal to the key of the map.",
                             id.getWhen(), equalTo(when));
                     assertThat(
-                            "All non null object states in the state history of a given object belong to the values collection of the object states map.",
-                            objectState, isIn(allObjectStates));
+                            "All non null object states in the state history of a given object have an ID that belongs to the set of all known object IDs.",
+                            objectState.getId(), isIn(objectStateIds));
                     if (previous != null) {
                         final ObjectState previousState = previous.getValue();
                         ObjectStateTest.assertInvariants(objectState, previousState);
@@ -341,7 +339,7 @@ public class UniverseTest {
                         + "the given earliest complete state time-stamp.",
                 earliestCompleteState, universe.getEarliestCompleteState());
         assertEquals("The set of object IDs is empty.", Collections.emptySet(), universe.getObjectIds());
-        assertEquals("The map of IDs to object states is empty.", Collections.emptyMap(), universe.getObjectStates());
+        assertEquals("The set of IDs of object states is empty.", Collections.emptySet(), universe.getObjectIds());
 
         assertUnknownObjectInvariants(universe, OBJECT_A);
         assertUnknownObjectInvariants(universe, OBJECT_B);
