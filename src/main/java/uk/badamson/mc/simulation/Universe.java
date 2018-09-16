@@ -213,7 +213,12 @@ public class Universe {
      */
     public final ObjectState getObjectState(ObjectStateId objectStateId) {
         Objects.requireNonNull(objectStateId, "objectStateId");
-        return objectStates.get(objectStateId).state;// FIXME
+        final ObjectStateData objectStateData = objectStates.get(objectStateId);
+        if (objectStateData == null) {
+            return null;
+        } else {
+            return objectStateData.state;
+        }
     }
 
     /**

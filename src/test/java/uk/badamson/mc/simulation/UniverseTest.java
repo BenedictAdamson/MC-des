@@ -118,8 +118,10 @@ public class UniverseTest {
 
     private static void append_1(final UUID object, final Duration when) {
         final Duration earliestCompleteState = when;
+        final Duration justAfter = when.plusNanos(1L);
         final Map<UUID, ObjectStateDependency> dependencies = Collections.emptyMap();
-        final ObjectState objectState = new ObjectStateTest.TestObjectState(object, when, VERSION_A, dependencies);
+        final UUID version = VERSION_A;
+        final ObjectState objectState = new ObjectStateTest.TestObjectState(object, when, version, dependencies);
 
         final Universe universe = new Universe(earliestCompleteState);
 
@@ -134,7 +136,9 @@ public class UniverseTest {
                 "The state of an object at a given point in time is "
                         + "the state it had at the latest state transition "
                         + "at or before that point in time (just after transition)",
-                objectState, universe.getObjectState(object, when.plusNanos(1L)));
+                objectState, universe.getObjectState(object, justAfter));
+        assertUnknownObjectStateInvaraints(universe, new ObjectStateId(object, when, VERSION_B));
+        assertUnknownObjectStateInvaraints(universe, new ObjectStateId(object, justAfter, version));
     }
 
     private static void append_1PrehistoricDependency(final Duration when1, final Duration earliestCompleteState,
@@ -329,6 +333,12 @@ public class UniverseTest {
                 universe.getObjectState(object, DURATION_2));
     }
 
+    private static void assertUnknownObjectStateInvaraints(Universe universe, ObjectStateId state) {
+        assertNull(
+                "Have an object only if the given object state ID is one of the known object state IDs of this universe.",
+                universe.getObjectState(state));
+    }
+
     private static void constructor(final Duration earliestCompleteState) {
         final Universe universe = new Universe(earliestCompleteState);
 
@@ -343,6 +353,8 @@ public class UniverseTest {
 
         assertUnknownObjectInvariants(universe, OBJECT_A);
         assertUnknownObjectInvariants(universe, OBJECT_B);
+        assertUnknownObjectStateInvaraints(universe, new ObjectStateId(OBJECT_A, DURATION_1, VERSION_A));
+        assertUnknownObjectStateInvaraints(universe, new ObjectStateId(OBJECT_B, DURATION_2, VERSION_B));
     }
 
     @Test
