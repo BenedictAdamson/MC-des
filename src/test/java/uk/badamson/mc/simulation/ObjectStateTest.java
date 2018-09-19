@@ -30,9 +30,8 @@ public class ObjectStateTest {
 
     static final class TestObjectState extends ObjectState {
 
-        public TestObjectState(UUID object, Duration when, UUID version,
-                Map<UUID, ObjectStateDependency> dependencies) {
-            super(object, when, version, dependencies);
+        public TestObjectState(UUID object, Duration when, Map<UUID, ObjectStateDependency> dependencies) {
+            super(object, when, dependencies);
         }
 
         @Override
@@ -52,9 +51,6 @@ public class ObjectStateTest {
     private static final Duration WHEN_1 = Duration.ofSeconds(13);
     private static final Duration WHEN_2 = Duration.ofSeconds(17);
     private static final Duration WHEN_3 = Duration.ofSeconds(23);
-    private static final UUID VERSION_A = UUID.randomUUID();
-
-    private static final UUID VERSION_B = UUID.randomUUID();
 
     public static void assertInvariants(ObjectState state) {
         ObjectTest.assertInvariants(state);// inherited
@@ -63,20 +59,17 @@ public class ObjectStateTest {
         final Map<UUID, ObjectStateDependency> dependencies = state.getDependencies();
         final Set<ObjectStateId> depenendedUponStates = state.getDepenendedUponStates();
         final UUID object = state.getObject();
-        final UUID version = state.getVersion();
         final Duration when = state.getWhen();
 
         assertNotNull("id", id);// guard
         assertNotNull("dependencies", dependencies);// guard
         assertNotNull("Always has a (non null) non null set of depended upon states.", depenendedUponStates);
         assertNotNull("object", object);
-        assertNotNull("version", version);
         assertNotNull("when", when);// guard
 
         ObjectStateIdTest.assertInvariants(id);
 
         assertSame("The object of the ID is the same as the object of this state.", object, id.getObject());
-        assertSame("The version of the ID is the same as the version of this state.", version, id.getVersion());
         assertSame("The time-stamp of the ID is the same as the time-stamp of this state.", when, id.getWhen());
 
         Set<UUID> dependentObjects = new HashSet<>(dependencies.size());
@@ -126,14 +119,12 @@ public class ObjectStateTest {
                 state1.equals(state2));
     }
 
-    private static void constructor(UUID object, Duration when, UUID version,
-            Map<UUID, ObjectStateDependency> dependencies) {
-        final ObjectState state = new TestObjectState(object, when, version, dependencies);
+    private static void constructor(UUID object, Duration when, Map<UUID, ObjectStateDependency> dependencies) {
+        final ObjectState state = new TestObjectState(object, when, dependencies);
 
         assertInvariants(state);
         assertSame("The object of this state is the given object.", object, state.getObject());
         assertSame("The time-stamp of this state is the given time-stamp.", when, state.getWhen());
-        assertSame("The version of this state is the given version.", version, state.getVersion());
         assertEquals("The dependencies of this state are equal to the given dependencies.", dependencies,
                 state.getDependencies());
     }
@@ -185,13 +176,13 @@ public class ObjectStateTest {
     @Test
     public void constructor_A() {
         final Map<UUID, ObjectStateDependency> dependencies = Collections.emptyMap();
-        constructor(OBJECT_A, WHEN_1, VERSION_A, dependencies);
+        constructor(OBJECT_A, WHEN_1, dependencies);
     }
 
     @Test
     public void constructor_B() {
         final Map<UUID, ObjectStateDependency> dependencies = Collections.singletonMap(OBJECT_A,
-                new ObjectStateDependency(WHEN_2, new ObjectStateId(OBJECT_A, WHEN_1, VERSION_A)));
-        constructor(OBJECT_B, WHEN_3, VERSION_B, dependencies);
+                new ObjectStateDependency(WHEN_2, new ObjectStateId(OBJECT_A, WHEN_1)));
+        constructor(OBJECT_B, WHEN_3, dependencies);
     }
 }

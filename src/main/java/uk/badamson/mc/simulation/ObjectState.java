@@ -37,8 +37,6 @@ public abstract class ObjectState {
      * object.</li>
      * <li>The {@linkplain #getWhen() time-stamp} of this state is the given
      * time-stamp.</li>
-     * <li>The {@linkplain #getVersion() version} of this state is the given
-     * version.</li>
      * <li>The {@linkplain #getDependencies() dependencies} of this state are equal
      * to the given dependencies.</li>
      * </ul>
@@ -47,8 +45,6 @@ public abstract class ObjectState {
      *            The unique ID of the object for which this is a state.
      * @param when
      *            The point in time that the object has this state.
-     * @param version
-     *            The version identifier of this object state.
      * @param dependencies
      *            The (earlier) object states directly used to compute this object
      *            state.
@@ -56,7 +52,6 @@ public abstract class ObjectState {
      *             <ul>
      *             <li>If {@code object} is null.</li>
      *             <li>If {@code when} is null.</li>
-     *             <li>If {@code version} is null.</li>
      *             <li>If {@code dependencies} is null.</li>
      *             <li>If {@code dependencies} has a null key.</li>
      *             <li>If {@code dependencies} has a null value.</li>
@@ -72,8 +67,8 @@ public abstract class ObjectState {
      *             before the time-stamp of the ID of this state.</li>
      *             </ul>
      */
-    protected ObjectState(UUID object, Duration when, UUID version, Map<UUID, ObjectStateDependency> dependencies) {
-        id = new ObjectStateId(object, when, version);
+    protected ObjectState(UUID object, Duration when, Map<UUID, ObjectStateDependency> dependencies) {
+        id = new ObjectStateId(object, when);
         this.dependencies = Collections.unmodifiableMap(new HashMap<>(dependencies));
 
         // Check after copy to avoid race hazards
@@ -262,29 +257,6 @@ public abstract class ObjectState {
      */
     public final UUID getObject() {
         return id.getObject();
-    }
-
-    /**
-     * <p>
-     * The version identifier of this object state.
-     * </p>
-     * <p>
-     * Computation of object states can be provisional, with later versions revising
-     * the computed state as more information becomes available. This attribute
-     * enables different versions of the computation for an {@linkplain #getObject()
-     * object} to be distinguished, even if they are for equal
-     * {@linkplain #getWhen() points in time}.
-     * </p>
-     * <p>
-     * Although {@link UUID} are {@linkplain UUID#compareTo(UUID) comparable}, the
-     * ordering of version ID values is not significant: the {@link UUID} order need
-     * not be the same as the computation order.
-     * </p>
-     * 
-     * @return the version; not null.
-     */
-    public final UUID getVersion() {
-        return id.getVersion();
     }
 
     /**

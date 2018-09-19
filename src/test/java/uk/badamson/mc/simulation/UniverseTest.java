@@ -83,8 +83,6 @@ public class UniverseTest {
     private static final Duration DURATION_2 = Duration.ofSeconds(17);
     private static final Duration DURATION_3 = Duration.ofSeconds(23);
     private static final Duration DURATION_4 = Duration.ofSeconds(29);
-    private static final UUID VERSION_A = ObjectStateIdTest.VERSION_A;
-    private static final UUID VERSION_B = ObjectStateIdTest.VERSION_B;
 
     public static void append(final Universe universe, ObjectState objectState)
             throws Universe.InvalidEventTimeStampOrderException {
@@ -120,8 +118,7 @@ public class UniverseTest {
         final Duration earliestCompleteState = when;
         final Duration justAfter = when.plusNanos(1L);
         final Map<UUID, ObjectStateDependency> dependencies = Collections.emptyMap();
-        final UUID version = VERSION_A;
-        final ObjectState objectState = new ObjectStateTest.TestObjectState(object, when, version, dependencies);
+        final ObjectState objectState = new ObjectStateTest.TestObjectState(object, when, dependencies);
 
         final Universe universe = new Universe(earliestCompleteState);
 
@@ -137,16 +134,15 @@ public class UniverseTest {
                         + "the state it had at the latest state transition "
                         + "at or before that point in time (just after transition)",
                 objectState, universe.getObjectState(object, justAfter));
-        assertUnknownObjectStateInvaraints(universe, new ObjectStateId(object, when, VERSION_B));
-        assertUnknownObjectStateInvaraints(universe, new ObjectStateId(object, justAfter, version));
+        assertUnknownObjectStateInvaraints(universe, new ObjectStateId(object, justAfter));
     }
 
     private static void append_1PrehistoricDependency(final Duration when1, final Duration earliestCompleteState,
             final Duration when2) {
-        final ObjectStateId dependentState = new ObjectStateId(OBJECT_A, when1, VERSION_A);
+        final ObjectStateId dependentState = new ObjectStateId(OBJECT_A, when1);
         final ObjectStateDependency dependency = new ObjectStateDependency(when1, dependentState);
         final Map<UUID, ObjectStateDependency> dependencies = Collections.singletonMap(OBJECT_A, dependency);
-        final ObjectState objectState = new ObjectStateTest.TestObjectState(OBJECT_B, when2, VERSION_B, dependencies);
+        final ObjectState objectState = new ObjectStateTest.TestObjectState(OBJECT_B, when2, dependencies);
 
         final Universe universe = new Universe(earliestCompleteState);
 
@@ -157,8 +153,8 @@ public class UniverseTest {
         assert !object1.equals(object2);
         final Duration when = DURATION_1;
         final Map<UUID, ObjectStateDependency> dependencies = Collections.emptyMap();
-        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object1, when, VERSION_A, dependencies);
-        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object2, when, VERSION_A, dependencies);
+        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object1, when, dependencies);
+        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object2, when, dependencies);
 
         final Universe universe = new Universe(when);
         universe.append(objectState1);
@@ -178,8 +174,8 @@ public class UniverseTest {
         final UUID object = OBJECT_A;
         final Duration earliestCompleteState = when1;
         final Map<UUID, ObjectStateDependency> dependencies = Collections.emptyMap();
-        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object, when1, VERSION_A, dependencies);
-        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object, when2, VERSION_A, dependencies);
+        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object, when1, dependencies);
+        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object, when2, dependencies);
         final SortedMap<Duration, ObjectState> expectedObjectStateHistory = new TreeMap<>();
         expectedObjectStateHistory.put(when1, objectState1);
 
@@ -193,12 +189,12 @@ public class UniverseTest {
         assert when1.compareTo(when2) < 0;
         final UUID object = OBJECT_A;
         final Duration earliestCompleteState = when2;
-        final ObjectStateId id1 = new ObjectStateId(object, when1, VERSION_A);
+        final ObjectStateId id1 = new ObjectStateId(object, when1);
         final Map<UUID, ObjectStateDependency> dependencies1 = Collections.emptyMap();
         final Map<UUID, ObjectStateDependency> dependencies2 = Collections.singletonMap(object,
                 new ObjectStateDependency(when1, id1));
-        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object, when1, VERSION_A, dependencies1);
-        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object, when2, VERSION_A, dependencies2);
+        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object, when1, dependencies1);
+        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object, when2, dependencies2);
         final SortedMap<Duration, ObjectState> expectedObjectStateHistory = new TreeMap<>();
         expectedObjectStateHistory.put(when1, objectState1);
         expectedObjectStateHistory.put(when2, objectState2);
@@ -353,8 +349,8 @@ public class UniverseTest {
 
         assertUnknownObjectInvariants(universe, OBJECT_A);
         assertUnknownObjectInvariants(universe, OBJECT_B);
-        assertUnknownObjectStateInvaraints(universe, new ObjectStateId(OBJECT_A, DURATION_1, VERSION_A));
-        assertUnknownObjectStateInvaraints(universe, new ObjectStateId(OBJECT_B, DURATION_2, VERSION_B));
+        assertUnknownObjectStateInvaraints(universe, new ObjectStateId(OBJECT_A, DURATION_1));
+        assertUnknownObjectStateInvaraints(universe, new ObjectStateId(OBJECT_B, DURATION_2));
     }
 
     @Test
