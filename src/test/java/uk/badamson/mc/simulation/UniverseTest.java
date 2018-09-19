@@ -216,11 +216,11 @@ public class UniverseTest {
     public static void assertInvariants(Universe universe) {
         ObjectTest.assertInvariants(universe);// inherited
 
-        final Duration earliestCompleteState = universe.getEarliestCompleteState();
+        final Duration earliestTimeOfCompleteState = universe.getEarliestTimeOfCompleteState();
         final Set<UUID> objectIds = universe.getObjectIds();
         final Set<ObjectStateId> objectStateIds = universe.getObjectStateIds();
 
-        assertNotNull("Always have a earliest complete state time-stamp.", earliestCompleteState);
+        assertNotNull("Always have a earliest complete state time-stamp.", earliestTimeOfCompleteState);
         assertNotNull("Always have a set of object IDs.", objectIds);// guard
         assertNotNull("Always have a (non null) set of object state IDs.", objectStateIds);
 
@@ -248,7 +248,7 @@ public class UniverseTest {
                         "All the dependencies of the object states either "
                                 + "have a time-stamp before the earliest complete state time-stamp of the universe, "
                                 + "or are themselves known object states.",
-                        dependency.getWhen().compareTo(earliestCompleteState) <= 0
+                        dependency.getWhen().compareTo(earliestTimeOfCompleteState) <= 0
                                 || objectStateIds.contains(dependency.getPreviousStateTransition()));
             }
         }
@@ -335,15 +335,15 @@ public class UniverseTest {
                 universe.getObjectState(state));
     }
 
-    private static void constructor(final Duration earliestCompleteState) {
-        final Universe universe = new Universe(earliestCompleteState);
+    private static void constructor(final Duration earliestTimeOfCompleteState) {
+        final Universe universe = new Universe(earliestTimeOfCompleteState);
 
         assertInvariants(universe);
 
         assertSame(
                 "The earliest complete state time-stamp of this universe is "
                         + "the given earliest complete state time-stamp.",
-                earliestCompleteState, universe.getEarliestCompleteState());
+                earliestTimeOfCompleteState, universe.getEarliestTimeOfCompleteState());
         assertEquals("The set of object IDs is empty.", Collections.emptySet(), universe.getObjectIds());
         assertEquals("The set of IDs of object states is empty.", Collections.emptySet(), universe.getObjectIds());
 

@@ -15,6 +15,14 @@ import java.util.UUID;
  * A collection of simulated objects and their {@linkplain ObjectState state}
  * histories.
  * </p>
+ * <p>
+ * This collection enforces constraints that ensure that the object state
+ * histories are <dfn>consistent</dfn>. Consistency means that if a universe
+ * contains an {@linkplain #getObjectState(ObjectStateId) object state}, it also
+ * contains all the {@linkplain ObjectState#getDepenendedUponStates() depended
+ * upon states} of thatstate, unless those states are
+ * {@linkplain #getEarliestTimeOfCompleteState() too old}.
+ * </p>
  */
 public class Universe {
 
@@ -65,15 +73,15 @@ public class Universe {
     private final Map<ObjectStateId, ObjectStateData> objectStates = new HashMap<>();
     private final Map<UUID, SortedMap<Duration, ObjectState>> objectStateHistories = new HashMap<>();
 
-    private Duration earliestCompleteState;
+    private Duration earliestTimeOfCompleteState;
 
     /**
      * <p>
      * Construct an empty universe.
      * </p>
      * <ul>
-     * <li>The {@linkplain #getEarliestCompleteState() earliest complete state}
-     * time-stamp of this universe is the given earliest complete state
+     * <li>The {@linkplain #getEarliestTimeOfCompleteState() earliest complete
+     * state} time-stamp of this universe is the given earliest complete state
      * time-stamp.</li>
      * <li>The {@linkplain #getObjectIds() set of object IDs}
      * {@linkplain Set#isEmpty() is empty}.</li>
@@ -81,15 +89,16 @@ public class Universe {
      * {@linkplain Set#isEmpty() is empty}.</li>
      * </ul>
      * 
-     * @param earliestCompleteState
+     * @param earliestTimeOfCompleteState
      *            The earliest point in time for which this universe has a known
      *            {@linkplain ObjectState state} for {@linkplain #getObjectIds() all
      *            the objects} in the universe.
      * @throws NullPointerException
      *             If {@code earliestCompleteState} is null
      */
-    public Universe(final Duration earliestCompleteState) {
-        this.earliestCompleteState = Objects.requireNonNull(earliestCompleteState, "earliestCompleteState");
+    public Universe(final Duration earliestTimeOfCompleteState) {
+        this.earliestTimeOfCompleteState = Objects.requireNonNull(earliestTimeOfCompleteState,
+                "earliestTimeOfCompleteState");
     }
 
     /**
@@ -125,8 +134,9 @@ public class Universe {
      * @throws IllegalStateException
      *             If any {@linkplain ObjectState#getDependencies() dependencies} of
      *             the {@code objectState} are at or after the
-     *             {@linkplain #getEarliestCompleteState() earliest complete state}
-     *             and are not {@linkplain #getObjectStates() known object states}.
+     *             {@linkplain #getEarliestTimeOfCompleteState() earliest complete
+     *             state} and are not {@linkplain #getObjectStates() known object
+     *             states}.
      */
     public final void append(ObjectState objectState) throws InvalidEventTimeStampOrderException {
         Objects.requireNonNull(objectState, "objectState");
@@ -136,7 +146,7 @@ public class Universe {
         final Duration when = id.getWhen();
 
         for (var dependency : objectState.getDependencies().values()) {
-            if (0 <= dependency.getWhen().compareTo(earliestCompleteState)
+            if (0 <= dependency.getWhen().compareTo(earliestTimeOfCompleteState)
                     && !objectStates.containsKey(dependency.getPreviousStateTransition())) {
                 throw new IllegalStateException("Unknown state for dependency " + dependency);
             }
@@ -166,8 +176,8 @@ public class Universe {
      * @return the point in time, expressed as the duration since an epoch; not
      *         null.
      */
-    public final Duration getEarliestCompleteState() {
-        return earliestCompleteState;
+    public final Duration getEarliestTimeOfCompleteState() {
+        return earliestTimeOfCompleteState;
     }
 
     /**
@@ -202,9 +212,9 @@ public class Universe {
      * {@linkplain ObjectState#getId() ID}.</li>
      * <li>All the {@linkplain ObjectState#getDependencies() dependencies} of the
      * object states either have a {@linkplain ObjectStateId#getWhen() time-stamp}
-     * before the {@linkplain #getEarliestCompleteState() earliest complete state}
-     * time-stamp of the universe, or are themselves {@linkplain #getObjectStates()
-     * known object states}.</li>
+     * before the {@linkplain #getEarliestTimeOfCompleteState() earliest complete
+     * state} time-stamp of the universe, or are themselves
+     * {@linkplain #getObjectStates() known object states}.</li>
      * </ul>
      * 
      * @param objectStateId
