@@ -11,6 +11,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
@@ -30,7 +31,7 @@ public class ObjectStateTest {
 
     static final class TestObjectState extends ObjectState {
 
-        public TestObjectState(UUID object, Duration when, Map<UUID, ObjectStateDependency> dependencies) {
+        public TestObjectState(UUID object, Duration when, Map<UUID, ObjectStateId> dependencies) {
             super(object, when, dependencies);
         }
 
@@ -56,8 +57,8 @@ public class ObjectStateTest {
         ObjectTest.assertInvariants(state);// inherited
 
         final ObjectStateId id = state.getId();
-        final Map<UUID, ObjectStateDependency> dependencies = state.getDependencies();
-        final Set<ObjectStateId> depenendedUponStates = state.getDepenendedUponStates();
+        final Map<UUID, ObjectStateId> dependencies = state.getDependencies();
+        final Collection<ObjectStateId> depenendedUponStates = state.getDepenendedUponStates();
         final UUID object = state.getObject();
         final Duration when = state.getWhen();
 
@@ -73,27 +74,22 @@ public class ObjectStateTest {
         assertSame("The time-stamp of the ID is the same as the time-stamp of this state.", when, id.getWhen());
 
         Set<UUID> dependentObjects = new HashSet<>(dependencies.size());
-        Set<ObjectStateId> previousStateTransitions = new HashSet<>(dependencies.size());
         for (var entry : dependencies.entrySet()) {
             final UUID dependencyObject = entry.getKey();
-            final ObjectStateDependency dependency = entry.getValue();
+            final ObjectStateId dependency = entry.getValue();
             assertNotNull("The dependency map does not have a null key.", dependencyObject);
             assertNotNull("The dependency map does not have null values.", dependency);// guard
-            ObjectStateDependencyTest.assertInvariants(dependency);
-            final ObjectStateId previousStateTransition = dependency.getPreviousStateTransition();
+            ObjectStateIdTest.assertInvariants(dependency);
 
-            assertSame(
-                    "Each object ID key of the dependency map maps to a value that "
-                            + "has that same object ID as its depended upon object.",
-                    dependencyObject, dependency.getDependedUponObject());
+            assertSame("Each object ID key of the dependency map maps to a value that "
+                    + "has that same object ID as its object.", dependencyObject, dependency.getObject());
             assertThat(
                     "The time-stamp of every value in the dependency map is before the time-stamp of the ID of this state.",
                     dependency.getWhen(), lessThan(when));
             assertThat(
-                    "An object state is one of the depended upon states if it is only of the previous state transitions of a value in the dependencies map.",
-                    previousStateTransition, isIn(depenendedUponStates));
+                    "An object state is one of the depended upon states if it is one of the values in the dependencies map.",
+                    dependency, isIn(depenendedUponStates));
             dependentObjects.add(dependencyObject);
-            previousStateTransitions.add(previousStateTransition);
         }
 
         for (ObjectStateId depenendedUponState : depenendedUponStates) {
@@ -102,9 +98,6 @@ public class ObjectStateTest {
             ObjectStateIdTest.assertInvariants(id, depenendedUponState);
             assertThat("The time-stamp of every depended upon state is before the time-stamp of  this state.",
                     depenendedUponState.getWhen(), lessThan(when));
-            assertThat(
-                    "An object state is one of the depended upon states only if it is only of the previous state transitions of a value in the dependencies} map.",
-                    depenendedUponState, isIn(previousStateTransitions));
         }
     }
 
@@ -119,7 +112,7 @@ public class ObjectStateTest {
                 state1.equals(state2));
     }
 
-    private static void constructor(UUID object, Duration when, Map<UUID, ObjectStateDependency> dependencies) {
+    private static void constructor(UUID object, Duration when, Map<UUID, ObjectStateId> dependencies) {
         final ObjectState state = new TestObjectState(object, when, dependencies);
 
         assertInvariants(state);
@@ -175,14 +168,14 @@ public class ObjectStateTest {
 
     @Test
     public void constructor_A() {
-        final Map<UUID, ObjectStateDependency> dependencies = Collections.emptyMap();
+        final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
         constructor(OBJECT_A, WHEN_1, dependencies);
     }
 
     @Test
     public void constructor_B() {
-        final Map<UUID, ObjectStateDependency> dependencies = Collections.singletonMap(OBJECT_A,
-                new ObjectStateDependency(WHEN_2, new ObjectStateId(OBJECT_A, WHEN_1)));
+        final Map<UUID, ObjectStateId> dependencies = Collections.singletonMap(OBJECT_A,
+                new ObjectStateId(OBJECT_A, WHEN_1));
         constructor(OBJECT_B, WHEN_3, dependencies);
     }
 }

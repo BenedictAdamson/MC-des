@@ -142,7 +142,7 @@ public class Universe {
 
     /**
      * <p>
-     * Add an object state to this universe.
+     * Add a state transition to this universe.
      * <p>
      * <ul>
      * <li>The {@linkplain ObjectStateId#getObject() object ID} of the
@@ -171,11 +171,13 @@ public class Universe {
      *             {@linkplain #getObjectStateHistory(UUID) object state history}.
      *             In this case, this {@link Universe} is unchanged.
      * @throws MissingDependedUponStateException
-     *             If any {@linkplain ObjectState#getDependencies() dependencies} of
-     *             the {@code objectState} are at or after the
+     *             If the {@linkplain ObjectStateId#getWhen() time-stamp} of any
+     *             {@linkplain ObjectState#getDependencies() dependencies} of the
+     *             {@code objectState} are at or after the
      *             {@linkplain #getEarliestTimeOfCompleteState() earliest complete
-     *             state} but are not {@linkplain #getStateTransitionIds() known
-     *             object states}. In this case, this {@link Universe} is unchanged.
+     *             state} but are for {@linkplain ObjectStateId#getObject() objects}
+     *             that are not {@linkplain #getObjectIds() known objects}. In this
+     *             case, this {@link Universe} is unchanged.
      */
     public final void append(ObjectState objectState)
             throws InvalidEventTimeStampOrderException, MissingDependedUponStateException {
@@ -187,7 +189,7 @@ public class Universe {
 
         for (var dependency : objectState.getDependencies().values()) {
             if (0 <= dependency.getWhen().compareTo(earliestTimeOfCompleteState)
-                    && !stateTransitions.containsKey(dependency.getPreviousStateTransition())) {
+                    && !objectStateHistories.containsKey(dependency.getObject())) {
                 throw new MissingDependedUponStateException();
             }
         }
@@ -348,8 +350,8 @@ public class Universe {
      * <li>All the {@linkplain ObjectState#getDependencies() dependencies} of the
      * state transitions either have a {@linkplain ObjectStateId#getWhen()
      * time-stamp} before the {@linkplain #getEarliestTimeOfCompleteState() earliest
-     * complete state} time-stamp of the universe, or are themselves
-     * {@linkplain #getObjectState(UUID, Duration) known object states}.</li>
+     * complete state} time-stamp of the universe, or are for
+     * {@linkplain #getObjectIds() known objects}.</li>
      * </ul>
      * 
      * @param objectStateId

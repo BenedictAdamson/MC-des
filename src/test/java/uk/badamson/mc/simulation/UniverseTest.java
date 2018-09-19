@@ -160,7 +160,7 @@ public class UniverseTest {
     private static void append_1(final UUID object, final Duration when) {
         final Duration earliestCompleteState = when;
         final Duration justAfter = when.plusNanos(1L);
-        final Map<UUID, ObjectStateDependency> dependencies = Collections.emptyMap();
+        final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
         final ObjectState objectState = new ObjectStateTest.TestObjectState(object, when, dependencies);
 
         final Universe universe = new Universe(earliestCompleteState);
@@ -183,8 +183,7 @@ public class UniverseTest {
     private static void append_1PrehistoricDependency(final Duration when1, final Duration earliestCompleteState,
             final Duration when2) {
         final ObjectStateId dependentState = new ObjectStateId(OBJECT_A, when1);
-        final ObjectStateDependency dependency = new ObjectStateDependency(when1, dependentState);
-        final Map<UUID, ObjectStateDependency> dependencies = Collections.singletonMap(OBJECT_A, dependency);
+        final Map<UUID, ObjectStateId> dependencies = Collections.singletonMap(OBJECT_A, dependentState);
         final ObjectState objectState = new ObjectStateTest.TestObjectState(OBJECT_B, when2, dependencies);
 
         final Universe universe = new Universe(earliestCompleteState);
@@ -195,7 +194,7 @@ public class UniverseTest {
     private static void append_2DifferentObjects(final UUID object1, final UUID object2) {
         assert !object1.equals(object2);
         final Duration when = DURATION_1;
-        final Map<UUID, ObjectStateDependency> dependencies = Collections.emptyMap();
+        final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
         final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object1, when, dependencies);
         final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object2, when, dependencies);
 
@@ -216,7 +215,7 @@ public class UniverseTest {
         assert when1.compareTo(when2) >= 0;
         final UUID object = OBJECT_A;
         final Duration earliestCompleteState = when1;
-        final Map<UUID, ObjectStateDependency> dependencies = Collections.emptyMap();
+        final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
         final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object, when1, dependencies);
         final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object, when2, dependencies);
         final SortedMap<Duration, ObjectState> expectedObjectStateHistory = new TreeMap<>();
@@ -233,9 +232,8 @@ public class UniverseTest {
         final UUID object = OBJECT_A;
         final Duration earliestCompleteState = when2;
         final ObjectStateId id1 = new ObjectStateId(object, when1);
-        final Map<UUID, ObjectStateDependency> dependencies1 = Collections.emptyMap();
-        final Map<UUID, ObjectStateDependency> dependencies2 = Collections.singletonMap(object,
-                new ObjectStateDependency(when1, id1));
+        final Map<UUID, ObjectStateId> dependencies1 = Collections.emptyMap();
+        final Map<UUID, ObjectStateId> dependencies2 = Collections.singletonMap(object, id1);
         final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object, when1, dependencies1);
         final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object, when2, dependencies2);
         final SortedMap<Duration, ObjectState> expectedObjectStateHistory = new TreeMap<>();
@@ -280,19 +278,19 @@ public class UniverseTest {
                     stateTransition);// guard
             ObjectStateTest.assertInvariants(stateTransition);
 
-            final Map<UUID, ObjectStateDependency> dependencies = stateTransition.getDependencies();
+            final Map<UUID, ObjectStateId> dependencies = stateTransition.getDependencies();
             assertEquals(
                     "A state transition accessed using a given object state ID has an equivalent object state ID as its ID.",
                     objectStateId, stateTransition.getId());
 
             for (var dependency : dependencies.values()) {
-                ObjectStateIdTest.assertInvariants(objectStateId, dependency.getPreviousStateTransition());
+                ObjectStateIdTest.assertInvariants(objectStateId, dependency);
                 assertTrue(
                         "All the dependencies of the state transitions either "
                                 + "have a time-stamp before the earliest complete state time-stamp of the universe, "
-                                + "or are themselves known object states.",
+                                + "or are for known objects.",
                         dependency.getWhen().compareTo(earliestTimeOfCompleteState) <= 0
-                                || stateTransitionIds.contains(dependency.getPreviousStateTransition()));
+                                || objectIds.contains(dependency.getObject()));
             }
         }
 
@@ -342,9 +340,7 @@ public class UniverseTest {
                         ObjectStateTest.assertInvariants(objectState, previousState);
                         assertThat(
                                 "All non null object states in the state history of a given object, except for the first, have as a dependency on the previous object state in the state history.",
-                                objectState.getDependencies(),
-                                hasValue(new ObjectStateDependency(previousState.getId().getWhen(),
-                                        previousState.getId())));
+                                objectState.getDependencies(), hasValue(previousState.getId()));
                     }
                 }
                 previous = entry;
