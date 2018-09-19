@@ -77,6 +77,49 @@ public class UniverseTest {
         }
     }// class
 
+    /**
+     * <p>
+     * Unit tests and auxiliary code for the
+     * {@link Universe.MissingDependedUponStateException} class.
+     */
+    public static class MissingDependedUponStateExceptionTest {
+
+        public static void assertInvariants(Universe.MissingDependedUponStateException exception) {
+            ObjectTest.assertInvariants(exception);// inherited
+        }
+
+        public static void assertInvariants(Universe.MissingDependedUponStateException exception1,
+                Universe.MissingDependedUponStateException exception2) {
+            ObjectTest.assertInvariants(exception1, exception2);// inherited
+        }
+
+        private static void constructor(Throwable cause) {
+            final Universe.MissingDependedUponStateException exception = new Universe.MissingDependedUponStateException(
+                    cause);
+
+            assertInvariants(exception);
+            assertSame("cause", cause, exception.getCause());
+        }
+
+        @Test
+        public void constructor_0() {
+            final Universe.MissingDependedUponStateException exception = new Universe.MissingDependedUponStateException();
+
+            assertInvariants(exception);
+        }
+
+        @Test
+        public void constructor_1A() {
+            constructor(new NullPointerException("Test exception"));
+        }
+
+        @Test
+        public void constructor_1B() {
+            constructor(new IllegalArgumentException("Test exception"));
+        }
+
+    }// class
+
     private static final UUID OBJECT_A = ObjectStateIdTest.OBJECT_A;
     private static final UUID OBJECT_B = ObjectStateIdTest.OBJECT_B;
     private static final Duration DURATION_1 = Duration.ofSeconds(13);
@@ -94,7 +137,7 @@ public class UniverseTest {
 
         try {
             universe.append(objectState);
-        } catch (final Universe.InvalidEventTimeStampOrderException e) {// Permitted
+        } catch (final Universe.InvalidEventTimeStampOrderException | Universe.MissingDependedUponStateException e) {// Permitted
             assertInvariants(universe);
             assertEquals("Known object IDs unchanged", objectIds0, universe.getObjectIds());
             assertEquals("Object state history unchanged", objectStateHistory0, universe.getObjectStateHistory(object));
