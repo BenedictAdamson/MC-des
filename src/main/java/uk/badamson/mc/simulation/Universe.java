@@ -18,9 +18,9 @@ import java.util.UUID;
  * <p>
  * This collection enforces constraints that ensure that the object state
  * histories are <dfn>consistent</dfn>. Consistency means that if a universe
- * contains an {@linkplain #getObjectState(ObjectStateId) object state}, it also
- * contains all the {@linkplain ObjectState#getDepenendedUponStates() depended
- * upon states} of thatstate, unless those states are
+ * contains an {@linkplain #getStateTransition(ObjectStateId) object state}, it
+ * also contains all the {@linkplain ObjectState#getDepenendedUponStates()
+ * depended upon states} of thatstate, unless those states are
  * {@linkplain #getEarliestTimeOfCompleteState() too old}.
  * </p>
  */
@@ -109,7 +109,7 @@ public class Universe {
 
     }// class
 
-    private final Map<ObjectStateId, ObjectStateData> objectStates = new HashMap<>();
+    private final Map<ObjectStateId, ObjectStateData> stateTransitions = new HashMap<>();
     private final Map<UUID, SortedMap<Duration, ObjectState>> objectStateHistories = new HashMap<>();
 
     private Duration earliestTimeOfCompleteState;
@@ -187,7 +187,7 @@ public class Universe {
 
         for (var dependency : objectState.getDependencies().values()) {
             if (0 <= dependency.getWhen().compareTo(earliestTimeOfCompleteState)
-                    && !objectStates.containsKey(dependency.getPreviousStateTransition())) {
+                    && !stateTransitions.containsKey(dependency.getPreviousStateTransition())) {
                 throw new MissingDependedUponStateException();
             }
         }
@@ -200,7 +200,7 @@ public class Universe {
         }
         stateHistory.put(when, objectState);
         final ObjectStateData stateData = new ObjectStateData(objectState);
-        objectStates.put(id, stateData);
+        stateTransitions.put(id, stateData);
     }
 
     /**
@@ -236,41 +236,6 @@ public class Universe {
      */
     public final Set<UUID> getObjectIds() {
         return new HashSet<>(objectStateHistories.keySet());
-    }
-
-    /**
-     * <p>
-     * The state of an object within this universe, given its
-     * {@linkplain ObjectState#getId() ID}.
-     * </p>
-     * <ul>
-     * <li>Have a (non null) object state if, and only if, the given object state ID
-     * is one of the {@linkplain #getObjectStateIds() known object state IDs} of
-     * this universe.</li>
-     * <li>A (non null) object state accessed using a given object state ID has an
-     * {@linkplain ObjectStateId#equals(Object) equivalent} object state ID as its
-     * {@linkplain ObjectState#getId() ID}.</li>
-     * <li>All the {@linkplain ObjectState#getDependencies() dependencies} of the
-     * object states either have a {@linkplain ObjectStateId#getWhen() time-stamp}
-     * before the {@linkplain #getEarliestTimeOfCompleteState() earliest complete
-     * state} time-stamp of the universe, or are themselves
-     * {@linkplain #getObjectStates() known object states}.</li>
-     * </ul>
-     * 
-     * @param objectStateId
-     *            The ID of the object state of interest.
-     * @return the object state
-     * @throws NullPointerException
-     *             If {@code objectStateId} is null.
-     */
-    public final ObjectState getObjectState(ObjectStateId objectStateId) {
-        Objects.requireNonNull(objectStateId, "objectStateId");
-        final ObjectStateData objectStateData = objectStates.get(objectStateId);
-        if (objectStateData == null) {
-            return null;
-        } else {
-            return objectStateData.state;
-        }
     }
 
     /**
@@ -386,7 +351,42 @@ public class Universe {
      * @return the IDs
      */
     public final Set<ObjectStateId> getObjectStateIds() {
-        return new HashSet<>(objectStates.keySet());
+        return new HashSet<>(stateTransitions.keySet());
+    }
+
+    /**
+     * <p>
+     * The state of an object within this universe, just after a state transition,
+     * given its {@linkplain ObjectState#getId() ID}.
+     * </p>
+     * <ul>
+     * <li>Have a (non null) state transition if, and only if, the given object
+     * state ID is one of the {@linkplain #getObjectStateIds() known object state
+     * IDs} of this universe.</li>
+     * <li>A (non null) state transition accessed using a given object state ID has
+     * an {@linkplain ObjectStateId#equals(Object) equivalent} object state ID as
+     * its {@linkplain ObjectState#getId() ID}.</li>
+     * <li>All the {@linkplain ObjectState#getDependencies() dependencies} of the
+     * state transitions either have a {@linkplain ObjectStateId#getWhen()
+     * time-stamp} before the {@linkplain #getEarliestTimeOfCompleteState() earliest
+     * complete state} time-stamp of the universe, or are themselves
+     * {@linkplain #getObjectState(UUID, Duration) known object states}.</li>
+     * </ul>
+     * 
+     * @param objectStateId
+     *            The ID of the state transition of interest.
+     * @return the state transition
+     * @throws NullPointerException
+     *             If {@code objectStateId} is null.
+     */
+    public final ObjectState getStateTransition(ObjectStateId objectStateId) {
+        Objects.requireNonNull(objectStateId, "objectStateId");
+        final ObjectStateData objectStateData = stateTransitions.get(objectStateId);
+        if (objectStateData == null) {
+            return null;
+        } else {
+            return objectStateData.state;
+        }
     }
 
     /**

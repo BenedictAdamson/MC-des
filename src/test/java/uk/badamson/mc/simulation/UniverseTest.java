@@ -270,25 +270,25 @@ public class UniverseTest {
         for (ObjectStateId objectStateId : objectStateIds) {
             assertNotNull("The set of IDs of object states does not have a null element.", objectStateId);// guard
             ObjectStateIdTest.assertInvariants(objectStateId);
-            final ObjectState objectState = universe.getObjectState(objectStateId);
+            final ObjectState stateTransition = universe.getStateTransition(objectStateId);
             final UUID object = objectStateId.getObject();
             assertThat(
-                    "The set of IDs of object states does not have elements for object IDs that are not in the set of objects in this universe.",
+                    "The set of IDs of state transitions does not have elements for object IDs that are not in the set of objects in this universe.",
                     object, isIn(objectIds));
             assertNotNull(
-                    "Have an object state if the given object state ID is one of the known object state IDs of this universe.",
-                    objectState);// guard
-            ObjectStateTest.assertInvariants(objectState);
+                    "Have a state transition if the given object state ID is one of the known object state IDs of this universe.",
+                    stateTransition);// guard
+            ObjectStateTest.assertInvariants(stateTransition);
 
-            final Map<UUID, ObjectStateDependency> dependencies = objectState.getDependencies();
+            final Map<UUID, ObjectStateDependency> dependencies = stateTransition.getDependencies();
             assertEquals(
-                    "An object state accessed using a given object state ID has an equivalent object state ID as its ID.",
-                    objectStateId, objectState.getId());
+                    "A state transition accessed using a given object state ID has an equivalent object state ID as its ID.",
+                    objectStateId, stateTransition.getId());
 
             for (var dependency : dependencies.values()) {
                 ObjectStateIdTest.assertInvariants(objectStateId, dependency.getPreviousStateTransition());
                 assertTrue(
-                        "All the dependencies of the object states either "
+                        "All the dependencies of the state transitions either "
                                 + "have a time-stamp before the earliest complete state time-stamp of the universe, "
                                 + "or are themselves known object states.",
                         dependency.getWhen().compareTo(earliestTimeOfCompleteState) <= 0
@@ -374,8 +374,8 @@ public class UniverseTest {
 
     private static void assertUnknownObjectStateInvaraints(Universe universe, ObjectStateId state) {
         assertNull(
-                "Have an object only if the given object state ID is one of the known object state IDs of this universe.",
-                universe.getObjectState(state));
+                "Have a state transition only if the given object state ID is one of the known object state IDs of this universe.",
+                universe.getStateTransition(state));
     }
 
     private static void constructor(final Duration earliestTimeOfCompleteState) {
