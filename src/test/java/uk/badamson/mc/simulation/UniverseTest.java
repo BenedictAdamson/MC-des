@@ -261,14 +261,14 @@ public class UniverseTest {
 
         final Duration earliestTimeOfCompleteState = universe.getEarliestTimeOfCompleteState();
         final Set<UUID> objectIds = universe.getObjectIds();
-        final Set<ObjectStateId> objectStateIds = universe.getObjectStateIds();
+        final Set<ObjectStateId> stateTransitionIds = universe.getStateTransitionIds();
 
         assertNotNull("Always have a earliest complete state time-stamp.", earliestTimeOfCompleteState);
         assertNotNull("Always have a set of object IDs.", objectIds);// guard
-        assertNotNull("Always have a (non null) set of object state IDs.", objectStateIds);
+        assertNotNull("Always have a (non null) set of state transition IDs.", stateTransitionIds);
 
-        for (ObjectStateId objectStateId : objectStateIds) {
-            assertNotNull("The set of IDs of object states does not have a null element.", objectStateId);// guard
+        for (ObjectStateId objectStateId : stateTransitionIds) {
+            assertNotNull("The set of IDs of state transitions does not have a null element.", objectStateId);// guard
             ObjectStateIdTest.assertInvariants(objectStateId);
             final ObjectState stateTransition = universe.getStateTransition(objectStateId);
             final UUID object = objectStateId.getObject();
@@ -276,7 +276,7 @@ public class UniverseTest {
                     "The set of IDs of state transitions does not have elements for object IDs that are not in the set of objects in this universe.",
                     object, isIn(objectIds));
             assertNotNull(
-                    "Have a state transition if the given object state ID is one of the known object state IDs of this universe.",
+                    "Have a state transition if the given object state ID is one of the known state transition IDs of this universe.",
                     stateTransition);// guard
             ObjectStateTest.assertInvariants(stateTransition);
 
@@ -292,7 +292,7 @@ public class UniverseTest {
                                 + "have a time-stamp before the earliest complete state time-stamp of the universe, "
                                 + "or are themselves known object states.",
                         dependency.getWhen().compareTo(earliestTimeOfCompleteState) <= 0
-                                || objectStateIds.contains(dependency.getPreviousStateTransition()));
+                                || stateTransitionIds.contains(dependency.getPreviousStateTransition()));
             }
         }
 
@@ -336,7 +336,7 @@ public class UniverseTest {
                             id.getWhen(), equalTo(when));
                     assertThat(
                             "All non null object states in the state history of a given object have an ID that belongs to the set of all known object IDs.",
-                            objectState.getId(), isIn(objectStateIds));
+                            objectState.getId(), isIn(stateTransitionIds));
                     if (previous != null) {
                         final ObjectState previousState = previous.getValue();
                         ObjectStateTest.assertInvariants(objectState, previousState);

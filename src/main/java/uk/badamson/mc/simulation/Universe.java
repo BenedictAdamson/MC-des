@@ -70,7 +70,7 @@ public class Universe {
      * {@linkplain Universe#getEarliestTimeOfCompleteState() earliest time of a
      * complete state} (so the depended upon state should be present) but that
      * depended upon state is not one of the
-     * {@linkplain Universe#getObjectStateIds() known object state}.
+     * {@linkplain Universe#getStateTransitionIds() known object state}.
      * </p>
      */
     public static final class MissingDependedUponStateException extends IllegalStateException {
@@ -124,7 +124,7 @@ public class Universe {
      * time-stamp.</li>
      * <li>The {@linkplain #getObjectIds() set of object IDs}
      * {@linkplain Set#isEmpty() is empty}.</li>
-     * <li>The {@linkplain #getObjectStateIds() set of IDs of object states}
+     * <li>The {@linkplain #getStateTransitionIds() set of IDs of object states}
      * {@linkplain Set#isEmpty() is empty}.</li>
      * </ul>
      * 
@@ -174,8 +174,8 @@ public class Universe {
      *             If any {@linkplain ObjectState#getDependencies() dependencies} of
      *             the {@code objectState} are at or after the
      *             {@linkplain #getEarliestTimeOfCompleteState() earliest complete
-     *             state} but are not {@linkplain #getObjectStateIds() known object
-     *             states}. In this case, this {@link Universe} is unchanged.
+     *             state} but are not {@linkplain #getStateTransitionIds() known
+     *             object states}. In this case, this {@link Universe} is unchanged.
      */
     public final void append(ObjectState objectState)
             throws InvalidEventTimeStampOrderException, MissingDependedUponStateException {
@@ -335,34 +335,13 @@ public class Universe {
 
     /**
      * <p>
-     * All the known {@linkplain ObjectStateId identifiers} of states of objects
-     * within this universe.
-     * </p>
-     * <ul>
-     * <li>Always have a (non null) set of object state IDs.</li>
-     * <li>The set of IDs of object states does not have a null element.</li>
-     * <li>The set of IDs of object states does not have elements for
-     * {@linkplain ObjectStateId#getObject() object IDs} that are not in the
-     * {@linkplain #getObjectIds() set of objects in this universe}.</li>
-     * <li>The set of IDs of object states may be immutable, or it may be a copy of
-     * an underlying collection.</li>
-     * </ul>
-     * 
-     * @return the IDs
-     */
-    public final Set<ObjectStateId> getObjectStateIds() {
-        return new HashSet<>(stateTransitions.keySet());
-    }
-
-    /**
-     * <p>
      * The state of an object within this universe, just after a state transition,
      * given its {@linkplain ObjectState#getId() ID}.
      * </p>
      * <ul>
      * <li>Have a (non null) state transition if, and only if, the given object
-     * state ID is one of the {@linkplain #getObjectStateIds() known object state
-     * IDs} of this universe.</li>
+     * state ID is one of the {@linkplain #getStateTransitionIds() known object
+     * state IDs} of this universe.</li>
      * <li>A (non null) state transition accessed using a given object state ID has
      * an {@linkplain ObjectStateId#equals(Object) equivalent} object state ID as
      * its {@linkplain ObjectState#getId() ID}.</li>
@@ -387,6 +366,27 @@ public class Universe {
         } else {
             return objectStateData.state;
         }
+    }
+
+    /**
+     * <p>
+     * All the known {@linkplain ObjectStateId identifiers} of state transitions of
+     * objects within this universe.
+     * </p>
+     * <ul>
+     * <li>Always have a (non null) set of state transitions IDs.</li>
+     * <li>The set of IDs of state transitions does not have a null element.</li>
+     * <li>The set of IDs of state transitions does not have elements for
+     * {@linkplain ObjectStateId#getObject() object IDs} that are not in the
+     * {@linkplain #getObjectIds() set of objects in this universe}.</li>
+     * <li>The set of IDs of state transitions may be immutable, or it may be a copy
+     * of an underlying collection.</li>
+     * </ul>
+     * 
+     * @return the IDs
+     */
+    public final Set<ObjectStateId> getStateTransitionIds() {
+        return new HashSet<>(stateTransitions.keySet());
     }
 
     /**
