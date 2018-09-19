@@ -50,7 +50,6 @@ public class ObjectStateTest {
     private static final UUID OBJECT_A = UUID.randomUUID();
     private static final UUID OBJECT_B = UUID.randomUUID();
     private static final Duration WHEN_1 = Duration.ofSeconds(13);
-    private static final Duration WHEN_2 = Duration.ofSeconds(17);
     private static final Duration WHEN_3 = Duration.ofSeconds(23);
 
     public static void assertInvariants(ObjectState state) {
@@ -131,7 +130,6 @@ public class ObjectStateTest {
         assertNotNull("Always return a map of object states", nextStates);// guard
 
         Duration nextWhen = null;
-        final ObjectStateDependency stateAsDependency = new ObjectStateDependency(id.getWhen(), id);
         for (Map.Entry<UUID, ObjectState> entry : nextStates.entrySet()) {
             final UUID nextObject = entry.getKey();
             final ObjectState nextState = entry.getValue();
@@ -157,7 +155,7 @@ public class ObjectStateTest {
                 }
                 assertThat(
                         "All the values in the next states map have the ID of this state as one of their dependencies.",
-                        nextState.getDependencies(), hasValue(stateAsDependency));
+                        nextState.getDependencies(), hasValue(id));
             }
         }
         assertThat("The map of object states has an entry for the object ID of the ID of this state.", nextStates,

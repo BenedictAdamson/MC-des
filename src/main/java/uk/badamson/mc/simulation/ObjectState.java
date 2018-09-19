@@ -60,8 +60,7 @@ public abstract class ObjectState {
      *             <li>If any object ID {@linkplain Map#keySet() key }of the
      *             {@code dependencies} map maps to a {@linkplain Map#values()
      *             value} that does not have that same object ID as its
-     *             {@linkplain ObjectStateDependency#getDependedUponObject()
-     *             depended upon object}.</li>
+     *             {@linkplain ObjectStateId#getObject() object}.</li>
      *             <li>If the time-stamp of a value in the dependency map is not
      *             before the time-stamp of the ID of this state.</li>
      *             </ul>
