@@ -6,6 +6,7 @@ import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsSame.sameInstance;
+import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -177,7 +178,7 @@ public class UniverseTest {
                         + "the state it had at the latest state transition "
                         + "at or before that point in time (just after transition)",
                 objectState, universe.getObjectState(object, justAfter));
-        assertUnknownObjectStateInvaraints(universe, new ObjectStateId(object, justAfter));
+        assertUnknownObjectStateInvariants(universe, new ObjectStateId(object, justAfter));
     }
 
     private static void append_1PrehistoricDependency(final Duration when1, final Duration earliestCompleteState,
@@ -254,6 +255,31 @@ public class UniverseTest {
                 objectState1, universe.getObjectState(object, when2.minusNanos(1L)));
     }
 
+    private static Set<ObjectStateId> assertDependentStateTransitionsInvariants(Universe universe,
+            ObjectStateId objectStateId) {
+        final Duration when = objectStateId.getWhen();
+        final UUID object = objectStateId.getObject();
+
+        final Set<ObjectStateId> dependentStateTransitions = universe.getDependentStateTransitions(objectStateId);
+
+        final Set<ObjectStateId> dependentStateTransitionsForEarlier = universe
+                .getDependentStateTransitions(new ObjectStateId(object, when.minusNanos(1L)));
+        final Set<ObjectStateId> stateTransitionIds = universe.getStateTransitionIds();
+        assertNotNull("Always have a set of dependent state transitions.", dependentStateTransitions);// guard
+        for (ObjectStateId dependentStateTransition : dependentStateTransitions) {
+            assertNotNull("The set of dependent state transitions does not have a null element.",
+                    dependentStateTransition);// guard
+            ObjectStateIdTest.assertInvariants(dependentStateTransition);
+            ObjectStateIdTest.assertInvariants(objectStateId, dependentStateTransition);
+            assertThat("The set of dependent state transitions is a subset of the set of all known state transitions.",
+                    dependentStateTransition, isIn(stateTransitionIds));
+            assertThat("Dependencies are time ordered", dependentStateTransition.getWhen(), greaterThan(when));
+            assertThat("Dependencies carry forward through time", dependentStateTransition,
+                    isIn(dependentStateTransitionsForEarlier));
+        }
+        return dependentStateTransitions;
+    }
+
     public static void assertInvariants(Universe universe) {
         ObjectTest.assertInvariants(universe);// inherited
 
@@ -277,20 +303,28 @@ public class UniverseTest {
                     "Have a state transition if the given object state ID is one of the known state transition IDs of this universe.",
                     stateTransition);// guard
             ObjectStateTest.assertInvariants(stateTransition);
+            assertDependentStateTransitionsInvariants(universe, objectStateId);
 
             final Map<UUID, ObjectStateId> dependencies = stateTransition.getDependencies();
             assertEquals(
                     "A state transition accessed using a given object state ID has an equivalent object state ID as its ID.",
                     objectStateId, stateTransition.getId());
 
-            for (var dependency : dependencies.values()) {
+            for (ObjectStateId dependency : dependencies.values()) {
                 ObjectStateIdTest.assertInvariants(objectStateId, dependency);
+                final boolean prehistoricDependency = dependency.getWhen().compareTo(earliestTimeOfCompleteState) <= 0;
                 assertTrue(
                         "All the dependencies of the state transitions either "
                                 + "have a time-stamp before the earliest complete state time-stamp of the universe, "
                                 + "or are for known objects.",
-                        dependency.getWhen().compareTo(earliestTimeOfCompleteState) <= 0
-                                || objectIds.contains(dependency.getObject()));
+                        prehistoricDependency || objectIds.contains(dependency.getObject()));
+                final Set<ObjectStateId> dependencyDependentStateTransitions = assertDependentStateTransitionsInvariants(
+                        universe, dependency);
+                if (!prehistoricDependency) {
+                    assertThat(
+                            "The state transitions that depend on a given object state are consistent with the dependency information of the state transitions",
+                            objectStateId, isIn(dependencyDependentStateTransitions));
+                }
             }
         }
 
@@ -368,7 +402,7 @@ public class UniverseTest {
                 universe.getObjectState(object, DURATION_2));
     }
 
-    private static void assertUnknownObjectStateInvaraints(Universe universe, ObjectStateId state) {
+    private static void assertUnknownObjectStateInvariants(Universe universe, ObjectStateId state) {
         assertNull(
                 "Have a state transition only if the given object state ID is one of the known object state IDs of this universe.",
                 universe.getStateTransition(state));
@@ -388,8 +422,8 @@ public class UniverseTest {
 
         assertUnknownObjectInvariants(universe, OBJECT_A);
         assertUnknownObjectInvariants(universe, OBJECT_B);
-        assertUnknownObjectStateInvaraints(universe, new ObjectStateId(OBJECT_A, DURATION_1));
-        assertUnknownObjectStateInvaraints(universe, new ObjectStateId(OBJECT_B, DURATION_2));
+        assertUnknownObjectStateInvariants(universe, new ObjectStateId(OBJECT_A, DURATION_1));
+        assertUnknownObjectStateInvariants(universe, new ObjectStateId(OBJECT_B, DURATION_2));
     }
 
     @Test
