@@ -121,6 +121,23 @@ public class UniverseTest {
 
     }// class
 
+    /**
+     * <p>
+     * Unit tests, and auxiliary test code, for testing the class
+     * {@link Universe.Transaction}.
+     * </p>
+     */
+    public static class TransactionTest {
+
+        public static void assertInvariants(Universe.Transaction transaction) {
+            ObjectTest.assertInvariants(transaction);// inherited
+        }
+
+        public static void assertInvariants(Universe.Transaction transaction1, Universe.Transaction transaction2) {
+            ObjectTest.assertInvariants(transaction1, transaction2);// inherited
+        }
+    }// class
+
     private static final UUID OBJECT_A = ObjectStateIdTest.OBJECT_A;
     private static final UUID OBJECT_B = ObjectStateIdTest.OBJECT_B;
     private static final UUID OBJECT_C = UUID.randomUUID();
@@ -452,6 +469,16 @@ public class UniverseTest {
                 universe.getStateTransition(state));
     }
 
+    public static Universe.Transaction beginTransaction(final Universe universe) {
+        final Universe.Transaction transaction = universe.beginTransaction();
+
+        assertNotNull("Not null, transaction", transaction);// guard
+        assertInvariants(universe);
+        TransactionTest.assertInvariants(transaction);
+
+        return transaction;
+    }
+
     private static void constructor(final Duration earliestTimeOfCompleteState) {
         final Universe universe = new Universe(earliestTimeOfCompleteState);
 
@@ -558,6 +585,20 @@ public class UniverseTest {
     @Test
     public void append_3TransitiveDependencyB() {
         append_3TransitiveDependency(DURATION_2, DURATION_3, DURATION_4, DURATION_5, OBJECT_B, OBJECT_C, OBJECT_A);
+    }
+
+    @Test
+    public void beginTransactionA() {
+        final Universe universe = new Universe(DURATION_1);
+
+        beginTransaction(universe);
+    }
+
+    @Test
+    public void beginTransactionB() {
+        final Universe universe = new Universe(DURATION_2);
+
+        beginTransaction(universe);
     }
 
     @Test

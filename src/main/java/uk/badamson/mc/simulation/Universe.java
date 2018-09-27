@@ -111,6 +111,22 @@ public class Universe {
 
     }// class
 
+    /**
+     * <p>
+     * A transaction for changing the state of a {@link Universe}.
+     * </p>
+     * <p>
+     * That is, a record of a set of reads and up to one write to the state
+     * histories of the Universe that can be committed as an atomic operation.
+     * </p>
+     */
+    public final class Transaction {
+
+        private Transaction() {
+            // Do nothing
+        }
+    }// class
+
     private final Map<ObjectStateId, ObjectStateData> stateTransitions = new HashMap<>();
     private final Map<UUID, SortedMap<Duration, ObjectState>> objectStateHistories = new HashMap<>();
 
@@ -236,6 +252,17 @@ public class Universe {
                 dependencyPreviousStateTransitionData.dependentStateTransitions.add(id);
             }
         }
+    }
+
+    /**
+     * <p>
+     * Begin a new transaction for changing the state of this {@link Universe}.
+     * </p>
+     * 
+     * @return a new transaction object; not null
+     */
+    public final Transaction beginTransaction() {
+        return new Transaction();
     }
 
     /**
@@ -522,5 +549,4 @@ public class Universe {
             return objectStateHistory.firstKey();
         }
     }
-
 }
