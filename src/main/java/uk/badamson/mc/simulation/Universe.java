@@ -2,6 +2,7 @@ package uk.badamson.mc.simulation;
 
 import java.time.Duration;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -122,6 +123,8 @@ public class Universe {
      */
     public final class Transaction implements AutoCloseable {
 
+        private final Map<ObjectStateId, ObjectState> objectStatesRead = new HashMap<>();
+
         private Transaction() {
             // Do nothing
         }
@@ -134,6 +137,41 @@ public class Universe {
         @Override
         public final void close() {
             // Do nothing
+        }
+
+        /**
+         * <p>
+         * The object states that have been read as part of this transaction.
+         * </p>
+         * <ul>
+         * <li>Always have a (non null) map of object states read.</li>
+         * <li>The map of object states read may be unmodifiable or a copy of internal
+         * state.</li>
+         * <li>The map of object states read does not
+         * {@linkplain Map#containsKey(Object) have} a null key.</li>
+         * <li>The map of object states read maps the object and time of interest
+         * (together represented by an {@link ObjectStateId}) to the
+         * {@linkplain ObjectState object state} for that object just after the latest
+         * state transition at or before that point in time.</li>
+         * <li>A key of the object states read map {@linkplain Map#get(Object) mapping}
+         * to a null value indicates that the {@linkplain ObjectStateId#getObject()
+         * object} of the key did not exist at the {@linkplain ObjectStateId#getWhen()
+         * point in time} of the key.</li>
+         * <li>Each key of the object states read map {@linkplain Map#get(Object) maps
+         * to} a null value or an object state with an
+         * {@linkplain ObjectState#getObject() object ID} equal to the
+         * {@linkplain ObjectStateId#getObject() object ID} of the key.</li>
+         * <li>Each key of the object states read map {@linkplain Map#get(Object) maps
+         * to} a null value or an object state with a {@linkplain ObjectState#getWhen()
+         * time-stamp} {@linkplain Duration#compareTo(Duration) at or before} the
+         * {@linkplain ObjectStateId#getWhen() time-stamp} of the key.</li>
+         * </ul>
+         * 
+         * @return the object states read.
+         * @see Universe#getObjectState(UUID, Duration)
+         */
+        public final Map<ObjectStateId, ObjectState> getObjectStatesRead() {
+            return Collections.unmodifiableMap(objectStatesRead);
         }
 
     }// class
@@ -269,6 +307,12 @@ public class Universe {
      * <p>
      * Begin a new transaction for changing the state of this {@link Universe}.
      * </p>
+     * <ul>
+     * <li>Always returns a (non null) transaction.</li>
+     * <li>The returned transaction {@linkplain Map#isEmpty() has not}
+     * {@linkplain Universe.Transaction#getObjectStatesRead() read any object
+     * states}.</li>
+     * </ul>
      * 
      * @return a new transaction object; not null
      */

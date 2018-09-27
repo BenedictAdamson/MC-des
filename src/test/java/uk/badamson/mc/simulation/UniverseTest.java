@@ -7,6 +7,7 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsSame.sameInstance;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
+import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
 import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -131,6 +132,27 @@ public class UniverseTest {
 
         public static void assertInvariants(Universe.Transaction transaction) {
             ObjectTest.assertInvariants(transaction);// inherited
+
+            final Map<ObjectStateId, ObjectState> objectStatesRead = transaction.getObjectStatesRead();
+
+            assertNotNull("Always have a (non null) map of object states read.", objectStatesRead);// guard
+            for (var entry : objectStatesRead.entrySet()) {
+                final ObjectStateId id = entry.getKey();
+                final ObjectState state = entry.getValue();
+                assertNotNull(
+                        "The map of object states read does not {@linkplain Map#containsKey(Object) have} a null key.",
+                        id);// guard
+                ObjectStateIdTest.assertInvariants(id);
+                if (state != null) {
+                    ObjectStateTest.assertInvariants(state);
+                    assertEquals(
+                            "Each key of the object states read map maps to a null value or an object state with an object ID equal to the object ID of the key.",
+                            id.getObject(), state.getObject());
+                    assertThat(
+                            "Each key of the object states read map maps to a null value or an object state with a time-stamp at or before the time-stamp of the key.",
+                            id.getWhen(), greaterThanOrEqualTo(state.getWhen()));
+                }
+            }
         }
 
         public static void assertInvariants(Universe.Transaction transaction1, Universe.Transaction transaction2) {
@@ -491,6 +513,9 @@ public class UniverseTest {
         assertNotNull("Not null, transaction", transaction);// guard
         assertInvariants(universe);
         TransactionTest.assertInvariants(transaction);
+
+        assertEquals("The returned transaction has not read any object states.", Collections.EMPTY_MAP,
+                transaction.getObjectStatesRead());
 
         return transaction;
     }
