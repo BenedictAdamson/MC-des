@@ -176,7 +176,8 @@ public class Universe {
          */
         public final ObjectState fetchObjectState(UUID object, Duration when) {
             final ObjectStateId id = new ObjectStateId(object, when);
-            final ObjectState objectState = null;// TODO
+            // TODO
+            final ObjectState objectState = Universe.this.getObjectState(object, when);
             objectStatesRead.put(id, objectState);
             return objectState;
         }

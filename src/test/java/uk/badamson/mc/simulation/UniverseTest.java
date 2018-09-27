@@ -197,6 +197,22 @@ public class UniverseTest {
             return objectState;
         }
 
+        private static void fetchObjectState_1(final Duration earliestTimeOfCompleteState, UUID object, Duration when1,
+                Duration when2) {
+            final Universe universe = new Universe(earliestTimeOfCompleteState);
+            final ObjectStateId id2 = new ObjectStateId(object, when2);
+            final Map<UUID, ObjectStateId> dependencies1 = Collections.emptyMap();
+            final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object, when1, dependencies1);
+            universe.append(objectState1);
+            final Universe.Transaction transaction = universe.beginTransaction();
+
+            final ObjectState objectState2 = fetchObjectState(transaction, object, when2);
+
+            assertSame("objectState", objectState1, objectState2);
+            assertEquals("objectStatesRead", Collections.singletonMap(id2, objectState1),
+                    transaction.getObjectStatesRead());
+        }
+
         private static void fetchObjectState_1Empty(final Duration earliestTimeOfCompleteState, UUID object,
                 Duration when) {
             final Universe universe = new Universe(earliestTimeOfCompleteState);
@@ -216,6 +232,16 @@ public class UniverseTest {
         }
 
         @Test
+        public void fetchObjectState_1A() {
+            fetchObjectState_1(DURATION_1, OBJECT_A, DURATION_2, DURATION_3);
+        }
+
+        @Test
+        public void fetchObjectState_1B() {
+            fetchObjectState_1(DURATION_2, OBJECT_B, DURATION_3, DURATION_4);
+        }
+
+        @Test
         public void fetchObjectState_1EmptyA() {
             fetchObjectState_1Empty(DURATION_1, OBJECT_A, DURATION_2);
         }
@@ -224,7 +250,6 @@ public class UniverseTest {
         public void fetchObjectState_1EmptyB() {
             fetchObjectState_1Empty(DURATION_2, OBJECT_B, DURATION_3);
         }
-
     }// class
 
     private static final UUID OBJECT_A = ObjectStateIdTest.OBJECT_A;
