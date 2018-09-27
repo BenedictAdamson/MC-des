@@ -142,6 +142,21 @@ public class Universe {
                 "earliestTimeOfCompleteState");
     }
 
+    private void addDependentStateTransitions(ObjectStateId objectStateId, final Set<ObjectStateId> result) {
+        final SortedMap<Duration, ObjectState> stateTransitionsFrom = getStateHistoryFrom(objectStateId.getObject(),
+                objectStateId.getWhen());
+        if (stateTransitionsFrom != null) {
+            for (ObjectState stateTransitionAfter : stateTransitionsFrom.values()) {
+                final ObjectStateId stateTransitionAfterId = stateTransitionAfter.getId();
+                final ObjectStateData stateTransitionAfterData = stateTransitions.get(stateTransitionAfterId);
+                result.addAll(stateTransitionAfterData.dependentStateTransitions);
+                for (ObjectStateId dependentStateTransitionId : stateTransitionAfterData.dependentStateTransitions) {
+                    addDependentStateTransitions(dependentStateTransitionId, result);
+                }
+            }
+        }
+    }
+
     /**
      * <p>
      * Add a state transition to this universe.
@@ -271,16 +286,7 @@ public class Universe {
     public final Set<ObjectStateId> getDependentStateTransitions(ObjectStateId objectStateId) {
         Objects.requireNonNull(objectStateId, "objectStateId");
         final Set<ObjectStateId> result = new HashSet<>();
-        final SortedMap<Duration, ObjectState> stateTransitionsFrom = getStateHistoryFrom(objectStateId.getObject(),
-                objectStateId.getWhen());
-        if (stateTransitionsFrom != null) {
-            for (ObjectState stateTransitionAfter : stateTransitionsFrom.values()) {
-                final ObjectStateId stateTransitionAfterId = stateTransitionAfter.getId();
-                final ObjectStateData stateTransitionAfterData = stateTransitions.get(stateTransitionAfterId);
-                result.addAll(stateTransitionAfterData.dependentStateTransitions);
-                // TODO transitive
-            }
-        }
+        addDependentStateTransitions(objectStateId, result);
         return result;
     }
 

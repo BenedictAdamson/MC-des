@@ -123,10 +123,12 @@ public class UniverseTest {
 
     private static final UUID OBJECT_A = ObjectStateIdTest.OBJECT_A;
     private static final UUID OBJECT_B = ObjectStateIdTest.OBJECT_B;
+    private static final UUID OBJECT_C = UUID.randomUUID();
     private static final Duration DURATION_1 = Duration.ofSeconds(13);
     private static final Duration DURATION_2 = Duration.ofSeconds(17);
     private static final Duration DURATION_3 = Duration.ofSeconds(23);
     private static final Duration DURATION_4 = Duration.ofSeconds(29);
+    private static final Duration DURATION_5 = Duration.ofSeconds(31);
 
     public static void append(final Universe universe, ObjectState objectState)
             throws Universe.InvalidEventTimeStampOrderException {
@@ -271,6 +273,30 @@ public class UniverseTest {
                         + "the state it had at the latest state transition "
                         + "at or before that point in time (just before second)",
                 objectState1, universe.getObjectState(object, when2.minusNanos(1L)));
+    }
+
+    private static void append_3TransitiveDependency(final Duration earliestCompleteState, final Duration when1,
+            final Duration when2, final Duration when3, UUID object1, UUID object2, UUID object3) {
+        final ObjectStateId id1 = new ObjectStateId(object1, when1);
+        final ObjectStateId id2 = new ObjectStateId(object2, when2);
+        final ObjectStateId id3 = new ObjectStateId(object3, when3);
+        final Map<UUID, ObjectStateId> dependencies1 = Collections.emptyMap();
+        final Map<UUID, ObjectStateId> dependencies2 = Collections.singletonMap(object1, id1);
+        final Map<UUID, ObjectStateId> dependencies3 = Collections.singletonMap(object2, id2);
+        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object1, when1, dependencies1);
+        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object2, when2, dependencies2);
+        final ObjectState objectState3 = new ObjectStateTest.TestObjectState(object3, when3, dependencies3);
+
+        final Universe universe = new Universe(earliestCompleteState);
+        universe.append(objectState1);
+        universe.append(objectState2);
+
+        append(universe, objectState3);
+
+        assertEquals("Depended upon object has reverse dependency", Collections.singleton(id3),
+                universe.getDependentStateTransitions(id2));
+        assertEquals("Depended upon object has transitive reverse dependency", Set.of(id3, id2),
+                universe.getDependentStateTransitions(id1));
     }
 
     private static Set<ObjectStateId> assertDependentStateTransitionsInvariants(Universe universe,
@@ -522,6 +548,16 @@ public class UniverseTest {
     @Test
     public void append_2SuccessiveStatesClose() {
         append_2SuccessiveStates(DURATION_1, DURATION_1.plusNanos(1));
+    }
+
+    @Test
+    public void append_3TransitiveDependencyA() {
+        append_3TransitiveDependency(DURATION_1, DURATION_2, DURATION_3, DURATION_4, OBJECT_A, OBJECT_B, OBJECT_C);
+    }
+
+    @Test
+    public void append_3TransitiveDependencyB() {
+        append_3TransitiveDependency(DURATION_2, DURATION_3, DURATION_4, DURATION_5, OBJECT_B, OBJECT_C, OBJECT_A);
     }
 
     @Test
