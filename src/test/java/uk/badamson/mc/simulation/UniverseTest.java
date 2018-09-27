@@ -192,6 +192,24 @@ public class UniverseTest {
         append(universe, objectState);
     }
 
+    private static void append_2Dependency(final Duration earliestCompleteState, final Duration when1,
+            final Duration when2, UUID object1, UUID object2) {
+        final ObjectStateId id1 = new ObjectStateId(object1, when1);
+        final ObjectStateId id2 = new ObjectStateId(object2, when2);
+        final Map<UUID, ObjectStateId> dependencies1 = Collections.emptyMap();
+        final Map<UUID, ObjectStateId> dependencies2 = Collections.singletonMap(object1, id1);
+        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object1, when1, dependencies1);
+        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object2, when2, dependencies2);
+
+        final Universe universe = new Universe(earliestCompleteState);
+        universe.append(objectState1);
+
+        append(universe, objectState2);
+
+        assertEquals("Depended upon object has reverse dependency", Collections.singleton(id2),
+                universe.getDependentStateTransitions(id1));
+    }
+
     private static void append_2DifferentObjects(final UUID object1, final UUID object2) {
         assert !object1.equals(object2);
         final Duration when = DURATION_1;
@@ -449,6 +467,16 @@ public class UniverseTest {
     @Test
     public void append_1PrehistoricDependencyClose() {
         append_1PrehistoricDependency(DURATION_2.minusNanos(1L), DURATION_2, DURATION_2);
+    }
+
+    @Test
+    public void append_2DependencyA() {
+        append_2Dependency(DURATION_1, DURATION_2, DURATION_3, OBJECT_A, OBJECT_B);
+    }
+
+    @Test
+    public void append_2DependencyB() {
+        append_2Dependency(DURATION_2, DURATION_3, DURATION_4, OBJECT_B, OBJECT_A);
     }
 
     @Test

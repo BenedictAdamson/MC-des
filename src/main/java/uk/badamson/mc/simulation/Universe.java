@@ -278,6 +278,7 @@ public class Universe {
                 final ObjectStateId stateTransitionAfterId = stateTransitionAfter.getId();
                 final ObjectStateData stateTransitionAfterData = stateTransitions.get(stateTransitionAfterId);
                 result.addAll(stateTransitionAfterData.dependentStateTransitions);
+                // TODO transitive
             }
         }
         return result;
