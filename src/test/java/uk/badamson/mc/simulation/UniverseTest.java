@@ -136,6 +136,22 @@ public class UniverseTest {
         public static void assertInvariants(Universe.Transaction transaction1, Universe.Transaction transaction2) {
             ObjectTest.assertInvariants(transaction1, transaction2);// inherited
         }
+
+        public static void close(Universe.Transaction transaction) {
+            transaction.close();
+
+            assertInvariants(transaction);
+        }
+
+        @Test
+        public void close_immediately() {
+            final Universe universe = new Universe(DURATION_1);
+            final Universe.Transaction transaction = universe.beginTransaction();
+
+            close(transaction);
+
+            UniverseTest.assertInvariants(universe);
+        }
     }// class
 
     private static final UUID OBJECT_A = ObjectStateIdTest.OBJECT_A;

@@ -120,11 +120,22 @@ public class Universe {
      * histories of the Universe that can be committed as an atomic operation.
      * </p>
      */
-    public final class Transaction {
+    public final class Transaction implements AutoCloseable {
 
         private Transaction() {
             // Do nothing
         }
+
+        /**
+         * <p>
+         * Indicate that this transaction is no longer needed.
+         * </p>
+         */
+        @Override
+        public final void close() {
+            // Do nothing
+        }
+
     }// class
 
     private final Map<ObjectStateId, ObjectStateData> stateTransitions = new HashMap<>();
