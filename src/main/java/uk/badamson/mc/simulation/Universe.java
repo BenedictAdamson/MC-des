@@ -141,6 +141,48 @@ public class Universe {
 
         /**
          * <p>
+         * Get the state of a given object, of the {@linkplain #getUniverse() universe}
+         * of this transaction, at a given point in time.
+         * </p>
+         * <ul>
+         * <li>The object state of for an object ID and point in time is either the same
+         * object state as can be {@linkplain Universe#getObjectState(UUID, Duration)
+         * got} from the {@linkplain #getUniverse() universe} of this transaction, or is
+         * the same object state as has already been {@linkplain #getObjectStatesRead()
+         * read} by this transaction.</li>
+         * <li>The object state of for an object ID and point in time that has not
+         * already been {@linkplain #getObjectStatesRead() read} by this transaction is
+         * the same object state as can be
+         * {@linkplain Universe#getObjectState(UUID, Duration) got} from the
+         * {@linkplain #getUniverse() universe} of this transaction.</li>
+         * <li>The object state of for an object ID and point in time that has already
+         * been {@linkplain #getObjectStatesRead() read} by this transaction is the same
+         * object state as was read previously.</li>
+         * <li>The method records the returned state as one of the
+         * {@linkplain #getObjectStatesRead() read states}. Hence this method is not a
+         * simple getter.</li>
+         * </ul>
+         * 
+         * @param object
+         *            The ID of the object of interest.
+         * @param when
+         *            The point in time of interest.
+         * @return The state of the given object at the given point in time.
+         * @throws NullPointerException
+         *             <ul>
+         *             <li>If {@code object} is null.</li>
+         *             <li>If {@code when} is null.</li>
+         *             </ul>
+         */
+        public final ObjectState fetchObjectState(UUID object, Duration when) {
+            final ObjectStateId id = new ObjectStateId(object, when);
+            final ObjectState objectState = null;// TODO
+            objectStatesRead.put(id, objectState);
+            return objectState;
+        }
+
+        /**
+         * <p>
          * The object states that have been read as part of this transaction.
          * </p>
          * <ul>

@@ -2,6 +2,7 @@ package uk.badamson.mc.simulation;
 
 import static org.hamcrest.collection.IsIn.isIn;
 import static org.hamcrest.collection.IsMapContaining.hasValue;
+import static org.hamcrest.core.AnyOf.anyOf;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsNot.not;
@@ -170,6 +171,40 @@ public class UniverseTest {
             assertInvariants(transaction);
         }
 
+        public static ObjectState fetchObjectState(final Universe.Transaction transaction, UUID object, Duration when) {
+            final ObjectStateId id = new ObjectStateId(object, when);
+            final boolean wasPreviouslyRead = transaction.getObjectStatesRead().containsKey(id);
+            final ObjectState previouslyReadState = transaction.getObjectStatesRead().get(id);
+            final ObjectState universeObjectState = transaction.getUniverse().getObjectState(object, when);
+
+            final ObjectState objectState = transaction.fetchObjectState(object, when);
+
+            assertInvariants(transaction);
+            assertThat(
+                    "The object state of for an object ID and point in time is either the same object state as can be got from the universe of this transaction, or is the same object state as has already read by this transaction.",
+                    objectState, anyOf(sameInstance(previouslyReadState), sameInstance(universeObjectState)));
+            assertTrue(
+                    "The object state of for an object ID and point in time that has not already been read by this transaction is the same object state as can be  got from the universe of this transaction.",
+                    wasPreviouslyRead || objectState == universeObjectState);
+            assertTrue(
+                    "The object state of for an object ID and point in time that has already been read by this transaction is the same object state as was read previously.",
+                    !wasPreviouslyRead || objectState == previouslyReadState);
+            assertThat("The method records the returned state as one of the read states (has key).", id,
+                    isIn(transaction.getObjectStatesRead().keySet()));
+            assertSame("The method records the returned state as one of the read states (state).", objectState,
+                    transaction.getObjectStatesRead().get(id));
+
+            return objectState;
+        }
+
+        private static void fetchObjectState_1Empty(final Duration earliestTimeOfCompleteState, UUID object,
+                Duration when) {
+            final Universe universe = new Universe(earliestTimeOfCompleteState);
+            final Universe.Transaction transaction = universe.beginTransaction();
+
+            fetchObjectState(transaction, object, when);
+        }
+
         @Test
         public void close_immediately() {
             final Universe universe = new Universe(DURATION_1);
@@ -179,6 +214,17 @@ public class UniverseTest {
 
             UniverseTest.assertInvariants(universe);
         }
+
+        @Test
+        public void fetchObjectState_1EmptyA() {
+            fetchObjectState_1Empty(DURATION_1, OBJECT_A, DURATION_2);
+        }
+
+        @Test
+        public void fetchObjectState_1EmptyB() {
+            fetchObjectState_1Empty(DURATION_2, OBJECT_B, DURATION_3);
+        }
+
     }// class
 
     private static final UUID OBJECT_A = ObjectStateIdTest.OBJECT_A;
