@@ -134,8 +134,13 @@ public class UniverseTest {
             ObjectTest.assertInvariants(transaction);// inherited
 
             final Map<ObjectStateId, ObjectState> objectStatesRead = transaction.getObjectStatesRead();
+            final Universe universe = transaction.getUniverse();
 
             assertNotNull("Always have a (non null) map of object states read.", objectStatesRead);// guard
+            assertNotNull("Not null, universe", universe);// guard
+
+            UniverseTest.assertInvariants(universe);
+
             for (var entry : objectStatesRead.entrySet()) {
                 final ObjectStateId id = entry.getKey();
                 final ObjectState state = entry.getValue();
@@ -514,6 +519,8 @@ public class UniverseTest {
         assertInvariants(universe);
         TransactionTest.assertInvariants(transaction);
 
+        assertSame("The universe of the returned transaction is this transaction.", universe,
+                transaction.getUniverse());
         assertEquals("The returned transaction has not read any object states.", Collections.EMPTY_MAP,
                 transaction.getObjectStatesRead());
 

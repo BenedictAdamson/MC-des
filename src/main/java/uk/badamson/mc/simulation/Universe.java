@@ -131,7 +131,7 @@ public class Universe {
 
         /**
          * <p>
-         * Indicate that this transaction is no longer needed.
+         * Indicate that this transaction has ended.
          * </p>
          */
         @Override
@@ -172,6 +172,17 @@ public class Universe {
          */
         public final Map<ObjectStateId, ObjectState> getObjectStatesRead() {
             return Collections.unmodifiableMap(objectStatesRead);
+        }
+
+        /**
+         * <p>
+         * The {@link Universe} for which this transaction changes the state.
+         * </p>
+         * 
+         * @return the universe; not null.
+         */
+        public final Universe getUniverse() {
+            return Universe.this;
         }
 
     }// class
@@ -309,6 +320,8 @@ public class Universe {
      * </p>
      * <ul>
      * <li>Always returns a (non null) transaction.</li>
+     * <li>The {@linkplain Universe.Transaction#getUniverse() universe} of the
+     * returned transaction is this transaction.</li>
      * <li>The returned transaction {@linkplain Map#isEmpty() has not}
      * {@linkplain Universe.Transaction#getObjectStatesRead() read any object
      * states}.</li>
