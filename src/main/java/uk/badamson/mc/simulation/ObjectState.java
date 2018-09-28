@@ -166,7 +166,7 @@ public abstract class ObjectState {
      * <li>Always has a (non null) dependency map.</li>
      * <li>The dependency map does not have a null key.</li>
      * <li>The dependency map does not have null values.</li>
-     * <li>The dependency map maps object IDs if objects that have a depended upon
+     * <li>The dependency map maps object IDs of objects that have a depended upon
      * state to an ID of that depended upon state.</li>
      * <li>Each object ID {@linkplain Map#keySet() key} of the dependency map maps
      * to a value that has that same object ID as the
