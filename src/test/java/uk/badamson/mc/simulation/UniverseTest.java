@@ -131,17 +131,67 @@ public class UniverseTest {
      */
     public static class TransactionTest {
 
+        private static Map<UUID, ObjectStateId> assertDependenciesInvaraints(Universe.Transaction transaction) {
+            final Map<UUID, ObjectStateId> dependencies = transaction.getDependencies();
+            assertNotNull("Always has a dependency map.", dependencies);
+            final Set<ObjectStateId> objectStatesRead = transaction.getObjectStatesRead().keySet();
+            for (var entry : dependencies.entrySet()) {
+                final UUID object = entry.getKey();
+                final ObjectStateId objectStateId = entry.getValue();
+                assertNotNull("The dependency map does not have a null key.", object);// guard
+                assertNotNull("The dependency map does not have null values.", objectStateId);// guard
+
+                ObjectStateIdTest.assertInvariants(objectStateId);
+                assertSame(
+                        "Each object ID key of the dependency map maps to a value that has that same object ID as the object of the object state ID.",
+                        object, objectStateId.getObject());
+                assertThat(
+                        "The collection of values of the dependencies map is a sub set of the keys of the object states read.",
+                        objectStateId, isIn(objectStatesRead));
+                /**
+                 * <li>The {@linkplain ObjectStateId#getWhen() time-stamp} of each
+                 * {@linkplain Map#keySet() object state ID key} of the
+                 * {@linkplain #getObjectStatesRead() object states read} map is at or after the
+                 * time-stamp of the {@linkplain Map#get(Object) value} in the dependencies map
+                 * for the {@linkplain ObjectStateId#getObject() object ID} of that object state
+                 * ID.</li>
+                 * </ul>
+                 * 
+                 * @return The dependency information
+                 */
+            }
+            for (ObjectStateId objectStateRead : objectStatesRead) {
+                final UUID object = objectStateRead.getObject();
+                final Duration when = objectStateRead.getWhen();
+                assertThat("Each object of an object state read has an entry in the dependencies map.", object,
+                        isIn(dependencies.keySet()));// guard
+                assertThat("The time-stamp of each object state ID key of the object states read map is "
+                        + "at or after the time-stamp of the value in the dependencies map for the object ID of that object state ID.",
+                        when, greaterThanOrEqualTo(dependencies.get(object).getWhen()));
+            }
+            return dependencies;
+        }
+
         public static void assertInvariants(Universe.Transaction transaction) {
             ObjectTest.assertInvariants(transaction);// inherited
 
-            final Map<ObjectStateId, ObjectState> objectStatesRead = transaction.getObjectStatesRead();
             final Universe universe = transaction.getUniverse();
 
-            assertNotNull("Always have a (non null) map of object states read.", objectStatesRead);// guard
             assertNotNull("Not null, universe", universe);// guard
 
             UniverseTest.assertInvariants(universe);
+            assertObjectStatesReadInvariants(transaction);
+            assertDependenciesInvaraints(transaction);
+        }
 
+        public static void assertInvariants(Universe.Transaction transaction1, Universe.Transaction transaction2) {
+            ObjectTest.assertInvariants(transaction1, transaction2);// inherited
+        }
+
+        private static Map<ObjectStateId, ObjectState> assertObjectStatesReadInvariants(
+                Universe.Transaction transaction) {
+            final Map<ObjectStateId, ObjectState> objectStatesRead = transaction.getObjectStatesRead();
+            assertNotNull("Always have a (non null) map of object states read.", objectStatesRead);// guard
             for (var entry : objectStatesRead.entrySet()) {
                 final ObjectStateId id = entry.getKey();
                 final ObjectState state = entry.getValue();
@@ -159,10 +209,7 @@ public class UniverseTest {
                             id.getWhen(), greaterThanOrEqualTo(state.getWhen()));
                 }
             }
-        }
-
-        public static void assertInvariants(Universe.Transaction transaction1, Universe.Transaction transaction2) {
-            ObjectTest.assertInvariants(transaction1, transaction2);// inherited
+            return objectStatesRead;
         }
 
         public static void close(Universe.Transaction transaction) {

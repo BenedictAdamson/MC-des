@@ -124,6 +124,7 @@ public class Universe {
     public final class Transaction implements AutoCloseable {
 
         private final Map<ObjectStateId, ObjectState> objectStatesRead = new HashMap<>();
+        private final Map<UUID, ObjectStateId> dependencies = new HashMap<>();
 
         private Transaction() {
             // Do nothing
@@ -176,10 +177,45 @@ public class Universe {
          */
         public final ObjectState fetchObjectState(UUID object, Duration when) {
             final ObjectStateId id = new ObjectStateId(object, when);
-            // TODO
             final ObjectState objectState = Universe.this.getObjectState(object, when);
             objectStatesRead.put(id, objectState);
+            dependencies.put(id.getObject(), id);// FIXME
             return objectState;
+        }
+
+        /**
+         * <p>
+         * The {@linkplain #getObjectStatesRead() object states read} by this
+         * transaction, expressed as the implied
+         * {@linkplain ObjectState#getDependencies() dependencies} of a
+         * {@linkplain ObjectState object state} computed from those object states read.
+         * </p>
+         * <ul>
+         * <li>Always has a (non null) dependency map.</li>
+         * <li>The dependency map does not have a null key.</li>
+         * <li>The dependency map does not have null values.</li>
+         * <li>Each object ID {@linkplain Map#keySet() key} of the dependency map maps
+         * to a value that has that same object ID as the
+         * {@linkplain ObjectStateId#getObject() object} of the object state ID.</li>
+         * <li>Each {@linkplain ObjectStateId#getObject() object} of an
+         * {@linkplain #getObjectStatesRead() object state read} has an entry in the
+         * dependencies map.</li>
+         * <li>The {@linkplain Map#values() collection of values} of the dependencies
+         * map is a {@linkplain Set#containsAll(Collection) sub set} of the
+         * {@linkplain Map#keySet() keys} of the {@linkplain #getObjectStatesRead()
+         * object states read}.</li>
+         * <li>The {@linkplain ObjectStateId#getWhen() time-stamp} of each
+         * {@linkplain Map#keySet() object state ID key} of the
+         * {@linkplain #getObjectStatesRead() object states read} map is at or after the
+         * time-stamp of the {@linkplain Map#get(Object) value} in the dependencies map
+         * for the {@linkplain ObjectStateId#getObject() object ID} of that object state
+         * ID.</li>
+         * </ul>
+         * 
+         * @return The dependency information
+         */
+        public final Map<UUID, ObjectStateId> getDependencies() {
+            return dependencies;
         }
 
         /**
