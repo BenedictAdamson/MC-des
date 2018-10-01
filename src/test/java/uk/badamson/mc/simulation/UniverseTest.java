@@ -284,6 +284,35 @@ public class UniverseTest {
             fetchObjectState(transaction, object, when2);
         }
 
+        public static void put(final Universe.Transaction transaction, ObjectState objectState) {
+            final Universe universe = transaction.getUniverse();
+            final ObjectStateId id = objectState.getId();
+
+            transaction.put(objectState);
+
+            assertInvariants(transaction);
+            ObjectStateTest.assertInvariants(objectState);
+            assertThat(
+                    "The ID of the given object state is one of the state transition IDs of the universe of this transaction.",
+                    id, isIn(universe.getStateTransitionIds()));
+            assertSame(
+                    "The given object state is the state at the state transition for the ID of the given object state.",
+                    objectState, universe.getStateTransition(id));
+        }
+
+        private static void put_1(final Duration earliestTimeOfCompleteState, UUID object, Duration when) {
+            final Universe universe = new Universe(earliestTimeOfCompleteState);
+            final Universe.Transaction transaction = universe.beginTransaction();
+            final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
+            final ObjectState objectState = new ObjectStateTest.TestObjectState(object, when, dependencies);
+            final ObjectStateId id = objectState.getId();
+
+            put(transaction, objectState);
+
+            assertEquals("Object IDs", Collections.singleton(object), universe.getObjectIds());
+            assertEquals("State transition IDs", Collections.singleton(id), universe.getStateTransitionIds());
+        }
+
         @Test
         public void close_immediately() {
             final Universe universe = new Universe(DURATION_1);
@@ -328,6 +357,16 @@ public class UniverseTest {
         public void fetchObjectState_1Precise() {
             final Duration when = DURATION_2;
             fetchObjectState_1(DURATION_1, OBJECT_A, when, when);
+        }
+
+        @Test
+        public void put_1A() {
+            put_1(DURATION_1, OBJECT_A, DURATION_2);
+        }
+
+        @Test
+        public void put_1B() {
+            put_1(DURATION_2, OBJECT_B, DURATION_3);
         }
     }// class
 

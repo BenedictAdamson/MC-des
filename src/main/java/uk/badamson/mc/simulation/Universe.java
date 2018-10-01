@@ -275,6 +275,31 @@ public class Universe {
             return Universe.this;
         }
 
+        /**
+         * <p>
+         * Add a state transition to the {@linkplain #getUniverse() universe} of this
+         * transaction.
+         * <p>
+         * <ul>
+         * <li>The {@linkplain ObjectState#getId() ID} of the given object state is one
+         * of the {@linkplain Universe#getStateTransitionIds() state transition IDs} of
+         * the {@linkplain #getUniverse() universe} of this transaction.</li>
+         * <li>The given object state is the
+         * {@linkplain Universe#getStateTransition(ObjectStateId) state at the state
+         * transition} for the {@linkplain ObjectState#getId() ID} of the given object
+         * state.</li>
+         * </ul>
+         * 
+         * @param objectState
+         *            The state to add.
+         * @throws NullPointerException
+         *             If {@code objectState} is null
+         */
+        public final void put(ObjectState objectState) {
+            // TODO handle transactions that must abort
+            append(objectState);
+        }
+
     }// class
 
     private final Map<ObjectStateId, ObjectStateData> stateTransitions = new HashMap<>();
