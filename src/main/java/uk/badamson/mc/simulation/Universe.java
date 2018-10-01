@@ -176,10 +176,21 @@ public class Universe {
          *             </ul>
          */
         public final ObjectState fetchObjectState(UUID object, Duration when) {
-            final ObjectStateId id = new ObjectStateId(object, when);
+            ObjectStateId id = new ObjectStateId(object, when);
             final ObjectState objectState = Universe.this.getObjectState(object, when);
+            if (objectState != null) {
+                // Reduce old object duplication
+                object = id.getObject();
+                if (id.equals(objectState.getId())) {
+                    id = objectState.getId();
+                    when = id.getWhen();
+                }
+            }
             objectStatesRead.put(id, objectState);
-            dependencies.put(id.getObject(), id);// FIXME
+            final ObjectStateId dependency0 = dependencies.get(object);
+            if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
+                dependencies.put(object, id);
+            }
             return objectState;
         }
 

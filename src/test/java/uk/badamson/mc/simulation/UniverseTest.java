@@ -268,6 +268,22 @@ public class UniverseTest {
             fetchObjectState(transaction, object, when);
         }
 
+        private static void fetchObjectState_1ObjectSuccesiveTimes(final Duration earliestTimeOfCompleteState,
+                UUID object, Duration when1, Duration when2, Duration when3) {
+            final Universe universe = new Universe(earliestTimeOfCompleteState);
+            final ObjectStateId id1 = new ObjectStateId(object, when1);
+            final Map<UUID, ObjectStateId> dependencies1 = Collections.emptyMap();
+            final Map<UUID, ObjectStateId> dependencies2 = Collections.singletonMap(object, id1);
+            final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object, when1, dependencies1);
+            final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object, when2, dependencies2);
+            universe.append(objectState1);
+            universe.append(objectState2);
+            final Universe.Transaction transaction = universe.beginTransaction();
+            transaction.fetchObjectState(object, when1);
+
+            fetchObjectState(transaction, object, when2);
+        }
+
         @Test
         public void close_immediately() {
             final Universe universe = new Universe(DURATION_1);
@@ -296,6 +312,22 @@ public class UniverseTest {
         @Test
         public void fetchObjectState_1EmptyB() {
             fetchObjectState_1Empty(DURATION_2, OBJECT_B, DURATION_3);
+        }
+
+        @Test
+        public void fetchObjectState_1ObjectSuccesiveTimesA() {
+            fetchObjectState_1ObjectSuccesiveTimes(DURATION_1, OBJECT_A, DURATION_2, DURATION_3, DURATION_4);
+        }
+
+        @Test
+        public void fetchObjectState_1ObjectSuccesiveTimesB() {
+            fetchObjectState_1ObjectSuccesiveTimes(DURATION_2, OBJECT_B, DURATION_3, DURATION_4, DURATION_5);
+        }
+
+        @Test
+        public void fetchObjectState_1Precise() {
+            final Duration when = DURATION_2;
+            fetchObjectState_1(DURATION_1, OBJECT_A, when, when);
         }
     }// class
 
