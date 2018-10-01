@@ -271,7 +271,7 @@ public class Universe {
          * @return The dependency information
          */
         public final Map<UUID, ObjectStateId> getDependencies() {
-            return dependencies;
+            return new HashMap<>(dependencies);
         }
 
         /**
@@ -339,8 +339,17 @@ public class Universe {
          *            The state to add.
          * @throws NullPointerException
          *             If {@code objectState} is null
+         * @throws IllegalArgumentException
+         *             If the {@linkplain ObjectState#getDependencies() dependencies} of
+         *             the {@code objectState} are not {@linkplain Map#equals(Object)
+         *             equal to} the {@linkplain #getDependencies() dependencies} of
+         *             this transaction.
          */
         public final void put(ObjectState objectState) {
+            Objects.requireNonNull(objectState, "objectState");
+            if (!dependencies.equals(objectState.getDependencies())) {
+                throw new IllegalArgumentException("Object state dependencies not equal to transaction dependencies");
+            }
             // TODO handle transactions that must abort
             append(objectState);
         }
