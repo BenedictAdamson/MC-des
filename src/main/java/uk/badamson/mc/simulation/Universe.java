@@ -30,6 +30,51 @@ public class Universe {
 
     /**
      * <p>
+     * A checked exception for indicating that a {@link Universe.Transaction} must
+     * be aborted, because the consistency constraints of transaction and of the
+     * {@linkplain Universe.Transaction#getUniverse() universe} of the transaction
+     * would not then be satisfied.
+     * </p>
+     */
+    public static final class AbortedTransactionException extends Exception {
+
+        private static final long serialVersionUID = 1L;
+        private static final String MESSAGE = "Aborted transaction";
+
+        /**
+         * <p>
+         * Construct a checked exception for indicating that a
+         * {@link Universe.Transaction} must be aborted, because the consistency
+         * constraints of transaction and of the
+         * {@linkplain Universe.Transaction#getUniverse() universe} of the transaction
+         * would not then be satisfied.
+         * </p>
+         */
+        public AbortedTransactionException() {
+            super(MESSAGE);
+        }
+
+        /**
+         * <p>
+         * Construct a checked exception for indicating that a
+         * {@link Universe.Transaction} must be aborted, because the consistency
+         * constraints of transaction and of the
+         * {@linkplain Universe.Transaction#getUniverse() universe} of the transaction
+         * would not then be satisfied, and that has been indicated by an underlying
+         * cause
+         * </p>
+         * 
+         * @param cause
+         *            The exception thrown to signal the underlying cause.
+         */
+        public AbortedTransactionException(Throwable cause) {
+            super(MESSAGE, cause);
+        }
+
+    }// class
+
+    /**
+     * <p>
      * An exception class for indicating that an {@link ObjectState} can not be
      * {@linkplain Universe#append(ObjectState) appended} to a {@link Universe}
      * because its time-stamp is not after the current

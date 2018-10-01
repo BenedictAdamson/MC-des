@@ -39,6 +39,47 @@ public class UniverseTest {
 
     /**
      * <p>
+     * Unit tests for the {@link Universe.AbortedTransactionException} class.
+     * </p>
+     */
+    public static class AbortedTransactionExceptionTest {
+
+        public static void assertInvariants(Universe.AbortedTransactionException exception) {
+            ObjectTest.assertInvariants(exception);// inherited
+        }
+
+        public static void assertInvariants(Universe.AbortedTransactionException exception1,
+                Universe.AbortedTransactionException exception2) {
+            ObjectTest.assertInvariants(exception1, exception2);// inherited
+        }
+
+        private static void constructor(Throwable cause) {
+            final Universe.AbortedTransactionException exception = new Universe.AbortedTransactionException(cause);
+
+            assertInvariants(exception);
+            assertSame("cause", cause, exception.getCause());
+        }
+
+        @Test
+        public void constructor_0() {
+            final Universe.AbortedTransactionException exception = new Universe.AbortedTransactionException();
+
+            assertInvariants(exception);
+        }
+
+        @Test
+        public void constructor_1A() {
+            constructor(new NullPointerException("Test exception"));
+        }
+
+        @Test
+        public void constructor_1B() {
+            constructor(new IllegalArgumentException("Test exception"));
+        }
+    }// class
+
+    /**
+     * <p>
      * Unit tests for the {@link Universe.InvalidEventTimeStampOrderException}
      * class.
      * </p>
