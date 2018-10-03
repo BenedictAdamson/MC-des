@@ -325,11 +325,19 @@ public class UniverseTest {
             fetchObjectState(transaction, object, when2);
         }
 
-        public static void put(final Universe.Transaction transaction, ObjectState objectState) {
+        public static void put(final Universe.Transaction transaction, ObjectState objectState)
+                throws Universe.AbortedTransactionException {
             final Universe universe = transaction.getUniverse();
             final ObjectStateId id = objectState.getId();
 
-            transaction.put(objectState);
+            try {
+                transaction.put(objectState);
+            } catch (Universe.AbortedTransactionException e) {
+                // Permitted
+                assertInvariants(transaction);
+                UniverseTest.AbortedTransactionExceptionTest.assertInvariants(e);
+                throw e;
+            }
 
             assertInvariants(transaction);
             ObjectStateTest.assertInvariants(objectState);
@@ -348,10 +356,40 @@ public class UniverseTest {
             final ObjectState objectState = new ObjectStateTest.TestObjectState(object, when, dependencies);
             final ObjectStateId id = objectState.getId();
 
-            put(transaction, objectState);
+            try {
+                put(transaction, objectState);
+            } catch (Universe.AbortedTransactionException e) {
+                // Not permitted
+                throw new AssertionError(e);
+            }
 
             assertEquals("Object IDs", Collections.singleton(object), universe.getObjectIds());
             assertEquals("State transition IDs", Collections.singleton(id), universe.getStateTransitionIds());
+        }
+
+        private static void put_2InvalidEventTimeStampOrder(final Duration earliestTimeOfCompleteState, UUID object,
+                Duration when0, Duration when1, Duration when2) throws Universe.AbortedTransactionException {
+            final Universe universe = new Universe(earliestTimeOfCompleteState);
+            final ObjectState objectState0 = new ObjectStateTest.TestObjectState(object, when0, Collections.emptyMap());
+            final ObjectStateId id0 = objectState0.getId();
+            final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object, when2,
+                    Collections.singletonMap(object, id0));
+            final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object, when1,
+                    Collections.singletonMap(object, id0));
+
+            universe.append(objectState0);
+            final Universe.Transaction transaction1 = universe.beginTransaction();
+            transaction1.fetchObjectState(object, when0);
+            final Universe.Transaction transaction2 = universe.beginTransaction();
+            transaction2.fetchObjectState(object, when0);
+            try {
+                transaction1.put(objectState1);
+            } catch (Universe.AbortedTransactionException e) {
+                // Not permitted
+                throw new AssertionError(e);
+            }
+
+            put(transaction2, objectState2);
         }
 
         @Test
@@ -408,6 +446,16 @@ public class UniverseTest {
         @Test
         public void put_1B() {
             put_1(DURATION_2, OBJECT_B, DURATION_3);
+        }
+
+        @Test(expected = Universe.AbortedTransactionException.class)
+        public void put_2InvalidEventTimeStampOrderA() throws Universe.AbortedTransactionException {
+            put_2InvalidEventTimeStampOrder(DURATION_1, OBJECT_A, DURATION_2, DURATION_3, DURATION_4);
+        }
+
+        @Test(expected = Universe.AbortedTransactionException.class)
+        public void put_2InvalidEventTimeStampOrderB() throws Universe.AbortedTransactionException {
+            put_2InvalidEventTimeStampOrder(DURATION_2, OBJECT_B, DURATION_3, DURATION_4, DURATION_5);
         }
     }// class
 

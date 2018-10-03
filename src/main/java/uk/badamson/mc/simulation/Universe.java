@@ -344,14 +344,22 @@ public class Universe {
          *             the {@code objectState} are not {@linkplain Map#equals(Object)
          *             equal to} the {@linkplain #getDependencies() dependencies} of
          *             this transaction.
+         * @throws Universe.AbortedTransactionException
+         *             If the consistency constraints of this transaction and of the
+         *             {@linkplain #getUniverse() universe} of this transaction can not
+         *             then be satisfied.
+         * 
          */
-        public final void put(ObjectState objectState) {
+        public final void put(ObjectState objectState) throws Universe.AbortedTransactionException {
             Objects.requireNonNull(objectState, "objectState");
             if (!dependencies.equals(objectState.getDependencies())) {
                 throw new IllegalArgumentException("Object state dependencies not equal to transaction dependencies");
             }
-            // TODO handle transactions that must abort
-            append(objectState);
+            try {
+                append(objectState);
+            } catch (InvalidEventTimeStampOrderException e) {
+                throw new Universe.AbortedTransactionException(e);
+            }
         }
 
     }// class
