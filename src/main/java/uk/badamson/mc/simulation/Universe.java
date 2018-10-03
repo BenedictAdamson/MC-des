@@ -423,15 +423,15 @@ public class Universe {
      * @throws NullPointerException
      *             If {@code objectState} is null
      * @throws InvalidEventTimeStampOrderException
-     *             If the {@linkplain ObjectStateId#getObject() object} of the
-     *             {@linkplain ObjectState#getId() ID} of {@code objectState} is
-     *             already an {@linkplain #getObjectIds() object IDs} of this
-     *             universe, but the {@linkplain ObjectStateId#getWhen() time-stamp}
-     *             of (the ID of) {@code objectState} is not
+     *             If the {@linkplain ObjectState#getObject() object} of the
+     *             {@code objectState} is already an {@linkplain #getObjectIds()
+     *             object ID} of this universe, but the
+     *             {@linkplain ObjectState#getWhen() time-stamp} of
+     *             {@code objectState} is not
      *             {@linkplain Duration#compareTo(Duration) after} the
      *             {@linkplain SortedMap#lastKey() last} state in the
-     *             {@linkplain #getObjectStateHistory(UUID) object state history}.
-     *             In this case, this {@link Universe} is unchanged.
+     *             {@linkplain #getObjectStateHistory(UUID) object state history} of
+     *             that object. In this case, this {@link Universe} is unchanged.
      * @throws MissingDependedUponStateException
      *             If the {@linkplain ObjectStateId#getWhen() time-stamp} of any
      *             {@linkplain ObjectState#getDependencies() dependencies} of the
