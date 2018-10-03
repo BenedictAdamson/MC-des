@@ -8,12 +8,15 @@
 	<organization>
 		<name>Benedict Adamson</name>
 	</organization>
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
 	<build>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.7.0</version>
+				<version>3.8.0</version>
 				<configuration>
 					<release>10</release>
 				</configuration>
@@ -39,4 +42,16 @@
 			<version>1.0</version>
 		</dependency>
 	</dependencies>
+	<distributionManagement>
+		<repository>
+			<id>MC.repo</id>
+			<name>MC Repository</name>
+			<url>http://localhost:9081/repository/maven-releases/</url>
+		</repository>
+		<snapshotRepository>
+			<id>MC-SNAPSHOT.repo</id>
+			<name>MC Repository</name>
+			<url>http://localhost:9081/repository/maven-snapshots/</url>
+		</snapshotRepository>
+	</distributionManagement>
 </project>
