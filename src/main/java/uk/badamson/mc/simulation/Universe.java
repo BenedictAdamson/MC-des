@@ -73,80 +73,6 @@ public class Universe {
 
     }// class
 
-    /**
-     * <p>
-     * An exception class for indicating that an {@link ObjectState} can not be
-     * {@linkplain Universe#append(ObjectState) appended} to a {@link Universe}
-     * because its time-stamp is not after the current
-     * {@linkplain SortedMap#lastKey() last} {@link ObjectState} of the object.
-     * </p>
-     */
-    public static final class InvalidEventTimeStampOrderException extends IllegalStateException {
-
-        private static final String MESSAGE = "ObjectState time-stamp not after teh current last time-stamp";
-        private static final long serialVersionUID = 1L;
-
-        public InvalidEventTimeStampOrderException() {
-            super(MESSAGE);
-        }
-
-        /**
-         * <p>
-         * Construct an exception for indicating that an {@link ObjectState} can not be
-         * {@linkplain Universe#append(ObjectState) appended} to a {@link Universe}
-         * because its time-stamp is not after the current
-         * {@linkplain SortedMap#lastKey() last} {@link ObjectState} of the object,
-         * which has been signalled by an underlying cause.
-         * </p>
-         * 
-         * @param cause
-         *            The cause of this exception.
-         */
-        public InvalidEventTimeStampOrderException(Throwable cause) {
-            super(MESSAGE, cause);
-        }
-
-    }// class
-
-    /**
-     * <p>
-     * An exception class for indicating that an {@link ObjectState} can not be
-     * {@linkplain Universe#append(ObjectState) appended} to a {@link Universe}
-     * because it has a {@linkplain ObjectState#getDepenendedUponStates() depended
-     * upon state} that is at or after
-     * {@linkplain Universe#getEarliestTimeOfCompleteState() earliest time of a
-     * complete state} (so the depended upon state should be present) but that
-     * depended upon state is not one of the
-     * {@linkplain Universe#getStateTransitionIds() known object state}.
-     * </p>
-     */
-    public static final class MissingDependedUponStateException extends IllegalStateException {
-
-        private static final String MESSAGE = "Missing depended upon state";
-        private static final long serialVersionUID = 1L;
-
-        public MissingDependedUponStateException() {
-            super(MESSAGE);
-        }
-
-        /**
-         * <p>
-         * Construct an exception for indicating that an {@link ObjectState} can not be
-         * {@linkplain Universe#append(ObjectState) appended} to a {@link Universe}
-         * because its time-stamp is not after the current
-         * {@linkplain SortedMap#lastKey() last} {@link ObjectState} of the object,
-         * which has been signalled by an underlying cause.
-         * </p>
-         * 
-         * @param cause
-         *            The cause of this exception.
-         */
-        public MissingDependedUponStateException(Throwable cause) {
-            super(MESSAGE, cause);
-        }
-
-    }// class
-
     private static final class ObjectStateData {
         final ObjectState state;
         final Set<ObjectStateId> dependentStateTransitions = new HashSet<>();
@@ -357,7 +283,7 @@ public class Universe {
             }
             try {
                 append(objectState);
-            } catch (InvalidEventTimeStampOrderException e) {
+            } catch (IllegalStateException e) {
                 throw new Universe.AbortedTransactionException(e);
             }
         }
@@ -430,8 +356,9 @@ public class Universe {
      *            The state to add.
      * @throws NullPointerException
      *             If {@code objectState} is null
-     * @throws InvalidEventTimeStampOrderException
-     *             If the {@linkplain ObjectState#getObject() object} of the
+     * @throws IllegalStateException
+     *             <ul
+     *             <li>If the {@linkplain ObjectState#getObject() object} of the
      *             {@code objectState} is already an {@linkplain #getObjectIds()
      *             object ID} of this universe, but the
      *             {@linkplain ObjectState#getWhen() time-stamp} of
@@ -440,17 +367,17 @@ public class Universe {
      *             {@linkplain SortedMap#lastKey() last} state in the
      *             {@linkplain #getObjectStateHistory(UUID) object state history} of
      *             that object. In this case, this {@link Universe} is unchanged.
-     * @throws MissingDependedUponStateException
-     *             If the {@linkplain ObjectStateId#getWhen() time-stamp} of any
+     *             </li>
+     *             <li>If the {@linkplain ObjectStateId#getWhen() time-stamp} of any
      *             {@linkplain ObjectState#getDependencies() dependencies} of the
      *             {@code objectState} are at or after the
      *             {@linkplain #getEarliestTimeOfCompleteState() earliest complete
      *             state} but are for {@linkplain ObjectStateId#getObject() objects}
      *             that are not {@linkplain #getObjectIds() known objects}. In this
-     *             case, this {@link Universe} is unchanged.
+     *             case, this {@link Universe} is unchanged.</li>
+     *             </ul>
      */
-    public final void append(ObjectState objectState)
-            throws InvalidEventTimeStampOrderException, MissingDependedUponStateException {
+    public final void append(ObjectState objectState) throws IllegalStateException {
         Objects.requireNonNull(objectState, "objectState");
 
         final ObjectStateId id = objectState.getId();
@@ -462,11 +389,11 @@ public class Universe {
         for (ObjectStateId dependency : dependencies) {
             if (0 <= dependency.getWhen().compareTo(earliestTimeOfCompleteState)
                     && !objectStateHistories.containsKey(dependency.getObject())) {
-                throw new MissingDependedUponStateException();
+                throw new IllegalStateException("Missing depended upon state");
             }
         }
         if (stateHistory != null && 0 <= stateHistory.lastKey().compareTo(when)) {
-            throw new InvalidEventTimeStampOrderException();
+            throw new IllegalStateException("Invalid event time stamp order");
         }
 
         if (stateHistory == null) {

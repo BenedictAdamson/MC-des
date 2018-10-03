@@ -80,92 +80,6 @@ public class UniverseTest {
 
     /**
      * <p>
-     * Unit tests for the {@link Universe.InvalidEventTimeStampOrderException}
-     * class.
-     * </p>
-     */
-    public static class InvalidEventTimeStampOrderExceptionTest {
-
-        public static void assertInvariants(Universe.InvalidEventTimeStampOrderException exception) {
-            ObjectTest.assertInvariants(exception);// inherited
-        }
-
-        public static void assertInvariants(Universe.InvalidEventTimeStampOrderException exception1,
-                Universe.InvalidEventTimeStampOrderException exception2) {
-            ObjectTest.assertInvariants(exception1, exception2);// inherited
-        }
-
-        private static void constructor(Throwable cause) {
-            final Universe.InvalidEventTimeStampOrderException exception = new Universe.InvalidEventTimeStampOrderException(
-                    cause);
-
-            assertInvariants(exception);
-            assertSame("cause", cause, exception.getCause());
-        }
-
-        @Test
-        public void constructor_0() {
-            final Universe.InvalidEventTimeStampOrderException exception = new Universe.InvalidEventTimeStampOrderException();
-
-            assertInvariants(exception);
-        }
-
-        @Test
-        public void constructor_1A() {
-            constructor(new NullPointerException("Test exception"));
-        }
-
-        @Test
-        public void constructor_1B() {
-            constructor(new IllegalArgumentException("Test exception"));
-        }
-    }// class
-
-    /**
-     * <p>
-     * Unit tests and auxiliary code for the
-     * {@link Universe.MissingDependedUponStateException} class.
-     */
-    public static class MissingDependedUponStateExceptionTest {
-
-        public static void assertInvariants(Universe.MissingDependedUponStateException exception) {
-            ObjectTest.assertInvariants(exception);// inherited
-        }
-
-        public static void assertInvariants(Universe.MissingDependedUponStateException exception1,
-                Universe.MissingDependedUponStateException exception2) {
-            ObjectTest.assertInvariants(exception1, exception2);// inherited
-        }
-
-        private static void constructor(Throwable cause) {
-            final Universe.MissingDependedUponStateException exception = new Universe.MissingDependedUponStateException(
-                    cause);
-
-            assertInvariants(exception);
-            assertSame("cause", cause, exception.getCause());
-        }
-
-        @Test
-        public void constructor_0() {
-            final Universe.MissingDependedUponStateException exception = new Universe.MissingDependedUponStateException();
-
-            assertInvariants(exception);
-        }
-
-        @Test
-        public void constructor_1A() {
-            constructor(new NullPointerException("Test exception"));
-        }
-
-        @Test
-        public void constructor_1B() {
-            constructor(new IllegalArgumentException("Test exception"));
-        }
-
-    }// class
-
-    /**
-     * <p>
      * Unit tests, and auxiliary test code, for testing the class
      * {@link Universe.Transaction}.
      * </p>
@@ -468,8 +382,7 @@ public class UniverseTest {
     private static final Duration DURATION_4 = Duration.ofSeconds(29);
     private static final Duration DURATION_5 = Duration.ofSeconds(31);
 
-    public static void append(final Universe universe, ObjectState objectState)
-            throws Universe.InvalidEventTimeStampOrderException {
+    public static void append(final Universe universe, ObjectState objectState) throws IllegalStateException {
         final ObjectStateId id = objectState.getId();
         final UUID object = id.getObject();
         final Duration when = id.getWhen();
@@ -478,7 +391,7 @@ public class UniverseTest {
 
         try {
             universe.append(objectState);
-        } catch (final Universe.InvalidEventTimeStampOrderException | Universe.MissingDependedUponStateException e) {// Permitted
+        } catch (final IllegalStateException e) {// Permitted
             assertInvariants(universe);
             assertEquals("Known object IDs unchanged", objectIds0, universe.getObjectIds());
             assertEquals("Object state history unchanged", objectStateHistory0, universe.getObjectStateHistory(object));
@@ -570,7 +483,7 @@ public class UniverseTest {
     }
 
     private static void append_2OutOfOrderStates(final Duration when1, final Duration when2)
-            throws Universe.InvalidEventTimeStampOrderException {
+            throws IllegalStateException {
         assert when1.compareTo(when2) >= 0;
         final UUID object = OBJECT_A;
         final Duration earliestCompleteState = when1;
@@ -868,22 +781,22 @@ public class UniverseTest {
         append_2DifferentObjects(OBJECT_B, OBJECT_A);
     }
 
-    @Test(expected = Universe.InvalidEventTimeStampOrderException.class)
+    @Test(expected = IllegalStateException.class)
     public void append_2OutOfOrderStatesA() {
         append_2OutOfOrderStates(DURATION_2, DURATION_1);
     }
 
-    @Test(expected = Universe.InvalidEventTimeStampOrderException.class)
+    @Test(expected = IllegalStateException.class)
     public void append_2OutOfOrderStatesB() {
         append_2OutOfOrderStates(DURATION_3, DURATION_2);
     }
 
-    @Test(expected = Universe.InvalidEventTimeStampOrderException.class)
+    @Test(expected = IllegalStateException.class)
     public void append_2OutOfOrderStatesClose() {
         append_2OutOfOrderStates(DURATION_2, DURATION_2.minusNanos(1L));
     }
 
-    @Test(expected = Universe.InvalidEventTimeStampOrderException.class)
+    @Test(expected = IllegalStateException.class)
     public void append_2OutOfOrderStatesSame() {
         append_2OutOfOrderStates(DURATION_2, DURATION_2);
     }
