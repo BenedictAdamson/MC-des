@@ -306,6 +306,31 @@ public class UniverseTest {
             put(transaction2, objectState2);
         }
 
+        private static void put_2NotSuccessiveForSameObject(final Duration earliestTimeOfCompleteState, UUID object,
+                Duration when0, Duration when1, Duration when2) throws Universe.AbortedTransactionException {
+            final Universe universe = new Universe(earliestTimeOfCompleteState);
+            final ObjectState objectState0 = new ObjectStateTest.TestObjectState(object, when0, Collections.emptyMap());
+            final ObjectStateId id0 = objectState0.getId();
+            final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object, when1,
+                    Collections.singletonMap(object, id0));
+            final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object, when2,
+                    Collections.singletonMap(object, id0));
+
+            universe.append(objectState0);
+            final Universe.Transaction transaction1 = universe.beginTransaction();
+            transaction1.fetchObjectState(object, when0);
+            final Universe.Transaction transaction2 = universe.beginTransaction();
+            transaction2.fetchObjectState(object, when0);
+            try {
+                transaction1.put(objectState1);
+            } catch (Universe.AbortedTransactionException e) {
+                // Not permitted
+                throw new AssertionError(e);
+            }
+
+            put(transaction2, objectState2);
+        }
+
         @Test
         public void close_immediately() {
             final Universe universe = new Universe(DURATION_1);
@@ -370,6 +395,16 @@ public class UniverseTest {
         @Test(expected = Universe.AbortedTransactionException.class)
         public void put_2InvalidEventTimeStampOrderB() throws Universe.AbortedTransactionException {
             put_2InvalidEventTimeStampOrder(DURATION_2, OBJECT_B, DURATION_3, DURATION_4, DURATION_5);
+        }
+
+        @Test(expected = Universe.AbortedTransactionException.class)
+        public void put_2NotSuccessiveForSameObjectA() throws Universe.AbortedTransactionException {
+            put_2NotSuccessiveForSameObject(DURATION_1, OBJECT_A, DURATION_2, DURATION_3, DURATION_4);
+        }
+
+        @Test(expected = Universe.AbortedTransactionException.class)
+        public void put_2NotSuccessiveForSameObjectB() throws Universe.AbortedTransactionException {
+            put_2NotSuccessiveForSameObject(DURATION_2, OBJECT_B, DURATION_3, DURATION_4, DURATION_5);
         }
     }// class
 

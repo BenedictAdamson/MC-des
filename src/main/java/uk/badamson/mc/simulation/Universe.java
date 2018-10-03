@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
@@ -291,7 +292,7 @@ public class Universe {
     }// class
 
     private final Map<ObjectStateId, ObjectStateData> stateTransitions = new HashMap<>();
-    private final Map<UUID, SortedMap<Duration, ObjectState>> objectStateHistories = new HashMap<>();
+    private final Map<UUID, NavigableMap<Duration, ObjectState>> objectStateHistories = new HashMap<>();
 
     private Duration earliestTimeOfCompleteState;
 
@@ -357,7 +358,7 @@ public class Universe {
      * @throws NullPointerException
      *             If {@code objectState} is null
      * @throws IllegalStateException
-     *             <ul
+     *             <ul>
      *             <li>If the {@linkplain ObjectState#getObject() object} of the
      *             {@code objectState} is already an {@linkplain #getObjectIds()
      *             object ID} of this universe, but the
@@ -375,6 +376,16 @@ public class Universe {
      *             state} but are for {@linkplain ObjectStateId#getObject() objects}
      *             that are not {@linkplain #getObjectIds() known objects}. In this
      *             case, this {@link Universe} is unchanged.</li>
+     *             <li>If the {@linkplain ObjectStateId#getWhen() time-stamp} of the
+     *             {@code objectState} is after the
+     *             {@linkplain #getEarliestTimeOfCompleteState() earliest complete
+     *             state} but the {@linkplain ObjectState#getDependencies()
+     *             dependencies} of the {@code objectState} does not include the
+     *             {@linkplain ObjectState#getId() ID} of the
+     *             {@linkplain SortedMap#lastKey() last} state transition of the
+     *             {@linkplain #getObjectStateHistory(UUID) state history} of the
+     *             {@linkplain ObjectState#getObject() object} of the
+     *             {@code objectState}.</li>
      *             </ul>
      */
     public final void append(ObjectState objectState) throws IllegalStateException {
@@ -384,7 +395,12 @@ public class Universe {
         final UUID object = id.getObject();
         final Duration when = id.getWhen();
         final Collection<ObjectStateId> dependencies = objectState.getDependencies().values();
-        SortedMap<Duration, ObjectState> stateHistory = objectStateHistories.get(object);
+
+        NavigableMap<Duration, ObjectState> stateHistory = objectStateHistories.get(object);
+        final Map.Entry<Duration, ObjectState> lastStateHistoryEntry = stateHistory == null ? null
+                : stateHistory.lastEntry();
+        final Duration lastWhen = lastStateHistoryEntry == null ? null : lastStateHistoryEntry.getKey();
+        final ObjectState lastState = lastStateHistoryEntry == null ? null : lastStateHistoryEntry.getValue();
 
         for (ObjectStateId dependency : dependencies) {
             if (0 <= dependency.getWhen().compareTo(earliestTimeOfCompleteState)
@@ -392,8 +408,12 @@ public class Universe {
                 throw new IllegalStateException("Missing depended upon state");
             }
         }
-        if (stateHistory != null && 0 <= stateHistory.lastKey().compareTo(when)) {
+        if (lastWhen != null && 0 <= lastWhen.compareTo(when)) {
             throw new IllegalStateException("Invalid event time stamp order");
+        }
+        if (lastState != null && 0 < when.compareTo(earliestTimeOfCompleteState)
+                && !dependencies.contains(lastState.getId())) {
+            throw new IllegalStateException("Event does not depend on previous event");
         }
 
         if (stateHistory == null) {
@@ -630,11 +650,11 @@ public class Universe {
         Objects.requireNonNull(object, "object");
         Objects.requireNonNull(when, "when");
 
-        final SortedMap<Duration, ObjectState> objectStateHistory = objectStateHistories.get(object);
+        final NavigableMap<Duration, ObjectState> objectStateHistory = objectStateHistories.get(object);
         if (objectStateHistory == null) {// unknown object
             return null;
         }
-        return objectStateHistory.headMap(when.plusNanos(1L));
+        return objectStateHistory.headMap(when, true);
     }
 
     /**
