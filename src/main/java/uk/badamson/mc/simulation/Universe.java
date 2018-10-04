@@ -416,7 +416,15 @@ public class Universe {
      *             {@linkplain SortedMap#lastKey() last} state transition of the
      *             {@linkplain #getObjectStateHistory(UUID) state history} of the
      *             {@linkplain ObjectState#getObject() object} of the
-     *             {@code objectState}.</li>
+     *             {@code objectState}. In this case, this {@link Universe} is
+     *             unchanged.</li>
+     *             <li>If the {@linkplain ObjectState#getObject() object} of the
+     *             {@code objectState} is already an {@linkplain #getObjectIds()
+     *             object ID} of this universe, and the
+     *             {@linkplain SortedMap#lastKey() last} entry in the
+     *             {@linkplain Universe#getObjectStateHistory(UUID) state history}
+     *             is a null value (indicating that the object ceased to exist at
+     *             the time of that entry).</li>
      *             </ul>
      */
     public final void append(ObjectState objectState) throws IllegalStateException {
@@ -438,6 +446,9 @@ public class Universe {
                     && !objectStateHistories.containsKey(dependency.getObject())) {
                 throw new IllegalStateException("Missing depended upon state");
             }
+        }
+        if (lastWhen != null && lastState == null) {
+            throw new IllegalStateException("Object already ceased to exist");
         }
         if (lastWhen != null && 0 <= lastWhen.compareTo(when)) {
             throw new IllegalStateException("Invalid event time stamp order");
