@@ -76,10 +76,12 @@ public class Universe {
 
     private static final class ObjectStateData {
         final ObjectState state;
+        final Map<UUID, ObjectStateId> dependencies;
         final Set<ObjectStateId> dependentStateTransitions = new HashSet<>();
 
-        private ObjectStateData(ObjectState state) {
+        private ObjectStateData(ObjectState state, Map<UUID, ObjectStateId> dependencies) {
             this.state = state;
+            this.dependencies = dependencies;
         }
 
     }// class
@@ -301,7 +303,7 @@ public class Universe {
                 throw new IllegalArgumentException("Object state dependencies not equal to transaction dependencies");
             }
             try {
-                append(objectState);
+                appendStateTransition(objectState, dependencies);
             } catch (IllegalStateException e) {
                 abortCommit = true;
             }
@@ -386,8 +388,26 @@ public class Universe {
      * 
      * @param objectState
      *            The state to add.
+     * @param dependencies
+     *            The (earlier) object states directly used to compute this object
+     *            state.
      * @throws NullPointerException
-     *             If {@code objectState} is null
+     *             <ul>
+     *             <li>If {@code objectState} is null.</li>
+     *             <li>If {@code dependencies} is null.</li>
+     *             <li>If {@code dependencies} has a null key.</li>
+     *             <li>If {@code dependencies} has a null value.</li>
+     *             </ul>
+     * @throws IllegalArgumentException
+     *             <ul>
+     *             <li>If any object ID {@linkplain Map#keySet() key} of the
+     *             {@code dependencies} map maps to a {@linkplain Map#values()
+     *             value} that does not have that same object ID as its
+     *             {@linkplain ObjectStateId#getObject() object}.</li>
+     *             <li>If the time-stamp of a value in the {@code dependencies} map
+     *             is not before the {@linkplain ObjectState#getWhen() time-stamp}
+     *             of the {@code objectState}.</li>
+     *             </ul>
      * @throws IllegalStateException
      *             <ul>
      *             <li>If the {@linkplain ObjectState#getObject() object} of the
@@ -401,8 +421,7 @@ public class Universe {
      *             that object. In this case, this {@link Universe} is unchanged.
      *             </li>
      *             <li>If the {@linkplain ObjectStateId#getWhen() time-stamp} of any
-     *             {@linkplain ObjectState#getDependencies() dependencies} of the
-     *             {@code objectState} are at or after the
+     *             the {@code dependencies} are at or after the
      *             {@linkplain #getEarliestTimeOfCompleteState() earliest complete
      *             state} but are for {@linkplain ObjectStateId#getObject() objects}
      *             that are not {@linkplain #getObjectIds() known objects}. In this
@@ -410,8 +429,7 @@ public class Universe {
      *             <li>If the {@linkplain ObjectStateId#getWhen() time-stamp} of the
      *             {@code objectState} is after the
      *             {@linkplain #getEarliestTimeOfCompleteState() earliest complete
-     *             state} but the {@linkplain ObjectState#getDependencies()
-     *             dependencies} of the {@code objectState} does not include the
+     *             state} but the {@code dependencies} does not include the
      *             {@linkplain ObjectState#getId() ID} of the
      *             {@linkplain SortedMap#lastKey() last} state transition of the
      *             {@linkplain #getObjectStateHistory(UUID) state history} of the
@@ -424,16 +442,19 @@ public class Universe {
      *             {@linkplain SortedMap#lastKey() last} entry in the
      *             {@linkplain Universe#getObjectStateHistory(UUID) state history}
      *             is a null value (indicating that the object ceased to exist at
-     *             the time of that entry).</li>
+     *             the time of that entry). In this case, this {@link Universe} is
+     *             unchanged.</li>
      *             </ul>
      */
-    public final void append(ObjectState objectState) throws IllegalStateException {
+    public final void appendStateTransition(ObjectState objectState, Map<UUID, ObjectStateId> dependencies)
+            throws IllegalStateException {
         Objects.requireNonNull(objectState, "objectState");
 
+        Map<UUID, ObjectStateId> dependenciesCopy = Collections.unmodifiableMap(new HashMap<>(dependencies));
         final ObjectStateId id = objectState.getId();
         final UUID object = id.getObject();
         final Duration when = id.getWhen();
-        final Collection<ObjectStateId> dependencies = objectState.getDependencies().values();
+        final Collection<ObjectStateId> dependencyIds = dependenciesCopy.values();
 
         NavigableMap<Duration, ObjectState> stateHistory = objectStateHistories.get(object);
         final Map.Entry<Duration, ObjectState> lastStateHistoryEntry = stateHistory == null ? null
@@ -441,9 +462,22 @@ public class Universe {
         final Duration lastWhen = lastStateHistoryEntry == null ? null : lastStateHistoryEntry.getKey();
         final ObjectState lastState = lastStateHistoryEntry == null ? null : lastStateHistoryEntry.getValue();
 
-        for (ObjectStateId dependency : dependencies) {
-            if (0 <= dependency.getWhen().compareTo(earliestTimeOfCompleteState)
-                    && !objectStateHistories.containsKey(dependency.getObject())) {
+        // Check after copy to avoid race hazards
+        for (var entry : dependenciesCopy.entrySet()) {
+            final UUID dependencyObject = Objects.requireNonNull(entry.getKey(), "dependencyObject");
+            final ObjectStateId dependency = Objects.requireNonNull(entry.getValue(), "dependency");
+            final Duration dependencyWhen = dependency.getWhen();
+
+            if (dependencyObject != dependency.getObject()) {
+                throw new IllegalArgumentException(
+                        "Object ID key of the dependency map does not map to a value that has that same object ID as its depended upon object.");
+            }
+            if (when.compareTo(dependencyWhen) < 0) {
+                throw new IllegalArgumentException("The time-stamp of a value in the dependency map <" + dependencyWhen
+                        + "> is not before the time-stamp of the ID of this state<" + when + ">.");
+            }
+            if (0 <= dependencyWhen.compareTo(earliestTimeOfCompleteState)
+                    && !objectStateHistories.containsKey(dependencyObject)) {
                 throw new IllegalStateException("Missing depended upon state");
             }
         }
@@ -454,7 +488,7 @@ public class Universe {
             throw new IllegalStateException("Invalid event time stamp order");
         }
         if (lastState != null && 0 < when.compareTo(earliestTimeOfCompleteState)
-                && !dependencies.contains(lastState.getId())) {
+                && !dependencyIds.contains(lastState.getId())) {
             throw new IllegalStateException("Event does not depend on previous event");
         }
 
@@ -464,10 +498,10 @@ public class Universe {
         }
         stateHistory.put(when, objectState);
 
-        final ObjectStateData stateData = new ObjectStateData(objectState);
+        final ObjectStateData stateData = new ObjectStateData(objectState, dependenciesCopy);
         stateTransitions.put(id, stateData);
 
-        for (ObjectStateId dependency : dependencies) {
+        for (ObjectStateId dependency : dependencyIds) {
             final UUID dependencyObject = dependency.getObject();
             final Duration dependencyWhen = dependency.getWhen();
             final ObjectState dependencyPreviousStateTransition = getObjectState(dependencyObject, dependencyWhen);
@@ -733,6 +767,51 @@ public class Universe {
             return null;
         } else {
             return objectStateData.state;
+        }
+    }
+
+    /**
+     * <p>
+     * The (earlier) object state information directly used to compute the state opf
+     * an object immediately after a state transition.
+     * </p>
+     * <p>
+     * Implicitly, if the object state computations were done differently for the
+     * dependent objects,the {@linkplain #getStateTransition(ObjectStateId) state
+     * transition} recorded for the given ID would be incorrect.
+     * </p>
+     * <ul>
+     * <li>Have a (non null) dependency map for an ID if, and only if, that is a
+     * known {@linkplain #getStateTransitionIds() state transition ID}.</li>
+     * <li>A (non null) dependency map does not have a null key.</li>
+     * <li>A (non null) dependency map does not have null values.</li>
+     * <li>Each object ID {@linkplain Map#keySet() key} of a (non null) dependency
+     * map maps to a value that has that same object ID as the
+     * {@linkplain ObjectStateId#getObject() object} of the object state transition
+     * ID.</li>
+     * <li>The {@linkplain ObjectStateId#getWhen() time-stamp} of every
+     * {@linkplain Map#values() value} in a (non null) dependency map is before the
+     * {@linkplain ObjectStateId#getWhen() time-stamp} of the the given state
+     * transition ID.</li>
+     * </ul>
+     * <p>
+     * The dependencies typically have an entry for the previous state of the
+     * {@linkplain ObjectStateId#getObject() object} of the state transition ID.
+     * </p>
+     * 
+     * @param stateTransitionId
+     *            The ID of the state transition of interest.
+     * @return The dependency information
+     * @throws NullPointerException
+     *             If {@code stateTransitionId} is null.
+     */
+    public final Map<UUID, ObjectStateId> getStateTransitionDependencies(ObjectStateId stateTransitionId) {
+        Objects.requireNonNull(stateTransitionId, "stateTransitionId");
+        final ObjectStateData objectStateData = stateTransitions.get(stateTransitionId);
+        if (objectStateData == null) {
+            return null;
+        } else {
+            return objectStateData.dependencies;
         }
     }
 

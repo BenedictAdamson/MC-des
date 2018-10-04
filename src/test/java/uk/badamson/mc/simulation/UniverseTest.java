@@ -86,7 +86,7 @@ public class UniverseTest {
      */
     public static class TransactionTest {
 
-        private static Map<UUID, ObjectStateId> assertDependenciesInvaraints(Universe.Transaction transaction) {
+        private static Map<UUID, ObjectStateId> assertDependenciesInvariants(Universe.Transaction transaction) {
             final Map<UUID, ObjectStateId> dependencies = transaction.getDependencies();
             assertNotNull("Always has a dependency map.", dependencies);
             final Set<ObjectStateId> objectStatesRead = transaction.getObjectStatesRead().keySet();
@@ -136,7 +136,7 @@ public class UniverseTest {
 
             UniverseTest.assertInvariants(universe);
             assertObjectStatesReadInvariants(transaction);
-            assertDependenciesInvaraints(transaction);
+            assertDependenciesInvariants(transaction);
         }
 
         public static void assertInvariants(Universe.Transaction transaction1, Universe.Transaction transaction2) {
@@ -218,7 +218,7 @@ public class UniverseTest {
             final ObjectStateId id2 = new ObjectStateId(object, when2);
             final Map<UUID, ObjectStateId> dependencies1 = Collections.emptyMap();
             final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object, when1, dependencies1);
-            universe.append(objectState1);
+            universe.appendStateTransition(objectState1, dependencies1);
             final Universe.Transaction transaction = universe.beginTransaction();
 
             final ObjectState objectState2 = fetchObjectState(transaction, object, when2);
@@ -244,8 +244,8 @@ public class UniverseTest {
             final Map<UUID, ObjectStateId> dependencies2 = Collections.singletonMap(object, id1);
             final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object, when1, dependencies1);
             final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object, when2, dependencies2);
-            universe.append(objectState1);
-            universe.append(objectState2);
+            universe.appendStateTransition(objectState1, dependencies1);
+            universe.appendStateTransition(objectState2, dependencies2);
             final Universe.Transaction transaction = universe.beginTransaction();
             transaction.fetchObjectState(object, when1);
 
@@ -293,7 +293,7 @@ public class UniverseTest {
             final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object, when1,
                     Collections.singletonMap(object, id0));
 
-            universe.append(objectState0);
+            universe.appendStateTransition(objectState0, Collections.emptyMap());
             final Universe.Transaction transaction1 = universe.beginTransaction();
             transaction1.fetchObjectState(object, when0);
             final Universe.Transaction transaction2 = universe.beginTransaction();
@@ -315,7 +315,7 @@ public class UniverseTest {
             final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object, when2,
                     Collections.singletonMap(object, id0));
 
-            universe.append(objectState0);
+            universe.appendStateTransition(objectState0, Collections.emptyMap());
             final Universe.Transaction transaction1 = universe.beginTransaction();
             transaction1.fetchObjectState(object, when0);
             final Universe.Transaction transaction2 = universe.beginTransaction();
@@ -353,7 +353,7 @@ public class UniverseTest {
             final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object, when2,
                     Collections.singletonMap(object, id0));
 
-            universe.append(objectState0);
+            universe.appendStateTransition(objectState0, Collections.emptyMap());
             final Universe.Transaction transaction1 = universe.beginTransaction();
             transaction1.fetchObjectState(object, when0);
             final Universe.Transaction transaction2 = universe.beginTransaction();
@@ -460,6 +460,7 @@ public class UniverseTest {
         public void put_2NotSuccessiveForSameObjectB() {
             put_2NotSuccessiveForSameObject(DURATION_2, OBJECT_B, DURATION_3, DURATION_4, DURATION_5);
         }
+
     }// class
 
     private static final UUID OBJECT_A = ObjectStateIdTest.OBJECT_A;
@@ -471,7 +472,8 @@ public class UniverseTest {
     private static final Duration DURATION_4 = Duration.ofSeconds(29);
     private static final Duration DURATION_5 = Duration.ofSeconds(31);
 
-    public static void append(final Universe universe, ObjectState objectState) throws IllegalStateException {
+    public static void appendStateTransition(final Universe universe, ObjectState objectState,
+            Map<UUID, ObjectStateId> dependencies) throws IllegalStateException {
         final ObjectStateId id = objectState.getId();
         final UUID object = id.getObject();
         final Duration when = id.getWhen();
@@ -479,7 +481,7 @@ public class UniverseTest {
         final SortedMap<Duration, ObjectState> objectStateHistory0 = universe.getObjectStateHistory(object);
 
         try {
-            universe.append(objectState);
+            universe.appendStateTransition(objectState, dependencies);
         } catch (final IllegalStateException e) {// Permitted
             assertInvariants(universe);
             assertEquals("Known object IDs unchanged", objectIds0, universe.getObjectIds());
@@ -500,7 +502,7 @@ public class UniverseTest {
                 objectStateHistory.get(when), sameInstance(objectState));
     }
 
-    private static void append_1(final UUID object, final Duration when) {
+    private static void appendStateTransition_1(final UUID object, final Duration when) {
         final Duration earliestCompleteState = when;
         final Duration justAfter = when.plusNanos(1L);
         final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
@@ -508,7 +510,7 @@ public class UniverseTest {
 
         final Universe universe = new Universe(earliestCompleteState);
 
-        append(universe, objectState);
+        appendStateTransition(universe, objectState, dependencies);
 
         assertThat("The object ID of the ID of the given object state is one of the object IDs of this universe.",
                 universe.getObjectIds(), equalTo(Collections.singleton(object)));
@@ -523,18 +525,18 @@ public class UniverseTest {
         assertUnknownObjectStateInvariants(universe, new ObjectStateId(object, justAfter));
     }
 
-    private static void append_1PrehistoricDependency(final Duration when1, final Duration earliestCompleteState,
-            final Duration when2) {
+    private static void appendStateTransition_1PrehistoricDependency(final Duration when1,
+            final Duration earliestCompleteState, final Duration when2) {
         final ObjectStateId dependentState = new ObjectStateId(OBJECT_A, when1);
         final Map<UUID, ObjectStateId> dependencies = Collections.singletonMap(OBJECT_A, dependentState);
         final ObjectState objectState = new ObjectStateTest.TestObjectState(OBJECT_B, when2, dependencies);
 
         final Universe universe = new Universe(earliestCompleteState);
 
-        append(universe, objectState);
+        appendStateTransition(universe, objectState, dependencies);
     }
 
-    private static void append_2Dependency(final Duration earliestCompleteState, final Duration when1,
+    private static void appendStateTransition_2Dependency(final Duration earliestCompleteState, final Duration when1,
             final Duration when2, UUID object1, UUID object2) {
         final ObjectStateId id1 = new ObjectStateId(object1, when1);
         final ObjectStateId id2 = new ObjectStateId(object2, when2);
@@ -544,15 +546,15 @@ public class UniverseTest {
         final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object2, when2, dependencies2);
 
         final Universe universe = new Universe(earliestCompleteState);
-        universe.append(objectState1);
+        universe.appendStateTransition(objectState1, dependencies1);
 
-        append(universe, objectState2);
+        appendStateTransition(universe, objectState2, dependencies2);
 
         assertEquals("Depended upon object has reverse dependency", Collections.singleton(id2),
                 universe.getDependentStateTransitions(id1));
     }
 
-    private static void append_2DifferentObjects(final UUID object1, final UUID object2) {
+    private static void appendStateTransition_2DifferentObjects(final UUID object1, final UUID object2) {
         assert !object1.equals(object2);
         final Duration when = DURATION_1;
         final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
@@ -560,18 +562,18 @@ public class UniverseTest {
         final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object2, when, dependencies);
 
         final Universe universe = new Universe(when);
-        universe.append(objectState1);
+        universe.appendStateTransition(objectState1, dependencies);
         final SortedMap<Duration, ObjectState> objectStateHistory1 = new TreeMap<>(
                 universe.getObjectStateHistory(object1));
 
-        append(universe, objectState2);
+        appendStateTransition(universe, objectState2, dependencies);
 
         assertEquals("Object IDs", Set.of(object1, object2), universe.getObjectIds());
         assertEquals("The object state histories of other objects are unchanged.", objectStateHistory1,
                 universe.getObjectStateHistory(object1));
     }
 
-    private static void append_2OutOfOrderStates(final Duration when1, final Duration when2)
+    private static void appendStateTransition_2OutOfOrderStates(final Duration when1, final Duration when2)
             throws IllegalStateException {
         assert when1.compareTo(when2) >= 0;
         final UUID object = OBJECT_A;
@@ -583,12 +585,12 @@ public class UniverseTest {
         expectedObjectStateHistory.put(when1, objectState1);
 
         final Universe universe = new Universe(earliestCompleteState);
-        universe.append(objectState1);
+        universe.appendStateTransition(objectState1, dependencies);
 
-        append(universe, objectState2);// throws
+        appendStateTransition(universe, objectState2, dependencies);// throws
     }
 
-    private static void append_2SuccessiveStates(final Duration when1, final Duration when2) {
+    private static void appendStateTransition_2SuccessiveStates(final Duration when1, final Duration when2) {
         assert when1.compareTo(when2) < 0;
         final UUID object = OBJECT_A;
         final Duration earliestCompleteState = when2;
@@ -602,9 +604,9 @@ public class UniverseTest {
         expectedObjectStateHistory.put(when2, objectState2);
 
         final Universe universe = new Universe(earliestCompleteState);
-        universe.append(objectState1);
+        universe.appendStateTransition(objectState1, dependencies1);
 
-        append(universe, objectState2);
+        appendStateTransition(universe, objectState2, dependencies2);
 
         assertEquals("Object IDs.", Collections.singleton(object), universe.getObjectIds());
         assertEquals("Object state history.", expectedObjectStateHistory, universe.getObjectStateHistory(object));
@@ -615,8 +617,9 @@ public class UniverseTest {
                 objectState1, universe.getObjectState(object, when2.minusNanos(1L)));
     }
 
-    private static void append_3TransitiveDependency(final Duration earliestCompleteState, final Duration when1,
-            final Duration when2, final Duration when3, UUID object1, UUID object2, UUID object3) {
+    private static void appendStateTransition_3TransitiveDependency(final Duration earliestCompleteState,
+            final Duration when1, final Duration when2, final Duration when3, UUID object1, UUID object2,
+            UUID object3) {
         final ObjectStateId id1 = new ObjectStateId(object1, when1);
         final ObjectStateId id2 = new ObjectStateId(object2, when2);
         final ObjectStateId id3 = new ObjectStateId(object3, when3);
@@ -628,10 +631,10 @@ public class UniverseTest {
         final ObjectState objectState3 = new ObjectStateTest.TestObjectState(object3, when3, dependencies3);
 
         final Universe universe = new Universe(earliestCompleteState);
-        universe.append(objectState1);
-        universe.append(objectState2);
+        universe.appendStateTransition(objectState1, dependencies1);
+        universe.appendStateTransition(objectState2, dependencies2);
 
-        append(universe, objectState3);
+        appendStateTransition(universe, objectState3, dependencies3);
 
         assertEquals("Depended upon object has reverse dependency", Collections.singleton(id3),
                 universe.getDependentStateTransitions(id2));
@@ -675,11 +678,11 @@ public class UniverseTest {
         assertNotNull("Always have a set of object IDs.", objectIds);// guard
         assertNotNull("Always have a (non null) set of state transition IDs.", stateTransitionIds);
 
-        for (ObjectStateId objectStateId : stateTransitionIds) {
-            assertNotNull("The set of IDs of state transitions does not have a null element.", objectStateId);// guard
-            ObjectStateIdTest.assertInvariants(objectStateId);
-            final ObjectState stateTransition = universe.getStateTransition(objectStateId);
-            final UUID object = objectStateId.getObject();
+        for (ObjectStateId stateTransitionId : stateTransitionIds) {
+            assertNotNull("The set of IDs of state transitions does not have a null element.", stateTransitionId);// guard
+            ObjectStateIdTest.assertInvariants(stateTransitionId);
+            final ObjectState stateTransition = universe.getStateTransition(stateTransitionId);
+            final UUID object = stateTransitionId.getObject();
             assertThat(
                     "The set of IDs of state transitions does not have elements for object IDs that are not in the set of objects in this universe.",
                     object, isIn(objectIds));
@@ -687,15 +690,16 @@ public class UniverseTest {
                     "Have a state transition if the given object state ID is one of the known state transition IDs of this universe.",
                     stateTransition);// guard
             ObjectStateTest.assertInvariants(stateTransition);
-            assertDependentStateTransitionsInvariants(universe, objectStateId);
+            assertStateTransitionDependencies(universe, stateTransitionId);
+            assertDependentStateTransitionsInvariants(universe, stateTransitionId);
 
             final Map<UUID, ObjectStateId> dependencies = stateTransition.getDependencies();
             assertEquals(
                     "A state transition accessed using a given object state ID has an equivalent object state ID as its ID.",
-                    objectStateId, stateTransition.getId());
+                    stateTransitionId, stateTransition.getId());
 
             for (ObjectStateId dependency : dependencies.values()) {
-                ObjectStateIdTest.assertInvariants(objectStateId, dependency);
+                ObjectStateIdTest.assertInvariants(stateTransitionId, dependency);
                 final boolean prehistoricDependency = dependency.getWhen().compareTo(earliestTimeOfCompleteState) <= 0;
                 assertTrue(
                         "All the dependencies of the state transitions either "
@@ -707,7 +711,7 @@ public class UniverseTest {
                 if (!prehistoricDependency) {
                     assertThat(
                             "The state transitions that depend on a given object state are consistent with the dependency information of the state transitions",
-                            objectStateId, isIn(dependencyDependentStateTransitions));
+                            stateTransitionId, isIn(dependencyDependentStateTransitions));
                 }
             }
         }
@@ -774,6 +778,30 @@ public class UniverseTest {
         ObjectTest.assertInvariants(universe1, universe2);// inherited
     }
 
+    private static Map<UUID, ObjectStateId> assertStateTransitionDependencies(Universe universe,
+            ObjectStateId stateTransitionId) {
+        final Map<UUID, ObjectStateId> dependencies = universe.getStateTransitionDependencies(stateTransitionId);
+        assertEquals("Have a dependency map for an ID if, and only if, that is a known state transition ID.",
+                universe.getStateTransitionIds().contains(stateTransitionId), dependencies != null);
+        if (dependencies != null) {
+            for (var entry : dependencies.entrySet()) {
+                final UUID object = entry.getKey();
+                final ObjectStateId dependency = entry.getValue();
+                assertNotNull("A dependency map does not have a null key.", object);
+                assertNotNull("A dependency map does not have null values.", dependency);// guard
+                ObjectStateIdTest.assertInvariants(dependency);
+                ObjectStateIdTest.assertInvariants(stateTransitionId, dependency);
+                assertSame(
+                        "Each object ID key of a dependency map maps to a value that has that same object ID as the object of the object state transition ID.",
+                        object, dependency.getObject());
+                assertThat(
+                        "The time-stamp of every value in s dependency map is before the time-stamp of the the given state transition ID.",
+                        dependency.getWhen(), lessThanOrEqualTo(stateTransitionId.getWhen()));
+            }
+        }
+        return dependencies;
+    }
+
     private static void assertUnknownObjectInvariants(Universe universe, UUID object) {
         assertThat("Not a known object ID", object, not(isIn(universe.getObjectIds())));
         assertNull("A universe has an object state history for a given object only if "
@@ -827,93 +855,95 @@ public class UniverseTest {
     }
 
     @Test
-    public void append_1A() {
-        append_1(OBJECT_A, DURATION_1);
+    public void appendStateTransition_1A() {
+        appendStateTransition_1(OBJECT_A, DURATION_1);
     }
 
     @Test
-    public void append_1B() {
-        append_1(OBJECT_B, DURATION_2);
+    public void appendStateTransition_1B() {
+        appendStateTransition_1(OBJECT_B, DURATION_2);
     }
 
     @Test
-    public void append_1PrehistoricDependencyA() {
-        append_1PrehistoricDependency(DURATION_1, DURATION_2, DURATION_3);
+    public void appendStateTransition_1PrehistoricDependencyA() {
+        appendStateTransition_1PrehistoricDependency(DURATION_1, DURATION_2, DURATION_3);
     }
 
     @Test
-    public void append_1PrehistoricDependencyB() {
-        append_1PrehistoricDependency(DURATION_2, DURATION_3, DURATION_4);
+    public void appendStateTransition_1PrehistoricDependencyB() {
+        appendStateTransition_1PrehistoricDependency(DURATION_2, DURATION_3, DURATION_4);
     }
 
     @Test
-    public void append_1PrehistoricDependencyClose() {
-        append_1PrehistoricDependency(DURATION_2.minusNanos(1L), DURATION_2, DURATION_2);
+    public void appendStateTransition_1PrehistoricDependencyClose() {
+        appendStateTransition_1PrehistoricDependency(DURATION_2.minusNanos(1L), DURATION_2, DURATION_2);
     }
 
     @Test
-    public void append_2DependencyA() {
-        append_2Dependency(DURATION_1, DURATION_2, DURATION_3, OBJECT_A, OBJECT_B);
+    public void appendStateTransition_2DependencyA() {
+        appendStateTransition_2Dependency(DURATION_1, DURATION_2, DURATION_3, OBJECT_A, OBJECT_B);
     }
 
     @Test
-    public void append_2DependencyB() {
-        append_2Dependency(DURATION_2, DURATION_3, DURATION_4, OBJECT_B, OBJECT_A);
+    public void appendStateTransition_2DependencyB() {
+        appendStateTransition_2Dependency(DURATION_2, DURATION_3, DURATION_4, OBJECT_B, OBJECT_A);
     }
 
     @Test
-    public void append_2DifferentObjectsA() {
-        append_2DifferentObjects(OBJECT_A, OBJECT_B);
+    public void appendStateTransition_2DifferentObjectsA() {
+        appendStateTransition_2DifferentObjects(OBJECT_A, OBJECT_B);
     }
 
     @Test
-    public void append_2DifferentObjectsB() {
-        append_2DifferentObjects(OBJECT_B, OBJECT_A);
+    public void appendStateTransition_2DifferentObjectsB() {
+        appendStateTransition_2DifferentObjects(OBJECT_B, OBJECT_A);
     }
 
     @Test(expected = IllegalStateException.class)
-    public void append_2OutOfOrderStatesA() {
-        append_2OutOfOrderStates(DURATION_2, DURATION_1);
+    public void appendStateTransition_2OutOfOrderStatesA() {
+        appendStateTransition_2OutOfOrderStates(DURATION_2, DURATION_1);
     }
 
     @Test(expected = IllegalStateException.class)
-    public void append_2OutOfOrderStatesB() {
-        append_2OutOfOrderStates(DURATION_3, DURATION_2);
+    public void appendStateTransition_2OutOfOrderStatesB() {
+        appendStateTransition_2OutOfOrderStates(DURATION_3, DURATION_2);
     }
 
     @Test(expected = IllegalStateException.class)
-    public void append_2OutOfOrderStatesClose() {
-        append_2OutOfOrderStates(DURATION_2, DURATION_2.minusNanos(1L));
+    public void appendStateTransition_2OutOfOrderStatesClose() {
+        appendStateTransition_2OutOfOrderStates(DURATION_2, DURATION_2.minusNanos(1L));
     }
 
     @Test(expected = IllegalStateException.class)
-    public void append_2OutOfOrderStatesSame() {
-        append_2OutOfOrderStates(DURATION_2, DURATION_2);
+    public void appendStateTransition_2OutOfOrderStatesSame() {
+        appendStateTransition_2OutOfOrderStates(DURATION_2, DURATION_2);
     }
 
     @Test
-    public void append_2SuccessiveStatesA() {
-        append_2SuccessiveStates(DURATION_1, DURATION_2);
+    public void appendStateTransition_2SuccessiveStatesA() {
+        appendStateTransition_2SuccessiveStates(DURATION_1, DURATION_2);
     }
 
     @Test
-    public void append_2SuccessiveStatesB() {
-        append_2SuccessiveStates(DURATION_2, DURATION_3);
+    public void appendStateTransition_2SuccessiveStatesB() {
+        appendStateTransition_2SuccessiveStates(DURATION_2, DURATION_3);
     }
 
     @Test
-    public void append_2SuccessiveStatesClose() {
-        append_2SuccessiveStates(DURATION_1, DURATION_1.plusNanos(1));
+    public void appendStateTransition_2SuccessiveStatesClose() {
+        appendStateTransition_2SuccessiveStates(DURATION_1, DURATION_1.plusNanos(1));
     }
 
     @Test
-    public void append_3TransitiveDependencyA() {
-        append_3TransitiveDependency(DURATION_1, DURATION_2, DURATION_3, DURATION_4, OBJECT_A, OBJECT_B, OBJECT_C);
+    public void appendStateTransition_3TransitiveDependencyA() {
+        appendStateTransition_3TransitiveDependency(DURATION_1, DURATION_2, DURATION_3, DURATION_4, OBJECT_A, OBJECT_B,
+                OBJECT_C);
     }
 
     @Test
-    public void append_3TransitiveDependencyB() {
-        append_3TransitiveDependency(DURATION_2, DURATION_3, DURATION_4, DURATION_5, OBJECT_B, OBJECT_C, OBJECT_A);
+    public void appendStateTransition_3TransitiveDependencyB() {
+        appendStateTransition_3TransitiveDependency(DURATION_2, DURATION_3, DURATION_4, DURATION_5, OBJECT_B, OBJECT_C,
+                OBJECT_A);
     }
 
     @Test
