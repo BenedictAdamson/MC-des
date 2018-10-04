@@ -97,6 +97,7 @@ public class Universe {
 
         private final Map<ObjectStateId, ObjectState> objectStatesRead = new HashMap<>();
         private final Map<UUID, ObjectStateId> dependencies = new HashMap<>();
+        private boolean abortCommit;
 
         private Transaction() {
             // Do nothing
@@ -110,6 +111,30 @@ public class Universe {
         @Override
         public final void close() {
             // Do nothing
+        }
+
+        /**
+         * <p>
+         * Complete this transaction.
+         * </p>
+         * <ul>
+         * <li>If this transaction included a {@linkplain #put(ObjectState) put} (write)
+         * of an object state, that object state has been recorded in the
+         * {@linkplain Universe#getObjectStateHistory(UUID) state history} of the
+         * {@linkplain ObjectState#getObject() object} of the object state in the
+         * {@linkplain #getUniverse() universe} of this transaction.</li>
+         * </ul>
+         * 
+         * @throws Universe.AbortedTransactionException
+         *             If the consistency constraints of this transaction and of the
+         *             {@linkplain #getUniverse() universe} of this transaction could
+         *             not then be satisfied. In this case the
+         *             {@linkplain #willAbortCommit() commit abort flag} is set.
+         */
+        public final void commit() throws Universe.AbortedTransactionException {
+            if (abortCommit) {
+                throw new Universe.AbortedTransactionException();
+            }
         }
 
         /**
@@ -249,14 +274,16 @@ public class Universe {
 
         /**
          * <p>
-         * Add a state transition to the {@linkplain #getUniverse() universe} of this
-         * transaction.
+         * Try to add a state transition to the {@linkplain #getUniverse() universe} of
+         * this transaction.
          * <p>
          * <ul>
-         * <li>The {@linkplain ObjectState#getId() ID} of the given object state is one
-         * of the {@linkplain Universe#getStateTransitionIds() state transition IDs} of
-         * the {@linkplain #getUniverse() universe} of this transaction.</li>
-         * <li>The given object state is the
+         * <li>Either the {@linkplain #willAbortCommit() commit abort flag } is set or
+         * the {@linkplain ObjectState#getId() ID} of the given object state is one of
+         * the {@linkplain Universe#getStateTransitionIds() state transition IDs} of the
+         * {@linkplain #getUniverse() universe} of this transaction.</li>
+         * <li>Either the {@linkplain #willAbortCommit() commit abort flag } is set or
+         * the given object state is the
          * {@linkplain Universe#getStateTransition(ObjectStateId) state at the state
          * transition} for the {@linkplain ObjectState#getId() ID} of the given object
          * state.</li>
@@ -266,18 +293,9 @@ public class Universe {
          *            The state to add.
          * @throws NullPointerException
          *             If {@code objectState} is null
-         * @throws IllegalArgumentException
-         *             If the {@linkplain ObjectState#getDependencies() dependencies} of
-         *             the {@code objectState} are not {@linkplain Map#equals(Object)
-         *             equal to} the {@linkplain #getDependencies() dependencies} of
-         *             this transaction.
-         * @throws Universe.AbortedTransactionException
-         *             If the consistency constraints of this transaction and of the
-         *             {@linkplain #getUniverse() universe} of this transaction can not
-         *             then be satisfied.
          * 
          */
-        public final void put(ObjectState objectState) throws Universe.AbortedTransactionException {
+        public final void put(ObjectState objectState) {
             Objects.requireNonNull(objectState, "objectState");
             if (!dependencies.equals(objectState.getDependencies())) {
                 throw new IllegalArgumentException("Object state dependencies not equal to transaction dependencies");
@@ -285,8 +303,21 @@ public class Universe {
             try {
                 append(objectState);
             } catch (IllegalStateException e) {
-                throw new Universe.AbortedTransactionException(e);
+                abortCommit = true;
             }
+        }
+
+        /**
+         * <p>
+         * Whether it is already known that attempting to {@linkplain #commit() commit}
+         * this transaction will fail (that is, will throw a
+         * {@link Universe.AbortedTransactionException}.
+         * </p>
+         * 
+         * @return whether already known
+         */
+        public final boolean willAbortCommit() {
+            return abortCommit;
         }
 
     }// class
@@ -449,6 +480,8 @@ public class Universe {
      * <li>The returned transaction {@linkplain Map#isEmpty() has not}
      * {@linkplain Universe.Transaction#getObjectStatesRead() read any object
      * states}.</li>
+     * <li>The {@linkplain Transaction#willAbortCommit() commit abort flag} of the
+     * return transaction is clear ({@code false}.</li>
      * </ul>
      * 
      * @return a new transaction object; not null

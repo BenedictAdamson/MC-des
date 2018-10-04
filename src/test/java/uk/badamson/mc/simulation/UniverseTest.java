@@ -173,6 +173,19 @@ public class UniverseTest {
             assertInvariants(transaction);
         }
 
+        public static void commit(final Universe.Transaction transaction) throws Universe.AbortedTransactionException {
+            try {
+                transaction.commit();
+            } catch (Universe.AbortedTransactionException e) {
+                // Permitted
+                assertInvariants(transaction);
+                UniverseTest.AbortedTransactionExceptionTest.assertInvariants(e);
+                throw e;
+            }
+
+            assertInvariants(transaction);
+        }
+
         public static ObjectState fetchObjectState(final Universe.Transaction transaction, UUID object, Duration when) {
             final ObjectStateId id = new ObjectStateId(object, when);
             final boolean wasPreviouslyRead = transaction.getObjectStatesRead().containsKey(id);
@@ -239,28 +252,22 @@ public class UniverseTest {
             fetchObjectState(transaction, object, when2);
         }
 
-        public static void put(final Universe.Transaction transaction, ObjectState objectState)
-                throws Universe.AbortedTransactionException {
+        public static void put(final Universe.Transaction transaction, ObjectState objectState) {
             final Universe universe = transaction.getUniverse();
             final ObjectStateId id = objectState.getId();
 
-            try {
-                transaction.put(objectState);
-            } catch (Universe.AbortedTransactionException e) {
-                // Permitted
-                assertInvariants(transaction);
-                UniverseTest.AbortedTransactionExceptionTest.assertInvariants(e);
-                throw e;
-            }
+            transaction.put(objectState);
 
             assertInvariants(transaction);
             ObjectStateTest.assertInvariants(objectState);
-            assertThat(
-                    "The ID of the given object state is one of the state transition IDs of the universe of this transaction.",
-                    id, isIn(universe.getStateTransitionIds()));
-            assertSame(
-                    "The given object state is the state at the state transition for the ID of the given object state.",
-                    objectState, universe.getStateTransition(id));
+            if (!transaction.willAbortCommit()) {
+                assertThat(
+                        "Either the commit abort flag is set or the ID of the given object state is one of the state transition IDs of the universe of this transaction.",
+                        id, isIn(universe.getStateTransitionIds()));
+                assertSame(
+                        "Either the commit abort flag is set or the given object state is the state at the state transition for the ID of the given object state.",
+                        objectState, universe.getStateTransition(id));
+            }
         }
 
         private static void put_1(final Duration earliestTimeOfCompleteState, UUID object, Duration when) {
@@ -270,19 +277,14 @@ public class UniverseTest {
             final ObjectState objectState = new ObjectStateTest.TestObjectState(object, when, dependencies);
             final ObjectStateId id = objectState.getId();
 
-            try {
-                put(transaction, objectState);
-            } catch (Universe.AbortedTransactionException e) {
-                // Not permitted
-                throw new AssertionError(e);
-            }
+            put(transaction, objectState);
 
             assertEquals("Object IDs", Collections.singleton(object), universe.getObjectIds());
             assertEquals("State transition IDs", Collections.singleton(id), universe.getStateTransitionIds());
         }
 
         private static void put_2InvalidEventTimeStampOrder(final Duration earliestTimeOfCompleteState, UUID object,
-                Duration when0, Duration when1, Duration when2) throws Universe.AbortedTransactionException {
+                Duration when0, Duration when1, Duration when2) {
             final Universe universe = new Universe(earliestTimeOfCompleteState);
             final ObjectState objectState0 = new ObjectStateTest.TestObjectState(object, when0, Collections.emptyMap());
             final ObjectStateId id0 = objectState0.getId();
@@ -296,18 +298,15 @@ public class UniverseTest {
             transaction1.fetchObjectState(object, when0);
             final Universe.Transaction transaction2 = universe.beginTransaction();
             transaction2.fetchObjectState(object, when0);
-            try {
-                transaction1.put(objectState1);
-            } catch (Universe.AbortedTransactionException e) {
-                // Not permitted
-                throw new AssertionError(e);
-            }
+            transaction1.put(objectState1);
 
             put(transaction2, objectState2);
+
+            assertTrue("Will abort commit", transaction2.willAbortCommit());
         }
 
         private static void put_2NotSuccessiveForSameObject(final Duration earliestTimeOfCompleteState, UUID object,
-                Duration when0, Duration when1, Duration when2) throws Universe.AbortedTransactionException {
+                Duration when0, Duration when1, Duration when2) {
             final Universe universe = new Universe(earliestTimeOfCompleteState);
             final ObjectState objectState0 = new ObjectStateTest.TestObjectState(object, when0, Collections.emptyMap());
             final ObjectStateId id0 = objectState0.getId();
@@ -321,14 +320,11 @@ public class UniverseTest {
             transaction1.fetchObjectState(object, when0);
             final Universe.Transaction transaction2 = universe.beginTransaction();
             transaction2.fetchObjectState(object, when0);
-            try {
-                transaction1.put(objectState1);
-            } catch (Universe.AbortedTransactionException e) {
-                // Not permitted
-                throw new AssertionError(e);
-            }
+            transaction1.put(objectState1);
 
             put(transaction2, objectState2);
+
+            assertTrue("Will abort commit", transaction2.willAbortCommit());
         }
 
         @Test
@@ -339,6 +335,64 @@ public class UniverseTest {
             close(transaction);
 
             UniverseTest.assertInvariants(universe);
+        }
+
+        @Test(expected = Universe.AbortedTransactionException.class)
+        public void commit_failure() throws Universe.AbortedTransactionException {
+            final Duration earliestTimeOfCompleteState = DURATION_1;
+            final UUID object = OBJECT_A;
+            final Duration when0 = DURATION_2;
+            final Duration when1 = DURATION_3;
+            final Duration when2 = DURATION_4;
+
+            final Universe universe = new Universe(earliestTimeOfCompleteState);
+            final ObjectState objectState0 = new ObjectStateTest.TestObjectState(object, when0, Collections.emptyMap());
+            final ObjectStateId id0 = objectState0.getId();
+            final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object, when1,
+                    Collections.singletonMap(object, id0));
+            final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object, when2,
+                    Collections.singletonMap(object, id0));
+
+            universe.append(objectState0);
+            final Universe.Transaction transaction1 = universe.beginTransaction();
+            transaction1.fetchObjectState(object, when0);
+            final Universe.Transaction transaction2 = universe.beginTransaction();
+            transaction2.fetchObjectState(object, when0);
+            transaction1.put(objectState1);
+            transaction2.put(objectState2);
+
+            commit(transaction2);
+        }
+
+        @Test
+        public void commit_immediately() {
+            final Universe universe = new Universe(DURATION_1);
+            final Universe.Transaction transaction = universe.beginTransaction();
+
+            try {
+                commit(transaction);
+            } catch (Universe.AbortedTransactionException e) {
+                throw new AssertionError(e);
+            }
+        }
+
+        @Test
+        public void commit_ok() {
+            final Duration earliestTimeOfCompleteState = DURATION_1;
+            final UUID object = OBJECT_A;
+            final Duration when = DURATION_2;
+
+            final Universe universe = new Universe(earliestTimeOfCompleteState);
+            final Universe.Transaction transaction = universe.beginTransaction();
+            final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
+            final ObjectState objectState = new ObjectStateTest.TestObjectState(object, when, dependencies);
+            transaction.put(objectState);
+
+            try {
+                commit(transaction);
+            } catch (Universe.AbortedTransactionException e) {
+                throw new AssertionError(e);
+            }
         }
 
         @Test
@@ -387,23 +441,23 @@ public class UniverseTest {
             put_1(DURATION_2, OBJECT_B, DURATION_3);
         }
 
-        @Test(expected = Universe.AbortedTransactionException.class)
-        public void put_2InvalidEventTimeStampOrderA() throws Universe.AbortedTransactionException {
+        @Test
+        public void put_2InvalidEventTimeStampOrderA() {
             put_2InvalidEventTimeStampOrder(DURATION_1, OBJECT_A, DURATION_2, DURATION_3, DURATION_4);
         }
 
-        @Test(expected = Universe.AbortedTransactionException.class)
-        public void put_2InvalidEventTimeStampOrderB() throws Universe.AbortedTransactionException {
+        @Test
+        public void put_2InvalidEventTimeStampOrderB() {
             put_2InvalidEventTimeStampOrder(DURATION_2, OBJECT_B, DURATION_3, DURATION_4, DURATION_5);
         }
 
-        @Test(expected = Universe.AbortedTransactionException.class)
-        public void put_2NotSuccessiveForSameObjectA() throws Universe.AbortedTransactionException {
+        @Test
+        public void put_2NotSuccessiveForSameObjectA() {
             put_2NotSuccessiveForSameObject(DURATION_1, OBJECT_A, DURATION_2, DURATION_3, DURATION_4);
         }
 
-        @Test(expected = Universe.AbortedTransactionException.class)
-        public void put_2NotSuccessiveForSameObjectB() throws Universe.AbortedTransactionException {
+        @Test
+        public void put_2NotSuccessiveForSameObjectB() {
             put_2NotSuccessiveForSameObject(DURATION_2, OBJECT_B, DURATION_3, DURATION_4, DURATION_5);
         }
     }// class
@@ -749,6 +803,7 @@ public class UniverseTest {
                 transaction.getUniverse());
         assertEquals("The returned transaction has not read any object states.", Collections.EMPTY_MAP,
                 transaction.getObjectStatesRead());
+        assertFalse("The commit abort flag of the return transaction is clear", transaction.willAbortCommit());
 
         return transaction;
     }
