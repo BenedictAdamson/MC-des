@@ -31,39 +31,6 @@ public abstract class ObjectState {
      * <p>
      * Construct an object state with a given ID and dependencies.
      * </p>
-     * <ul>
-     * <li>The {@linkplain #getObject() object} of this state is the given
-     * object.</li>
-     * <li>The {@linkplain #getWhen() time-stamp} of this state is the given
-     * time-stamp.</li>
-     * <li>The {@linkplain #getDependencies() dependencies} of this state are equal
-     * to the given dependencies.</li>
-     * </ul>
-     * 
-     * @param object
-     *            The unique ID of the object for which this is a state.
-     * @param when
-     *            The point in time that the object has this state.
-     * @param dependencies
-     *            The (earlier) object states directly used to compute this object
-     *            state.
-     * @throws NullPointerException
-     *             <ul>
-     *             <li>If {@code object} is null.</li>
-     *             <li>If {@code when} is null.</li>
-     *             <li>If {@code dependencies} is null.</li>
-     *             <li>If {@code dependencies} has a null key.</li>
-     *             <li>If {@code dependencies} has a null value.</li>
-     *             </ul>
-     * @throws IllegalArgumentException
-     *             <ul>
-     *             <li>If any object ID {@linkplain Map#keySet() key }of the
-     *             {@code dependencies} map maps to a {@linkplain Map#values()
-     *             value} that does not have that same object ID as its
-     *             {@linkplain ObjectStateId#getObject() object}.</li>
-     *             <li>If the time-stamp of a value in the dependency map is not
-     *             before the time-stamp of the ID of this state.</li>
-     *             </ul>
      */
     protected ObjectState(UUID object, Duration when, Map<UUID, ObjectStateId> dependencies) {
         id = new ObjectStateId(object, when);
@@ -88,70 +55,37 @@ public abstract class ObjectState {
 
     /**
      * <p>
-     * Compute the state of the {@link {@link #getObject()} object}, and any objects
-     * it creates, just after the {@link #getDurationUntilNextEvent next state
-     * change of the object}.
+     * Compute the next state transition of the {@link {@link #getObject()} object}
+     * of this object state.
      * </p>
      * <p>
-     * This computation may be expensive; recomputing future states should be
+     * This computation may be expensive; recomputing state transition should be
      * avoided.
      * </p>
      * <ul>
-     * <li>Always has a (non null) map of object states.</li>
-     * <li>The map of object states may be unmodifiable.</li>
-     * <li>The map of object states does not have a null key.</li>
-     * <li>The map of object states has an entry (key) for the
-     * {@link ObjectStateId#getObject() object ID} of the {@linkplain #getId() ID}
-     * of this state.</li>
-     * <li>The map has no null values for objects other than the
-     * {@link ObjectStateId.Id#getObject() object ID} of the of the
-     * {@linkplain #getId() ID} of this state.</li>
-     * <li>Non null next state values have the {@link ObjectStateId#getObject()
-     * object ID} of their {@linkplain #getId() ID} equal to their key.</li>
-     * <li>All the values (states) in the next states map are
-     * {@link Duration#equals(Object) equal} {@link #getWhen() points in time}.</li>
-     * <li>All the values (states) in the next states map are for a
-     * {@link #getWhen() point in time} after the point in time of this state.</li>
-     * <li>All the values (states) in the next states map have the
-     * {@linkplain #getId() ID} of this state as one of their
-     * {@linkplain #getDependencies() dependencies}.</li>
+     * <li>Always has a (non null) state transition.</li>
+     * <li>The {@linkplain StateTransition#getStates() states} of the state
+     * transition has an entry (key) for the the
+     * {@linkplain ObjectStateId#getObject() object} of the given state ID.</li>
+     * <li>The {@linkplain StateTransition#getStates() states} of the state
+     * transition has no null values for objects other than the
+     * {@linkplain ObjectStateId#getObject() object} of the given state ID.</li>
+     * <li>The {@linkplain StateTransition#getWhen() time} of the state transition
+     * is after the the {@linkplain ObjectStateId#getWhen() time-stamp} of the given
+     * state ID.</li>
+     * <li>The given state ID is one of the {@linkplain Map#values() values} of the
+     * {@linkplain StateTransition#getDependencies() dependencies} of the state
+     * transition.</li>
      * </ul>
      * 
-     * @return A mapping of object IDs to the states of those objects at the future
-     *         point in time. This will usually be a singleton map, containing an
-     *         entry for the @link {@link #getObject()} object} for which this is a
-     *         state. A null value for the object for which this is a state
-     *         indicates that the object no longer exists at the future point in
-     *         time. A map with more than one entry indicates that the object has
-     *         caused the creation of additional objects.
-     */
-    public abstract Map<UUID, ObjectState> createNextStates();
-
-    /**
-     * <p>
-     * Whether this {@link ObjectState} is equivalent to another object.
-     * </p>
-     * <p>
-     * The semantics of an {@link ObjectState} is that the its {@linkplain #getId()
-     * ID} attribute is a unique ID. Therefore two {@link ObjectState} objects are
-     * equivalent if, and only if, they have equals IDs.
-     * </p>
+     * @param idOfThisState
+     *            The ID of this state.
      * 
-     * @param that
-     *            The object to compare with this object.
-     * @return whether this object is equivalent to {@code that} object.
+     * @return The next state transition.
+     * @throws NullPointerException
+     *             If {@code idOfThisState} is null.
      */
-    @Override
-    public final boolean equals(Object that) {
-        if (this == that)
-            return true;
-        if (that == null)
-            return false;
-        if (getClass() != that.getClass())
-            return false;
-        ObjectState other = (ObjectState) that;
-        return id.equals(other.id);
-    }
+    public abstract StateTransition createNextStateTransition(ObjectStateId idOfThisState);
 
     /**
      * <p>
@@ -182,6 +116,7 @@ public abstract class ObjectState {
      * 
      * @return The dependency information
      */
+    @Deprecated
     public final Map<UUID, ObjectStateId> getDependencies() {
         return dependencies;
     }
@@ -214,6 +149,7 @@ public abstract class ObjectState {
      * 
      * @return The dependency information
      */
+    @Deprecated
     public final Collection<ObjectStateId> getDepenendedUponStates() {
         return dependencies.values();
     }
@@ -233,6 +169,7 @@ public abstract class ObjectState {
      * 
      * @return the ID; not null.
      */
+    @Deprecated
     public final ObjectStateId getId() {
         return id;
     }
@@ -244,6 +181,7 @@ public abstract class ObjectState {
      * 
      * @return The object ID; not null.
      */
+    @Deprecated
     public final UUID getObject() {
         return id.getObject();
     }
@@ -259,12 +197,8 @@ public abstract class ObjectState {
      * 
      * @return the amount of time since the epoch; not null.
      */
+    @Deprecated
     public final Duration getWhen() {
         return id.getWhen();
-    }
-
-    @Override
-    public final int hashCode() {
-        return id.hashCode();
     }
 }
