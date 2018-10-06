@@ -1,5 +1,9 @@
 package uk.badamson.mc.simulation;
 
+import static org.junit.Assert.assertNull;
+
+import java.time.Duration;
+
 import org.junit.Test;
 
 import uk.badamson.mc.ObjectTest;
@@ -11,18 +15,24 @@ import uk.badamson.mc.ObjectTest;
  */
 public class ValueHistoryTest {
 
-    public static void assertInvariants(ValueHistory history) {
+    private static final Duration DURATION_1 = Duration.ZERO;
+    private static final Duration DURATION_2 = Duration.ofSeconds(2);
+
+    public static <VALUE> void assertInvariants(ValueHistory<VALUE> history) {
         ObjectTest.assertInvariants(history);// inherited
     }
 
-    public static void assertInvariants(ValueHistory history1, ValueHistory history2) {
+    public static <VALUE> void assertInvariants(ValueHistory<VALUE> history1, ValueHistory<VALUE> history2) {
         ObjectTest.assertInvariants(history1, history2);// inherited
     }
 
     @Test
-    public void constructor() {
-        final ValueHistory history = new ValueHistory();
+    public void constructor_0() {
+        final var history = new ValueHistory<Integer>();
 
         assertInvariants(history);
+        assertNull("Value history is null for all points in time [1]", history.get(DURATION_1));
+        assertNull("Value history is null for all points in time [2]", history.get(DURATION_2));
     }
+
 }
