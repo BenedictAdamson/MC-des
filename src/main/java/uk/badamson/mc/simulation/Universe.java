@@ -6,11 +6,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.TreeMap;
 import java.util.UUID;
 
 /**
@@ -77,7 +75,6 @@ public class Universe {
     private static final class ObjectStateData {
         final ObjectState state;
         final Map<UUID, ObjectStateId> dependencies;
-        final Set<ObjectStateId> dependentStateTransitions = new HashSet<>();
 
         private ObjectStateData(ObjectState state, Map<UUID, ObjectStateId> dependencies) {
             this.state = state;
@@ -321,7 +318,7 @@ public class Universe {
     }// class
 
     private final Map<ObjectStateId, ObjectStateData> stateTransitions = new HashMap<>();
-    private final Map<UUID, NavigableMap<Duration, ObjectState>> objectStateHistories = new HashMap<>();
+    private final Map<UUID, ValueHistory<ObjectState>> objectStateHistories = new HashMap<>();
 
     private Duration earliestTimeOfCompleteState;
 
@@ -351,31 +348,12 @@ public class Universe {
                 "earliestTimeOfCompleteState");
     }
 
-    private void addDependentStateTransitions(ObjectStateId objectStateId, final Set<ObjectStateId> result) {
-        final UUID object = objectStateId.getObject();
-        final SortedMap<Duration, ObjectState> stateTransitionsFrom = getStateHistoryFrom(object,
-                objectStateId.getWhen());
-        if (stateTransitionsFrom != null) {
-            for (var entry : stateTransitionsFrom.entrySet()) {
-                final Duration when = entry.getKey();
-                final ObjectStateId stateTransitionAfterId = new ObjectStateId(object, when);
-                final ObjectStateData stateTransitionAfterData = stateTransitions.get(stateTransitionAfterId);
-                result.addAll(stateTransitionAfterData.dependentStateTransitions);
-                for (ObjectStateId dependentStateTransitionId : stateTransitionAfterData.dependentStateTransitions) {
-                    addDependentStateTransitions(dependentStateTransitionId, result);
-                }
-            }
-        }
-    }
-
     private void append1StateTransition(Duration when, UUID object, ObjectState objectState,
             final Map<UUID, ObjectStateId> dependencies) throws IllegalStateException {
         final ObjectStateId objectStateId = new ObjectStateId(object, when);
-        NavigableMap<Duration, ObjectState> stateHistory = objectStateHistories.get(object);
-        final Map.Entry<Duration, ObjectState> lastStateHistoryEntry = stateHistory == null ? null
-                : stateHistory.lastEntry();
-        final Duration lastWhen = lastStateHistoryEntry == null ? null : lastStateHistoryEntry.getKey();
-        final ObjectState lastState = lastStateHistoryEntry == null ? null : lastStateHistoryEntry.getValue();
+        ValueHistory<ObjectState> stateHistory = objectStateHistories.get(object);
+        final Duration lastWhen = stateHistory == null ? null : stateHistory.getLastTansitionTime();
+        final ObjectState lastState = stateHistory == null ? null : stateHistory.getLastValue();
         final ObjectStateId lastStateId = lastWhen == null ? null : new ObjectStateId(object, lastWhen);
         final Collection<ObjectStateId> dependencyIds = dependencies.values();
         if (lastWhen != null && lastState == null) {
@@ -390,10 +368,10 @@ public class Universe {
         }
 
         if (stateHistory == null) {
-            stateHistory = new TreeMap<>();
+            stateHistory = new ValueHistory<ObjectState>();
             objectStateHistories.put(object, stateHistory);
         }
-        stateHistory.put(when, objectState);
+        stateHistory.appendTransition(when, objectState);
 
         final ObjectStateData stateData = new ObjectStateData(objectState, dependencies);
         stateTransitions.put(objectStateId, stateData);
@@ -567,7 +545,7 @@ public class Universe {
     public final Set<ObjectStateId> getDependentStateTransitions(ObjectStateId objectStateId) {
         Objects.requireNonNull(objectStateId, "objectStateId");
         final Set<ObjectStateId> result = new HashSet<>();
-        addDependentStateTransitions(objectStateId, result);
+        // TODO
         return result;
     }
 
@@ -638,13 +616,11 @@ public class Universe {
      *             </ul>
      */
     public final ObjectState getObjectState(UUID object, Duration when) {
-        final SortedMap<Duration, ObjectState> eventsAtOrBefore = getStateHistoryUntil(object, when);
-        if (eventsAtOrBefore == null) {// unknown object
-            return null;
-        } else if (eventsAtOrBefore.isEmpty()) {// before first event
+        final var stateHistory = objectStateHistories.get(object);
+        if (stateHistory == null) {// unknown object
             return null;
         } else {
-            return eventsAtOrBefore.get(eventsAtOrBefore.lastKey());
+            return stateHistory.get(when);
         }
     }
 
@@ -658,65 +634,29 @@ public class Universe {
      * and only if, that object is one of the {@linkplain #getObjectIds() objects}
      * in the universe.</li>
      * <li>A (non null) object state history for a given object is not
-     * {@linkplain Map#isEmpty() empty}.</li>
-     * <li>Only the {@linkplain SortedMap#lastKey() last} entry in a (non null)
-     * object state history may map to a null state (indicating that the object
+     * {@linkplain ValueHistory#isEmpty() empty}.</li>
+     * <li>Only the {@linkplain ValueHistory#getLastValue() last value} in a (non
+     * null) object state history may be a null state (indicating that the object
      * ceased to exist at that time).</li>
-     * <li>A (non null) object state history for a given object maps to a null value
-     * or an object state with a {@linkplain ObjectStateId#getWhen() time-stamp}
-     * equal to the key of the map.</li>
-     * <li>All non null object states in the state history of a given object have
-     * the given object ID as the {@linkplain ObjectStateId#getObject() object ID}
-     * of the {@linkplain ObjectState#getId() state ID}.</li>
-     * <li>All non null object states in the state history of a given object have an
-     * ID that belongs to the {@linkplain #getObjectIds() set of all known object
-     * IDs}.</li>
-     * <li>All non null object states in the state history of a given object, except
-     * for the {@linkplain SortedMap#firstKey() first}, have as a
-     * {@linkplain ObjectState#getDependencies() dependency} on the previous object
-     * state in the state history.</li>
      * </ul>
      * 
      * @param object
      *            The object of interest
-     * @return The state history of the given object, as a map of the times of a
-     *         state transition to the state just after that transition, or null if
-     *         this universe does not {@linkplain #getObjectIds() include} the given
-     *         object. A null value indicates that the object ceased to exist at
-     *         that time.
+     * @return The state history of the given object, or null if this universe does
+     *         not {@linkplain #getObjectIds() include} the given object. A null
+     *         {@linkplain ValueHistory#get(Duration) value} in the history
+     *         indicates that the object did not exist at that time.
      * @throws NullPointerException
      *             If {@code object} is null
      */
-    public final SortedMap<Duration, ObjectState> getObjectStateHistory(UUID object) {
+    public final ValueHistory<ObjectState> getObjectStateHistory(UUID object) {
         Objects.requireNonNull(object, "object");
-        SortedMap<Duration, ObjectState> objectStateHistory = objectStateHistories.get(object);
+        ValueHistory<ObjectState> objectStateHistory = objectStateHistories.get(object);
         if (objectStateHistory == null) {
             return null;
         } else {
-            return new TreeMap<>(objectStateHistory);
+            return objectStateHistory;// TODO unmodifiable
         }
-    }
-
-    private SortedMap<Duration, ObjectState> getStateHistoryFrom(UUID object, Duration when) {
-        Objects.requireNonNull(object, "object");
-        Objects.requireNonNull(when, "when");
-
-        final SortedMap<Duration, ObjectState> objectStateHistory = objectStateHistories.get(object);
-        if (objectStateHistory == null) {// unknown object
-            return null;
-        }
-        return objectStateHistory.tailMap(when);
-    }
-
-    private SortedMap<Duration, ObjectState> getStateHistoryUntil(UUID object, Duration when) {
-        Objects.requireNonNull(object, "object");
-        Objects.requireNonNull(when, "when");
-
-        final NavigableMap<Duration, ObjectState> objectStateHistory = objectStateHistories.get(object);
-        if (objectStateHistory == null) {// unknown object
-            return null;
-        }
-        return objectStateHistory.headMap(when, true);
     }
 
     /**
@@ -829,8 +769,9 @@ public class Universe {
      * <li>An object has a (non null) first state time-stamp if, and only if, it is
      * a {@linkplain #getObjectIds() known object}.</li>
      * <li>If an object is known, its first state time-stamp is the
-     * {@linkplain SortedMap#firstKey() first key} of the
-     * {@linkplain #getObjectStateHistory(UUID) state history} of that object.</li>
+     * {@linkplain ValueHistory#getFirstTansitionTime() first transition time} of
+     * the {@linkplain #getObjectStateHistory(UUID) state history} of that
+     * object.</li>
      * </ul>
      * 
      * @param object
@@ -841,11 +782,11 @@ public class Universe {
      */
     public final Duration getWhenFirstState(UUID object) {
         Objects.requireNonNull(object, "object");
-        final SortedMap<Duration, ObjectState> objectStateHistory = objectStateHistories.get(object);
+        final ValueHistory<ObjectState> objectStateHistory = objectStateHistories.get(object);
         if (objectStateHistory == null) {
             return null;
         } else {
-            return objectStateHistory.firstKey();
+            return objectStateHistory.getFirstTansitionTime();
         }
     }
 }

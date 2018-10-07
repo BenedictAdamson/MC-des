@@ -569,8 +569,7 @@ public class UniverseTest {
 
         final Universe universe = new Universe(when);
         universe.appendStateTransition(stateTransition1);
-        final SortedMap<Duration, ObjectState> objectStateHistory1 = new TreeMap<>(
-                universe.getObjectStateHistory(object1));
+        final ValueHistory<ObjectState> objectStateHistory1 = universe.getObjectStateHistory(object1);
 
         appendStateTransition(universe, stateTransition2);
 
@@ -737,7 +736,7 @@ public class UniverseTest {
 
         for (UUID object : objectIds) {
             assertNotNull("The set of object IDs does not have a null element.", object);// guard
-            final SortedMap<Duration, ObjectState> objectStateHistory = universe.getObjectStateHistory(object);
+            final ValueHistory<ObjectState> objectStateHistory = universe.getObjectStateHistory(object);
             final Duration whenFirstState = universe.getWhenFirstState(object);
 
             assertNotNull(
@@ -747,36 +746,11 @@ public class UniverseTest {
 
             assertFalse("A object state history for a given object is not empty.", objectStateHistory.isEmpty());// guard
             assertSame(
-                    "If an object is known, its first state time-stamp is the first key of the state history of that object.",
-                    objectStateHistory.firstKey(), whenFirstState);
+                    "If an object is known, its first state time-stamp is the first transition time of the state history of that object.",
+                    objectStateHistory.getFirstTansitionTime(), whenFirstState);
             assertNull(
                     "Known objects have an unknown state just before the first known state of the state history of that object.",
                     universe.getObjectState(object, whenFirstState.minusNanos(1L)));
-
-            Map.Entry<Duration, ObjectState> previous = null;
-            int nNull = 0;
-            for (Map.Entry<Duration, ObjectState> entry : objectStateHistory.entrySet()) {
-                final Duration when = entry.getKey();
-                final ObjectState objectState = entry.getValue();
-
-                assertSame(
-                        "The state of an object at a given point in time is "
-                                + "the state it had at the latest state transition "
-                                + "at or before that point in time (at state transition)",
-                        objectState, universe.getObjectState(object, when));
-                if (objectState != null) {
-                    ObjectStateTest.assertInvariants(objectState);
-                    if (previous != null) {
-                        final ObjectState previousState = previous.getValue();
-                        ObjectStateTest.assertInvariants(objectState, previousState);
-                    }
-                }
-                previous = entry;
-            }
-            assertThat("Only the last entry in an object state history may map to a null state (number of nulls).",
-                    nNull, lessThanOrEqualTo(1));
-            assertTrue("Only the last entry in an object state history may map to a null state (non-last is null).",
-                    nNull == 0 || previous.getValue() == null);
         }
     }
 
