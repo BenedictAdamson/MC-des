@@ -76,6 +76,10 @@ public abstract class ObjectState {
      * <li>The given state ID is one of the {@linkplain Map#values() values} of the
      * {@linkplain StateTransition#getDependencies() dependencies} of the state
      * transition.</li>
+     * <li>The {@linkplain Map#get(Object) value} of the
+     * {@linkplain StateTransition#getStates() state} that has the
+     * {@linkplain ObjectStateId#getObject() object ID} of the given ID is not
+     * {@linkplain #equals(Object) equal to} this state.</li>
      * </ul>
      * 
      * @param idOfThisState

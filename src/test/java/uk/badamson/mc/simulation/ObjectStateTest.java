@@ -1,6 +1,7 @@
 package uk.badamson.mc.simulation;
 
 import static org.hamcrest.collection.IsIn.isIn;
+import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -60,24 +61,31 @@ public class ObjectStateTest {
     }
 
     public static StateTransition createNextStates(ObjectState state, ObjectStateId idOfThisState) {
+        final UUID objectOfThisState = idOfThisState.getObject();
+
         final StateTransition stateTransition = state.createNextStateTransition(idOfThisState);
 
         assertInvariants(state);
         assertNotNull("Always return a state transition", stateTransition);// guard
         StateTransitionTest.assertInvariants(stateTransition);
+
+        final Map<UUID, ObjectState> states = stateTransition.getStates();
+
         assertThat("The states of the state transition has an entry for the the object of the given state ID.",
-                idOfThisState.getObject(), isIn(stateTransition.getStates().keySet()));
-        for (var entry : stateTransition.getStates().entrySet()) {
+                objectOfThisState, isIn(states.keySet()));
+        for (var entry : states.entrySet()) {
             final UUID object = entry.getKey();
             final ObjectState stateAfterTransition = entry.getValue();
             assertFalse(
                     "The states of the state transition has no null values for objects other than the object of the given state ID.",
-                    !object.equals(idOfThisState.getObject()) && stateAfterTransition == null);
+                    !object.equals(objectOfThisState) && stateAfterTransition == null);
         }
         assertThat("The time of the state transition is after the the time-stamp of the given state ID.",
                 stateTransition.getWhen(), greaterThan(idOfThisState.getWhen()));
         assertThat("The given state ID is one of the values of the dependencies of the state transition.",
                 idOfThisState, isIn(stateTransition.getDependencies().values()));
+        assertThat("The value of the state that has the object ID of the given ID is not equal to this state.",
+                states.get(objectOfThisState), not(state));
 
         return stateTransition;
     }
