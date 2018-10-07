@@ -18,6 +18,8 @@ import net.jcip.annotations.NotThreadSafe;
  * @param VALUE
  *            The class of values of this value history. This must be an
  *            {@link Immutable immutable} type.
+ * 
+ * @see ModifiableValueHistory
  */
 @NotThreadSafe
 public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
@@ -27,19 +29,17 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
      * Construct an set value history that is unknown (null) for all points in time.
      * </p>
      * <ul>
-     * <li>The {@linkplain #getFirstValue() value of this history at the start of
-     * time} is null.</li>
      * <li>This {@linkplain #isEmpty() is empty}.</li>
      * </ul>
      */
     public ModifiableSetHistory() {
-        // Do nothinj
+        // Do nothing
     }
 
     @Override
     public final Set<VALUE> get(Duration t) {
         Objects.requireNonNull(t, "t");
-        return null;// TODO
+        return Collections.emptySet();// TODO
     }
 
     @Override
@@ -47,9 +47,19 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
         return null;// TODO
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * <p>
+     * What is more:
+     * </p>
+     * <ul>
+     * <li>The first value is an {@linkplain Set#isEmpty() empty set}.</li>
+     * </ul>
+     */
     @Override
     public final Set<VALUE> getFirstValue() {
-        return null;// TODO
+        return Collections.emptySet();
     }
 
     @Override
@@ -59,7 +69,7 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
 
     @Override
     public final Set<VALUE> getLastValue() {
-        return null;// TODO
+        return Collections.emptySet();// TODO
     }
 
     @Override
