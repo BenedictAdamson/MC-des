@@ -7,8 +7,12 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.SortedSet;
+import java.util.stream.Stream;
 
 /**
  * <p>
@@ -54,6 +58,7 @@ public class ValueHistoryTest {
         assertFirstValueInvariants(history);
         assertLastValueInvariants(history);
         assertEmptyInvariants(history);
+        assertStreamOfTransitionsInvariants(history);
     }
 
     public static <VALUE> void assertInvariants(ValueHistory<VALUE> history, Duration time) {
@@ -93,6 +98,31 @@ public class ValueHistoryTest {
                 lastTansitionTime == null || lastValue == valueAtLastTransitionTime);
 
         return lastValue;
+    }
+
+    private static <VALUE> Stream<Map.Entry<Duration, VALUE>> assertStreamOfTransitionsInvariants(
+            ValueHistory<VALUE> history) {
+        final Set<Duration> transitionTimes = history.getTransitionTimes();
+
+        final Stream<Map.Entry<Duration, VALUE>> stream = history.streamOfTransitions();
+
+        assertNotNull("Always creates a (non null) steam.", stream);// guard
+        Map<Duration, VALUE> entries = stream.collect(HashMap::new, (m, e) -> {
+            assertNotNull("streamOfTransitions entry", e);// guard
+            final Duration when = e.getKey();
+            final VALUE value = e.getValue();
+            assertNotNull("streamOfTransitions entry key", when);
+            assertSame(
+                    "The entries of the stream of transitions have value that are the same as the value of this history at the time of their corresponding key.",
+                    history.get(when), value);
+            m.put(when, value);
+        }, HashMap::putAll);
+
+        assertEquals(
+                "The stream of transitions contains an entry with a key for each of the transition times of this history.",
+                entries.keySet(), transitionTimes);
+
+        return entries.entrySet().stream();
     }
 
     private static <VALUE> SortedSet<Duration> assertTransitionTimesInvariants(ValueHistory<VALUE> history) {

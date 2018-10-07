@@ -2,7 +2,9 @@ package uk.badamson.mc.simulation;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Map;
 import java.util.SortedSet;
+import java.util.stream.Stream;
 
 import net.jcip.annotations.Immutable;
 import net.jcip.annotations.NotThreadSafe;
@@ -165,4 +167,23 @@ public interface ValueHistory<VALUE> {
      * 
      */
     public boolean isEmpty();
+
+    /**
+     * <p>
+     * Create a stream of the transitions in the value of this history.
+     * </p>
+     * <ul>
+     * <li>Always creates a (non null) steam.</li>
+     * <li>The stream of transitions contains an entry with a
+     * {@linkplain Map.Entry#getKey() key} for each of the
+     * {@linkplain #getTransitionTimes() transition times} of this history.</li>
+     * <li>The entries of the stream of transitions have
+     * {@linkplain Map.Entry#getValue() value} that are the same as the
+     * {@linkplain #get(Duration) value} of this history at the time of their
+     * corresponding {@linkplain Map.Entry#getKey() key}.</li>
+     * </ul>
+     * 
+     * @return a stream of the transitions.
+     */
+    public Stream<Map.Entry<Duration, VALUE>> streamOfTransitions();
 }

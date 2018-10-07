@@ -2,10 +2,12 @@ package uk.badamson.mc.simulation;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.stream.Stream;
 
 import net.jcip.annotations.Immutable;
 import net.jcip.annotations.NotThreadSafe;
@@ -310,4 +312,10 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
             }
         }
     }
+
+    @Override
+    public final Stream<Entry<Duration, VALUE>> streamOfTransitions() {
+        return transitions.entrySet().stream();
+    }
+
 }

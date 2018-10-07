@@ -2,9 +2,11 @@ package uk.badamson.mc.simulation;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.stream.Stream;
 
 import net.jcip.annotations.Immutable;
 import net.jcip.annotations.NotThreadSafe;
@@ -88,4 +90,10 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
     public final boolean isEmpty() {
         return true;// TODO
     }
+
+    @Override
+    public final Stream<Entry<Duration, Set<VALUE>>> streamOfTransitions() {
+        return Collections.<Duration, Set<VALUE>>emptyMap().entrySet().stream();// TODO
+    }
+
 }
