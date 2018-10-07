@@ -13,7 +13,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.stream.Collectors;
 
 import org.junit.Test;
 
@@ -34,8 +33,7 @@ public class ModifiableValueHistoryTest {
     private static <VALUE> void appendTransition(ModifiableValueHistory<VALUE> history, Duration when, VALUE value)
             throws IllegalStateException {
         final SortedSet<Duration> transitionTimes0 = new TreeSet<>(history.getTransitionTimes());
-        final Map<Duration, VALUE> transitionValues0 = transitionTimes0.stream()
-                .collect(Collectors.toMap(t -> t, t -> history.get(t)));
+        final Map<Duration, VALUE> transitionValues0 = ValueHistoryTest.getTransitionValues(history);
 
         try {
             history.appendTransition(when, value);
@@ -43,8 +41,7 @@ public class ModifiableValueHistoryTest {
             // Permitted
             assertInvariants(history);
             final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
-            final Map<Duration, VALUE> transitionValues = transitionTimes.stream()
-                    .collect(Collectors.toMap(t -> t, t -> history.get(t)));
+            final Map<Duration, VALUE> transitionValues = ValueHistoryTest.getTransitionValues(history);
             assertEquals("This history is unchanged if it throws IllegalStateException [transitionTimes].",
                     transitionTimes0, transitionTimes);
             assertEquals("This history is unchanged if it throws IllegalStateException [transitionValues].",
@@ -54,8 +51,7 @@ public class ModifiableValueHistoryTest {
 
         assertInvariants(history);
         final Collection<Duration> transitionTimes = history.getTransitionTimes();
-        final Map<Duration, VALUE> transitionValues = transitionTimes.stream()
-                .collect(Collectors.toMap(t -> t, t -> history.get(t)));
+        final Map<Duration, VALUE> transitionValues = ValueHistoryTest.getTransitionValues(history);
         assertTrue("Appending a transition does not remove any times from the set of transition times.",
                 transitionTimes.containsAll(transitionTimes0));
         assertTrue("Appending a transition does not change the values before the given point in time.",
@@ -72,8 +68,7 @@ public class ModifiableValueHistoryTest {
         appendTransition(history, when, value);
 
         final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
-        final Map<Duration, VALUE> transitionValues = transitionTimes.stream()
-                .collect(Collectors.toMap(t -> t, t -> history.get(t)));
+        final Map<Duration, VALUE> transitionValues = ValueHistoryTest.getTransitionValues(history);
         assertEquals("transitionTimes.", Collections.singleton(when), transitionTimes);
         assertEquals("transitionValues.", Collections.singletonMap(when, value), transitionValues);
     }

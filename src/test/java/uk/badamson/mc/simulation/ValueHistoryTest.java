@@ -140,4 +140,9 @@ public class ValueHistoryTest {
         return transitionTimes;
     }
 
+    public static <VALUE> Map<Duration, VALUE> getTransitionValues(ValueHistory<VALUE> history) {
+        return history.streamOfTransitions().collect(HashMap::new, (m, e) -> m.put(e.getKey(), e.getValue()),
+                HashMap::putAll);
+    }
+
 }
