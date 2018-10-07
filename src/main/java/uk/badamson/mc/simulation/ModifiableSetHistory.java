@@ -24,6 +24,8 @@ import net.jcip.annotations.NotThreadSafe;
 @NotThreadSafe
 public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
 
+    private static final ValueHistory<Boolean> ABSENT = new ModifiableValueHistory<>(Boolean.FALSE);
+
     /**
      * <p>
      * Construct an set value history that is unknown (null) for all points in time.
@@ -34,6 +36,11 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
      */
     public ModifiableSetHistory() {
         // Do nothing
+    }
+
+    @Override
+    public final ValueHistory<Boolean> contains(VALUE value) {
+        return ABSENT;
     }
 
     @Override
