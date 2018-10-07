@@ -2,10 +2,7 @@ package uk.badamson.mc.simulation;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.NavigableMap;
-import java.util.Objects;
 import java.util.SortedSet;
-import java.util.TreeMap;
 
 import net.jcip.annotations.Immutable;
 import net.jcip.annotations.NotThreadSafe;
@@ -20,7 +17,7 @@ import net.jcip.annotations.NotThreadSafe;
  *            {@link Immutable immutable} type.
  */
 @NotThreadSafe
-public final class ValueHistory<VALUE> {
+public interface ValueHistory<VALUE> {
     /**
      * <p>
      * The smallest (most negative) {@link Duration} value.
@@ -35,74 +32,6 @@ public final class ValueHistory<VALUE> {
      */
     public static final Duration END_OF_TIME = Duration.ofSeconds(Long.MAX_VALUE, 999_999_999);
 
-    private final NavigableMap<Duration, VALUE> transitions = new TreeMap<>();
-
-    /**
-     * <p>
-     * Construct an value history that is null for all points in time.
-     * </p>
-     * <ul>
-     * <li>The {@linkplain #getFirstValue() value of this history at the start of
-     * time} is null.</li>
-     * <li>This {@linkplain SortedSet#isEmpty() has no}
-     * {@linkplain #getTransitionTimes() transition times}.</li>
-     * </ul>
-     */
-    public ValueHistory() {
-        // Do nothing
-    }
-
-    /**
-     * <p>
-     * Append a value transition to this history of value transitions.
-     * </p>
-     * <ul>
-     * <li>Appending a transition does not
-     * {@linkplain SortedSet#containsAll(java.util.Collection) remove} any times
-     * from the {@linkplain #getTransitionTimes() set of transition times}.</li>
-     * <li>Appending a transition does not change the {@linkplain #get(Duration)
-     * values} before the given point in time.</li>
-     * <li>Appending a transition increments the {@linkplain SortedSet#size() number
-     * of} {@linkplain #getTransitionTimes() transition times}.</li>
-     * <li>The given point in time becomes the {@linkplain #getLastTansitionTime()
-     * last transition time}.</li>
-     * <li>The given value becomes the {@linkplain #getLastValue() last value}.</li>
-     * </ul>
-     * 
-     * @param when
-     *            The point in time when the transition occurs, represented as the
-     *            duration since an (implied) epoch.
-     * @param value
-     *            The value at and after the transition.
-     * 
-     * @throws NullPointerException
-     *             If {@code when} is null.
-     * @throws IllegalStateException
-     *             <ul>
-     *             <li>If {@code when} is not
-     *             {@linkplain Duration#compareTo(Duration) after} the
-     *             {@linkplain #getLastTansitionTime() last transition time}.</li>
-     *             <li>If {@code value} is
-     *             {@linkplain Objects#equals(Object, Object) equal to (or equally
-     *             null as)} the {@linkplain #getLastValue() last value}. In this
-     *             case this history is unchanged.</li>
-     *             </ul>
-     *             This history is unchanged if it throws
-     *             {@link IllegalStateException}.
-     */
-    public void appendTransition(Duration when, VALUE value) throws IllegalStateException {
-        Objects.requireNonNull(when, "when");
-        final var lastTransition = transitions.lastEntry();
-        if (lastTransition != null && when.compareTo(lastTransition.getKey()) <= 0) {
-            throw new IllegalStateException("Timestamp out of order");
-        } else if (lastTransition != null && Objects.equals(value, lastTransition.getValue())) {
-            throw new IllegalStateException("Equal values");
-        } else if (lastTransition == null && value == null) {
-            throw new IllegalStateException("First appended value equals value at start of time");
-        }
-        transitions.put(when, value);
-    }
-
     /**
      * <p>
      * Get the value at a given point in time.
@@ -115,11 +44,7 @@ public final class ValueHistory<VALUE> {
      * @throws NullPointerException
      *             If {@code when} is null.
      */
-    public final VALUE get(Duration t) {
-        Objects.requireNonNull(t, "t");
-        final var previousTransition = transitions.floorEntry(t);
-        return previousTransition == null ? null : previousTransition.getValue();
-    }
+    public VALUE get(Duration t);
 
     /**
      * <p>
@@ -139,9 +64,7 @@ public final class ValueHistory<VALUE> {
      * 
      * @return the first transition time.
      */
-    public final Duration getFirstTansitionTime() {
-        return transitions.isEmpty() ? null : transitions.firstKey();
-    }
+    public Duration getFirstTansitionTime();
 
     /**
      * <p>
@@ -157,9 +80,7 @@ public final class ValueHistory<VALUE> {
      * 
      * @return the last value.
      */
-    public final VALUE getFirstValue() {
-        return null;// TODO
-    }
+    public VALUE getFirstValue();
 
     /**
      * <p>
@@ -179,9 +100,7 @@ public final class ValueHistory<VALUE> {
      * 
      * @return the last transition time.
      */
-    public final Duration getLastTansitionTime() {
-        return transitions.isEmpty() ? null : transitions.lastKey();
-    }
+    public Duration getLastTansitionTime();
 
     /**
      * <p>
@@ -203,10 +122,7 @@ public final class ValueHistory<VALUE> {
      * 
      * @return the last value.
      */
-    public final VALUE getLastValue() {
-        final var lastTransition = transitions.lastEntry();
-        return lastTransition == null ? null : lastTransition.getValue();
-    }
+    public VALUE getLastValue();
 
     /**
      * <p>
@@ -233,9 +149,7 @@ public final class ValueHistory<VALUE> {
      * 
      * @return the transition times
      */
-    public final SortedSet<Duration> getTransitionTimes() {
-        return Collections.unmodifiableSortedSet(transitions.navigableKeySet());
-    }
+    public SortedSet<Duration> getTransitionTimes();
 
     /**
      * <p>
@@ -250,7 +164,5 @@ public final class ValueHistory<VALUE> {
      * </ul>
      * 
      */
-    public final boolean isEmpty() {
-        return transitions.isEmpty();
-    }
+    public boolean isEmpty();
 }

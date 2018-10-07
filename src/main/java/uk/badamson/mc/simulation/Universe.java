@@ -318,7 +318,7 @@ public class Universe {
     }// class
 
     private final Map<ObjectStateId, ObjectStateData> stateTransitions = new HashMap<>();
-    private final Map<UUID, ValueHistory<ObjectState>> objectStateHistories = new HashMap<>();
+    private final Map<UUID, ModifiableValueHistory<ObjectState>> objectStateHistories = new HashMap<>();
 
     private Duration earliestTimeOfCompleteState;
 
@@ -351,7 +351,7 @@ public class Universe {
     private void append1StateTransition(Duration when, UUID object, ObjectState objectState,
             final Map<UUID, ObjectStateId> dependencies) throws IllegalStateException {
         final ObjectStateId objectStateId = new ObjectStateId(object, when);
-        ValueHistory<ObjectState> stateHistory = objectStateHistories.get(object);
+        ModifiableValueHistory<ObjectState> stateHistory = objectStateHistories.get(object);
         final Duration lastWhen = stateHistory == null ? null : stateHistory.getLastTansitionTime();
         final ObjectState lastState = stateHistory == null ? null : stateHistory.getLastValue();
         final ObjectStateId lastStateId = lastWhen == null ? null : new ObjectStateId(object, lastWhen);
@@ -368,7 +368,7 @@ public class Universe {
         }
 
         if (stateHistory == null) {
-            stateHistory = new ValueHistory<ObjectState>();
+            stateHistory = new ModifiableValueHistory<ObjectState>();
             objectStateHistories.put(object, stateHistory);
         }
         stateHistory.appendTransition(when, objectState);

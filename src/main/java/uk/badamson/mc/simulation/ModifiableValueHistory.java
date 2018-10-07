@@ -12,7 +12,8 @@ import net.jcip.annotations.NotThreadSafe;
 
 /**
  * <p>
- * The time-wise variation of a value that changes at discrete points in time.
+ * The modifiable time-wise variation of a value that changes at discrete points
+ * in time.
  * </p>
  * 
  * @param VALUE
@@ -20,20 +21,7 @@ import net.jcip.annotations.NotThreadSafe;
  *            {@link Immutable immutable} type.
  */
 @NotThreadSafe
-public final class ModifiableValueHistory<VALUE> {
-    /**
-     * <p>
-     * The smallest (most negative) {@link Duration} value.
-     * </p>
-     */
-    public static final Duration START_OF_TIME = Duration.ofSeconds(Long.MIN_VALUE);
-
-    /**
-     * <p>
-     * The largest (most positive) {@link Duration} value.
-     * </p>
-     */
-    public static final Duration END_OF_TIME = Duration.ofSeconds(Long.MAX_VALUE, 999_999_999);
+public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> {
 
     private final NavigableMap<Duration, VALUE> transitions = new TreeMap<>();
 
@@ -115,6 +103,7 @@ public final class ModifiableValueHistory<VALUE> {
      * @throws NullPointerException
      *             If {@code when} is null.
      */
+    @Override
     public final VALUE get(Duration t) {
         Objects.requireNonNull(t, "t");
         final var previousTransition = transitions.floorEntry(t);
@@ -139,6 +128,7 @@ public final class ModifiableValueHistory<VALUE> {
      * 
      * @return the first transition time.
      */
+    @Override
     public final Duration getFirstTansitionTime() {
         return transitions.isEmpty() ? null : transitions.firstKey();
     }
@@ -157,6 +147,7 @@ public final class ModifiableValueHistory<VALUE> {
      * 
      * @return the last value.
      */
+    @Override
     public final VALUE getFirstValue() {
         return null;// TODO
     }
@@ -179,6 +170,7 @@ public final class ModifiableValueHistory<VALUE> {
      * 
      * @return the last transition time.
      */
+    @Override
     public final Duration getLastTansitionTime() {
         return transitions.isEmpty() ? null : transitions.lastKey();
     }
@@ -203,6 +195,7 @@ public final class ModifiableValueHistory<VALUE> {
      * 
      * @return the last value.
      */
+    @Override
     public final VALUE getLastValue() {
         final var lastTransition = transitions.lastEntry();
         return lastTransition == null ? null : lastTransition.getValue();
@@ -233,6 +226,7 @@ public final class ModifiableValueHistory<VALUE> {
      * 
      * @return the transition times
      */
+    @Override
     public final SortedSet<Duration> getTransitionTimes() {
         return Collections.unmodifiableSortedSet(transitions.navigableKeySet());
     }
@@ -250,6 +244,7 @@ public final class ModifiableValueHistory<VALUE> {
      * </ul>
      * 
      */
+    @Override
     public final boolean isEmpty() {
         return transitions.isEmpty();
     }
