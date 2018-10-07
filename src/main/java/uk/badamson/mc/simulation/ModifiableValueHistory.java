@@ -30,10 +30,9 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
      * Construct an value history that is null for all points in time.
      * </p>
      * <ul>
+     * <li>This {@linkplain #isEmpty() is empty}.</li>
      * <li>The {@linkplain #getFirstValue() value of this history at the start of
      * time} is null.</li>
-     * <li>This {@linkplain SortedSet#isEmpty() has no}
-     * {@linkplain #getTransitionTimes() transition times}.</li>
      * </ul>
      */
     public ModifiableValueHistory() {

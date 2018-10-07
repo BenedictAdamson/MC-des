@@ -169,6 +169,6 @@ public class ModifiableValueHistoryTest {
         ValueHistoryTest.assertInvariants(history, WHEN_1);
         ValueHistoryTest.assertInvariants(history, WHEN_2);
         assertNull("The value of this history at the start of time is null.", history.getFirstValue());
-        assertEquals("This has no transition times.", Collections.EMPTY_SET, history.getTransitionTimes());
+        assertTrue("This is empty.", history.isEmpty());
     }
 }
