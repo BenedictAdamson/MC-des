@@ -20,7 +20,7 @@ import net.jcip.annotations.NotThreadSafe;
  *            {@link Immutable immutable} type.
  */
 @NotThreadSafe
-public final class ValueHistory<VALUE> {
+public final class ModifiableValueHistory<VALUE> {
     /**
      * <p>
      * The smallest (most negative) {@link Duration} value.
@@ -48,7 +48,7 @@ public final class ValueHistory<VALUE> {
      * {@linkplain #getTransitionTimes() transition times}.</li>
      * </ul>
      */
-    public ValueHistory() {
+    public ModifiableValueHistory() {
         // Do nothing
     }
 
@@ -216,13 +216,13 @@ public final class ValueHistory<VALUE> {
      * <li>Always have a (non null) set of transition times.</li>
      * <li>The transition times are represented as the duration since an (implied)
      * epoch.</li>
-     * <li>There is not a transition at the {@linkplain ValueHistory#START_OF_TIME
-     * start of time}.</li>
+     * <li>There is not a transition at the
+     * {@linkplain ModifiableValueHistory#START_OF_TIME start of time}.</li>
      * <li>For all points in time in the set of transition times, the
      * {@linkplain #get(Duration) value} just before the transition is not equal to
      * the value at the transition.</li>
      * <li>For all points in time not in the set of transition times (except the
-     * {@linkplain ValueHistory#START_OF_TIME start of time}), the
+     * {@linkplain ModifiableValueHistory#START_OF_TIME start of time}), the
      * {@linkplain #get(Duration) value} just before the point in time is equal to
      * the value at the point in time.</li>
      * <li>The returned set is an
