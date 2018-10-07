@@ -187,4 +187,14 @@ public class ModifiableValueHistoryTest {
     public void constructor_1_null() {
         constructor_1((Boolean) null);
     }
+
+    @Test
+    public void constructor_1A() {
+        constructor_1(Boolean.FALSE);
+    }
+
+    @Test
+    public void constructor_1B() {
+        constructor_1(Integer.MIN_VALUE);
+    }
 }

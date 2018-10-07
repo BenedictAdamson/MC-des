@@ -23,6 +23,7 @@ import net.jcip.annotations.NotThreadSafe;
 @NotThreadSafe
 public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> {
 
+    private final VALUE firstValue;
     private final NavigableMap<Duration, VALUE> transitions = new TreeMap<>();
 
     /**
@@ -54,7 +55,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
      *            The value at all points in time
      */
     public ModifiableValueHistory(VALUE value) {
-        // FIXME
+        firstValue = value;
     }
 
     /**
@@ -124,7 +125,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
     public final VALUE get(Duration t) {
         Objects.requireNonNull(t, "t");
         final var previousTransition = transitions.floorEntry(t);
-        return previousTransition == null ? null : previousTransition.getValue();
+        return previousTransition == null ? firstValue : previousTransition.getValue();
     }
 
     /**
@@ -166,7 +167,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
      */
     @Override
     public final VALUE getFirstValue() {
-        return null;// TODO
+        return firstValue;
     }
 
     /**
@@ -215,7 +216,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
     @Override
     public final VALUE getLastValue() {
         final var lastTransition = transitions.lastEntry();
-        return lastTransition == null ? null : lastTransition.getValue();
+        return lastTransition == null ? firstValue : lastTransition.getValue();
     }
 
     /**
