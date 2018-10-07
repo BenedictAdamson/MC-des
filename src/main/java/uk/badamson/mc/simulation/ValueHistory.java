@@ -38,8 +38,8 @@ public final class ValueHistory<VALUE> {
      * Construct an value history that is null for all points in time.
      * </p>
      * <ul>
-     * <li>The {@linkplain #get(Duration) value} of this history at the
-     * {@linkplain #START_OF_TIME start of time} is null.</li>
+     * <li>The {@linkplain #getFirstValue() value of this history at the start of
+     * time} is null.</li>
      * <li>This {@linkplain SortedSet#isEmpty() has no}
      * {@linkplain #getTransitionTimes() transition times}.</li>
      * </ul>
@@ -67,6 +67,24 @@ public final class ValueHistory<VALUE> {
 
     /**
      * <p>
+     * The {@linkplain #get(Duration) value} of this history at the
+     * {@linkplain #START_OF_TIME start of time}.
+     * </p>
+     * <ul>
+     * <li>The first value is the same as the {@linkplain #get(Duration) value at}
+     * the {@linkplain #START_OF_TIME start of time}.</li>
+     * <li>This method is more efficient than using the {@link #get(Duration)}
+     * method.</li>
+     * </ul>
+     * 
+     * @return the last value.
+     */
+    public final VALUE getFirstValue() {
+        return null;// TODO
+    }
+
+    /**
+     * <p>
      * The last point in time when the value of this history changes.
      * </p>
      * <ul>
@@ -77,11 +95,37 @@ public final class ValueHistory<VALUE> {
      * <li>The {@linkplain SortedSet#last() last} value of the
      * {@linkplain #getTransitionTimes() set of transition times} (if it is not
      * empty) is the same as the last transition time.</li>
+     * <li>This method is more efficient than using the
+     * {@link #getTransitionTimes()} method.</li>
      * </ul>
      * 
      * @return the last transition time.
      */
-    public Duration getLastTansitionTime() {
+    public final Duration getLastTansitionTime() {
+        return null;// TODO
+    }
+
+    /**
+     * <p>
+     * The {@linkplain #get(Duration) value} of this history at the
+     * {@linkplain #END_OF_TIME end of time}.
+     * </p>
+     * <ul>
+     * <li>The last value is the same as the {@linkplain #get(Duration) value at}
+     * the {@linkplain #END_OF_TIME end of time}.</li>
+     * <li>If this history has no {@linkplain #getTransitionTimes() transitions},
+     * the last value is the same as the {@linkplain #getFirstValue() first
+     * value}.</li>
+     * <li>If this history has {@linkplain #getTransitionTimes() transitions}, the
+     * last value is the same as the value at the
+     * {@linkplain #getLastTansitionTime() last transition}.</li>
+     * <li>This method is more efficient than using the
+     * {@link #getTransitionTimes()} and {@link #get(Duration)} methods.</li>
+     * </ul>
+     * 
+     * @return the last value.
+     */
+    public final VALUE getLastValue() {
         return null;// TODO
     }
 

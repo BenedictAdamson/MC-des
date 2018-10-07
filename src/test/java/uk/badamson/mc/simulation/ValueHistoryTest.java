@@ -26,11 +26,22 @@ public class ValueHistoryTest {
     private static final Duration DURATION_1 = Duration.ZERO;
     private static final Duration DURATION_2 = Duration.ofSeconds(2);
 
+    private static <VALUE> VALUE assertFirstValueInvariants(ValueHistory<VALUE> history) {
+        final VALUE firstValue = history.getFirstValue();
+
+        assertSame("The first value is the same as the value at the start of time.",
+                history.get(ValueHistory.START_OF_TIME), firstValue);
+
+        return firstValue;
+    }
+
     public static <VALUE> void assertInvariants(ValueHistory<VALUE> history) {
         ObjectTest.assertInvariants(history);// inherited
 
         assertTransitionTimesInvariants(history);
         assertLastTansitionTimeInvariants(history);
+        assertFirstValueInvariants(history);
+        assertLastValueInvariants(history);
     }
 
     private static <VALUE> void assertInvariants(ValueHistory<VALUE> history, Duration time) {
@@ -56,6 +67,22 @@ public class ValueHistoryTest {
         return lastTansitionTime;
     }
 
+    private static <VALUE> VALUE assertLastValueInvariants(ValueHistory<VALUE> history) {
+        final VALUE lastValue = history.getLastValue();
+        final Duration lastTansitionTime = history.getLastTansitionTime();
+        final VALUE valueAtLastTransitionTime = lastTansitionTime == null ? null : history.get(lastTansitionTime);
+        final VALUE firstValue = history.getFirstValue();
+
+        assertSame("The first value is the same as the value at the end of time.",
+                history.get(ValueHistory.END_OF_TIME), lastValue);
+        assertTrue("If this history has no transitions, the last value is the same as the first value.",
+                lastTansitionTime != null || lastValue == firstValue);
+        assertTrue("If this history has transitions, the last value is the same as the value at the last transition.",
+                lastTansitionTime == null || lastValue == valueAtLastTransitionTime);
+
+        return lastValue;
+    }
+
     private static <VALUE> SortedSet<Duration> assertTransitionTimesInvariants(ValueHistory<VALUE> history) {
         final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
 
@@ -70,6 +97,26 @@ public class ValueHistoryTest {
 
         return transitionTimes;
     }
+
+    /**
+     * <p>
+     * The {@linkplain #get(Duration) value} of this history at the
+     * {@linkplain #END_OF_TIME end of time}.
+     * </p>
+     * <ul>
+     * <li>The last value is the same as the {@linkplain #get(Duration) value at}
+     * the {@linkplain #END_OF_TIME end of time}.</li>
+     * <li>If this history has no {@linkplain #getTransitionTimes() transitions},
+     * the last value is the same as the {@linkplain #getFirstValue()}.</li>
+     * <li>If this history has {@linkplain #getTransitionTimes() transitions}, the
+     * last value is the same as the value at the
+     * {@linkplain #getLastTansitionTime() last transition}.</li>
+     * <li>This method is more efficient than using the
+     * {@link #getTransitionTimes()} and {@link #get(Duration)} methods.</li>
+     * </ul>
+     * 
+     * @return the last value.
+     */
 
     /**
      * <p>
@@ -95,7 +142,7 @@ public class ValueHistoryTest {
         assertInvariants(history);
         assertInvariants(history, DURATION_1);
         assertInvariants(history, DURATION_2);
-        assertNull("The value of this history at the start of time is null.", history.get(ValueHistory.START_OF_TIME));
+        assertNull("The value of this history at the start of time is null.", history.getFirstValue());
         assertEquals("This has no transition times.", Collections.EMPTY_SET, history.getTransitionTimes());
     }
 
