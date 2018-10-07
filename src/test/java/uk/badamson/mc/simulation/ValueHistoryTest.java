@@ -99,6 +99,27 @@ public class ValueHistoryTest {
         appendTransition(history, when2, value2);
     }
 
+    private static <VALUE> boolean assertEmptyInvariants(ValueHistory<VALUE> history) {
+        final boolean empty = history.isEmpty();
+
+        assertEquals("A value history is empty if, and only if, it has no transitions.",
+                history.getTransitionTimes().isEmpty(), empty);
+
+        return empty;
+
+    }
+
+    private static <VALUE> Duration assertFirstTansitionTimeInvariants(ValueHistory<VALUE> history) {
+        final Duration firstTansitionTime = history.getFirstTansitionTime();
+        final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
+
+        assertSame(
+                "The first value of the set of transition times (if it is not empty) is the same as the first transition time.",
+                firstTansitionTime, transitionTimes.isEmpty() ? null : transitionTimes.first());
+
+        return firstTansitionTime;
+    }
+
     private static <VALUE> VALUE assertFirstValueInvariants(ValueHistory<VALUE> history) {
         final VALUE firstValue = history.getFirstValue();
 
@@ -112,9 +133,11 @@ public class ValueHistoryTest {
         ObjectTest.assertInvariants(history);// inherited
 
         assertTransitionTimesInvariants(history);
+        assertFirstTansitionTimeInvariants(history);
         assertLastTansitionTimeInvariants(history);
         assertFirstValueInvariants(history);
         assertLastValueInvariants(history);
+        assertEmptyInvariants(history);
     }
 
     private static <VALUE> void assertInvariants(ValueHistory<VALUE> history, Duration time) {

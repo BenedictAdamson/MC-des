@@ -123,6 +123,28 @@ public final class ValueHistory<VALUE> {
 
     /**
      * <p>
+     * The first point in time when the value of this history changes.
+     * </p>
+     * <ul>
+     * <li>A null first transition time indicates that this history has no
+     * transitions. That is, the value is constant for all time.</li>
+     * <li>The point in time is represented as the duration since an (implied)
+     * epoch.</li>
+     * <li>The {@linkplain SortedSet#first() first} value of the
+     * {@linkplain #getTransitionTimes() set of transition times} (if it is not
+     * empty) is the same as the first transition time.</li>
+     * <li>This method is more efficient than using the
+     * {@link #getTransitionTimes()} method.</li>
+     * </ul>
+     * 
+     * @return the first transition time.
+     */
+    public final Duration getFirstTansitionTime() {
+        return transitions.isEmpty() ? null : transitions.firstKey();
+    }
+
+    /**
+     * <p>
      * The {@linkplain #get(Duration) value} of this history at the
      * {@linkplain #START_OF_TIME start of time}.
      * </p>
@@ -211,7 +233,24 @@ public final class ValueHistory<VALUE> {
      * 
      * @return the transition times
      */
-    public SortedSet<Duration> getTransitionTimes() {
+    public final SortedSet<Duration> getTransitionTimes() {
         return Collections.unmodifiableSortedSet(transitions.navigableKeySet());
+    }
+
+    /**
+     * <p>
+     * Whether this history is empty.
+     * </p>
+     * <ul>
+     * <li>A value history is empty if, and only if, it
+     * {@linkplain SortedSet#isEmpty() has no} {@linkplain #getTransitionTimes()
+     * transitions}.</li>
+     * <li>This method is more efficient than using the
+     * {@link #getTransitionTimes()} method.</li>
+     * </ul>
+     * 
+     */
+    public final boolean isEmpty() {
+        return transitions.isEmpty();
     }
 }
