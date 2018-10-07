@@ -109,6 +109,17 @@ public class ModifiableValueHistoryTest {
         ValueHistoryTest.assertInvariants(history1, history2);// inherited
     }
 
+    private static <VALUE> void constructor_1(VALUE value) {
+        final var history = new ModifiableValueHistory<>(value);
+
+        assertInvariants(history);
+        ValueHistoryTest.assertInvariants(history, WHEN_1);
+        ValueHistoryTest.assertInvariants(history, WHEN_2);
+        assertSame("The value of this history at the start of time is the given value.", value,
+                history.getFirstValue());
+        assertTrue("This is empty.", history.isEmpty());
+    }
+
     @Test
     public void appendTransition_1A() {
         appendTransition_1(WHEN_1, Boolean.TRUE);
@@ -170,5 +181,10 @@ public class ModifiableValueHistoryTest {
         ValueHistoryTest.assertInvariants(history, WHEN_2);
         assertNull("The value of this history at the start of time is null.", history.getFirstValue());
         assertTrue("This is empty.", history.isEmpty());
+    }
+
+    @Test
+    public void constructor_1_null() {
+        constructor_1((Boolean) null);
     }
 }

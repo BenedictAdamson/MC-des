@@ -36,7 +36,25 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
      * </ul>
      */
     public ModifiableValueHistory() {
-        // Do nothing
+        this(null);
+    }
+
+    /**
+     * <p>
+     * Construct an value history that has the same given value for all points in
+     * time.
+     * </p>
+     * <ul>
+     * <li>This {@linkplain #isEmpty() is empty}.</li>
+     * <li>The {@linkplain #getFirstValue() value of this history at the start of
+     * time} is the given value.</li>
+     * </ul>
+     * 
+     * @param value
+     *            The value at all points in time
+     */
+    public ModifiableValueHistory(VALUE value) {
+        // FIXME
     }
 
     /**
