@@ -1,9 +1,11 @@
 package uk.badamson.mc.simulation;
 
+import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.time.Duration;
@@ -90,12 +92,12 @@ public class ValueHistoryTest {
         final VALUE valueAtLastTransitionTime = lastTansitionTime == null ? null : history.get(lastTansitionTime);
         final VALUE firstValue = history.getFirstValue();
 
-        assertSame("The last value is the same as the value at the end of time.", history.get(ValueHistory.END_OF_TIME),
+        assertEquals("The last value is equal to the value at the end of time.", history.get(ValueHistory.END_OF_TIME),
                 lastValue);
         assertTrue("If this history has no transitions, the last value is the same as the first value.",
                 lastTansitionTime != null || lastValue == firstValue);
-        assertTrue("If this history has transitions, the last value is the same as the value at the last transition.",
-                lastTansitionTime == null || lastValue == valueAtLastTransitionTime);
+        assertTrue("If this history has transitions, the last value is equal to the value at the last transition.",
+                lastTansitionTime == null || Objects.equals(lastValue, valueAtLastTransitionTime));
 
         return lastValue;
     }
@@ -112,8 +114,8 @@ public class ValueHistoryTest {
             final Duration when = e.getKey();
             final VALUE value = e.getValue();
             assertNotNull("streamOfTransitions entry key", when);
-            assertSame(
-                    "The entries of the stream of transitions have value that are the same as the value of this history at the time of their corresponding key.",
+            assertEquals(
+                    "The entries of the stream of transitions have values that are eqaul to the value of this history at the time of their corresponding key.",
                     history.get(when), value);
             m.put(when, value);
         }, HashMap::putAll);
@@ -132,9 +134,9 @@ public class ValueHistoryTest {
         for (Duration transitionTime : transitionTimes) {
             assertNotEquals("There is not a transition at the start of time.", ValueHistory.START_OF_TIME,
                     transitionTime);// guard
-            assertNotEquals(
+            assertThat(
                     "For all points in time in the set of transition times, the value just before the transition is not equal to the value at the transition.",
-                    history.get(transitionTime.minusNanos(1L)), history.get(transitionTime));
+                    history.get(transitionTime.minusNanos(1L)), not(history.get(transitionTime)));
         }
 
         return transitionTimes;

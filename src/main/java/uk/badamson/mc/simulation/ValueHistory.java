@@ -3,6 +3,7 @@ package uk.badamson.mc.simulation;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.stream.Stream;
 
@@ -110,14 +111,15 @@ public interface ValueHistory<VALUE> {
      * {@linkplain #END_OF_TIME end of time}.
      * </p>
      * <ul>
-     * <li>The last value is the same as the {@linkplain #get(Duration) value at}
-     * the {@linkplain #END_OF_TIME end of time}.</li>
+     * <li>The last value is equal to the {@linkplain #get(Duration) value at} the
+     * {@linkplain #END_OF_TIME end of time}.</li>
      * <li>If this history has no {@linkplain #getTransitionTimes() transitions},
      * the last value is the same as the {@linkplain #getFirstValue() first
      * value}.</li>
      * <li>If this history has {@linkplain #getTransitionTimes() transitions}, the
-     * last value is the same as the value at the
-     * {@linkplain #getLastTansitionTime() last transition}.</li>
+     * last value is {@linkplain Objects#equals(Object, Object) equal to (or equally
+     * null as)} the value at the {@linkplain #getLastTansitionTime() last
+     * transition}.</li>
      * <li>This method is more efficient than using the
      * {@link #getTransitionTimes()} and {@link #get(Duration)} methods.</li>
      * </ul>
@@ -143,10 +145,11 @@ public interface ValueHistory<VALUE> {
      * {@linkplain ValueHistory#START_OF_TIME start of time}), the
      * {@linkplain #get(Duration) value} just before the point in time is equal to
      * the value at the point in time.</li>
-     * <li>The returned set is an
+     * <li>The returned set might be an
      * {@linkplain Collections#unmodifiableSortedSet(SortedSet) unmodifiable} view
      * of the transition times, which will incorporate any subsequent changes to
-     * this history.</li>
+     * this history. It might be a newly constructed object that does not
+     * incorporate subsequent changes.</li>
      * </ul>
      * 
      * @return the transition times
@@ -178,7 +181,7 @@ public interface ValueHistory<VALUE> {
      * {@linkplain Map.Entry#getKey() key} for each of the
      * {@linkplain #getTransitionTimes() transition times} of this history.</li>
      * <li>The entries of the stream of transitions have
-     * {@linkplain Map.Entry#getValue() value} that are the same as the
+     * {@linkplain Map.Entry#getValue() values} that are eqaul to the
      * {@linkplain #get(Duration) value} of this history at the time of their
      * corresponding {@linkplain Map.Entry#getKey() key}.</li>
      * </ul>
