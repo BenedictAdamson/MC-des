@@ -8,9 +8,14 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import org.junit.Test;
 
@@ -23,8 +28,76 @@ import uk.badamson.mc.ObjectTest;
  */
 public class ValueHistoryTest {
 
-    private static final Duration DURATION_1 = Duration.ZERO;
-    private static final Duration DURATION_2 = Duration.ofSeconds(2);
+    private static final Duration WHEN_1 = Duration.ZERO;
+    private static final Duration WHEN_2 = Duration.ofSeconds(2);
+    private static final Duration WHEN_3 = Duration.ofSeconds(3);
+
+    private static <VALUE> void appendTransition(ValueHistory<VALUE> history, Duration when, VALUE value)
+            throws IllegalStateException {
+        final SortedSet<Duration> transitionTimes0 = new TreeSet<>(history.getTransitionTimes());
+        final Map<Duration, VALUE> transitionValues0 = transitionTimes0.stream()
+                .collect(Collectors.toMap(t -> t, t -> history.get(t)));
+
+        try {
+            history.appendTransition(when, value);
+        } catch (final IllegalStateException e) {
+            // Permitted
+            assertInvariants(history);
+            final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
+            final Map<Duration, VALUE> transitionValues = transitionTimes.stream()
+                    .collect(Collectors.toMap(t -> t, t -> history.get(t)));
+            assertEquals("This history is unchanged if it throws IllegalStateException [transitionTimes].",
+                    transitionTimes0, transitionTimes);
+            assertEquals("This history is unchanged if it throws IllegalStateException [transitionValues].",
+                    transitionValues0, transitionValues);
+            throw e;
+        }
+
+        assertInvariants(history);
+        final Collection<Duration> transitionTimes = history.getTransitionTimes();
+        final Map<Duration, VALUE> transitionValues = transitionTimes.stream()
+                .collect(Collectors.toMap(t -> t, t -> history.get(t)));
+        assertTrue("Appending a transition does not remove any times from the set of transition times.",
+                transitionTimes.containsAll(transitionTimes0));
+        assertTrue("Appending a transition does not change the values before the given point in time.",
+                transitionValues.entrySet().containsAll(transitionValues0.entrySet()));
+        assertEquals("Appending a transition increments the number of transition times.", transitionTimes0.size() + 1,
+                transitionTimes.size());
+        assertSame("The given point in time becomes the last transition time.", history.getLastTansitionTime(), when);
+        assertSame("The given value becomes the last value.", history.getLastValue(), value);
+    }
+
+    private static <VALUE> void appendTransition_1(Duration when, VALUE value) {
+        final ValueHistory<VALUE> history = new ValueHistory<>();
+
+        appendTransition(history, when, value);
+
+        final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
+        final Map<Duration, VALUE> transitionValues = transitionTimes.stream()
+                .collect(Collectors.toMap(t -> t, t -> history.get(t)));
+        assertEquals("transitionTimes.", Collections.singleton(when), transitionTimes);
+        assertEquals("transitionValues.", Collections.singletonMap(when, value), transitionValues);
+    }
+
+    private static <VALUE> void appendTransition_2(Duration when1, VALUE value1, Duration when2, VALUE value2) {
+        assert when1.compareTo(when2) < 0;
+        final ValueHistory<VALUE> history = new ValueHistory<>();
+        history.appendTransition(when1, value1);
+
+        appendTransition(history, when2, value2);
+
+        final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
+        assertEquals("transitionTimes.", Set.of(when1, when2), transitionTimes);
+    }
+
+    private static <VALUE> void appendTransition_2InvalidState(Duration when1, VALUE value1, Duration when2,
+            VALUE value2) throws IllegalStateException {
+        assert when2.compareTo(when1) <= 0 || Objects.equals(value1, value2);
+        final ValueHistory<VALUE> history = new ValueHistory<>();
+        history.appendTransition(when1, value1);
+
+        appendTransition(history, when2, value2);
+    }
 
     private static <VALUE> VALUE assertFirstValueInvariants(ValueHistory<VALUE> history) {
         final VALUE firstValue = history.getFirstValue();
@@ -73,8 +146,8 @@ public class ValueHistoryTest {
         final VALUE valueAtLastTransitionTime = lastTansitionTime == null ? null : history.get(lastTansitionTime);
         final VALUE firstValue = history.getFirstValue();
 
-        assertSame("The first value is the same as the value at the end of time.",
-                history.get(ValueHistory.END_OF_TIME), lastValue);
+        assertSame("The last value is the same as the value at the end of time.", history.get(ValueHistory.END_OF_TIME),
+                lastValue);
         assertTrue("If this history has no transitions, the last value is the same as the first value.",
                 lastTansitionTime != null || lastValue == firstValue);
         assertTrue("If this history has transitions, the last value is the same as the value at the last transition.",
@@ -98,52 +171,66 @@ public class ValueHistoryTest {
         return transitionTimes;
     }
 
-    /**
-     * <p>
-     * The {@linkplain #get(Duration) value} of this history at the
-     * {@linkplain #END_OF_TIME end of time}.
-     * </p>
-     * <ul>
-     * <li>The last value is the same as the {@linkplain #get(Duration) value at}
-     * the {@linkplain #END_OF_TIME end of time}.</li>
-     * <li>If this history has no {@linkplain #getTransitionTimes() transitions},
-     * the last value is the same as the {@linkplain #getFirstValue()}.</li>
-     * <li>If this history has {@linkplain #getTransitionTimes() transitions}, the
-     * last value is the same as the value at the
-     * {@linkplain #getLastTansitionTime() last transition}.</li>
-     * <li>This method is more efficient than using the
-     * {@link #getTransitionTimes()} and {@link #get(Duration)} methods.</li>
-     * </ul>
-     * 
-     * @return the last value.
-     */
+    @Test
+    public void appendTransition_1A() {
+        appendTransition_1(WHEN_1, Boolean.TRUE);
+    }
 
-    /**
-     * <p>
-     * The last point in time when the value of this history changes.
-     * </p>
-     * <ul>
-     * <li>A null last transition time indicates that this history has no
-     * transitions. That is, the value is constant for all time.</li>
-     * <li>The point in time is represented as the duration since an (implied)
-     * epoch.</li>
-     * <li>The {@linkplain SortedSet#last() last} value of the
-     * {@linkplain #getTransitionTimes() set of transition times} is the same as the
-     * last transition time.</li>
-     * </ul>
-     * 
-     * @return the last transition time.
-     */
+    @Test
+    public void appendTransition_1B() {
+        appendTransition_1(WHEN_2, Integer.MAX_VALUE);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void appendTransition_1InvalidState_valuesNull() {
+        final Boolean value = null;
+        final ValueHistory<Boolean> history = new ValueHistory<>();
+
+        appendTransition(history, WHEN_1, value);
+    }
+
+    @Test
+    public void appendTransition_2A() {
+        appendTransition_2(WHEN_1, Boolean.FALSE, WHEN_2, Boolean.TRUE);
+    }
+
+    @Test
+    public void appendTransition_2B() {
+        appendTransition_2(WHEN_2, Integer.MIN_VALUE, WHEN_3, Integer.MAX_VALUE);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void appendTransition_2InvalidState_timesOrder() {
+        appendTransition_2InvalidState(WHEN_2, Boolean.FALSE, WHEN_1, Boolean.TRUE);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void appendTransition_2InvalidState_timesSame() {
+        appendTransition_2InvalidState(WHEN_1, Boolean.FALSE, WHEN_1, Boolean.TRUE);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void appendTransition_2InvalidState_valuesEqual() {
+        final String value1 = "Value";
+        final String value2 = new String(value1);
+        assert value1.equals(value2);
+        assert value1 != value2;// tough test
+        appendTransition_2InvalidState(WHEN_1, Boolean.FALSE, WHEN_2, Boolean.FALSE);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void appendTransition_2InvalidState_valuesSame() {
+        appendTransition_2InvalidState(WHEN_1, Boolean.FALSE, WHEN_2, Boolean.FALSE);
+    }
 
     @Test
     public void constructor_0() {
         final var history = new ValueHistory<Integer>();
 
         assertInvariants(history);
-        assertInvariants(history, DURATION_1);
-        assertInvariants(history, DURATION_2);
+        assertInvariants(history, WHEN_1);
+        assertInvariants(history, WHEN_2);
         assertNull("The value of this history at the start of time is null.", history.getFirstValue());
         assertEquals("This has no transition times.", Collections.EMPTY_SET, history.getTransitionTimes());
     }
-
 }
