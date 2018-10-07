@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.time.Duration;
@@ -29,6 +30,7 @@ public class ValueHistoryTest {
         ObjectTest.assertInvariants(history);// inherited
 
         assertTransitionTimesInvariants(history);
+        assertLastTansitionTimeInvariants(history);
     }
 
     private static <VALUE> void assertInvariants(ValueHistory<VALUE> history, Duration time) {
@@ -41,6 +43,17 @@ public class ValueHistoryTest {
 
     public static <VALUE> void assertInvariants(ValueHistory<VALUE> history1, ValueHistory<VALUE> history2) {
         ObjectTest.assertInvariants(history1, history2);// inherited
+    }
+
+    private static <VALUE> Duration assertLastTansitionTimeInvariants(ValueHistory<VALUE> history) {
+        final Duration lastTansitionTime = history.getLastTansitionTime();
+        final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
+
+        assertSame(
+                "The last value of the set of transition times (if it is not empty) is the same as the last transition time.",
+                lastTansitionTime, transitionTimes.isEmpty() ? null : transitionTimes.last());
+
+        return lastTansitionTime;
     }
 
     private static <VALUE> SortedSet<Duration> assertTransitionTimesInvariants(ValueHistory<VALUE> history) {
@@ -57,6 +70,23 @@ public class ValueHistoryTest {
 
         return transitionTimes;
     }
+
+    /**
+     * <p>
+     * The last point in time when the value of this history changes.
+     * </p>
+     * <ul>
+     * <li>A null last transition time indicates that this history has no
+     * transitions. That is, the value is constant for all time.</li>
+     * <li>The point in time is represented as the duration since an (implied)
+     * epoch.</li>
+     * <li>The {@linkplain SortedSet#last() last} value of the
+     * {@linkplain #getTransitionTimes() set of transition times} is the same as the
+     * last transition time.</li>
+     * </ul>
+     * 
+     * @return the last transition time.
+     */
 
     @Test
     public void constructor_0() {
