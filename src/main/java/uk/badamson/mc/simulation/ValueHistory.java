@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.stream.Stream;
 
@@ -130,6 +131,31 @@ public interface ValueHistory<VALUE> {
 
     /**
      * <p>
+     * The transitions in the value of this history.
+     * </p>
+     * <ul>
+     * <li>Always has a (non null) transitions map.</li>
+     * <li>The {@linkplain SortedMap#keySet() keys} of the transitions map are
+     * {@linkplain SortedSet#equals(Object) equal} to the
+     * {@linkplain #getTransitionTimes() transition times}.</li>
+     * <li>The {@linkplain SortedMap#get(Object) values} of the transition map are
+     * {@linkplain Objects#equals(Object, Object) equal (or equally null)} of the
+     * {@linkplain #get(Duration) value} of this history at the time of their
+     * corresponding {@linkplain Map.Entry#getKey() key}.</li>
+     * <li>The transitions map may be
+     * {@linkplain Collections#unmodifiableSortedMap(SortedMap) unmodifiable}.</li>
+     * <li>If the transitions map is
+     * {@linkplain Collections#unmodifiableSortedMap(SortedMap) modifiable},
+     * modifying it will not change this value history (it might be a newly
+     * constructed object).</li>
+     * </ul>
+     * 
+     * @return a map of the transitions.
+     */
+    public SortedMap<Duration, VALUE> getTransitions();
+
+    /**
+     * <p>
      * The points in time when the value of this history changes.
      * </p>
      * <ul>
@@ -177,13 +203,12 @@ public interface ValueHistory<VALUE> {
      * </p>
      * <ul>
      * <li>Always creates a (non null) steam.</li>
-     * <li>The stream of transitions contains an entry with a
-     * {@linkplain Map.Entry#getKey() key} for each of the
-     * {@linkplain #getTransitionTimes() transition times} of this history.</li>
-     * <li>The entries of the stream of transitions have
-     * {@linkplain Map.Entry#getValue() values} that are eqaul to the
-     * {@linkplain #get(Duration) value} of this history at the time of their
-     * corresponding {@linkplain Map.Entry#getKey() key}.</li>
+     * <li>The stream of transitions contains elements equal to the
+     * {@linkplain Set#stream() stream} of {@linkplain Map#entrySet() entries} of
+     * the {@linkplain #getTransitions() transitions map}.</li>
+     * <li>Using the stream of transitions is more efficient than getting the
+     * {@linkplain #getTransitions() transitions map} and then creating a stream
+     * from its entries.</li>
      * </ul>
      * 
      * @return a stream of the transitions.

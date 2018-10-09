@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Objects;
+import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.stream.Stream;
@@ -222,6 +223,11 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
         return lastTransition == null ? firstValue : lastTransition.getValue();
     }
 
+    @Override
+    public final SortedMap<Duration, VALUE> getTransitions() {
+        return new TreeMap<>(transitions);
+    }
+
     /**
      * <p>
      * The points in time when the value of this history changes.
@@ -317,5 +323,4 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
     public final Stream<Entry<Duration, VALUE>> streamOfTransitions() {
         return transitions.entrySet().stream();
     }
-
 }

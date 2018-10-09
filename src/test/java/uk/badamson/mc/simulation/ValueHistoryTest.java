@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.stream.Stream;
 
@@ -60,6 +61,7 @@ public class ValueHistoryTest {
         assertFirstValueInvariants(history);
         assertLastValueInvariants(history);
         assertEmptyInvariants(history);
+        assertTransitionsInvariants(history);
         assertStreamOfTransitionsInvariants(history);
     }
 
@@ -125,6 +127,28 @@ public class ValueHistoryTest {
                 entries.keySet(), transitionTimes);
 
         return entries.entrySet().stream();
+    }
+
+    private static <VALUE> SortedMap<Duration, VALUE> assertTransitionsInvariants(ValueHistory<VALUE> history) {
+        final Set<Duration> transitionTimes = history.getTransitionTimes();
+
+        final SortedMap<Duration, VALUE> transitions = history.getTransitions();
+
+        assertNotNull("Always creates a (non null) transitions map.", transitions);// guard
+        assertEquals("The keys of the transitions map are equal to the transition times.", transitionTimes,
+                transitions.keySet());
+        for (var entry : transitions.entrySet()) {
+            assertNotNull("streamOfTransitions entry", entry);// guard
+            final Duration when = entry.getKey();
+            final VALUE value = entry.getValue();
+            assertNotNull("streamOfTransitions entry key", when);
+            assertEquals(
+                    "The entries of the transitions map have values that are eqaul to the value of this history at the time of their corresponding key.",
+                    history.get(when), value);
+        }
+        ;
+
+        return transitions;
     }
 
     private static <VALUE> SortedSet<Duration> assertTransitionTimesInvariants(ValueHistory<VALUE> history) {

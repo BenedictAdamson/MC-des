@@ -7,7 +7,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -94,6 +96,15 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
     @Override
     public final Set<VALUE> getLastValue() {
         return get(END_OF_TIME);
+    }
+
+    @Override
+    public final SortedMap<Duration, Set<VALUE>> getTransitions() {
+        final SortedMap<Duration, Set<VALUE>> transitions = new TreeMap<>();
+        for (var t : getTransitionTimes()) {
+            transitions.put(t, get(t));
+        }
+        return transitions;
     }
 
     @Override
