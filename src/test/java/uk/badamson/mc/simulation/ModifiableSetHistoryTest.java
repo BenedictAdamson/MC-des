@@ -1,6 +1,7 @@
 package uk.badamson.mc.simulation;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -68,14 +69,23 @@ public class ModifiableSetHistoryTest {
         final Map<Duration, Set<VALUE>> expectedTransitions = Collections.singletonMap(when,
                 Collections.singleton(value));
         final Map<Duration, Boolean> expectedContainsTransitions = Collections.singletonMap(when, Boolean.TRUE);
-        final ModifiableSetHistory<VALUE> history = new ModifiableSetHistory<>();
+        final ModifiableSetHistory<VALUE> history0 = new ModifiableSetHistory<>();
+        final ModifiableSetHistory<VALUE> history1 = new ModifiableSetHistory<>();
+        final ModifiableSetHistory<VALUE> history2 = new ModifiableSetHistory<>();
+        history2.setPresentFrom(when, value);
 
-        setPresentFrom(history, when, value);
+        setPresentFrom(history1, when, value);
 
-        assertEquals("Set at start of time", Collections.EMPTY_SET, history.getFirstValue());
-        assertEquals("Transitions", expectedTransitions, ValueHistoryTest.getTransitionValues(history));
+        assertInvariants(history0, history1);
+        assertInvariants(history1, history2);
+
+        assertEquals("Set at start of time", Collections.EMPTY_SET, history1.getFirstValue());
+        assertEquals("Transitions", expectedTransitions, ValueHistoryTest.getTransitionValues(history1));
         assertEquals("contains transisions", expectedContainsTransitions,
-                ValueHistoryTest.getTransitionValues(history.contains(value)));
+                ValueHistoryTest.getTransitionValues(history1.contains(value)));
+
+        assertNotEquals("Value semantics", history0, history1);
+        assertEquals("Value semantics", history1, history2);
     }
 
     private static <VALUE> void setPresentFrom_2_differentValues(Duration when1, VALUE value1, Duration when2,
@@ -120,14 +130,19 @@ public class ModifiableSetHistoryTest {
 
     @Test
     public void constructor_0() {
-        final var history = new ModifiableSetHistory<Integer>();
+        final var history1 = new ModifiableSetHistory<Integer>();
+        final var history2 = new ModifiableSetHistory<Integer>();
 
-        assertInvariants(history);
-        ValueHistoryTest.assertInvariants(history, WHEN_1);
-        ValueHistoryTest.assertInvariants(history, WHEN_2);
-        assertEquals("This has no transition times.", Collections.EMPTY_SET, history.getTransitionTimes());
-        assertInvariants(history, (Integer) null);
-        assertInvariants(history, Integer.MIN_VALUE);
+        assertInvariants(history1);
+        assertInvariants(history1, history2);
+
+        assertEquals("This has no transition times.", Collections.EMPTY_SET, history1.getTransitionTimes());
+        assertEquals("Value semantics", history1, history2);
+
+        ValueHistoryTest.assertInvariants(history1, WHEN_1);
+        ValueHistoryTest.assertInvariants(history1, WHEN_2);
+        assertInvariants(history1, (Integer) null);
+        assertInvariants(history1, Integer.MIN_VALUE);
     }
 
     @Test

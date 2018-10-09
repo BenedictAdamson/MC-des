@@ -2,6 +2,7 @@ package uk.badamson.mc.simulation;
 
 import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
@@ -54,6 +55,18 @@ public class ValueHistoryTest {
         return firstValue;
     }
 
+    private static <VALUE> int assertHashCodeInvariants(ValueHistory<VALUE> history) {
+        final VALUE firstValue = history.getFirstValue();
+        final int firstValueHashCode = firstValue == null ? 0 : firstValue.hashCode();
+
+        final int hashCode = history.hashCode();
+
+        assertEquals("hashCode", firstValueHashCode + history.getTransitions().hashCode(), hashCode);
+
+        return hashCode;
+
+    }
+
     public static <VALUE> void assertInvariants(ValueHistory<VALUE> history) {
         assertTransitionTimesInvariants(history);
         assertFirstTansitionTimeInvariants(history);
@@ -63,6 +76,7 @@ public class ValueHistoryTest {
         assertEmptyInvariants(history);
         assertTransitionsInvariants(history);
         assertStreamOfTransitionsInvariants(history);
+        assertHashCodeInvariants(history);
     }
 
     public static <VALUE> void assertInvariants(ValueHistory<VALUE> history, Duration time) {
@@ -74,7 +88,12 @@ public class ValueHistoryTest {
     }
 
     public static <VALUE> void assertInvariants(ValueHistory<VALUE> history1, ValueHistory<VALUE> history2) {
-        // Do nothing
+        final boolean equals = history1.equals(history2);
+
+        assertFalse("Equality requires equal first values",
+                equals && !Objects.equals(history1.getFirstValue(), history2.getFirstValue()));
+        assertFalse("Equality requires equal transitions",
+                equals && !history1.getTransitions().equals(history2.getTransitions()));
     }
 
     private static <VALUE> Duration assertLastTansitionTimeInvariants(ValueHistory<VALUE> history) {

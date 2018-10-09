@@ -113,6 +113,27 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
         transitions.put(when, value);
     }
 
+    @Override
+    public final boolean equals(Object that) {
+        if (that == null)
+            return false;
+        if (this == that)
+            return true;
+        if (that instanceof ModifiableValueHistory) {
+            @SuppressWarnings("unchecked")
+            final ModifiableValueHistory<VALUE> thatValueHistory = (ModifiableValueHistory<VALUE>) that;
+            return Objects.equals(firstValue, thatValueHistory.firstValue)
+                    && transitions.equals(thatValueHistory.transitions);
+        } else if (that instanceof ValueHistory) {
+            @SuppressWarnings("unchecked")
+            final ValueHistory<VALUE> thatValueHistory = (ValueHistory<VALUE>) that;
+            return Objects.equals(firstValue, thatValueHistory.getFirstValue())
+                    && transitions.equals(thatValueHistory.getTransitions());
+        } else {
+            return false;
+        }
+    }
+
     /**
      * <p>
      * Get the value at a given point in time.
@@ -258,6 +279,11 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
         return Collections.unmodifiableSortedSet(transitions.navigableKeySet());
     }
 
+    @Override
+    public final int hashCode() {
+        return (firstValue == null ? 0 : firstValue.hashCode()) + transitions.hashCode();
+    }
+
     /**
      * <p>
      * Whether this history is empty.
@@ -323,4 +349,16 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
     public final Stream<Entry<Duration, VALUE>> streamOfTransitions() {
         return transitions.entrySet().stream();
     }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("ModifiableValueHistory [");
+        builder.append(firstValue);
+        builder.append(", ");
+        builder.append(transitions);
+        builder.append("]");
+        return builder.toString();
+    }
+
 }

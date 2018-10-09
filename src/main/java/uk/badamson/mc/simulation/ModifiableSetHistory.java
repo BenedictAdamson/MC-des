@@ -56,6 +56,27 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
     }
 
     @Override
+    public final boolean equals(Object that) {
+        if (that == null)
+            return false;
+        if (this == that)
+            return true;
+        if (that instanceof ModifiableSetHistory) {
+            @SuppressWarnings("unchecked")
+            final ModifiableSetHistory<VALUE> thatValueHistory = (ModifiableSetHistory<VALUE>) that;
+            return Objects.equals(emptySet, thatValueHistory.emptySet)
+                    && containsMap.equals(thatValueHistory.containsMap);
+        } else if (that instanceof ValueHistory) {
+            @SuppressWarnings("unchecked")
+            final ValueHistory<VALUE> thatValueHistory = (ValueHistory<VALUE>) that;
+            return Objects.equals(getFirstValue(), thatValueHistory.getFirstValue())
+                    && getTransitions().equals(thatValueHistory.getTransitions());
+        } else {
+            return false;
+        }
+    }
+
+    @Override
     public final Set<VALUE> get(Duration t) {
         Objects.requireNonNull(t, "t");
         Set<VALUE> result = containsMap.entrySet().stream().filter(e -> e.getValue().get(t).booleanValue())
@@ -110,6 +131,13 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
     @Override
     public final SortedSet<Duration> getTransitionTimes() {
         return new TreeSet<>(streamOfTransitionTimes().collect(Collectors.toSet()));
+    }
+
+    @Override
+    public final int hashCode() {
+        final Set<VALUE> firstValue = getFirstValue();
+        return (firstValue == null ? 0 : firstValue.hashCode())
+                + streamOfTransitions().mapToInt(entry -> entry.hashCode()).sum();
     }
 
     @Override
@@ -168,6 +196,17 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
     private Stream<Duration> streamOfTransitionTimes() {
         return containsMap.values().stream().flatMap(contains -> contains.streamOfTransitions())
                 .map(transition -> transition.getKey()).distinct();
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("ModifiableSetHistory [");
+        builder.append(getFirstValue());
+        builder.append(", ");
+        builder.append(getTransitions());
+        builder.append("]");
+        return builder.toString();
     }
 
 }

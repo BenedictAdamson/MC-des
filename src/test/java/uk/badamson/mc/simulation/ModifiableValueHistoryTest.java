@@ -1,6 +1,7 @@
 package uk.badamson.mc.simulation;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -63,14 +64,23 @@ public class ModifiableValueHistoryTest {
     }
 
     private static <VALUE> void appendTransition_1(Duration when, VALUE value) {
-        final ModifiableValueHistory<VALUE> history = new ModifiableValueHistory<>();
+        final ModifiableValueHistory<VALUE> history0 = new ModifiableValueHistory<>();
+        final ModifiableValueHistory<VALUE> history1 = new ModifiableValueHistory<>();
+        history1.appendTransition(when, value);
+        final ModifiableValueHistory<VALUE> history2 = new ModifiableValueHistory<>();
 
-        appendTransition(history, when, value);
+        appendTransition(history2, when, value);
 
-        final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
-        final Map<Duration, VALUE> transitionValues = ValueHistoryTest.getTransitionValues(history);
+        assertInvariants(history0, history2);
+        assertInvariants(history1, history2);
+
+        final SortedSet<Duration> transitionTimes = history2.getTransitionTimes();
+        final Map<Duration, VALUE> transitionValues = ValueHistoryTest.getTransitionValues(history2);
         assertEquals("transitionTimes.", Collections.singleton(when), transitionTimes);
         assertEquals("transitionValues.", Collections.singletonMap(when, value), transitionValues);
+
+        assertNotEquals("Value semantics (before and after)", history0, history2);
+        assertEquals("Value semantics (same changes)", history1, history2);
     }
 
     private static <VALUE> void appendTransition_2(Duration when1, VALUE value1, Duration when2, VALUE value2) {
@@ -105,14 +115,19 @@ public class ModifiableValueHistoryTest {
     }
 
     private static <VALUE> void constructor_1(VALUE value) {
-        final var history = new ModifiableValueHistory<>(value);
+        final var history1 = new ModifiableValueHistory<>(value);
+        final var history2 = new ModifiableValueHistory<>(value);
 
-        assertInvariants(history);
-        ValueHistoryTest.assertInvariants(history, WHEN_1);
-        ValueHistoryTest.assertInvariants(history, WHEN_2);
+        assertInvariants(history1);
+        assertInvariants(history1, history2);
+
         assertSame("The value of this history at the start of time is the given value.", value,
-                history.getFirstValue());
-        assertTrue("This is empty.", history.isEmpty());
+                history1.getFirstValue());
+        assertTrue("This is empty.", history1.isEmpty());
+        assertEquals("Value semantics", history1, history2);
+
+        ValueHistoryTest.assertInvariants(history1, WHEN_1);
+        ValueHistoryTest.assertInvariants(history1, WHEN_2);
     }
 
     private static <VALUE> void setValueFrom(ModifiableValueHistory<VALUE> history, Duration when, VALUE value) {
@@ -202,13 +217,18 @@ public class ModifiableValueHistoryTest {
 
     @Test
     public void constructor_0() {
-        final var history = new ModifiableValueHistory<Integer>();
+        final var history1 = new ModifiableValueHistory<Integer>();
+        final var history2 = new ModifiableValueHistory<Integer>();
 
-        assertInvariants(history);
-        ValueHistoryTest.assertInvariants(history, WHEN_1);
-        ValueHistoryTest.assertInvariants(history, WHEN_2);
-        assertNull("The value of this history at the start of time is null.", history.getFirstValue());
-        assertTrue("This is empty.", history.isEmpty());
+        assertInvariants(history1);
+        assertInvariants(history1, history2);
+
+        assertNull("The value of this history at the start of time is null.", history1.getFirstValue());
+        assertTrue("This is empty.", history1.isEmpty());
+        assertEquals("Value semantics", history1, history2);
+
+        ValueHistoryTest.assertInvariants(history1, WHEN_1);
+        ValueHistoryTest.assertInvariants(history1, WHEN_2);
     }
 
     @Test

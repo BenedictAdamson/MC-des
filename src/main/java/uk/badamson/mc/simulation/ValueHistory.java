@@ -38,6 +38,28 @@ public interface ValueHistory<VALUE> {
 
     /**
      * <p>
+     * Whether this value history is <dfn>equal</dfn> another object.
+     * </p>
+     * <p>
+     * The {@link ValueHistory} class has <i>value semantics</i>: for this to be
+     * equal to another object, the other object must also be a
+     * {@link ValueHistory}, and the two value histories must have
+     * {@linkplain Objects#equals(Object) equal (or equally null)}
+     * {@linkplain #get(Duration) values} at all points in time. The latter is
+     * equivalent to having the their {@linkplain #getFirstValue() first values}
+     * equal (or equally null) and having {@linkplain SortedMap#equals(Object)
+     * equal} {@linkplain #getTransitions() transitions}.
+     * </p>
+     * 
+     * @param that
+     *            The other object
+     * @return Whether equal.
+     */
+    @Override
+    public boolean equals(Object that);
+
+    /**
+     * <p>
      * Get the value at a given point in time.
      * </p>
      * 
@@ -184,6 +206,22 @@ public interface ValueHistory<VALUE> {
 
     /**
      * <p>
+     * A hash code for this value history.
+     * </p>
+     * <p>
+     * The hash code of a value history is the {@linkplain Object#hashCode() hash
+     * code} of the {@linkplain #getFirstValue() first value} (or 0 if the first
+     * value is null) plus the {@linkplain Map#hashCode() hash code} of the
+     * {@linkplain #getTransitions() transitions}.
+     * </p>
+     * 
+     * @return the hash code
+     */
+    @Override
+    public int hashCode();
+
+    /**
+     * <p>
      * Whether this history is empty.
      * </p>
      * <ul>
@@ -214,4 +252,5 @@ public interface ValueHistory<VALUE> {
      * @return a stream of the transitions.
      */
     public Stream<Map.Entry<Duration, VALUE>> streamOfTransitions();
+
 }
