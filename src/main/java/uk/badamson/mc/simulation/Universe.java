@@ -4,7 +4,6 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -76,7 +75,6 @@ public class Universe {
 
     private static final class ObjectData {
         final ModifiableValueHistory<ObjectState> stateHistory = new ModifiableValueHistory<>();
-        final ModifiableSetHistory<ObjectStateId> stateTransitionDependencies = new ModifiableSetHistory<>();
     }// class
 
     /**
@@ -435,58 +433,6 @@ public class Universe {
 
     /**
      * <p>
-     * The set of {@linkplain #getStateTransitionIds() known state transitions} that
-     * depend on a given object state.
-     * </p>
-     * <ul>
-     * <li>Always have a (non null) set of dependent state transitions.</li>
-     * <li>The set of dependent state transitions does not have a null element.</li>
-     * <li>The set of dependent state transitions is a
-     * {@linkplain Set#containsAll(java.util.Collection) subset} of the
-     * {@linkplain #getStateTransitionIds() set of all known state
-     * transitions}.</li>
-     * <li>Dependencies are time ordered: The dependent state transitions of a given
-     * object state all have their {@linkplain ObjectStateId#getWhen() time-stamps}
-     * {@linkplain Duration#compareTo(Duration) after} the time-stamp of the given
-     * object state.</li>
-     * <li>The state transitions that depend on a given object state are consistent
-     * with the {@linkplain ObjectState#getDependencies() dependency} information of
-     * the {@linkplain #getStateTransition(ObjectStateId) state transitions}: if the
-     * universe has state transition <var>S</var> that
-     * {@linkplain ObjectState#getDepenendedUponStates() depends on} the state with
-     * ID <var>D<var>, which is the state {@linkplain ObjectStateId#getObject() of
-     * object} <var>X</var> and time <var>T</var>, and the latest
-     * {@linkplain #getObjectStateHistory(UUID) state transition} for <var>X</var>
-     * at or before time <var>T</var> has ID <var>J</var>, then one of the dependent
-     * state transitions of <var>J</var> is <var>I</var>.</li>
-     * <li>Dependencies carry forward through time: if object state <var>I</var> has
-     * object state <var>J</var> as a dependent state transition, and <var>I</var>
-     * id for {@linkplain ObjectStateId#getObject() of object} <var>X</var> at
-     * {@linkplain ObjectStateId#getWhen() time} <var>T</var>, the dependent state
-     * transitions for object <var>X</var> at all times after <var>T</var> also
-     * include <var>J</var>.</li>
-     * <li>Dependencies are transitive: if object state <var>I</var> has object
-     * state <var>J</var> as a dependent state transition, and object state
-     * <var>J</var> has object state <var>K</var> as a dependent state transition,
-     * then <var>I</var> also has <var>K</var> as a dependent state transition.</li>
-     * </ul>
-     * 
-     * @param objectStateId
-     *            The ID of the object state of interest
-     * @return The state transitions that depend on the object state that has the
-     *         given ID.
-     * @throws NullPointerException
-     *             If {@code ObjectStateId} is null.
-     */
-    public final Set<ObjectStateId> getDependentStateTransitions(ObjectStateId objectStateId) {
-        Objects.requireNonNull(objectStateId, "objectStateId");
-        final Set<ObjectStateId> result = new HashSet<>();
-        // TODO
-        return result;
-    }
-
-    /**
-     * <p>
      * The earliest point in time for which this universe has a known
      * {@linkplain ObjectState state} for {@linkplain #getObjectIds() all the
      * objects} in the universe.
@@ -633,96 +579,6 @@ public class Universe {
         } else {
             return null;
         }
-    }
-
-    /**
-     * <p>
-     * The (earlier) object state information directly used to compute the state of
-     * an object at a given point in time.
-     * </p>
-     * <p>
-     * Implicitly, if the object state computations were done differently for the
-     * dependent objects,the {@linkplain #getStateTransition(ObjectStateId) state
-     * transition} recorded for the given ID would be incorrect.
-     * </p>
-     * <ul>
-     * <li>Have a (non null) dependency map for an ID if, and only if, that is a
-     * known {@linkplain #getStateTransitionIds() state transition ID}.</li>
-     * <li>A (non null) dependency map does not have a null key.</li>
-     * <li>A (non null) dependency map does not have null values.</li>
-     * <li>Each object ID {@linkplain Map#keySet() key} of a (non null) dependency
-     * map maps to a value that has that same object ID as the
-     * {@linkplain ObjectStateId#getObject() object} of the object state transition
-     * ID.</li>
-     * <li>The {@linkplain ObjectStateId#getWhen() time-stamp} of every
-     * {@linkplain Map#values() value} in a (non null) dependency map is before the
-     * {@linkplain ObjectStateId#getWhen() time-stamp} of the the given state
-     * transition ID.</li>
-     * </ul>
-     * <p>
-     * The dependencies typically have an entry for the previous state of the
-     * {@linkplain ObjectStateId#getObject() object} of the state transition ID.
-     * </p>
-     * 
-     * @param stateTransitionId
-     *            The ID of the state transition of interest.
-     * @return The dependency information
-     * @throws NullPointerException
-     *             If {@code stateTransitionId} is null.
-     */
-    public final Map<UUID, ObjectStateId> getStateTransitionDependencies(ObjectStateId stateTransitionId) {
-        return getStateTransitionDependencies(stateTransitionId.getObject(), stateTransitionId.getWhen());
-    }
-
-    /**
-     * <p>
-     * The (earlier) object state information directly used to compute the state of
-     * an object at a given point in time.
-     * </p>
-     * <p>
-     * Implicitly, if the object state computations were done differently for the
-     * dependent objects,the {@linkplain #getStateTransition(ObjectStateId) state
-     * transition} recorded for the given ID would be incorrect.
-     * </p>
-     * <ul>
-     * <li>Have a (non null) dependency map for an ID if, and only if, that is a
-     * known {@linkplain #getStateTransitionIds() state transition ID}.</li>
-     * <li>A (non null) dependency map does not have a null key.</li>
-     * <li>A (non null) dependency map does not have null values.</li>
-     * <li>Each object ID {@linkplain Map#keySet() key} of a (non null) dependency
-     * map maps to a value that has that same object ID as the
-     * {@linkplain ObjectStateId#getObject() object} of the object state transition
-     * ID.</li>
-     * <li>The {@linkplain ObjectStateId#getWhen() time-stamp} of every
-     * {@linkplain Map#values() value} in a (non null) dependency map is before the
-     * {@linkplain ObjectStateId#getWhen() time-stamp} of the the given state
-     * transition ID.</li>
-     * </ul>
-     * <p>
-     * The dependencies typically have an entry for the previous state of the
-     * {@linkplain ObjectStateId#getObject() object} of the state transition ID.
-     * </p>
-     * 
-     * @param object
-     *            The ID of the object of interest.
-     * @param when
-     *            The point in time of interest.
-     * @return The dependency information
-     * @throws NullPointerException
-     *             <ul>
-     *             <li>If {@code object} is null.</li>
-     *             <li>If {@code when} is null.</li>
-     *             </ul>
-     */
-    public final Map<UUID, ObjectStateId> getStateTransitionDependencies(UUID object, Duration when) {
-        Objects.requireNonNull(object, "object");
-        Objects.requireNonNull(when, "when");
-        final var od = objectDataMap.get(object);
-        if (od == null) {
-            return null;
-        }
-        final Set<ObjectStateId> dependencies = od.stateTransitionDependencies.get(when);
-        return dependencies.stream().collect(Collectors.toMap(id -> id.getObject(), id -> id));
     }
 
     /**

@@ -5,9 +5,7 @@ import static org.hamcrest.core.AnyOf.anyOf;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsSame.sameInstance;
-import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
-import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -537,7 +535,6 @@ public class UniverseTest {
     private static void appendStateTransition_2Dependency(final Duration earliestCompleteState, final Duration when1,
             final Duration when2, UUID object1, UUID object2) {
         final ObjectStateId id1 = new ObjectStateId(object1, when1);
-        final ObjectStateId id2 = new ObjectStateId(object2, when2);
         final Map<UUID, ObjectStateId> dependencies1 = Collections.emptyMap();
         final Map<UUID, ObjectStateId> dependencies2 = Collections.singletonMap(object1, id1);
         final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object1, when1, dependencies1);
@@ -551,9 +548,6 @@ public class UniverseTest {
         universe.appendStateTransition(stateTransition1);
 
         appendStateTransition(universe, stateTransition2);
-
-        assertEquals("Depended upon object has reverse dependency", Collections.singleton(id2),
-                universe.getDependentStateTransitions(id1));
     }
 
     private static void appendStateTransition_2DifferentObjects(final UUID object1, final UUID object2) {
@@ -637,7 +631,6 @@ public class UniverseTest {
             UUID object3) {
         final ObjectStateId id1 = new ObjectStateId(object1, when1);
         final ObjectStateId id2 = new ObjectStateId(object2, when2);
-        final ObjectStateId id3 = new ObjectStateId(object3, when3);
         final Map<UUID, ObjectStateId> dependencies1 = Collections.emptyMap();
         final Map<UUID, ObjectStateId> dependencies2 = Collections.singletonMap(object1, id1);
         final Map<UUID, ObjectStateId> dependencies3 = Collections.singletonMap(object2, id2);
@@ -656,36 +649,6 @@ public class UniverseTest {
         universe.appendStateTransition(stateTransition2);
 
         appendStateTransition(universe, stateTransition3);
-
-        assertEquals("Depended upon object has reverse dependency", Collections.singleton(id3),
-                universe.getDependentStateTransitions(id2));
-        assertEquals("Depended upon object has transitive reverse dependency", Set.of(id3, id2),
-                universe.getDependentStateTransitions(id1));
-    }
-
-    private static Set<ObjectStateId> assertDependentStateTransitionsInvariants(Universe universe,
-            ObjectStateId objectStateId) {
-        final Duration when = objectStateId.getWhen();
-        final UUID object = objectStateId.getObject();
-
-        final Set<ObjectStateId> dependentStateTransitions = universe.getDependentStateTransitions(objectStateId);
-
-        final Set<ObjectStateId> dependentStateTransitionsForEarlier = universe
-                .getDependentStateTransitions(new ObjectStateId(object, when.minusNanos(1L)));
-        final Set<ObjectStateId> stateTransitionIds = universe.getStateTransitionIds();
-        assertNotNull("Always have a set of dependent state transitions.", dependentStateTransitions);// guard
-        for (ObjectStateId dependentStateTransition : dependentStateTransitions) {
-            assertNotNull("The set of dependent state transitions does not have a null element.",
-                    dependentStateTransition);// guard
-            ObjectStateIdTest.assertInvariants(dependentStateTransition);
-            ObjectStateIdTest.assertInvariants(objectStateId, dependentStateTransition);
-            assertThat("The set of dependent state transitions is a subset of the set of all known state transitions.",
-                    dependentStateTransition, isIn(stateTransitionIds));
-            assertThat("Dependencies are time ordered", dependentStateTransition.getWhen(), greaterThan(when));
-            assertThat("Dependencies carry forward through time", dependentStateTransition,
-                    isIn(dependentStateTransitionsForEarlier));
-        }
-        return dependentStateTransitions;
     }
 
     public static void assertInvariants(Universe universe) {
@@ -711,27 +674,6 @@ public class UniverseTest {
                     "Have a state transition if the given object state ID is one of the known state transition IDs of this universe.",
                     stateTransition);// guard
             ObjectStateTest.assertInvariants(stateTransition);
-            assertStateTransitionDependencies(universe, stateTransitionId);
-            assertDependentStateTransitionsInvariants(universe, stateTransitionId);
-
-            final Map<UUID, ObjectStateId> dependencies = universe.getStateTransitionDependencies(stateTransitionId);
-
-            for (ObjectStateId dependency : dependencies.values()) {
-                ObjectStateIdTest.assertInvariants(stateTransitionId, dependency);
-                final boolean prehistoricDependency = dependency.getWhen().compareTo(earliestTimeOfCompleteState) <= 0;
-                assertTrue(
-                        "All the dependencies of the state transitions either "
-                                + "have a time-stamp before the earliest complete state time-stamp of the universe, "
-                                + "or are for known objects.",
-                        prehistoricDependency || objectIds.contains(dependency.getObject()));
-                final Set<ObjectStateId> dependencyDependentStateTransitions = assertDependentStateTransitionsInvariants(
-                        universe, dependency);
-                if (!prehistoricDependency) {
-                    assertThat(
-                            "The state transitions that depend on a given object state are consistent with the dependency information of the state transitions",
-                            stateTransitionId, isIn(dependencyDependentStateTransitions));
-                }
-            }
         }
 
         for (UUID object : objectIds) {
@@ -756,30 +698,6 @@ public class UniverseTest {
 
     public static void assertInvariants(Universe universe1, Universe universe2) {
         ObjectTest.assertInvariants(universe1, universe2);// inherited
-    }
-
-    private static Map<UUID, ObjectStateId> assertStateTransitionDependencies(Universe universe,
-            ObjectStateId stateTransitionId) {
-        final Map<UUID, ObjectStateId> dependencies = universe.getStateTransitionDependencies(stateTransitionId);
-        assertEquals("Have a dependency map for an ID if, and only if, that is a known state transition ID.",
-                universe.getStateTransitionIds().contains(stateTransitionId), dependencies != null);
-        if (dependencies != null) {
-            for (var entry : dependencies.entrySet()) {
-                final UUID object = entry.getKey();
-                final ObjectStateId dependency = entry.getValue();
-                assertNotNull("A dependency map does not have a null key.", object);
-                assertNotNull("A dependency map does not have null values.", dependency);// guard
-                ObjectStateIdTest.assertInvariants(dependency);
-                ObjectStateIdTest.assertInvariants(stateTransitionId, dependency);
-                assertSame(
-                        "Each object ID key of a dependency map maps to a value that has that same object ID as the object of the object state transition ID.",
-                        object, dependency.getObject());
-                assertThat(
-                        "The time-stamp of every value in s dependency map is before the time-stamp of the the given state transition ID.",
-                        dependency.getWhen(), lessThanOrEqualTo(stateTransitionId.getWhen()));
-            }
-        }
-        return dependencies;
     }
 
     private static void assertUnknownObjectInvariants(Universe universe, UUID object) {
