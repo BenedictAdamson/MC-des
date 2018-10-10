@@ -289,8 +289,13 @@ public class Universe {
                 throw new IllegalArgumentException(
                         "State transition dependencies not equal to transaction dependencies");
             }
+            final Duration when = stateTransition.getWhen();
             try {
-                appendStateTransition(stateTransition);
+                stateTransition.getStates().entrySet().stream().forEach(e -> {
+                    final UUID object = e.getKey();
+                    final ObjectState state = e.getValue();
+                    appendStateTransition(when, object, state, dependencies);
+                });
             } catch (IllegalStateException e) {
                 abortCommit = true;
             }
@@ -348,66 +353,6 @@ public class Universe {
             objectDataMap.put(object, od);
         }
         od.stateHistory.appendTransition(when, state);
-    }
-
-    /**
-     * <p>
-     * Add a state transition to this universe.
-     * <p>
-     * 
-     * @param stateTransition
-     *            The state transition to append.
-     * @throws NullPointerException
-     *             If {@code stateTransition} is null.
-     * @throws IllegalStateException
-     *             <ul>
-     *             <li>If the {@linkplain ObjectState#getObject() object} of the
-     *             {@code objectState} is already an {@linkplain #getObjectIds()
-     *             object ID} of this universe, but the
-     *             {@linkplain ObjectState#getWhen() time-stamp} of
-     *             {@code objectState} is not
-     *             {@linkplain Duration#compareTo(Duration) after} the
-     *             {@linkplain SortedMap#lastKey() last} state in the
-     *             {@linkplain #getObjectStateHistory(UUID) object state history} of
-     *             that object. In this case, this {@link Universe} is unchanged.
-     *             </li>
-     *             <li>If the {@linkplain ObjectStateId#getWhen() time-stamp} of any
-     *             the {@code dependencies} are at or after the
-     *             {@linkplain #getEarliestTimeOfCompleteState() earliest complete
-     *             state} but are for {@linkplain ObjectStateId#getObject() objects}
-     *             that are not {@linkplain #getObjectIds() known objects}. In this
-     *             case, this {@link Universe} is unchanged.</li>
-     *             <li>If the {@linkplain ObjectStateId#getWhen() time-stamp} of the
-     *             {@code objectState} is after the
-     *             {@linkplain #getEarliestTimeOfCompleteState() earliest complete
-     *             state} but the {@code dependencies} does not include the
-     *             {@linkplain ObjectState#getId() ID} of the
-     *             {@linkplain SortedMap#lastKey() last} state transition of the
-     *             {@linkplain #getObjectStateHistory(UUID) state history} of the
-     *             {@linkplain ObjectState#getObject() object} of the
-     *             {@code objectState}. In this case, this {@link Universe} is
-     *             unchanged.</li>
-     *             <li>If the {@linkplain ObjectState#getObject() object} of the
-     *             {@code objectState} is already an {@linkplain #getObjectIds()
-     *             object ID} of this universe, and the
-     *             {@linkplain SortedMap#lastKey() last} entry in the
-     *             {@linkplain Universe#getObjectStateHistory(UUID) state history}
-     *             is a null value (indicating that the object ceased to exist at
-     *             the time of that entry). In this case, this {@link Universe} is
-     *             unchanged.</li>
-     *             </ul>
-     */
-    public final void appendStateTransition(StateTransition stateTransition) throws IllegalStateException {
-        Objects.requireNonNull(stateTransition, "stateTransition");
-
-        final Duration when = stateTransition.getWhen();
-        final Map<UUID, ObjectStateId> dependencies = stateTransition.getDependencies();
-        stateTransition.getStates().entrySet().stream().forEach(e -> {
-            final UUID object = e.getKey();
-            final ObjectState state = e.getValue();
-            appendStateTransition(when, object, state, dependencies);
-        });
-
     }
 
     /**

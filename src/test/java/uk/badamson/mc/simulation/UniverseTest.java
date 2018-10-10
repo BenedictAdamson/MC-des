@@ -2,7 +2,6 @@ package uk.badamson.mc.simulation;
 
 import static org.hamcrest.collection.IsIn.isIn;
 import static org.hamcrest.core.AnyOf.anyOf;
-import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsSame.sameInstance;
 import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
@@ -210,7 +209,12 @@ public class UniverseTest {
             final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object, when1, dependencies1);
             final StateTransition stateTransition1 = new StateTransition(when1,
                     Collections.singletonMap(object, objectState1), dependencies1);
-            universe.appendStateTransition(stateTransition1);
+            try {
+                TransactionTest.putAndCommit(universe, stateTransition1);
+            } catch (Universe.AbortedTransactionException e) {
+                throw new AssertionError(e);
+
+            }
             final Universe.Transaction transaction = universe.beginTransaction();
 
             final ObjectState objectState2 = fetchObjectState(transaction, object, when2);
@@ -240,8 +244,18 @@ public class UniverseTest {
                     Collections.singletonMap(object, objectState1), dependencies1);
             final StateTransition stateTransition2 = new StateTransition(when3,
                     Collections.singletonMap(object, objectState2), dependencies2);
-            universe.appendStateTransition(stateTransition1);
-            universe.appendStateTransition(stateTransition2);
+            try {
+                TransactionTest.putAndCommit(universe, stateTransition1);
+            } catch (Universe.AbortedTransactionException e) {
+                throw new AssertionError(e);
+
+            }
+            try {
+                TransactionTest.putAndCommit(universe, stateTransition2);
+            } catch (Universe.AbortedTransactionException e) {
+                throw new AssertionError(e);
+
+            }
             final Universe.Transaction transaction = universe.beginTransaction();
             transaction.fetchObjectState(object, when1);
 
@@ -270,6 +284,77 @@ public class UniverseTest {
             assertEquals("State transition IDs", objectStateId, universe.getStateTransitionIds());
         }
 
+        private static void put_1PrehistoricDependency(final Duration when1, final Duration earliestCompleteState,
+                final Duration when2) {
+            final ObjectStateId dependentState = new ObjectStateId(UniverseTest.OBJECT_A, when1);
+            final Map<UUID, ObjectStateId> dependencies = Collections.singletonMap(UniverseTest.OBJECT_A,
+                    dependentState);
+            final ObjectState objectState = new ObjectStateTest.TestObjectState(1, UniverseTest.OBJECT_B, when2,
+                    dependencies);
+            final StateTransition stateTransition = new StateTransition(when2,
+                    Collections.singletonMap(UniverseTest.OBJECT_B, objectState), dependencies);
+
+            final Universe universe = new Universe(earliestCompleteState);
+
+            try {
+                UniverseTest.TransactionTest.putAndCommit(universe, stateTransition);
+            } catch (Universe.AbortedTransactionException e) {
+                throw new AssertionError(e);
+            }
+        }
+
+        private static void put_2Dependency(final Duration earliestCompleteState, final Duration when1,
+                final Duration when2, UUID object1, UUID object2) {
+            final ObjectStateId id1 = new ObjectStateId(object1, when1);
+            final Map<UUID, ObjectStateId> dependencies1 = Collections.emptyMap();
+            final Map<UUID, ObjectStateId> dependencies2 = Collections.singletonMap(object1, id1);
+            final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object1, when1, dependencies1);
+            final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object2, when2, dependencies2);
+            final StateTransition stateTransition1 = new StateTransition(when1,
+                    Collections.singletonMap(object1, objectState1), dependencies1);
+            final StateTransition stateTransition2 = new StateTransition(when2,
+                    Collections.singletonMap(object2, objectState2), dependencies2);
+
+            final Universe universe = new Universe(earliestCompleteState);
+
+            try {
+                UniverseTest.TransactionTest.putAndCommit(universe, stateTransition1);
+                UniverseTest.TransactionTest.putAndCommit(universe, stateTransition2);
+            } catch (Universe.AbortedTransactionException e) {
+                throw new AssertionError(e);
+            }
+        }
+
+        private static void put_2DifferentObjects(final UUID object1, final UUID object2) {
+            assert !object1.equals(object2);
+            final Duration when = UniverseTest.DURATION_1;
+            final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
+            final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object1, when, dependencies);
+            final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object2, when, dependencies);
+            final StateTransition stateTransition1 = new StateTransition(when,
+                    Collections.singletonMap(object1, objectState1), dependencies);
+            final StateTransition stateTransition2 = new StateTransition(when,
+                    Collections.singletonMap(object2, objectState2), dependencies);
+
+            final Universe universe = new Universe(when);
+            try {
+                UniverseTest.TransactionTest.putAndCommit(universe, stateTransition1);
+            } catch (Universe.AbortedTransactionException e) {
+                throw new AssertionError(e);
+            }
+            final ValueHistory<ObjectState> objectStateHistory1 = universe.getObjectStateHistory(object1);
+
+            try {
+                UniverseTest.TransactionTest.putAndCommit(universe, stateTransition2);
+            } catch (Universe.AbortedTransactionException e) {
+                throw new AssertionError(e);
+            }
+
+            assertEquals("Object IDs", Set.of(object1, object2), universe.getObjectIds());
+            assertEquals("The object state histories of other objects are unchanged.", objectStateHistory1,
+                    universe.getObjectStateHistory(object1));
+        }
+
         private static void put_2InvalidEventTimeStampOrder(final Duration earliestTimeOfCompleteState, UUID object,
                 Duration when0, Duration when1, Duration when2) {
             final Universe universe = new Universe(earliestTimeOfCompleteState);
@@ -287,7 +372,12 @@ public class UniverseTest {
             final StateTransition stateTransition2 = new StateTransition(when1,
                     Collections.singletonMap(object, objectState2), Collections.singletonMap(object, id0));
 
-            universe.appendStateTransition(stateTransition0);
+            try {
+                TransactionTest.putAndCommit(universe, stateTransition0);
+            } catch (Universe.AbortedTransactionException e) {
+                throw new AssertionError(e);
+
+            }
             final Universe.Transaction transaction1 = universe.beginTransaction();
             transaction1.fetchObjectState(object, when0);
             final Universe.Transaction transaction2 = universe.beginTransaction();
@@ -316,7 +406,12 @@ public class UniverseTest {
             final StateTransition stateTransition2 = new StateTransition(when1,
                     Collections.singletonMap(object, objectState2), Collections.singletonMap(object, id0));
 
-            universe.appendStateTransition(stateTransition0);
+            try {
+                TransactionTest.putAndCommit(universe, stateTransition0);
+            } catch (Universe.AbortedTransactionException e) {
+                throw new AssertionError(e);
+
+            }
             final Universe.Transaction transaction1 = universe.beginTransaction();
             transaction1.fetchObjectState(object, when0);
             final Universe.Transaction transaction2 = universe.beginTransaction();
@@ -326,6 +421,106 @@ public class UniverseTest {
             put(transaction2, stateTransition2);
 
             assertTrue("Will abort commit", transaction2.willAbortCommit());
+        }
+
+        private static void put_2OutOfOrderStates(final Duration when1, final Duration when2)
+                throws Universe.AbortedTransactionException {
+            assert when1.compareTo(when2) >= 0;
+            final UUID object = UniverseTest.OBJECT_A;
+            final Duration earliestCompleteState = when1;
+            final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
+            final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object, when1, dependencies);
+            final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object, when2, dependencies);
+            final StateTransition stateTransition1 = new StateTransition(when1,
+                    Collections.singletonMap(object, objectState1), dependencies);
+            final StateTransition stateTransition2 = new StateTransition(when2,
+                    Collections.singletonMap(object, objectState2), dependencies);
+
+            final SortedMap<Duration, ObjectState> expectedObjectStateHistory = new TreeMap<>();
+            expectedObjectStateHistory.put(when1, objectState1);
+
+            final Universe universe = new Universe(earliestCompleteState);
+            try {
+                UniverseTest.TransactionTest.putAndCommit(universe, stateTransition1);
+            } catch (Universe.AbortedTransactionException e) {
+                throw new AssertionError(e);
+            }
+
+            UniverseTest.TransactionTest.putAndCommit(universe, stateTransition2);// throws
+        }
+
+        private static void put_2SuccessiveStates(final Duration when1, final Duration when2) {
+            assert when1.compareTo(when2) < 0;
+            final UUID object = UniverseTest.OBJECT_A;
+            final Duration earliestCompleteState = when2;
+            final ObjectStateId id1 = new ObjectStateId(object, when1);
+            final Map<UUID, ObjectStateId> dependencies1 = Collections.emptyMap();
+            final Map<UUID, ObjectStateId> dependencies2 = Collections.singletonMap(object, id1);
+            final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object, when1, dependencies1);
+            final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object, when2, dependencies2);
+            final StateTransition stateTransition1 = new StateTransition(when1,
+                    Collections.singletonMap(object, objectState1), dependencies1);
+            final StateTransition stateTransition2 = new StateTransition(when2,
+                    Collections.singletonMap(object, objectState2), dependencies2);
+
+            final ModifiableValueHistory<ObjectState> expectedObjectStateHistory = new ModifiableValueHistory<>();
+            expectedObjectStateHistory.appendTransition(when1, objectState1);
+            expectedObjectStateHistory.appendTransition(when2, objectState2);
+
+            final Universe universe = new Universe(earliestCompleteState);
+
+            try {
+                UniverseTest.TransactionTest.putAndCommit(universe, stateTransition1);
+                UniverseTest.TransactionTest.putAndCommit(universe, stateTransition2);
+            } catch (Universe.AbortedTransactionException e) {
+                throw new AssertionError(e);
+            }
+
+            assertEquals("Object IDs.", Collections.singleton(object), universe.getObjectIds());
+            assertEquals("Object state history.", expectedObjectStateHistory, universe.getObjectStateHistory(object));
+            assertSame(
+                    "The state of an object at a given point in time is "
+                            + "the state it had at the latest state transition "
+                            + "at or before that point in time (just before second)",
+                    objectState1, universe.getObjectState(object, when2.minusNanos(1L)));
+        }
+
+        private static void put_3TransitiveDependency(final Duration earliestCompleteState, final Duration when1,
+                final Duration when2, final Duration when3, UUID object1, UUID object2, UUID object3) {
+            final ObjectStateId id1 = new ObjectStateId(object1, when1);
+            final ObjectStateId id2 = new ObjectStateId(object2, when2);
+            final Map<UUID, ObjectStateId> dependencies1 = Collections.emptyMap();
+            final Map<UUID, ObjectStateId> dependencies2 = Collections.singletonMap(object1, id1);
+            final Map<UUID, ObjectStateId> dependencies3 = Collections.singletonMap(object2, id2);
+            final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object1, when1, dependencies1);
+            final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object2, when2, dependencies2);
+            final ObjectState objectState3 = new ObjectStateTest.TestObjectState(3, object3, when3, dependencies3);
+            final StateTransition stateTransition1 = new StateTransition(when1,
+                    Collections.singletonMap(object1, objectState1), dependencies1);
+            final StateTransition stateTransition2 = new StateTransition(when1,
+                    Collections.singletonMap(object2, objectState2), dependencies2);
+            final StateTransition stateTransition3 = new StateTransition(when1,
+                    Collections.singletonMap(object3, objectState3), dependencies3);
+
+            final Universe universe = new Universe(earliestCompleteState);
+
+            try {
+                UniverseTest.TransactionTest.putAndCommit(universe, stateTransition1);
+                UniverseTest.TransactionTest.putAndCommit(universe, stateTransition2);
+                UniverseTest.TransactionTest.putAndCommit(universe, stateTransition3);
+            } catch (Universe.AbortedTransactionException e) {
+                throw new AssertionError(e);
+            }
+        }
+
+        private static void putAndCommit(final Universe universe, StateTransition stateTransition)
+                throws Universe.AbortedTransactionException {
+            final Universe.Transaction transaction = universe.beginTransaction();
+            for (var id : stateTransition.getDependencies().values()) {
+                transaction.fetchObjectState(id.getObject(), id.getWhen());
+            }
+            transaction.put(stateTransition);
+            transaction.commit();
         }
 
         @Test
@@ -361,7 +556,12 @@ public class UniverseTest {
             final StateTransition stateTransition2 = new StateTransition(when1,
                     Collections.singletonMap(object, objectState2), Collections.singletonMap(object, id0));
 
-            universe.appendStateTransition(stateTransition0);
+            try {
+                TransactionTest.putAndCommit(universe, stateTransition0);
+            } catch (Universe.AbortedTransactionException e) {
+                throw new AssertionError(e);
+
+            }
             final Universe.Transaction transaction1 = universe.beginTransaction();
             transaction1.fetchObjectState(object, when0);
             final Universe.Transaction transaction2 = universe.beginTransaction();
@@ -452,6 +652,41 @@ public class UniverseTest {
         }
 
         @Test
+        public void put_1PrehistoricDependencyA() {
+            TransactionTest.put_1PrehistoricDependency(DURATION_1, DURATION_2, DURATION_3);
+        }
+
+        @Test
+        public void put_1PrehistoricDependencyB() {
+            TransactionTest.put_1PrehistoricDependency(DURATION_2, DURATION_3, DURATION_4);
+        }
+
+        @Test
+        public void put_1PrehistoricDependencyClose() {
+            TransactionTest.put_1PrehistoricDependency(DURATION_2.minusNanos(1L), DURATION_2, DURATION_2);
+        }
+
+        @Test
+        public void put_2DependencyA() {
+            TransactionTest.put_2Dependency(DURATION_1, DURATION_2, DURATION_3, OBJECT_A, OBJECT_B);
+        }
+
+        @Test
+        public void put_2DependencyB() {
+            TransactionTest.put_2Dependency(DURATION_2, DURATION_3, DURATION_4, OBJECT_B, OBJECT_A);
+        }
+
+        @Test
+        public void put_2DifferentObjectsA() {
+            TransactionTest.put_2DifferentObjects(OBJECT_A, OBJECT_B);
+        }
+
+        @Test
+        public void put_2DifferentObjectsB() {
+            TransactionTest.put_2DifferentObjects(OBJECT_B, OBJECT_A);
+        }
+
+        @Test
         public void put_2InvalidEventTimeStampOrderA() {
             put_2InvalidEventTimeStampOrder(DURATION_1, OBJECT_A, DURATION_2, DURATION_3, DURATION_4);
         }
@@ -471,6 +706,53 @@ public class UniverseTest {
             put_2NotSuccessiveForSameObject(DURATION_2, OBJECT_B, DURATION_3, DURATION_4, DURATION_5);
         }
 
+        @Test(expected = Universe.AbortedTransactionException.class)
+        public void put_2OutOfOrderStatesA() throws Universe.AbortedTransactionException {
+            TransactionTest.put_2OutOfOrderStates(DURATION_2, DURATION_1);
+        }
+
+        @Test(expected = Universe.AbortedTransactionException.class)
+        public void put_2OutOfOrderStatesB() throws Universe.AbortedTransactionException {
+            TransactionTest.put_2OutOfOrderStates(DURATION_3, DURATION_2);
+        }
+
+        @Test(expected = Universe.AbortedTransactionException.class)
+        public void put_2OutOfOrderStatesClose() throws Universe.AbortedTransactionException {
+            TransactionTest.put_2OutOfOrderStates(DURATION_2, DURATION_2.minusNanos(1L));
+        }
+
+        @Test(expected = Universe.AbortedTransactionException.class)
+        public void put_2OutOfOrderStatesSame() throws Universe.AbortedTransactionException {
+            TransactionTest.put_2OutOfOrderStates(DURATION_2, DURATION_2);
+        }
+
+        @Test
+        public void put_2SuccessiveStatesA() {
+            TransactionTest.put_2SuccessiveStates(DURATION_1, DURATION_2);
+        }
+
+        @Test
+        public void put_2SuccessiveStatesB() {
+            TransactionTest.put_2SuccessiveStates(DURATION_2, DURATION_3);
+        }
+
+        @Test
+        public void put_2SuccessiveStatesClose() {
+            TransactionTest.put_2SuccessiveStates(DURATION_1, DURATION_1.plusNanos(1));
+        }
+
+        @Test
+        public void put_3TransitiveDependencyA() {
+            TransactionTest.put_3TransitiveDependency(DURATION_1, DURATION_2, DURATION_3, DURATION_4, OBJECT_A,
+                    OBJECT_B, OBJECT_C);
+        }
+
+        @Test
+        public void put_3TransitiveDependencyB() {
+            TransactionTest.put_3TransitiveDependency(DURATION_2, DURATION_3, DURATION_4, DURATION_5, OBJECT_B,
+                    OBJECT_C, OBJECT_A);
+        }
+
     }// class
 
     private static final UUID OBJECT_A = ObjectStateIdTest.OBJECT_A;
@@ -481,180 +763,6 @@ public class UniverseTest {
     private static final Duration DURATION_3 = Duration.ofSeconds(23);
     private static final Duration DURATION_4 = Duration.ofSeconds(29);
     private static final Duration DURATION_5 = Duration.ofSeconds(31);
-
-    public static void appendStateTransition(final Universe universe, StateTransition stateTransition)
-            throws IllegalStateException {
-        final Set<UUID> objectIds0 = universe.getObjectIds();
-
-        try {
-            universe.appendStateTransition(stateTransition);
-        } catch (final IllegalStateException e) {// Permitted
-            assertInvariants(universe);
-            assertEquals("Known object IDs unchanged", objectIds0, universe.getObjectIds());
-            throw e;
-        }
-
-        assertInvariants(universe);
-    }
-
-    private static void appendStateTransition_1(final UUID object, final Duration when) {
-        final Duration earliestCompleteState = when;
-        final Duration justAfter = when.plusNanos(1L);
-        final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
-        final ObjectState objectState = new ObjectStateTest.TestObjectState(1, object, when, dependencies);
-        final StateTransition stateTransition = new StateTransition(when, Collections.singletonMap(object, objectState),
-                dependencies);
-        final ModifiableValueHistory<ObjectState> expectedStateHistory = new ModifiableValueHistory<>();
-        expectedStateHistory.appendTransition(when, objectState);
-
-        final Universe universe = new Universe(earliestCompleteState);
-
-        appendStateTransition(universe, stateTransition);
-
-        assertThat("The object ID of the ID of the given object state is one of the object IDs of this universe.",
-                universe.getObjectIds(), equalTo(Collections.singleton(object)));
-        assertThat(
-                "The given object state is the last value in the object state history of the object of the ID of the given object state (value).",
-                universe.getObjectStateHistory(object), equalTo(expectedStateHistory));
-        assertSame(
-                "The state of an object at a given point in time is "
-                        + "the state it had at the latest state transition "
-                        + "at or before that point in time (just after transition)",
-                objectState, universe.getObjectState(object, justAfter));
-        assertUnknownObjectStateInvariants(universe, new ObjectStateId(object, justAfter));
-    }
-
-    private static void appendStateTransition_1PrehistoricDependency(final Duration when1,
-            final Duration earliestCompleteState, final Duration when2) {
-        final ObjectStateId dependentState = new ObjectStateId(OBJECT_A, when1);
-        final Map<UUID, ObjectStateId> dependencies = Collections.singletonMap(OBJECT_A, dependentState);
-        final ObjectState objectState = new ObjectStateTest.TestObjectState(1, OBJECT_B, when2, dependencies);
-        final StateTransition stateTransition = new StateTransition(when2,
-                Collections.singletonMap(OBJECT_B, objectState), dependencies);
-
-        final Universe universe = new Universe(earliestCompleteState);
-
-        appendStateTransition(universe, stateTransition);
-    }
-
-    private static void appendStateTransition_2Dependency(final Duration earliestCompleteState, final Duration when1,
-            final Duration when2, UUID object1, UUID object2) {
-        final ObjectStateId id1 = new ObjectStateId(object1, when1);
-        final Map<UUID, ObjectStateId> dependencies1 = Collections.emptyMap();
-        final Map<UUID, ObjectStateId> dependencies2 = Collections.singletonMap(object1, id1);
-        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object1, when1, dependencies1);
-        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object2, when2, dependencies2);
-        final StateTransition stateTransition1 = new StateTransition(when1,
-                Collections.singletonMap(object1, objectState1), dependencies1);
-        final StateTransition stateTransition2 = new StateTransition(when2,
-                Collections.singletonMap(object2, objectState2), dependencies2);
-
-        final Universe universe = new Universe(earliestCompleteState);
-        universe.appendStateTransition(stateTransition1);
-
-        appendStateTransition(universe, stateTransition2);
-    }
-
-    private static void appendStateTransition_2DifferentObjects(final UUID object1, final UUID object2) {
-        assert !object1.equals(object2);
-        final Duration when = DURATION_1;
-        final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
-        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object1, when, dependencies);
-        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object2, when, dependencies);
-        final StateTransition stateTransition1 = new StateTransition(when,
-                Collections.singletonMap(object1, objectState1), dependencies);
-        final StateTransition stateTransition2 = new StateTransition(when,
-                Collections.singletonMap(object2, objectState2), dependencies);
-
-        final Universe universe = new Universe(when);
-        universe.appendStateTransition(stateTransition1);
-        final ValueHistory<ObjectState> objectStateHistory1 = universe.getObjectStateHistory(object1);
-
-        appendStateTransition(universe, stateTransition2);
-
-        assertEquals("Object IDs", Set.of(object1, object2), universe.getObjectIds());
-        assertEquals("The object state histories of other objects are unchanged.", objectStateHistory1,
-                universe.getObjectStateHistory(object1));
-    }
-
-    private static void appendStateTransition_2OutOfOrderStates(final Duration when1, final Duration when2)
-            throws IllegalStateException {
-        assert when1.compareTo(when2) >= 0;
-        final UUID object = OBJECT_A;
-        final Duration earliestCompleteState = when1;
-        final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
-        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object, when1, dependencies);
-        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object, when2, dependencies);
-        final StateTransition stateTransition1 = new StateTransition(when1,
-                Collections.singletonMap(object, objectState1), dependencies);
-        final StateTransition stateTransition2 = new StateTransition(when2,
-                Collections.singletonMap(object, objectState2), dependencies);
-
-        final SortedMap<Duration, ObjectState> expectedObjectStateHistory = new TreeMap<>();
-        expectedObjectStateHistory.put(when1, objectState1);
-
-        final Universe universe = new Universe(earliestCompleteState);
-        universe.appendStateTransition(stateTransition1);
-
-        appendStateTransition(universe, stateTransition2);// throws
-    }
-
-    private static void appendStateTransition_2SuccessiveStates(final Duration when1, final Duration when2) {
-        assert when1.compareTo(when2) < 0;
-        final UUID object = OBJECT_A;
-        final Duration earliestCompleteState = when2;
-        final ObjectStateId id1 = new ObjectStateId(object, when1);
-        final Map<UUID, ObjectStateId> dependencies1 = Collections.emptyMap();
-        final Map<UUID, ObjectStateId> dependencies2 = Collections.singletonMap(object, id1);
-        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object, when1, dependencies1);
-        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object, when2, dependencies2);
-        final StateTransition stateTransition1 = new StateTransition(when1,
-                Collections.singletonMap(object, objectState1), dependencies1);
-        final StateTransition stateTransition2 = new StateTransition(when2,
-                Collections.singletonMap(object, objectState2), dependencies2);
-
-        final ModifiableValueHistory<ObjectState> expectedObjectStateHistory = new ModifiableValueHistory<>();
-        expectedObjectStateHistory.appendTransition(when1, objectState1);
-        expectedObjectStateHistory.appendTransition(when2, objectState2);
-
-        final Universe universe = new Universe(earliestCompleteState);
-        universe.appendStateTransition(stateTransition1);
-
-        appendStateTransition(universe, stateTransition2);
-
-        assertEquals("Object IDs.", Collections.singleton(object), universe.getObjectIds());
-        assertEquals("Object state history.", expectedObjectStateHistory, universe.getObjectStateHistory(object));
-        assertSame(
-                "The state of an object at a given point in time is "
-                        + "the state it had at the latest state transition "
-                        + "at or before that point in time (just before second)",
-                objectState1, universe.getObjectState(object, when2.minusNanos(1L)));
-    }
-
-    private static void appendStateTransition_3TransitiveDependency(final Duration earliestCompleteState,
-            final Duration when1, final Duration when2, final Duration when3, UUID object1, UUID object2,
-            UUID object3) {
-        final ObjectStateId id1 = new ObjectStateId(object1, when1);
-        final ObjectStateId id2 = new ObjectStateId(object2, when2);
-        final Map<UUID, ObjectStateId> dependencies1 = Collections.emptyMap();
-        final Map<UUID, ObjectStateId> dependencies2 = Collections.singletonMap(object1, id1);
-        final Map<UUID, ObjectStateId> dependencies3 = Collections.singletonMap(object2, id2);
-        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object1, when1, dependencies1);
-        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object2, when2, dependencies2);
-        final ObjectState objectState3 = new ObjectStateTest.TestObjectState(3, object3, when3, dependencies3);
-        final StateTransition stateTransition1 = new StateTransition(when1,
-                Collections.singletonMap(object1, objectState1), dependencies1);
-        final StateTransition stateTransition2 = new StateTransition(when1,
-                Collections.singletonMap(object2, objectState2), dependencies2);
-        final StateTransition stateTransition3 = new StateTransition(when1,
-                Collections.singletonMap(object3, objectState3), dependencies3);
-
-        final Universe universe = new Universe(earliestCompleteState);
-        universe.appendStateTransition(stateTransition1);
-        universe.appendStateTransition(stateTransition2);
-
-        appendStateTransition(universe, stateTransition3);
-    }
 
     public static void assertInvariants(Universe universe) {
         ObjectTest.assertInvariants(universe);// inherited
@@ -755,98 +863,6 @@ public class UniverseTest {
         assertUnknownObjectInvariants(universe, OBJECT_B);
         assertUnknownObjectStateInvariants(universe, new ObjectStateId(OBJECT_A, DURATION_1));
         assertUnknownObjectStateInvariants(universe, new ObjectStateId(OBJECT_B, DURATION_2));
-    }
-
-    @Test
-    public void appendStateTransition_1A() {
-        appendStateTransition_1(OBJECT_A, DURATION_1);
-    }
-
-    @Test
-    public void appendStateTransition_1B() {
-        appendStateTransition_1(OBJECT_B, DURATION_2);
-    }
-
-    @Test
-    public void appendStateTransition_1PrehistoricDependencyA() {
-        appendStateTransition_1PrehistoricDependency(DURATION_1, DURATION_2, DURATION_3);
-    }
-
-    @Test
-    public void appendStateTransition_1PrehistoricDependencyB() {
-        appendStateTransition_1PrehistoricDependency(DURATION_2, DURATION_3, DURATION_4);
-    }
-
-    @Test
-    public void appendStateTransition_1PrehistoricDependencyClose() {
-        appendStateTransition_1PrehistoricDependency(DURATION_2.minusNanos(1L), DURATION_2, DURATION_2);
-    }
-
-    @Test
-    public void appendStateTransition_2DependencyA() {
-        appendStateTransition_2Dependency(DURATION_1, DURATION_2, DURATION_3, OBJECT_A, OBJECT_B);
-    }
-
-    @Test
-    public void appendStateTransition_2DependencyB() {
-        appendStateTransition_2Dependency(DURATION_2, DURATION_3, DURATION_4, OBJECT_B, OBJECT_A);
-    }
-
-    @Test
-    public void appendStateTransition_2DifferentObjectsA() {
-        appendStateTransition_2DifferentObjects(OBJECT_A, OBJECT_B);
-    }
-
-    @Test
-    public void appendStateTransition_2DifferentObjectsB() {
-        appendStateTransition_2DifferentObjects(OBJECT_B, OBJECT_A);
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void appendStateTransition_2OutOfOrderStatesA() {
-        appendStateTransition_2OutOfOrderStates(DURATION_2, DURATION_1);
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void appendStateTransition_2OutOfOrderStatesB() {
-        appendStateTransition_2OutOfOrderStates(DURATION_3, DURATION_2);
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void appendStateTransition_2OutOfOrderStatesClose() {
-        appendStateTransition_2OutOfOrderStates(DURATION_2, DURATION_2.minusNanos(1L));
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void appendStateTransition_2OutOfOrderStatesSame() {
-        appendStateTransition_2OutOfOrderStates(DURATION_2, DURATION_2);
-    }
-
-    @Test
-    public void appendStateTransition_2SuccessiveStatesA() {
-        appendStateTransition_2SuccessiveStates(DURATION_1, DURATION_2);
-    }
-
-    @Test
-    public void appendStateTransition_2SuccessiveStatesB() {
-        appendStateTransition_2SuccessiveStates(DURATION_2, DURATION_3);
-    }
-
-    @Test
-    public void appendStateTransition_2SuccessiveStatesClose() {
-        appendStateTransition_2SuccessiveStates(DURATION_1, DURATION_1.plusNanos(1));
-    }
-
-    @Test
-    public void appendStateTransition_3TransitiveDependencyA() {
-        appendStateTransition_3TransitiveDependency(DURATION_1, DURATION_2, DURATION_3, DURATION_4, OBJECT_A, OBJECT_B,
-                OBJECT_C);
-    }
-
-    @Test
-    public void appendStateTransition_3TransitiveDependencyB() {
-        appendStateTransition_3TransitiveDependency(DURATION_2, DURATION_3, DURATION_4, DURATION_5, OBJECT_B, OBJECT_C,
-                OBJECT_A);
     }
 
     @Test
