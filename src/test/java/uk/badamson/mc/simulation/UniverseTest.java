@@ -175,6 +175,40 @@ public class UniverseTest {
             assertInvariants(transaction);
         }
 
+        private static void commit_2DifferentObjects(final UUID object1, final UUID object2) {
+            assert !object1.equals(object2);
+            final Duration when = UniverseTest.DURATION_1;
+            final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
+            final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object1, when, dependencies);
+            final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object2, when, dependencies);
+            final StateTransition stateTransition1 = new StateTransition(when,
+                    Collections.singletonMap(object1, objectState1), dependencies);
+            final StateTransition stateTransition2 = new StateTransition(when,
+                    Collections.singletonMap(object2, objectState2), dependencies);
+
+            final Universe universe = new Universe(when);
+            final Universe.Transaction transaction1 = universe.beginTransaction();
+            transaction1.put(stateTransition1);
+            try {
+                transaction1.commit();
+            } catch (Universe.AbortedTransactionException e) {
+                throw new AssertionError(e);
+            }
+            final ValueHistory<ObjectState> objectStateHistory1 = universe.getObjectStateHistory(object1);
+            final Universe.Transaction transaction2 = universe.beginTransaction();
+            transaction2.put(stateTransition2);
+
+            try {
+                transaction2.commit();
+            } catch (Universe.AbortedTransactionException e) {
+                throw new AssertionError(e);
+            }
+
+            assertEquals("Object IDs", Set.of(object1, object2), universe.getObjectIds());
+            assertEquals("The object state histories of other objects are unchanged.", objectStateHistory1,
+                    universe.getObjectStateHistory(object1));
+        }
+
         public static ObjectState fetchObjectState(final Universe.Transaction transaction, UUID object, Duration when) {
             final ObjectStateId id = new ObjectStateId(object, when);
             final boolean wasPreviouslyRead = transaction.getObjectStatesRead().containsKey(id);
@@ -286,21 +320,19 @@ public class UniverseTest {
 
         private static void put_1PrehistoricDependency(final Duration when1, final Duration earliestCompleteState,
                 final Duration when2) {
-            final ObjectStateId dependentState = new ObjectStateId(UniverseTest.OBJECT_A, when1);
-            final Map<UUID, ObjectStateId> dependencies = Collections.singletonMap(UniverseTest.OBJECT_A,
-                    dependentState);
-            final ObjectState objectState = new ObjectStateTest.TestObjectState(1, UniverseTest.OBJECT_B, when2,
-                    dependencies);
+            final ObjectStateId dependentState = new ObjectStateId(OBJECT_A, when1);
+            final Map<UUID, ObjectStateId> dependencies = Collections.singletonMap(OBJECT_A, dependentState);
+            final ObjectState objectState = new ObjectStateTest.TestObjectState(1, OBJECT_B, when2, dependencies);
             final StateTransition stateTransition = new StateTransition(when2,
                     Collections.singletonMap(UniverseTest.OBJECT_B, objectState), dependencies);
 
             final Universe universe = new Universe(earliestCompleteState);
+            final Universe.Transaction transaction = universe.beginTransaction();
+            transaction.fetchObjectState(OBJECT_A, when1);
 
-            try {
-                UniverseTest.TransactionTest.putAndCommit(universe, stateTransition);
-            } catch (Universe.AbortedTransactionException e) {
-                throw new AssertionError(e);
-            }
+            put(transaction, stateTransition);
+
+            assertFalse("Will not abort commit", transaction.willAbortCommit());
         }
 
         private static void put_2Dependency(final Duration earliestCompleteState, final Duration when1,
@@ -318,41 +350,16 @@ public class UniverseTest {
             final Universe universe = new Universe(earliestCompleteState);
 
             try {
-                UniverseTest.TransactionTest.putAndCommit(universe, stateTransition1);
-                UniverseTest.TransactionTest.putAndCommit(universe, stateTransition2);
+                putAndCommit(universe, stateTransition1);
             } catch (Universe.AbortedTransactionException e) {
                 throw new AssertionError(e);
             }
-        }
+            final Universe.Transaction transaction = universe.beginTransaction();
+            transaction.fetchObjectState(object1, when1);
 
-        private static void put_2DifferentObjects(final UUID object1, final UUID object2) {
-            assert !object1.equals(object2);
-            final Duration when = UniverseTest.DURATION_1;
-            final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
-            final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object1, when, dependencies);
-            final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object2, when, dependencies);
-            final StateTransition stateTransition1 = new StateTransition(when,
-                    Collections.singletonMap(object1, objectState1), dependencies);
-            final StateTransition stateTransition2 = new StateTransition(when,
-                    Collections.singletonMap(object2, objectState2), dependencies);
+            put(transaction, stateTransition2);
 
-            final Universe universe = new Universe(when);
-            try {
-                UniverseTest.TransactionTest.putAndCommit(universe, stateTransition1);
-            } catch (Universe.AbortedTransactionException e) {
-                throw new AssertionError(e);
-            }
-            final ValueHistory<ObjectState> objectStateHistory1 = universe.getObjectStateHistory(object1);
-
-            try {
-                UniverseTest.TransactionTest.putAndCommit(universe, stateTransition2);
-            } catch (Universe.AbortedTransactionException e) {
-                throw new AssertionError(e);
-            }
-
-            assertEquals("Object IDs", Set.of(object1, object2), universe.getObjectIds());
-            assertEquals("The object state histories of other objects are unchanged.", objectStateHistory1,
-                    universe.getObjectStateHistory(object1));
+            assertFalse("Will not abort commit", transaction.willAbortCommit());
         }
 
         private static void put_2InvalidEventTimeStampOrder(final Duration earliestTimeOfCompleteState, UUID object,
@@ -533,6 +540,16 @@ public class UniverseTest {
             UniverseTest.assertInvariants(universe);
         }
 
+        @Test
+        public void commit_2DifferentObjectsA() {
+            commit_2DifferentObjects(OBJECT_A, OBJECT_B);
+        }
+
+        @Test
+        public void commit_2DifferentObjectsB() {
+            commit_2DifferentObjects(OBJECT_B, OBJECT_A);
+        }
+
         @Test(expected = Universe.AbortedTransactionException.class)
         public void commit_failure() throws Universe.AbortedTransactionException {
             final Duration earliestTimeOfCompleteState = DURATION_1;
@@ -557,7 +574,7 @@ public class UniverseTest {
                     Collections.singletonMap(object, objectState2), Collections.singletonMap(object, id0));
 
             try {
-                TransactionTest.putAndCommit(universe, stateTransition0);
+                putAndCommit(universe, stateTransition0);
             } catch (Universe.AbortedTransactionException e) {
                 throw new AssertionError(e);
 
@@ -674,16 +691,6 @@ public class UniverseTest {
         @Test
         public void put_2DependencyB() {
             TransactionTest.put_2Dependency(DURATION_2, DURATION_3, DURATION_4, OBJECT_B, OBJECT_A);
-        }
-
-        @Test
-        public void put_2DifferentObjectsA() {
-            TransactionTest.put_2DifferentObjects(OBJECT_A, OBJECT_B);
-        }
-
-        @Test
-        public void put_2DifferentObjectsB() {
-            TransactionTest.put_2DifferentObjects(OBJECT_B, OBJECT_A);
         }
 
         @Test
