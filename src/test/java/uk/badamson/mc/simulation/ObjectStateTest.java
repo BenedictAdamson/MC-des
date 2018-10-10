@@ -28,7 +28,7 @@ public class ObjectStateTest {
         private final int i;
 
         public TestObjectState(int i, UUID object, Duration when, Map<UUID, ObjectStateId> dependencies) {
-            super(object, when, dependencies);
+            super();
             this.i = i;
         }
 
