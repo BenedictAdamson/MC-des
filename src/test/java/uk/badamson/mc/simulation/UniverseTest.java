@@ -504,6 +504,8 @@ public class UniverseTest {
         final ObjectState objectState = new ObjectStateTest.TestObjectState(1, object, when, dependencies);
         final StateTransition stateTransition = new StateTransition(when, Collections.singletonMap(object, objectState),
                 dependencies);
+        final ModifiableValueHistory<ObjectState> expectedStateHistory = new ModifiableValueHistory<>();
+        expectedStateHistory.appendTransition(when, objectState);
 
         final Universe universe = new Universe(earliestCompleteState);
 
@@ -513,7 +515,7 @@ public class UniverseTest {
                 universe.getObjectIds(), equalTo(Collections.singleton(object)));
         assertThat(
                 "The given object state is the last value in the object state history of the object of the ID of the given object state (value).",
-                universe.getObjectStateHistory(object), equalTo(Collections.singletonMap(when, objectState)));
+                universe.getObjectStateHistory(object), equalTo(expectedStateHistory));
         assertSame(
                 "The state of an object at a given point in time is "
                         + "the state it had at the latest state transition "
@@ -611,9 +613,9 @@ public class UniverseTest {
         final StateTransition stateTransition2 = new StateTransition(when2,
                 Collections.singletonMap(object, objectState2), dependencies2);
 
-        final SortedMap<Duration, ObjectState> expectedObjectStateHistory = new TreeMap<>();
-        expectedObjectStateHistory.put(when1, objectState1);
-        expectedObjectStateHistory.put(when2, objectState2);
+        final ModifiableValueHistory<ObjectState> expectedObjectStateHistory = new ModifiableValueHistory<>();
+        expectedObjectStateHistory.appendTransition(when1, objectState1);
+        expectedObjectStateHistory.appendTransition(when2, objectState2);
 
         final Universe universe = new Universe(earliestCompleteState);
         universe.appendStateTransition(stateTransition1);
