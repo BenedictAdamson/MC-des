@@ -207,7 +207,7 @@ public class UniverseTest {
             final Universe universe = new Universe(earliestTimeOfCompleteState);
             final ObjectStateId id2 = new ObjectStateId(object, when2);
             final Map<UUID, ObjectStateId> dependencies1 = Collections.emptyMap();
-            final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object, when1, dependencies1);
+            final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object, when1, dependencies1);
             final StateTransition stateTransition1 = new StateTransition(when1,
                     Collections.singletonMap(object, objectState1), dependencies1);
             universe.appendStateTransition(stateTransition1);
@@ -234,8 +234,8 @@ public class UniverseTest {
             final ObjectStateId id1 = new ObjectStateId(object, when1);
             final Map<UUID, ObjectStateId> dependencies1 = Collections.emptyMap();
             final Map<UUID, ObjectStateId> dependencies2 = Collections.singletonMap(object, id1);
-            final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object, when1, dependencies1);
-            final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object, when2, dependencies2);
+            final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object, when1, dependencies1);
+            final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object, when2, dependencies2);
             final StateTransition stateTransition1 = new StateTransition(when1,
                     Collections.singletonMap(object, objectState1), dependencies1);
             final StateTransition stateTransition2 = new StateTransition(when3,
@@ -260,7 +260,7 @@ public class UniverseTest {
             final Universe universe = new Universe(earliestTimeOfCompleteState);
             final Universe.Transaction transaction = universe.beginTransaction();
             final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
-            final ObjectState objectState = new ObjectStateTest.TestObjectState(object, when, dependencies);
+            final ObjectState objectState = new ObjectStateTest.TestObjectState(1, object, when, dependencies);
             final StateTransition stateTransition = new StateTransition(when,
                     Collections.singletonMap(object, objectState), dependencies);
 
@@ -273,11 +273,12 @@ public class UniverseTest {
         private static void put_2InvalidEventTimeStampOrder(final Duration earliestTimeOfCompleteState, UUID object,
                 Duration when0, Duration when1, Duration when2) {
             final Universe universe = new Universe(earliestTimeOfCompleteState);
-            final ObjectState objectState0 = new ObjectStateTest.TestObjectState(object, when0, Collections.emptyMap());
+            final ObjectState objectState0 = new ObjectStateTest.TestObjectState(0, object, when0,
+                    Collections.emptyMap());
             final ObjectStateId id0 = new ObjectStateId(object, when0);
-            final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object, when2,
+            final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object, when2,
                     Collections.singletonMap(object, id0));
-            final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object, when1,
+            final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object, when1,
                     Collections.singletonMap(object, id0));
             final StateTransition stateTransition0 = new StateTransition(when0,
                     Collections.singletonMap(object, objectState0), Collections.emptyMap());
@@ -301,11 +302,12 @@ public class UniverseTest {
         private static void put_2NotSuccessiveForSameObject(final Duration earliestTimeOfCompleteState, UUID object,
                 Duration when0, Duration when1, Duration when2) {
             final Universe universe = new Universe(earliestTimeOfCompleteState);
-            final ObjectState objectState0 = new ObjectStateTest.TestObjectState(object, when0, Collections.emptyMap());
+            final ObjectState objectState0 = new ObjectStateTest.TestObjectState(0, object, when0,
+                    Collections.emptyMap());
             final ObjectStateId id0 = new ObjectStateId(object, when0);
-            final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object, when1,
+            final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object, when1,
                     Collections.singletonMap(object, id0));
-            final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object, when2,
+            final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object, when2,
                     Collections.singletonMap(object, id0));
             final StateTransition stateTransition0 = new StateTransition(when0,
                     Collections.singletonMap(object, objectState0), Collections.emptyMap());
@@ -345,11 +347,12 @@ public class UniverseTest {
             final Duration when2 = DURATION_4;
 
             final Universe universe = new Universe(earliestTimeOfCompleteState);
-            final ObjectState objectState0 = new ObjectStateTest.TestObjectState(object, when0, Collections.emptyMap());
+            final ObjectState objectState0 = new ObjectStateTest.TestObjectState(0, object, when0,
+                    Collections.emptyMap());
             final ObjectStateId id0 = new ObjectStateId(object, when0);
-            final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object, when1,
+            final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object, when1,
                     Collections.singletonMap(object, id0));
-            final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object, when2,
+            final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object, when2,
                     Collections.singletonMap(object, id0));
             final StateTransition stateTransition0 = new StateTransition(when0,
                     Collections.singletonMap(object, objectState0), Collections.emptyMap());
@@ -390,7 +393,7 @@ public class UniverseTest {
             final Universe universe = new Universe(earliestTimeOfCompleteState);
             final Universe.Transaction transaction = universe.beginTransaction();
             final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
-            final ObjectState objectState = new ObjectStateTest.TestObjectState(object, when, dependencies);
+            final ObjectState objectState = new ObjectStateTest.TestObjectState(1, object, when, dependencies);
             final StateTransition stateTransition = new StateTransition(when,
                     Collections.singletonMap(object, objectState), dependencies);
             transaction.put(stateTransition);
@@ -498,7 +501,7 @@ public class UniverseTest {
         final Duration earliestCompleteState = when;
         final Duration justAfter = when.plusNanos(1L);
         final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
-        final ObjectState objectState = new ObjectStateTest.TestObjectState(object, when, dependencies);
+        final ObjectState objectState = new ObjectStateTest.TestObjectState(1, object, when, dependencies);
         final StateTransition stateTransition = new StateTransition(when, Collections.singletonMap(object, objectState),
                 dependencies);
 
@@ -523,7 +526,7 @@ public class UniverseTest {
             final Duration earliestCompleteState, final Duration when2) {
         final ObjectStateId dependentState = new ObjectStateId(OBJECT_A, when1);
         final Map<UUID, ObjectStateId> dependencies = Collections.singletonMap(OBJECT_A, dependentState);
-        final ObjectState objectState = new ObjectStateTest.TestObjectState(OBJECT_B, when2, dependencies);
+        final ObjectState objectState = new ObjectStateTest.TestObjectState(1, OBJECT_B, when2, dependencies);
         final StateTransition stateTransition = new StateTransition(when2,
                 Collections.singletonMap(OBJECT_B, objectState), dependencies);
 
@@ -537,8 +540,8 @@ public class UniverseTest {
         final ObjectStateId id1 = new ObjectStateId(object1, when1);
         final Map<UUID, ObjectStateId> dependencies1 = Collections.emptyMap();
         final Map<UUID, ObjectStateId> dependencies2 = Collections.singletonMap(object1, id1);
-        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object1, when1, dependencies1);
-        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object2, when2, dependencies2);
+        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object1, when1, dependencies1);
+        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object2, when2, dependencies2);
         final StateTransition stateTransition1 = new StateTransition(when1,
                 Collections.singletonMap(object1, objectState1), dependencies1);
         final StateTransition stateTransition2 = new StateTransition(when2,
@@ -554,8 +557,8 @@ public class UniverseTest {
         assert !object1.equals(object2);
         final Duration when = DURATION_1;
         final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
-        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object1, when, dependencies);
-        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object2, when, dependencies);
+        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object1, when, dependencies);
+        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object2, when, dependencies);
         final StateTransition stateTransition1 = new StateTransition(when,
                 Collections.singletonMap(object1, objectState1), dependencies);
         final StateTransition stateTransition2 = new StateTransition(when,
@@ -578,8 +581,8 @@ public class UniverseTest {
         final UUID object = OBJECT_A;
         final Duration earliestCompleteState = when1;
         final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
-        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object, when1, dependencies);
-        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object, when2, dependencies);
+        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object, when1, dependencies);
+        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object, when2, dependencies);
         final StateTransition stateTransition1 = new StateTransition(when1,
                 Collections.singletonMap(object, objectState1), dependencies);
         final StateTransition stateTransition2 = new StateTransition(when2,
@@ -601,8 +604,8 @@ public class UniverseTest {
         final ObjectStateId id1 = new ObjectStateId(object, when1);
         final Map<UUID, ObjectStateId> dependencies1 = Collections.emptyMap();
         final Map<UUID, ObjectStateId> dependencies2 = Collections.singletonMap(object, id1);
-        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object, when1, dependencies1);
-        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object, when2, dependencies2);
+        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object, when1, dependencies1);
+        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object, when2, dependencies2);
         final StateTransition stateTransition1 = new StateTransition(when1,
                 Collections.singletonMap(object, objectState1), dependencies1);
         final StateTransition stateTransition2 = new StateTransition(when2,
@@ -634,9 +637,9 @@ public class UniverseTest {
         final Map<UUID, ObjectStateId> dependencies1 = Collections.emptyMap();
         final Map<UUID, ObjectStateId> dependencies2 = Collections.singletonMap(object1, id1);
         final Map<UUID, ObjectStateId> dependencies3 = Collections.singletonMap(object2, id2);
-        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(object1, when1, dependencies1);
-        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(object2, when2, dependencies2);
-        final ObjectState objectState3 = new ObjectStateTest.TestObjectState(object3, when3, dependencies3);
+        final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object1, when1, dependencies1);
+        final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object2, when2, dependencies2);
+        final ObjectState objectState3 = new ObjectStateTest.TestObjectState(3, object3, when3, dependencies3);
         final StateTransition stateTransition1 = new StateTransition(when1,
                 Collections.singletonMap(object1, objectState1), dependencies1);
         final StateTransition stateTransition2 = new StateTransition(when1,

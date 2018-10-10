@@ -25,9 +25,11 @@ import uk.badamson.mc.ObjectTest;
 public class ObjectStateTest {
 
     static final class TestObjectState extends ObjectState {
+        private final int i;
 
-        public TestObjectState(UUID object, Duration when, Map<UUID, ObjectStateId> dependencies) {
+        public TestObjectState(int i, UUID object, Duration when, Map<UUID, ObjectStateId> dependencies) {
             super(object, when, dependencies);
+            this.i = i;
         }
 
         @Override
@@ -37,6 +39,28 @@ public class ObjectStateTest {
             final Map<UUID, ObjectState> states = Collections.singletonMap(object, (ObjectState) null);
             final Map<UUID, ObjectStateId> dependencies = Collections.singletonMap(object, idOfThisState);
             return new StateTransition(idOfThisState.getWhen().plusSeconds(7), states, dependencies);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (!(obj instanceof TestObjectState))
+                return false;
+            TestObjectState other = (TestObjectState) obj;
+            return i == other.i;
+        }
+
+        @Override
+        public int hashCode() {
+            return i;
+        }
+
+        @Override
+        public String toString() {
+            return "TestObjectState [" + i + "]";
         }
 
     }// class
@@ -55,7 +79,7 @@ public class ObjectStateTest {
     }
 
     private static void constructor(UUID object, Duration when, Map<UUID, ObjectStateId> dependencies) {
-        final ObjectState state = new TestObjectState(object, when, dependencies);
+        final ObjectState state = new TestObjectState(1, object, when, dependencies);
 
         assertInvariants(state);
     }
