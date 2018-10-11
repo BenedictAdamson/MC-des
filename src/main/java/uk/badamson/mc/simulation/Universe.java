@@ -273,7 +273,8 @@ public class Universe {
          *            The ID of the object that has the given state transition at the
          *            given time.
          * @param when
-         *            The point in time that the state transition occurs.
+         *            The point in time that the state transition occurs, expressed as
+         *            the duration since an epoch.
          * @param state
          *            The state of the object just after this state transition, at the
          *            given point in time. A null value indicates that the object ceases

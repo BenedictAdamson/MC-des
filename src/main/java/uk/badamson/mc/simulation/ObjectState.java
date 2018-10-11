@@ -1,6 +1,7 @@
 package uk.badamson.mc.simulation;
 
-import java.util.Map;
+import java.time.Duration;
+import java.util.UUID;
 
 import net.jcip.annotations.Immutable;
 
@@ -16,7 +17,7 @@ import net.jcip.annotations.Immutable;
  * </p>
  */
 @Immutable
-public abstract class ObjectState {
+public interface ObjectState {
 
     /**
      * <p>
@@ -28,31 +29,49 @@ public abstract class ObjectState {
      * avoided.
      * </p>
      * <ul>
-     * <li>Always has a (non null) state transition.</li>
-     * <li>The {@linkplain StateTransition#getStates() states} of the state
-     * transition has an entry (key) for the the
-     * {@linkplain ObjectStateId#getObject() object} of the given state ID.</li>
-     * <li>The {@linkplain StateTransition#getStates() states} of the state
-     * transition has no null values for objects other than the
-     * {@linkplain ObjectStateId#getObject() object} of the given state ID.</li>
-     * <li>The {@linkplain StateTransition#getWhen() time} of the state transition
-     * is after the the {@linkplain ObjectStateId#getWhen() time-stamp} of the given
-     * state ID.</li>
-     * <li>The given state ID is one of the {@linkplain Map#values() values} of the
-     * {@linkplain StateTransition#getDependencies() dependencies} of the state
-     * transition.</li>
-     * <li>The {@linkplain Map#get(Object) value} of the
-     * {@linkplain StateTransition#getStates() state} that has the
-     * {@linkplain ObjectStateId#getObject() object ID} of the given ID is not
-     * {@linkplain #equals(Object) equal to} this state.</li>
+     * <li>The method must
+     * {@linkplain Universe.Transaction#put(UUID, Duration, ObjectState) put}, using
+     * the given transaction, one new state for the given object ID.</li>
+     * <li>The method must
+     * {@linkplain Universe.Transaction#put(UUID, Duration, ObjectState) put} for
+     * the given object, using the given transaction, a state that is not
+     * {@linkplain ObjectState#equals(Object) equal} to this state.</li>
+     * <li>The method may
+     * {@linkplain Universe.Transaction#put(UUID, Duration, ObjectState) put} no
+     * more than one object state for any object ID.</li>
+     * <li>New states that the method
+     * {@linkplain Universe.Transaction#put(UUID, Duration, ObjectState) puts} using
+     * the transaction must all be put for the same point in time in the future
+     * (after the given point in time).</li>
+     * <li>The points in time for which the method
+     * {@linkplain Universe.Transaction#fetchObjectState(UUID, Duration) fetches}
+     * (reads) state information must be before the given (current) point in
+     * time.</li>
      * </ul>
      * 
-     * @param idOfThisState
-     *            The ID of this state.
+     * @param transaction
+     *            The transaction that the method must use to
+     *            {@linkplain Universe.Transaction#fetchObjectState(UUID, Duration)
+     *            fetch} object states it needs for the computation and to
+     *            {@linkplain Universe.Transaction#put(UUID, Duration, ObjectState)
+     *            put} new object states, including the next state transition of the
+     *            object.
+     * @param object
+     *            The ID of the object for which this is a state.
+     * @param when
+     *            The point in time that the object entered this state.
      * 
-     * @return The next state transition.
      * @throws NullPointerException
-     *             If {@code idOfThisState} is null.
+     *             <ul>
+     *             <li>If {@code transaction} is null.</li>
+     *             <li>If {@code object} is null.</li>
+     *             <li>If {@code when} is null.</li>
+     *             </ul>
+     * @throws IllegalArgumentException
+     *             If the {@linkplain Universe.Transaction#getObjectStatesRead()
+     *             object states read} for the {@code transaction} consists of other
+     *             than an entry for this state with the given object ID and
+     *             time-stamp.
      */
-    public abstract StateTransition createNextStateTransition(ObjectStateId idOfThisState);
+    public abstract void putNextStateTransition(Universe.Transaction transaction, UUID object, Duration when);
 }

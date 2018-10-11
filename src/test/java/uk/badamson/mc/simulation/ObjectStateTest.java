@@ -1,11 +1,8 @@
 package uk.badamson.mc.simulation;
 
-import static org.hamcrest.collection.IsIn.isIn;
-import static org.hamcrest.core.IsNot.not;
-import static org.hamcrest.number.OrderingComparison.greaterThan;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
+import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -24,21 +21,11 @@ import uk.badamson.mc.ObjectTest;
  */
 public class ObjectStateTest {
 
-    static final class TestObjectState extends ObjectState {
+    static final class TestObjectState implements ObjectState {
         private final int i;
 
         public TestObjectState(int i) {
-            super();
             this.i = i;
-        }
-
-        @Override
-        public StateTransition createNextStateTransition(ObjectStateId idOfThisState) {
-            Objects.requireNonNull(idOfThisState, "idOfThisState");
-            final UUID object = idOfThisState.getObject();
-            final Map<UUID, ObjectState> states = Collections.singletonMap(object, (ObjectState) null);
-            final Map<UUID, ObjectStateId> dependencies = Collections.singletonMap(object, idOfThisState);
-            return new StateTransition(idOfThisState.getWhen().plusSeconds(7), states, dependencies);
         }
 
         @Override
@@ -56,6 +43,20 @@ public class ObjectStateTest {
         @Override
         public int hashCode() {
             return i;
+        }
+
+        @Override
+        public void putNextStateTransition(Universe.Transaction transaction, UUID object, Duration when) {
+            Objects.requireNonNull(transaction, "transaction");
+            Objects.requireNonNull(object, "object");
+            Objects.requireNonNull(when, "when");
+            if (!Collections.singletonMap(new ObjectStateId(object, when), this)
+                    .equals(transaction.getObjectStatesRead())) {
+                throw new IllegalArgumentException("objectStatesRead does not consists of only this state");
+            }
+
+            final TestObjectState nextState = new TestObjectState(i + 1);
+            transaction.put(object, when.plusSeconds(i), nextState);
         }
 
         @Override
@@ -84,34 +85,24 @@ public class ObjectStateTest {
         assertInvariants(state);
     }
 
-    public static StateTransition createNextStates(ObjectState state, ObjectStateId idOfThisState) {
-        final UUID objectOfThisState = idOfThisState.getObject();
-
-        final StateTransition stateTransition = state.createNextStateTransition(idOfThisState);
+    public static void putNextStateTransition(ObjectState state, Universe.Transaction transaction, UUID object,
+            Duration when) {
+        state.putNextStateTransition(transaction, object, when);
 
         assertInvariants(state);
-        assertNotNull("Always return a state transition", stateTransition);// guard
-        StateTransitionTest.assertInvariants(stateTransition);
+        UniverseTest.TransactionTest.assertInvariants(transaction);
 
-        final Map<UUID, ObjectState> states = stateTransition.getStates();
-
-        assertThat("The states of the state transition has an entry for the the object of the given state ID.",
-                objectOfThisState, isIn(states.keySet()));
-        for (var entry : states.entrySet()) {
-            final UUID object = entry.getKey();
-            final ObjectState stateAfterTransition = entry.getValue();
-            assertFalse(
-                    "The states of the state transition has no null values for objects other than the object of the given state ID.",
-                    !object.equals(objectOfThisState) && stateAfterTransition == null);
+        for (var dependencyEntry : transaction.getObjectStatesRead().entrySet()) {
+            final ObjectStateId dependencyId = dependencyEntry.getKey();
+            final UUID dependencyObject = dependencyId.getObject();
+            final Duration dependencyWhen = dependencyId.getWhen();
+            assertThat(
+                    "The points in time for which the method fetches state information must be before the given point in time.",
+                    dependencyWhen, lessThanOrEqualTo(when));
+            assertTrue(
+                    "The points in time for which the method fetches state information must be before the given point in time.",
+                    dependencyObject.equals(object) || dependencyWhen.compareTo(when) < 0);
         }
-        assertThat("The time of the state transition is after the the time-stamp of the given state ID.",
-                stateTransition.getWhen(), greaterThan(idOfThisState.getWhen()));
-        assertThat("The given state ID is one of the values of the dependencies of the state transition.",
-                idOfThisState, isIn(stateTransition.getDependencies().values()));
-        assertThat("The value of the state that has the object ID of the given ID is not equal to this state.",
-                states.get(objectOfThisState), not(state));
-
-        return stateTransition;
     }
 
     @Test
