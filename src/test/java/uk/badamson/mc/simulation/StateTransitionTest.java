@@ -29,9 +29,9 @@ public class StateTransitionTest {
     private static final Map<UUID, ObjectStateId> DEPENDENCIES_A = Collections.emptyMap();
     private static final Map<UUID, ObjectStateId> DEPENDENCIES_B = Collections.singletonMap(OBJECT_A,
             new ObjectStateId(OBJECT_A, WHEN_1));
-    private static final ObjectState STATE_A = new ObjectStateTest.TestObjectState(1, OBJECT_A, WHEN_1, DEPENDENCIES_A);
-    private static final ObjectState STATE_B = new ObjectStateTest.TestObjectState(2, OBJECT_B, WHEN_2, DEPENDENCIES_B);
-    private static final ObjectState STATE_C = new ObjectStateTest.TestObjectState(3, OBJECT_C, WHEN_2, DEPENDENCIES_B);
+    private static final ObjectState STATE_A = new ObjectStateTest.TestObjectState(1);
+    private static final ObjectState STATE_B = new ObjectStateTest.TestObjectState(2);
+    private static final ObjectState STATE_C = new ObjectStateTest.TestObjectState(3);
     private static final Map<UUID, ObjectState> STATES_A = Collections.singletonMap(OBJECT_A, STATE_A);
     private static final Map<UUID, ObjectState> STATES_B = Collections.singletonMap(OBJECT_B, STATE_B);
     private static final Map<UUID, ObjectState> STATES_C = Collections

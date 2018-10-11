@@ -27,7 +27,7 @@ public class ObjectStateTest {
     static final class TestObjectState extends ObjectState {
         private final int i;
 
-        public TestObjectState(int i, UUID object, Duration when, Map<UUID, ObjectStateId> dependencies) {
+        public TestObjectState(int i) {
             super();
             this.i = i;
         }
@@ -79,7 +79,7 @@ public class ObjectStateTest {
     }
 
     private static void constructor(UUID object, Duration when, Map<UUID, ObjectStateId> dependencies) {
-        final ObjectState state = new TestObjectState(1, object, when, dependencies);
+        final ObjectState state = new TestObjectState(1);
 
         assertInvariants(state);
     }
