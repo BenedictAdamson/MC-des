@@ -257,21 +257,6 @@ public class Universe {
             return Universe.this;
         }
 
-        @Deprecated
-        public final void put(StateTransition stateTransition) {
-            Objects.requireNonNull(stateTransition, "stateTransition");
-            if (!dependencies.equals(stateTransition.getDependencies())) {
-                throw new IllegalArgumentException(
-                        "State transition dependencies not equal to transaction dependencies");
-            }
-            final Duration when = stateTransition.getWhen();
-            stateTransition.getStates().entrySet().stream().forEach(e -> {
-                final UUID object = e.getKey();
-                final ObjectState state = e.getValue();
-                put(object, when, state);
-            });
-        }
-
         /**
          * <p>
          * Try to add a state transition (or an initial state) for an object to the
