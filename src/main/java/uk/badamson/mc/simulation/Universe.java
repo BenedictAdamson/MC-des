@@ -257,32 +257,7 @@ public class Universe {
             return Universe.this;
         }
 
-        /**
-         * <p>
-         * Try to add a state transition to the {@linkplain #getUniverse() universe} of
-         * this transaction.
-         * <p>
-         * <ul>
-         * <li>Either the {@linkplain #willAbortCommit() commit abort flag } is set or
-         * the {@linkplain StateTransition#getStates() state} {@linkplain Map#values()
-         * values} of the given state transition have been appended to the
-         * {@linkplain Universe#getObjectStateHistory(UUID) object state history} of
-         * their corresponding object, with the {@linkplain StateTransition#getWhen()
-         * time-stamp} of the state-transition as their {@linkplain SortedMap#keySet()
-         * key}.</li>
-         * </ul>
-         * 
-         * @param stateTransition
-         *            The state transition to add.
-         * @throws NullPointerException
-         *             If {@code stateTransition} is null
-         * @throws IllegalArgumentException
-         *             If the {@linkplain StateTransition#getDependencies()
-         *             dependencies} of the state transition are not
-         *             {@linkplain Map#equals(Object) equal} to the
-         *             {@linkplain #getDependencies() dependencies} of this transaction.
-         * 
-         */
+        @Deprecated
         public final void put(StateTransition stateTransition) {
             Objects.requireNonNull(stateTransition, "stateTransition");
             if (!dependencies.equals(stateTransition.getDependencies())) {
@@ -290,12 +265,52 @@ public class Universe {
                         "State transition dependencies not equal to transaction dependencies");
             }
             final Duration when = stateTransition.getWhen();
+            stateTransition.getStates().entrySet().stream().forEach(e -> {
+                final UUID object = e.getKey();
+                final ObjectState state = e.getValue();
+                put(object, when, state);
+            });
+        }
+
+        /**
+         * <p>
+         * Try to add a state transition (or an initial state) for an object to the
+         * {@linkplain #getUniverse() universe} of this transaction.
+         * <p>
+         * <ul>
+         * <li>Either the {@linkplain #willAbortCommit() commit abort flag } is set or
+         * the given state has been appended to the
+         * {@linkplain Universe#getObjectStateHistory(UUID) object state history} of the
+         * given object, with the given time as the time of the state</li>
+         * </ul>
+         * 
+         * @param object
+         *            The ID of the object that has the given state transition at the
+         *            given time.
+         * @param when
+         *            The point in time that the state transition occurs.
+         * @param state
+         *            The state of the object just after this state transition, at the
+         *            given point in time. A null value indicates that the object ceases
+         *            to exist at the given time.
+         * 
+         * @throws NullPointerException
+         *             <ul>
+         *             <li>If {@code object} is null.</li>
+         *             <li>If {@code when} is null.</li>
+         *             </ul>
+         */
+        public final void put(UUID object, Duration when, ObjectState state) {
+            Objects.requireNonNull(object, "object");
+            Objects.requireNonNull(when, "when");
+
+            ObjectData od = objectDataMap.get(object);
+            if (od == null) {
+                od = new ObjectData();
+                objectDataMap.put(object, od);
+            }
             try {
-                stateTransition.getStates().entrySet().stream().forEach(e -> {
-                    final UUID object = e.getKey();
-                    final ObjectState state = e.getValue();
-                    appendStateTransition(when, object, state, dependencies);
-                });
+                od.stateHistory.appendTransition(when, state);
             } catch (IllegalStateException e) {
                 abortCommit = true;
             }
@@ -343,16 +358,6 @@ public class Universe {
     public Universe(final Duration earliestTimeOfCompleteState) {
         this.earliestTimeOfCompleteState = Objects.requireNonNull(earliestTimeOfCompleteState,
                 "earliestTimeOfCompleteState");
-    }
-
-    private void appendStateTransition(Duration when, UUID object, ObjectState state,
-            final Map<UUID, ObjectStateId> dependencies) {
-        ObjectData od = objectDataMap.get(object);
-        if (od == null) {
-            od = new ObjectData();
-            objectDataMap.put(object, od);
-        }
-        od.stateHistory.appendTransition(when, state);
     }
 
     /**

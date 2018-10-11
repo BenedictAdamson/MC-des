@@ -181,22 +181,12 @@ public class UniverseTest {
             final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
             final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object1, when, dependencies);
             final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object2, when, dependencies);
-            final StateTransition stateTransition1 = new StateTransition(when,
-                    Collections.singletonMap(object1, objectState1), dependencies);
-            final StateTransition stateTransition2 = new StateTransition(when,
-                    Collections.singletonMap(object2, objectState2), dependencies);
 
             final Universe universe = new Universe(when);
-            final Universe.Transaction transaction1 = universe.beginTransaction();
-            transaction1.put(stateTransition1);
-            try {
-                transaction1.commit();
-            } catch (Universe.AbortedTransactionException e) {
-                throw new AssertionError(e);
-            }
+            putAndCommit(universe, object1, when, objectState1);
             final ValueHistory<ObjectState> objectStateHistory1 = universe.getObjectStateHistory(object1);
             final Universe.Transaction transaction2 = universe.beginTransaction();
-            transaction2.put(stateTransition2);
+            transaction2.put(object2, when, objectState2);
 
             try {
                 transaction2.commit();
@@ -218,20 +208,17 @@ public class UniverseTest {
             final Map<UUID, ObjectStateId> dependencies2 = Collections.singletonMap(object, id1);
             final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object, when1, dependencies1);
             final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object, when2, dependencies2);
-            final StateTransition stateTransition1 = new StateTransition(when1,
-                    Collections.singletonMap(object, objectState1), dependencies1);
-            final StateTransition stateTransition2 = new StateTransition(when2,
-                    Collections.singletonMap(object, objectState2), dependencies2);
 
             final ModifiableValueHistory<ObjectState> expectedObjectStateHistory = new ModifiableValueHistory<>();
             expectedObjectStateHistory.appendTransition(when1, objectState1);
             expectedObjectStateHistory.appendTransition(when2, objectState2);
 
             final Universe universe = new Universe(earliestCompleteState);
-            putAndCommit(universe, stateTransition1);
+            putAndCommit(universe, object, when1, objectState1);
+
             final Universe.Transaction transaction = universe.beginTransaction();
             transaction.fetchObjectState(object, when1);
-            transaction.put(stateTransition2);
+            transaction.put(object, when2, objectState2);
 
             try {
                 commit(transaction);
@@ -279,11 +266,9 @@ public class UniverseTest {
             final ObjectStateId id2 = new ObjectStateId(object, when2);
             final Map<UUID, ObjectStateId> dependencies1 = Collections.emptyMap();
             final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object, when1, dependencies1);
-            final StateTransition stateTransition1 = new StateTransition(when1,
-                    Collections.singletonMap(object, objectState1), dependencies1);
 
             final Universe universe = new Universe(earliestTimeOfCompleteState);
-            putAndCommit(universe, stateTransition1);
+            putAndCommit(universe, object, when1, objectState1);
             final Universe.Transaction transaction = universe.beginTransaction();
 
             final ObjectState objectState2 = fetchObjectState(transaction, object, when2);
@@ -307,38 +292,33 @@ public class UniverseTest {
             final Map<UUID, ObjectStateId> dependencies1 = Collections.emptyMap();
             final Map<UUID, ObjectStateId> dependencies2 = Collections.singletonMap(object, id1);
             final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object, when1, dependencies1);
-            final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object, when2, dependencies2);
-            final StateTransition stateTransition1 = new StateTransition(when1,
-                    Collections.singletonMap(object, objectState1), dependencies1);
-            final StateTransition stateTransition2 = new StateTransition(when3,
-                    Collections.singletonMap(object, objectState2), dependencies2);
+            final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object, when3, dependencies2);
 
             final Universe universe = new Universe(earliestTimeOfCompleteState);
-            putAndCommit(universe, stateTransition1);
-            putAndCommit(universe, stateTransition2);
+            putAndCommit(universe, object, when1, objectState1);
+            putAndCommit(universe, object, when3, objectState2);
+
             final Universe.Transaction transaction = universe.beginTransaction();
             transaction.fetchObjectState(object, when1);
 
             fetchObjectState(transaction, object, when2);
         }
 
-        public static void put(final Universe.Transaction transaction, StateTransition stateTransition) {
-            transaction.put(stateTransition);
+        private static void put(final Universe.Transaction transaction, UUID object, Duration when, ObjectState state) {
+            transaction.put(object, when, state);
 
             assertInvariants(transaction);
-            StateTransitionTest.assertInvariants(stateTransition);
         }
 
         private static void put_1(final Duration earliestTimeOfCompleteState, UUID object, Duration when) {
             final Set<ObjectStateId> objectStateId = Collections.singleton(new ObjectStateId(object, when));
-            final Universe universe = new Universe(earliestTimeOfCompleteState);
-            final Universe.Transaction transaction = universe.beginTransaction();
             final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
             final ObjectState objectState = new ObjectStateTest.TestObjectState(1, object, when, dependencies);
-            final StateTransition stateTransition = new StateTransition(when,
-                    Collections.singletonMap(object, objectState), dependencies);
 
-            put(transaction, stateTransition);
+            final Universe universe = new Universe(earliestTimeOfCompleteState);
+            final Universe.Transaction transaction = universe.beginTransaction();
+
+            put(transaction, object, when, objectState);
 
             assertEquals("Object IDs", Collections.singleton(object), universe.getObjectIds());
             assertEquals("State transition IDs", objectStateId, universe.getStateTransitionIds());
@@ -349,14 +329,12 @@ public class UniverseTest {
             final ObjectStateId dependentState = new ObjectStateId(OBJECT_A, when1);
             final Map<UUID, ObjectStateId> dependencies = Collections.singletonMap(OBJECT_A, dependentState);
             final ObjectState objectState = new ObjectStateTest.TestObjectState(1, OBJECT_B, when2, dependencies);
-            final StateTransition stateTransition = new StateTransition(when2,
-                    Collections.singletonMap(UniverseTest.OBJECT_B, objectState), dependencies);
 
             final Universe universe = new Universe(earliestCompleteState);
             final Universe.Transaction transaction = universe.beginTransaction();
             transaction.fetchObjectState(OBJECT_A, when1);
 
-            put(transaction, stateTransition);
+            put(transaction, OBJECT_B, when2, objectState);
 
             assertFalse("Will not abort commit", transaction.willAbortCommit());
         }
@@ -368,17 +346,13 @@ public class UniverseTest {
             final Map<UUID, ObjectStateId> dependencies2 = Collections.singletonMap(object1, id1);
             final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object1, when1, dependencies1);
             final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object2, when2, dependencies2);
-            final StateTransition stateTransition1 = new StateTransition(when1,
-                    Collections.singletonMap(object1, objectState1), dependencies1);
-            final StateTransition stateTransition2 = new StateTransition(when2,
-                    Collections.singletonMap(object2, objectState2), dependencies2);
 
             final Universe universe = new Universe(earliestCompleteState);
-            putAndCommit(universe, stateTransition1);
+            putAndCommit(universe, object1, when1, objectState1);
             final Universe.Transaction transaction = universe.beginTransaction();
             transaction.fetchObjectState(object1, when1);
 
-            put(transaction, stateTransition2);
+            put(transaction, object2, when2, objectState2);
 
             assertFalse("Will not abort commit", transaction.willAbortCommit());
         }
@@ -392,22 +366,16 @@ public class UniverseTest {
                     Collections.singletonMap(object, id0));
             final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object, when1,
                     Collections.singletonMap(object, id0));
-            final StateTransition stateTransition0 = new StateTransition(when0,
-                    Collections.singletonMap(object, objectState0), Collections.emptyMap());
-            final StateTransition stateTransition1 = new StateTransition(when2,
-                    Collections.singletonMap(object, objectState1), Collections.singletonMap(object, id0));
-            final StateTransition stateTransition2 = new StateTransition(when1,
-                    Collections.singletonMap(object, objectState2), Collections.singletonMap(object, id0));
 
             final Universe universe = new Universe(earliestTimeOfCompleteState);
-            putAndCommit(universe, stateTransition0);
+            putAndCommit(universe, object, when0, objectState0);
             final Universe.Transaction transaction1 = universe.beginTransaction();
             transaction1.fetchObjectState(object, when0);
             final Universe.Transaction transaction2 = universe.beginTransaction();
             transaction2.fetchObjectState(object, when0);
-            transaction1.put(stateTransition1);
+            transaction1.put(object, when2, objectState1);
 
-            put(transaction2, stateTransition2);
+            put(transaction2, object, when1, objectState2);
 
             assertTrue("Will abort commit", transaction2.willAbortCommit());
         }
@@ -421,22 +389,16 @@ public class UniverseTest {
                     Collections.singletonMap(object, id0));
             final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object, when2,
                     Collections.singletonMap(object, id0));
-            final StateTransition stateTransition0 = new StateTransition(when0,
-                    Collections.singletonMap(object, objectState0), Collections.emptyMap());
-            final StateTransition stateTransition1 = new StateTransition(when1,
-                    Collections.singletonMap(object, objectState1), Collections.singletonMap(object, id0));
-            final StateTransition stateTransition2 = new StateTransition(when1,
-                    Collections.singletonMap(object, objectState2), Collections.singletonMap(object, id0));
 
             final Universe universe = new Universe(earliestTimeOfCompleteState);
-            putAndCommit(universe, stateTransition0);
+            putAndCommit(universe, object, when0, objectState0);
             final Universe.Transaction transaction1 = universe.beginTransaction();
             transaction1.fetchObjectState(object, when0);
             final Universe.Transaction transaction2 = universe.beginTransaction();
             transaction2.fetchObjectState(object, when0);
-            transaction1.put(stateTransition1);
+            transaction1.put(object, when1, objectState1);
 
-            put(transaction2, stateTransition2);
+            put(transaction2, object, when1, objectState2);
 
             assertTrue("Will abort commit", transaction2.willAbortCommit());
         }
@@ -448,19 +410,15 @@ public class UniverseTest {
             final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
             final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object, when1, dependencies);
             final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object, when2, dependencies);
-            final StateTransition stateTransition1 = new StateTransition(when1,
-                    Collections.singletonMap(object, objectState1), dependencies);
-            final StateTransition stateTransition2 = new StateTransition(when2,
-                    Collections.singletonMap(object, objectState2), dependencies);
 
             final SortedMap<Duration, ObjectState> expectedObjectStateHistory = new TreeMap<>();
             expectedObjectStateHistory.put(when1, objectState1);
 
             final Universe universe = new Universe(earliestCompleteState);
-            putAndCommit(universe, stateTransition1);
+            putAndCommit(universe, object, when1, objectState1);
             final Universe.Transaction transaction = universe.beginTransaction();
 
-            put(transaction, stateTransition2);
+            put(transaction, object, when2, objectState2);
 
             assertTrue("Will abort commit", transaction.willAbortCommit());
         }
@@ -475,30 +433,22 @@ public class UniverseTest {
             final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object1, when1, dependencies1);
             final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object2, when2, dependencies2);
             final ObjectState objectState3 = new ObjectStateTest.TestObjectState(3, object3, when3, dependencies3);
-            final StateTransition stateTransition1 = new StateTransition(when1,
-                    Collections.singletonMap(object1, objectState1), dependencies1);
-            final StateTransition stateTransition2 = new StateTransition(when1,
-                    Collections.singletonMap(object2, objectState2), dependencies2);
-            final StateTransition stateTransition3 = new StateTransition(when1,
-                    Collections.singletonMap(object3, objectState3), dependencies3);
 
             final Universe universe = new Universe(earliestCompleteState);
-            putAndCommit(universe, stateTransition1);
-            putAndCommit(universe, stateTransition2);
+            putAndCommit(universe, object1, when1, objectState1);
+            putAndCommit(universe, object2, when2, objectState2);
+
             final Universe.Transaction transaction = universe.beginTransaction();
             transaction.fetchObjectState(object2, when2);
 
-            put(transaction, stateTransition3);
+            put(transaction, object3, when1, objectState3);
 
             assertFalse("Will not abort commit", transaction.willAbortCommit());
         }
 
-        private static void putAndCommit(final Universe universe, StateTransition stateTransition) {
+        private static void putAndCommit(final Universe universe, UUID object, Duration when, ObjectState state) {
             final Universe.Transaction transaction = universe.beginTransaction();
-            for (var id : stateTransition.getDependencies().values()) {
-                transaction.fetchObjectState(id.getObject(), id.getWhen());
-            }
-            transaction.put(stateTransition);
+            transaction.put(object, when, state);
             try {
                 transaction.commit();
             } catch (Universe.AbortedTransactionException e) {
@@ -556,21 +506,15 @@ public class UniverseTest {
                     Collections.singletonMap(object, id0));
             final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2, object, when2,
                     Collections.singletonMap(object, id0));
-            final StateTransition stateTransition0 = new StateTransition(when0,
-                    Collections.singletonMap(object, objectState0), Collections.emptyMap());
-            final StateTransition stateTransition1 = new StateTransition(when1,
-                    Collections.singletonMap(object, objectState1), Collections.singletonMap(object, id0));
-            final StateTransition stateTransition2 = new StateTransition(when1,
-                    Collections.singletonMap(object, objectState2), Collections.singletonMap(object, id0));
 
             final Universe universe = new Universe(earliestTimeOfCompleteState);
-            putAndCommit(universe, stateTransition0);
+            putAndCommit(universe, object, when0, objectState0);
             final Universe.Transaction transaction1 = universe.beginTransaction();
             transaction1.fetchObjectState(object, when0);
             final Universe.Transaction transaction2 = universe.beginTransaction();
             transaction2.fetchObjectState(object, when0);
-            transaction1.put(stateTransition1);
-            transaction2.put(stateTransition2);
+            transaction1.put(object, when1, objectState1);
+            transaction2.put(object, when1, objectState2);
 
             commit(transaction2);
         }
@@ -597,9 +541,7 @@ public class UniverseTest {
             final Universe.Transaction transaction = universe.beginTransaction();
             final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
             final ObjectState objectState = new ObjectStateTest.TestObjectState(1, object, when, dependencies);
-            final StateTransition stateTransition = new StateTransition(when,
-                    Collections.singletonMap(object, objectState), dependencies);
-            transaction.put(stateTransition);
+            transaction.put(object, when, objectState);
 
             try {
                 commit(transaction);
