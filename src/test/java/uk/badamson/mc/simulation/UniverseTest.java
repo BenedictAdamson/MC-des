@@ -228,11 +228,7 @@ public class UniverseTest {
             expectedObjectStateHistory.appendTransition(when2, objectState2);
 
             final Universe universe = new Universe(earliestCompleteState);
-            try {
-                putAndCommit(universe, stateTransition1);
-            } catch (Universe.AbortedTransactionException e) {
-                throw new AssertionError(e);
-            }
+            putAndCommit(universe, stateTransition1);
             final Universe.Transaction transaction = universe.beginTransaction();
             transaction.fetchObjectState(object, when1);
             transaction.put(stateTransition2);
@@ -280,18 +276,14 @@ public class UniverseTest {
 
         private static void fetchObjectState_1(final Duration earliestTimeOfCompleteState, UUID object, Duration when1,
                 Duration when2) {
-            final Universe universe = new Universe(earliestTimeOfCompleteState);
             final ObjectStateId id2 = new ObjectStateId(object, when2);
             final Map<UUID, ObjectStateId> dependencies1 = Collections.emptyMap();
             final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1, object, when1, dependencies1);
             final StateTransition stateTransition1 = new StateTransition(when1,
                     Collections.singletonMap(object, objectState1), dependencies1);
-            try {
-                putAndCommit(universe, stateTransition1);
-            } catch (Universe.AbortedTransactionException e) {
-                throw new AssertionError(e);
 
-            }
+            final Universe universe = new Universe(earliestTimeOfCompleteState);
+            putAndCommit(universe, stateTransition1);
             final Universe.Transaction transaction = universe.beginTransaction();
 
             final ObjectState objectState2 = fetchObjectState(transaction, object, when2);
@@ -311,7 +303,6 @@ public class UniverseTest {
 
         private static void fetchObjectState_1ObjectSuccesiveTimes(final Duration earliestTimeOfCompleteState,
                 UUID object, Duration when1, Duration when2, Duration when3) {
-            final Universe universe = new Universe(earliestTimeOfCompleteState);
             final ObjectStateId id1 = new ObjectStateId(object, when1);
             final Map<UUID, ObjectStateId> dependencies1 = Collections.emptyMap();
             final Map<UUID, ObjectStateId> dependencies2 = Collections.singletonMap(object, id1);
@@ -321,18 +312,10 @@ public class UniverseTest {
                     Collections.singletonMap(object, objectState1), dependencies1);
             final StateTransition stateTransition2 = new StateTransition(when3,
                     Collections.singletonMap(object, objectState2), dependencies2);
-            try {
-                putAndCommit(universe, stateTransition1);
-            } catch (Universe.AbortedTransactionException e) {
-                throw new AssertionError(e);
 
-            }
-            try {
-                putAndCommit(universe, stateTransition2);
-            } catch (Universe.AbortedTransactionException e) {
-                throw new AssertionError(e);
-
-            }
+            final Universe universe = new Universe(earliestTimeOfCompleteState);
+            putAndCommit(universe, stateTransition1);
+            putAndCommit(universe, stateTransition2);
             final Universe.Transaction transaction = universe.beginTransaction();
             transaction.fetchObjectState(object, when1);
 
@@ -391,12 +374,7 @@ public class UniverseTest {
                     Collections.singletonMap(object2, objectState2), dependencies2);
 
             final Universe universe = new Universe(earliestCompleteState);
-
-            try {
-                putAndCommit(universe, stateTransition1);
-            } catch (Universe.AbortedTransactionException e) {
-                throw new AssertionError(e);
-            }
+            putAndCommit(universe, stateTransition1);
             final Universe.Transaction transaction = universe.beginTransaction();
             transaction.fetchObjectState(object1, when1);
 
@@ -407,7 +385,6 @@ public class UniverseTest {
 
         private static void put_2InvalidEventTimeStampOrder(final Duration earliestTimeOfCompleteState, UUID object,
                 Duration when0, Duration when1, Duration when2) {
-            final Universe universe = new Universe(earliestTimeOfCompleteState);
             final ObjectState objectState0 = new ObjectStateTest.TestObjectState(0, object, when0,
                     Collections.emptyMap());
             final ObjectStateId id0 = new ObjectStateId(object, when0);
@@ -422,12 +399,8 @@ public class UniverseTest {
             final StateTransition stateTransition2 = new StateTransition(when1,
                     Collections.singletonMap(object, objectState2), Collections.singletonMap(object, id0));
 
-            try {
-                putAndCommit(universe, stateTransition0);
-            } catch (Universe.AbortedTransactionException e) {
-                throw new AssertionError(e);
-
-            }
+            final Universe universe = new Universe(earliestTimeOfCompleteState);
+            putAndCommit(universe, stateTransition0);
             final Universe.Transaction transaction1 = universe.beginTransaction();
             transaction1.fetchObjectState(object, when0);
             final Universe.Transaction transaction2 = universe.beginTransaction();
@@ -441,7 +414,6 @@ public class UniverseTest {
 
         private static void put_2NotSuccessiveForSameObject(final Duration earliestTimeOfCompleteState, UUID object,
                 Duration when0, Duration when1, Duration when2) {
-            final Universe universe = new Universe(earliestTimeOfCompleteState);
             final ObjectState objectState0 = new ObjectStateTest.TestObjectState(0, object, when0,
                     Collections.emptyMap());
             final ObjectStateId id0 = new ObjectStateId(object, when0);
@@ -456,12 +428,8 @@ public class UniverseTest {
             final StateTransition stateTransition2 = new StateTransition(when1,
                     Collections.singletonMap(object, objectState2), Collections.singletonMap(object, id0));
 
-            try {
-                putAndCommit(universe, stateTransition0);
-            } catch (Universe.AbortedTransactionException e) {
-                throw new AssertionError(e);
-
-            }
+            final Universe universe = new Universe(earliestTimeOfCompleteState);
+            putAndCommit(universe, stateTransition0);
             final Universe.Transaction transaction1 = universe.beginTransaction();
             transaction1.fetchObjectState(object, when0);
             final Universe.Transaction transaction2 = universe.beginTransaction();
@@ -489,11 +457,7 @@ public class UniverseTest {
             expectedObjectStateHistory.put(when1, objectState1);
 
             final Universe universe = new Universe(earliestCompleteState);
-            try {
-                putAndCommit(universe, stateTransition1);
-            } catch (Universe.AbortedTransactionException e) {
-                throw new AssertionError(e);
-            }
+            putAndCommit(universe, stateTransition1);
             final Universe.Transaction transaction = universe.beginTransaction();
 
             put(transaction, stateTransition2);
@@ -519,12 +483,8 @@ public class UniverseTest {
                     Collections.singletonMap(object3, objectState3), dependencies3);
 
             final Universe universe = new Universe(earliestCompleteState);
-            try {
-                putAndCommit(universe, stateTransition1);
-                putAndCommit(universe, stateTransition2);
-            } catch (Universe.AbortedTransactionException e) {
-                throw new AssertionError(e);
-            }
+            putAndCommit(universe, stateTransition1);
+            putAndCommit(universe, stateTransition2);
             final Universe.Transaction transaction = universe.beginTransaction();
             transaction.fetchObjectState(object2, when2);
 
@@ -533,14 +493,17 @@ public class UniverseTest {
             assertFalse("Will not abort commit", transaction.willAbortCommit());
         }
 
-        private static void putAndCommit(final Universe universe, StateTransition stateTransition)
-                throws Universe.AbortedTransactionException {
+        private static void putAndCommit(final Universe universe, StateTransition stateTransition) {
             final Universe.Transaction transaction = universe.beginTransaction();
             for (var id : stateTransition.getDependencies().values()) {
                 transaction.fetchObjectState(id.getObject(), id.getWhen());
             }
             transaction.put(stateTransition);
-            transaction.commit();
+            try {
+                transaction.commit();
+            } catch (Universe.AbortedTransactionException e) {
+                throw new AssertionError(e);
+            }
         }
 
         @Test
@@ -586,7 +549,6 @@ public class UniverseTest {
             final Duration when1 = DURATION_3;
             final Duration when2 = DURATION_4;
 
-            final Universe universe = new Universe(earliestTimeOfCompleteState);
             final ObjectState objectState0 = new ObjectStateTest.TestObjectState(0, object, when0,
                     Collections.emptyMap());
             final ObjectStateId id0 = new ObjectStateId(object, when0);
@@ -601,12 +563,8 @@ public class UniverseTest {
             final StateTransition stateTransition2 = new StateTransition(when1,
                     Collections.singletonMap(object, objectState2), Collections.singletonMap(object, id0));
 
-            try {
-                putAndCommit(universe, stateTransition0);
-            } catch (Universe.AbortedTransactionException e) {
-                throw new AssertionError(e);
-
-            }
+            final Universe universe = new Universe(earliestTimeOfCompleteState);
+            putAndCommit(universe, stateTransition0);
             final Universe.Transaction transaction1 = universe.beginTransaction();
             transaction1.fetchObjectState(object, when0);
             final Universe.Transaction transaction2 = universe.beginTransaction();
