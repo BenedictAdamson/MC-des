@@ -295,8 +295,13 @@ public class Universe {
                 od = new ObjectData();
                 objectDataMap.put(object, od);
             }
+            final ModifiableValueHistory<ObjectState> stateHistory = od.stateHistory;
+            if (state != null && !stateHistory.isEmpty() && stateHistory.getLastValue() == null) {
+                abortCommit = true;
+                return;
+            }
             try {
-                od.stateHistory.appendTransition(when, state);
+                stateHistory.appendTransition(when, state);
             } catch (IllegalStateException e) {
                 abortCommit = true;
             }

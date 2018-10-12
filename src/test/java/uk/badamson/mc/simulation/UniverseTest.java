@@ -400,6 +400,23 @@ public class UniverseTest {
             assertTrue("Will abort commit", transaction.willAbortCommit());
         }
 
+        private static void put_3AttemptedResurection(final Duration earliestTimeOfCompleteState, UUID object,
+                Duration when0, Duration when1, Duration when2) {
+            final ObjectState objectState0 = new ObjectStateTest.TestObjectState(0);
+            final ObjectState objectState1 = null;// critical
+            final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
+
+            final Universe universe = new Universe(earliestTimeOfCompleteState);
+            putAndCommit(universe, object, when0, objectState0);
+            putAndCommit(universe, object, when1, objectState1);
+
+            final Universe.Transaction transaction = universe.beginTransaction();
+
+            put(transaction, object, when2, objectState2);
+
+            assertTrue("Will abort commit", transaction.willAbortCommit());
+        }
+
         private static void put_3TransitiveDependency(final Duration earliestCompleteState, final Duration when1,
                 final Duration when2, final Duration when3, UUID object1, UUID object2, UUID object3) {
             final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
@@ -628,6 +645,16 @@ public class UniverseTest {
         }
 
         @Test
+        public void put_3AttemptedResurectionA() {
+            put_3AttemptedResurection(DURATION_1, OBJECT_A, DURATION_2, DURATION_3, DURATION_4);
+        }
+
+        @Test
+        public void put_3AttemptedResurectionB() {
+            put_3AttemptedResurection(DURATION_2, OBJECT_B, DURATION_3, DURATION_4, DURATION_5);
+        }
+
+        @Test
         public void put_3TransitiveDependencyA() {
             put_3TransitiveDependency(DURATION_1, DURATION_2, DURATION_3, DURATION_4, OBJECT_A, OBJECT_B, OBJECT_C);
         }
@@ -636,7 +663,6 @@ public class UniverseTest {
         public void put_3TransitiveDependencyB() {
             put_3TransitiveDependency(DURATION_2, DURATION_3, DURATION_4, DURATION_5, OBJECT_B, OBJECT_C, OBJECT_A);
         }
-
     }// class
 
     private static final UUID OBJECT_A = ObjectStateIdTest.OBJECT_A;
@@ -667,10 +693,9 @@ public class UniverseTest {
             assertThat(
                     "The set of IDs of state transitions does not have elements for object IDs that are not in the set of objects in this universe.",
                     object, isIn(objectIds));
-            assertNotNull(
-                    "Have a state transition if the given object state ID is one of the known state transition IDs of this universe.",
-                    stateTransition);// guard
-            ObjectStateTest.assertInvariants(stateTransition);
+            if (stateTransition != null) {
+                ObjectStateTest.assertInvariants(stateTransition);
+            }
         }
 
         for (UUID object : objectIds) {
