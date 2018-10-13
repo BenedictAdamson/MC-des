@@ -1,6 +1,7 @@
 package uk.badamson.mc.simulation;
 
 import static org.hamcrest.collection.IsIn.isIn;
+import static org.hamcrest.collection.IsMapContaining.hasEntry;
 import static org.hamcrest.core.AnyOf.anyOf;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsSame.sameInstance;
@@ -131,6 +132,7 @@ public class UniverseTest {
 
             UniverseTest.assertInvariants(universe);
             assertObjectStatesReadInvariants(transaction);
+            assertObjectStatesWrittenInvariants(transaction);
             assertDependenciesInvariants(transaction);
         }
 
@@ -145,15 +147,29 @@ public class UniverseTest {
             for (var entry : objectStatesRead.entrySet()) {
                 final ObjectStateId id = entry.getKey();
                 final ObjectState state = entry.getValue();
-                assertNotNull(
-                        "The map of object states read does not {@linkplain Map#containsKey(Object) have} a null key.",
-                        id);// guard
+                assertNotNull("The map of object states read does not have a null key.", id);// guard
                 ObjectStateIdTest.assertInvariants(id);
                 if (state != null) {
                     ObjectStateTest.assertInvariants(state);
                 }
             }
             return objectStatesRead;
+        }
+
+        private static Map<ObjectStateId, ObjectState> assertObjectStatesWrittenInvariants(
+                Universe.Transaction transaction) {
+            final Map<ObjectStateId, ObjectState> objectStatesWritten = transaction.getObjectStatesWritten();
+            assertNotNull("Always have a (non null) map of object states written.", objectStatesWritten);// guard
+            for (var entry : objectStatesWritten.entrySet()) {
+                final ObjectStateId id = entry.getKey();
+                final ObjectState state = entry.getValue();
+                assertNotNull("The map of object states written does not have a null key.", id);// guard
+                ObjectStateIdTest.assertInvariants(id);
+                if (state != null) {
+                    ObjectStateTest.assertInvariants(state);
+                }
+            }
+            return objectStatesWritten;
         }
 
         public static void close(Universe.Transaction transaction) {
@@ -297,9 +313,12 @@ public class UniverseTest {
         }
 
         private static void put(final Universe.Transaction transaction, UUID object, Duration when, ObjectState state) {
+            final ObjectStateId id = new ObjectStateId(object, when);
             transaction.put(object, when, state);
 
             assertInvariants(transaction);
+            assertThat("The method records the given state as one of the states written.",
+                    transaction.getObjectStatesWritten(), hasEntry(id, state));
         }
 
         private static void put_1(final Duration earliestTimeOfCompleteState, UUID object, Duration when) {
@@ -740,7 +759,7 @@ public class UniverseTest {
                 universe.getStateTransition(state));
     }
 
-    public static Universe.Transaction beginTransaction(final Universe universe) {
+    private static Universe.Transaction beginTransaction(final Universe universe) {
         final Universe.Transaction transaction = universe.beginTransaction();
 
         assertNotNull("Not null, transaction", transaction);// guard
@@ -751,6 +770,8 @@ public class UniverseTest {
                 transaction.getUniverse());
         assertEquals("The returned transaction has not read any object states.", Collections.EMPTY_MAP,
                 transaction.getObjectStatesRead());
+        assertEquals("The returned transaction has not written any object states.", Collections.EMPTY_MAP,
+                transaction.getObjectStatesWritten());
         assertFalse("The commit abort flag of the return transaction is clear", transaction.willAbortCommit());
 
         return transaction;

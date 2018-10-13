@@ -89,6 +89,7 @@ public class Universe {
     public final class Transaction implements AutoCloseable {
 
         private final Map<ObjectStateId, ObjectState> objectStatesRead = new HashMap<>();
+        private final Map<ObjectStateId, ObjectState> objectStatesWritten = new HashMap<>();
         private final Map<UUID, ObjectStateId> dependencies = new HashMap<>();
         private boolean abortCommit;
 
@@ -146,9 +147,10 @@ public class Universe {
          * the same object state as can be
          * {@linkplain Universe#getObjectState(UUID, Duration) got} from the
          * {@linkplain #getUniverse() universe} of this transaction.</li>
-         * <li>The object state of for an object ID and point in time that has already
-         * been {@linkplain #getObjectStatesRead() read} by this transaction is the same
-         * object state as was read previously.</li>
+         * <li>The object state for an object ID and point in time that has already been
+         * {@linkplain #getObjectStatesRead() read} by this transaction is the same
+         * object state as was read previously. That is, the transaction object caches
+         * reads.</li>
          * <li>The method records the returned state as one of the
          * {@linkplain #getObjectStatesRead() read states}. Hence this method is not a
          * simple getter.</li>
@@ -223,20 +225,12 @@ public class Universe {
          * {@linkplain Map#containsKey(Object) have} a null key.</li>
          * <li>The map of object states read maps the object and time of interest
          * (together represented by an {@link ObjectStateId}) to the
-         * {@linkplain ObjectState object state} for that object just after the latest
-         * state transition at or before that point in time.</li>
+         * {@linkplain ObjectState object state} for that object at that point in
+         * time.</li>
          * <li>A key of the object states read map {@linkplain Map#get(Object) mapping}
          * to a null value indicates that the {@linkplain ObjectStateId#getObject()
          * object} of the key did not exist at the {@linkplain ObjectStateId#getWhen()
          * point in time} of the key.</li>
-         * <li>Each key of the object states read map {@linkplain Map#get(Object) maps
-         * to} a null value or an object state with an
-         * {@linkplain ObjectState#getObject() object ID} equal to the
-         * {@linkplain ObjectStateId#getObject() object ID} of the key.</li>
-         * <li>Each key of the object states read map {@linkplain Map#get(Object) maps
-         * to} a null value or an object state with a {@linkplain ObjectState#getWhen()
-         * time-stamp} {@linkplain Duration#compareTo(Duration) at or before} the
-         * {@linkplain ObjectStateId#getWhen() time-stamp} of the key.</li>
          * </ul>
          * 
          * @return the object states read.
@@ -244,6 +238,33 @@ public class Universe {
          */
         public final Map<ObjectStateId, ObjectState> getObjectStatesRead() {
             return Collections.unmodifiableMap(objectStatesRead);
+        }
+
+        /**
+         * <p>
+         * The object states that have been read as part of this transaction.
+         * </p>
+         * <ul>
+         * <li>Always have a (non null) map of object states written.</li>
+         * <li>The map of object states written may be unmodifiable or a copy of
+         * internal state.</li>
+         * <li>The map of object states written does not
+         * {@linkplain Map#containsKey(Object) have} a null key.</li>
+         * <li>The map of object states written maps the object and time of interest
+         * (together represented by an {@link ObjectStateId}) to the
+         * {@linkplain ObjectState object state} for that object at that point in
+         * time.</li>
+         * <li>A key of the object states written map {@linkplain Map#get(Object)
+         * mapping} to a null value indicates that the
+         * {@linkplain ObjectStateId#getObject() object} of the key ceased to exist at
+         * the {@linkplain ObjectStateId#getWhen() point in time} of the key.</li>
+         * </ul>
+         * 
+         * @return the object states written.
+         * @see Universe#getObjectState(UUID, Duration)
+         */
+        public final Map<ObjectStateId, ObjectState> getObjectStatesWritten() {
+            return Collections.unmodifiableMap(objectStatesWritten);
         }
 
         /**
@@ -267,6 +288,8 @@ public class Universe {
          * the given state has been appended to the
          * {@linkplain Universe#getObjectStateHistory(UUID) object state history} of the
          * given object, with the given time as the time of the state</li>
+         * <li>The method records the given state as one of the
+         * {@linkplain #getObjectStatesWritten() states written}.</li>
          * </ul>
          * 
          * @param object
@@ -289,6 +312,8 @@ public class Universe {
         public final void put(UUID object, Duration when, ObjectState state) {
             Objects.requireNonNull(object, "object");
             Objects.requireNonNull(when, "when");
+
+            objectStatesWritten.put(new ObjectStateId(object, when), state);
 
             ObjectData od = objectDataMap.get(object);
             if (od == null) {
@@ -361,6 +386,9 @@ public class Universe {
      * returned transaction is this transaction.</li>
      * <li>The returned transaction {@linkplain Map#isEmpty() has not}
      * {@linkplain Universe.Transaction#getObjectStatesRead() read any object
+     * states}.</li>
+     * <li>The returned transaction {@linkplain Map#isEmpty() has not}
+     * {@linkplain Universe.Transaction#getObjectStatesWritten() written any object
      * states}.</li>
      * <li>The {@linkplain Transaction#willAbortCommit() commit abort flag} of the
      * return transaction is clear ({@code false}.</li>
