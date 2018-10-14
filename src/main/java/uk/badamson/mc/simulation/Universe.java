@@ -12,6 +12,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import net.jcip.annotations.NotThreadSafe;
+
 /**
  * <p>
  * A collection of simulated objects and their {@linkplain ObjectState state}
@@ -83,18 +85,59 @@ public class Universe {
      * </p>
      * <p>
      * That is, a record of a set of reads and up to one write to the state
-     * histories of the Universe that can be committed as an atomic operation.
+     * histories of the Universe that can be committed as an atomic operation. A
+     * transaction may read (fetch) and write (put) values. A transaction however
+     * may not interleave reads and writes. All its writes must be after any reads,
+     * after having entered <i>write mode</i>.
      * </p>
      */
+    @NotThreadSafe
     public final class Transaction implements AutoCloseable {
 
         private final Map<ObjectStateId, ObjectState> objectStatesRead = new HashMap<>();
         private final Map<ObjectStateId, ObjectState> objectStatesWritten = new HashMap<>();
         private final Map<UUID, ObjectStateId> dependencies = new HashMap<>();
+
+        private Duration when;
         private boolean abortCommit;
 
         private Transaction() {
             // Do nothing
+        }
+
+        /**
+         * <p>
+         * Change this transaction from read mode to write mode.
+         * </p>
+         * 
+         * @param when
+         *            The time-stamp of all object states
+         *            {@linkplain #put(UUID, Duration, ObjectState) put} (written) by
+         *            this transaction, expressed as the duration since an epoch..
+         * 
+         * @throws NullPointerException
+         *             If {@code when} is null.
+         * @throws IllegalStateException
+         *             <ul>
+         *             <li>If the any of the {@linkplain #getObjectStatesRead() reads}
+         *             done by this transaction were for for
+         *             {@linkplain ObjectStateId#getWhen() times} at of after the given
+         *             time.</li>
+         *             </ul>
+         *             If this transaction is already in write mode. That is, if this
+         *             method has already been called for this transaction.</li>
+         *             </ul>
+         */
+        public final void beginWrite(Duration when) {
+            Objects.requireNonNull(when, "when");
+            if (objectStatesRead.keySet().stream().map(id -> id.getWhen()).filter(t -> 0 <= t.compareTo(when)).findAny()
+                    .orElse(null) != null) {
+                throw new IllegalStateException("Time-stamp of read state at or after the given time.");
+            }
+            if (this.when != null) {
+                throw new IllegalStateException("Already in write mode.");
+            }
+            this.when = when;
         }
 
         /**
@@ -166,9 +209,18 @@ public class Universe {
          *             <li>If {@code object} is null.</li>
          *             <li>If {@code when} is null.</li>
          *             </ul>
+         * @throws IllegalStateException
+         *             If this transaction is in write mode (because its
+         *             {@link #beginWrite(Duration)} method has been called) and the
+         *             requested object is not one of the
+         *             {@linkplain #getObjectStatesRead() object states already read}.
          */
         public final ObjectState fetchObjectState(UUID object, Duration when) {
             ObjectStateId id = new ObjectStateId(object, when);
+            // TODO use the cache
+            if (this.when != null) {
+                throw new IllegalStateException("In write mode");
+            }
             final ObjectState objectState = Universe.this.getObjectState(object, when);
             objectStatesRead.put(id, objectState);
             final ObjectStateId dependency0 = dependencies.get(object);
@@ -308,10 +360,16 @@ public class Universe {
          *             <li>If {@code object} is null.</li>
          *             <li>If {@code when} is null.</li>
          *             </ul>
+         * @throws IllegalStateException
+         *             If this transaction is not in write mode (because its
+         *             {@link #beginWrite(Duration)} method has not been called)
          */
         public final void put(UUID object, Duration when, ObjectState state) {
             Objects.requireNonNull(object, "object");
             Objects.requireNonNull(when, "when");
+            if (this.when == null) {
+                throw new IllegalStateException("Not in write mode");
+            }
 
             objectStatesWritten.put(new ObjectStateId(object, when), state);
 

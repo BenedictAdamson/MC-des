@@ -201,6 +201,7 @@ public class UniverseTest {
             putAndCommit(universe, object1, when, objectState1);
             final ValueHistory<ObjectState> objectStateHistory1 = universe.getObjectStateHistory(object1);
             final Universe.Transaction transaction2 = universe.beginTransaction();
+            transaction2.beginWrite(when);
             transaction2.put(object2, when, objectState2);
 
             try {
@@ -230,6 +231,7 @@ public class UniverseTest {
 
             final Universe.Transaction transaction = universe.beginTransaction();
             transaction.fetchObjectState(object, when1);
+            transaction.beginWrite(when2);
             transaction.put(object, when2, objectState2);
 
             try {
@@ -327,6 +329,7 @@ public class UniverseTest {
 
             final Universe universe = new Universe(earliestTimeOfCompleteState);
             final Universe.Transaction transaction = universe.beginTransaction();
+            transaction.beginWrite(when);
 
             put(transaction, object, when, objectState);
 
@@ -341,6 +344,7 @@ public class UniverseTest {
             final Universe universe = new Universe(earliestCompleteState);
             final Universe.Transaction transaction = universe.beginTransaction();
             transaction.fetchObjectState(OBJECT_A, when1);
+            transaction.beginWrite(when2);
 
             put(transaction, OBJECT_B, when2, objectState);
 
@@ -356,6 +360,7 @@ public class UniverseTest {
             putAndCommit(universe, object1, when1, objectState1);
             final Universe.Transaction transaction = universe.beginTransaction();
             transaction.fetchObjectState(object1, when1);
+            transaction.beginWrite(when2);
 
             put(transaction, object2, when2, objectState2);
 
@@ -374,7 +379,9 @@ public class UniverseTest {
             transaction1.fetchObjectState(object, when0);
             final Universe.Transaction transaction2 = universe.beginTransaction();
             transaction2.fetchObjectState(object, when0);
+            transaction1.beginWrite(when2);
             transaction1.put(object, when2, objectState1);
+            transaction2.beginWrite(when1);
 
             put(transaction2, object, when1, objectState2);
 
@@ -393,7 +400,9 @@ public class UniverseTest {
             transaction1.fetchObjectState(object, when0);
             final Universe.Transaction transaction2 = universe.beginTransaction();
             transaction2.fetchObjectState(object, when0);
+            transaction1.beginWrite(when1);
             transaction1.put(object, when1, objectState1);
+            transaction2.beginWrite(when1);
 
             put(transaction2, object, when1, objectState2);
 
@@ -413,6 +422,7 @@ public class UniverseTest {
             final Universe universe = new Universe(earliestCompleteState);
             putAndCommit(universe, object, when1, objectState1);
             final Universe.Transaction transaction = universe.beginTransaction();
+            transaction.beginWrite(when2);
 
             put(transaction, object, when2, objectState2);
 
@@ -430,6 +440,7 @@ public class UniverseTest {
             putAndCommit(universe, object, when1, objectState1);
 
             final Universe.Transaction transaction = universe.beginTransaction();
+            transaction.beginWrite(when2);
 
             put(transaction, object, when2, objectState2);
 
@@ -448,14 +459,16 @@ public class UniverseTest {
 
             final Universe.Transaction transaction = universe.beginTransaction();
             transaction.fetchObjectState(object2, when2);
+            transaction.beginWrite(when3);
 
-            put(transaction, object3, when1, objectState3);
+            put(transaction, object3, when3, objectState3);
 
             assertFalse("Will not abort commit", transaction.willAbortCommit());
         }
 
         private static void putAndCommit(final Universe universe, UUID object, Duration when, ObjectState state) {
             final Universe.Transaction transaction = universe.beginTransaction();
+            transaction.beginWrite(when);
             transaction.put(object, when, state);
             try {
                 transaction.commit();
@@ -516,7 +529,9 @@ public class UniverseTest {
             transaction1.fetchObjectState(object, when0);
             final Universe.Transaction transaction2 = universe.beginTransaction();
             transaction2.fetchObjectState(object, when0);
+            transaction1.beginWrite(when1);
             transaction1.put(object, when1, objectState1);
+            transaction2.beginWrite(when1);
             transaction2.put(object, when1, objectState2);
 
             commit(transaction2);
@@ -543,6 +558,7 @@ public class UniverseTest {
             final Universe universe = new Universe(earliestTimeOfCompleteState);
             final Universe.Transaction transaction = universe.beginTransaction();
             final ObjectState objectState = new ObjectStateTest.TestObjectState(1);
+            transaction.beginWrite(when);
             transaction.put(object, when, objectState);
 
             try {
