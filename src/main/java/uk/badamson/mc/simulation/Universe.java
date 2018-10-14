@@ -95,7 +95,7 @@ public class Universe {
     public final class Transaction implements AutoCloseable {
 
         private final Map<ObjectStateId, ObjectState> objectStatesRead = new HashMap<>();
-        private final Map<ObjectStateId, ObjectState> objectStatesWritten = new HashMap<>();
+        private final Map<UUID, ObjectState> objectStatesWritten = new HashMap<>();
         private final Map<UUID, ObjectStateId> dependencies = new HashMap<>();
 
         private Duration when;
@@ -304,22 +304,23 @@ public class Universe {
          * <li>Always have a (non null) map of object states written.</li>
          * <li>The map of object states written may be unmodifiable or a copy of
          * internal state.</li>
+         * <li>The map of object states written {@linkplain Map#isEmpty() is empty} if
+         * this transaction is in {@linkplain #getWhen() read mode}.</li>
          * <li>The map of object states written does not
          * {@linkplain Map#containsKey(Object) have} a null key.</li>
-         * <li>The map of object states written maps the object and time of interest
-         * (together represented by an {@link ObjectStateId}) to the
-         * {@linkplain ObjectState object state} for that object at that point in
-         * time.</li>
+         * <li>The map of object states written maps the ID of the object of interest to
+         * the {@linkplain ObjectState object state} for that object at the
+         * {@linkplain #getWhen() write time} of this transaction.</li>
          * <li>A key of the object states written map {@linkplain Map#get(Object)
-         * mapping} to a null value indicates that the
-         * {@linkplain ObjectStateId#getObject() object} of the key ceased to exist at
-         * the {@linkplain ObjectStateId#getWhen() point in time} of the key.</li>
+         * mapping} to a null value indicates that the object of the key ceased to exist
+         * at the {@linkplain #getWhen() write time} of this transaction.</li>
          * </ul>
          * 
          * @return the object states written.
+         * 
          * @see Universe#getObjectState(UUID, Duration)
          */
-        public final Map<ObjectStateId, ObjectState> getObjectStatesWritten() {
+        public final Map<UUID, ObjectState> getObjectStatesWritten() {
             return Collections.unmodifiableMap(objectStatesWritten);
         }
 
@@ -380,7 +381,7 @@ public class Universe {
                 throw new IllegalStateException("Not in write mode");
             }
 
-            objectStatesWritten.put(new ObjectStateId(object, when), state);
+            objectStatesWritten.put(object, state);
 
             ObjectData od = objectDataMap.get(object);
             if (od == null) {

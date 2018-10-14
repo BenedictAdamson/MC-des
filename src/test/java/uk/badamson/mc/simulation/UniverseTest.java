@@ -156,15 +156,16 @@ public class UniverseTest {
             return objectStatesRead;
         }
 
-        private static Map<ObjectStateId, ObjectState> assertObjectStatesWrittenInvariants(
-                Universe.Transaction transaction) {
-            final Map<ObjectStateId, ObjectState> objectStatesWritten = transaction.getObjectStatesWritten();
+        private static Map<UUID, ObjectState> assertObjectStatesWrittenInvariants(Universe.Transaction transaction) {
+            final Map<UUID, ObjectState> objectStatesWritten = transaction.getObjectStatesWritten();
             assertNotNull("Always have a (non null) map of object states written.", objectStatesWritten);// guard
+            assertFalse("The map of object states written is empty if this transaction is in read mode.",
+                    transaction.getWhen() == null && !objectStatesWritten.isEmpty());
+
             for (var entry : objectStatesWritten.entrySet()) {
-                final ObjectStateId id = entry.getKey();
+                final UUID object = entry.getKey();
                 final ObjectState state = entry.getValue();
-                assertNotNull("The map of object states written does not have a null key.", id);// guard
-                ObjectStateIdTest.assertInvariants(id);
+                assertNotNull("The map of object states written does not have a null key.", object);
                 if (state != null) {
                     ObjectStateTest.assertInvariants(state);
                 }
@@ -315,13 +316,11 @@ public class UniverseTest {
         }
 
         private static void put(final Universe.Transaction transaction, UUID object, ObjectState state) {
-            final ObjectStateId id = new ObjectStateId(object, transaction.getWhen());
-
             transaction.put(object, state);
 
             assertInvariants(transaction);
             assertThat("The method records the given state as one of the states written.",
-                    transaction.getObjectStatesWritten(), hasEntry(id, state));
+                    transaction.getObjectStatesWritten(), hasEntry(object, state));
         }
 
         private static void put_1(final Duration earliestTimeOfCompleteState, UUID object, Duration when) {
