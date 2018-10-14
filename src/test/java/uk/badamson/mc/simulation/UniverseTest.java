@@ -477,6 +477,60 @@ public class UniverseTest {
             }
         }
 
+        private final void beginWrite(Universe.Transaction transaction, Duration when) {
+            transaction.beginWrite(when);
+
+            assertInvariants(transaction);
+            assertSame(
+                    "The time-stamp of any object states to be written by this transaction becomes the same as the given time-stamp.",
+                    when, transaction.getWhen());
+        }
+
+        private final void beginWrite_0(Duration earliestTimeOfCompleteState, Duration when) {
+            final Universe universe = new Universe(earliestTimeOfCompleteState);
+            Universe.Transaction transaction = universe.beginTransaction();
+
+            beginWrite(transaction, when);
+        }
+
+        @Test
+        public void beginWrite_0A() {
+            beginWrite_0(DURATION_1, DURATION_2);
+        }
+
+        @Test
+        public void beginWrite_0B() {
+            beginWrite_0(DURATION_2, DURATION_3);
+        }
+
+        private final void beginWrite_1(Duration earliestTimeOfCompleteState, UUID object, Duration when1,
+                Duration when2) {
+            assert when1.compareTo(when2) < 0;
+            final Universe universe = new Universe(earliestTimeOfCompleteState);
+            Universe.Transaction transaction = universe.beginTransaction();
+            transaction.fetchObjectState(object, when1);
+
+            beginWrite(transaction, when2);
+        }
+
+        @Test
+        public void beginWrite_1A() {
+            beginWrite_1(DURATION_1, OBJECT_A, DURATION_2, DURATION_3);
+        }
+
+        @Test
+        public void beginWrite_1B() {
+            beginWrite_1(DURATION_2, OBJECT_B, DURATION_3, DURATION_4);
+        }
+
+        @Test
+        public void beginWrite_1Close() {
+            final Duration when1 = DURATION_2;
+            final Duration when2 = when1.plusNanos(1L);// critical
+
+            beginWrite_1(DURATION_1, OBJECT_A, when1, when2);
+        }
+
         @Test
         public void close_immediately() {
             final Universe universe = new Universe(DURATION_1);
@@ -698,6 +752,34 @@ public class UniverseTest {
         public void put_3TransitiveDependencyB() {
             put_3TransitiveDependency(DURATION_2, DURATION_3, DURATION_4, DURATION_5, OBJECT_B, OBJECT_C, OBJECT_A);
         }
+
+        /**
+         * <p>
+         * Change this transaction from read mode to write mode.
+         * </p>
+         * <ul>
+         * <li>The {@linkplain #getWhen() time-stamp of any object states to be written}
+         * by this transaction is the same as the given time-stamp.
+         * </ul>
+         * 
+         * @param when
+         *            The time-stamp of all object states to be
+         *            {@linkplain #put(UUID, Duration, ObjectState) put} (written) by
+         *            this transaction, expressed as the duration since an epoch.
+         * 
+         * @throws NullPointerException
+         *             If {@code when} is null.
+         * @throws IllegalStateException
+         *             <ul>
+         *             <li>If the any of the {@linkplain #getObjectStatesRead() reads}
+         *             done by this transaction were for for
+         *             {@linkplain ObjectStateId#getWhen() times} at of after the given
+         *             time.</li>
+         *             </ul>
+         *             If this transaction is already in write mode. That is, if this
+         *             method has already been called for this transaction.</li>
+         *             </ul>
+         */
     }// class
 
     private static final UUID OBJECT_A = ObjectStateIdTest.OBJECT_A;
@@ -789,6 +871,7 @@ public class UniverseTest {
         assertEquals("The returned transaction has not written any object states.", Collections.EMPTY_MAP,
                 transaction.getObjectStatesWritten());
         assertFalse("The commit abort flag of the return transaction is clear", transaction.willAbortCommit());
+        assertNull("The returned transaction is in in read mode.", transaction.getWhen());
 
         return transaction;
     }

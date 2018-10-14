@@ -109,11 +109,15 @@ public class Universe {
          * <p>
          * Change this transaction from read mode to write mode.
          * </p>
+         * <ul>
+         * <li>The {@linkplain #getWhen() time-stamp of any object states to be written}
+         * by this transaction becomes the same as the given time-stamp.</li>
+         * </ul>
          * 
          * @param when
-         *            The time-stamp of all object states
+         *            The time-stamp of all object states to be
          *            {@linkplain #put(UUID, Duration, ObjectState) put} (written) by
-         *            this transaction, expressed as the duration since an epoch..
+         *            this transaction, expressed as the duration since an epoch.
          * 
          * @throws NullPointerException
          *             If {@code when} is null.
@@ -332,6 +336,18 @@ public class Universe {
 
         /**
          * <p>
+         * The time-stamp of an object states (to be)
+         * {@linkplain #put(UUID, Duration, ObjectState) written} by this transaction.
+         * </p>
+         * 
+         * @return the time-stamp, or null if this transaction is (still) in read mode.
+         */
+        public final Duration getWhen() {
+            return when;
+        }
+
+        /**
+         * <p>
          * Try to add a state transition (or an initial state) for an object to the
          * {@linkplain #getUniverse() universe} of this transaction.
          * <p>
@@ -449,7 +465,9 @@ public class Universe {
      * {@linkplain Universe.Transaction#getObjectStatesWritten() written any object
      * states}.</li>
      * <li>The {@linkplain Transaction#willAbortCommit() commit abort flag} of the
-     * return transaction is clear ({@code false}.</li>
+     * returned transaction is clear ({@code false}.</li>
+     * <li>The returned transaction is in {@linkplain Universe.Transaction#getWhen()
+     * in read mode}.</li>
      * </ul>
      * 
      * @return a new transaction object; not null
