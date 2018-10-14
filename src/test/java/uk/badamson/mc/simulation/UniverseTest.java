@@ -173,10 +173,17 @@ public class UniverseTest {
             return objectStatesWritten;
         }
 
-        public static void close(Universe.Transaction transaction) {
+        private static void close(Universe.Transaction transaction) {
             transaction.close();
 
             assertInvariants(transaction);
+            assertEquals("This transaction has no record of its dependencies.", Collections.EMPTY_MAP,
+                    transaction.getDependencies());
+            assertEquals("This transaction has no record of its object states read.", Collections.EMPTY_MAP,
+                    transaction.getObjectStatesRead());
+            assertEquals("This transaction has no record of its object states written.", Collections.EMPTY_MAP,
+                    transaction.getObjectStatesWritten());
+            assertNull("This transaction is in read mode.", transaction.getWhen());
         }
 
         private static void commit(final Universe.Transaction transaction) throws Universe.AbortedTransactionException {
@@ -537,6 +544,62 @@ public class UniverseTest {
             beginWrite_1(DURATION_1, OBJECT_A, when1, when2);
         }
 
+        private void close_afterCommittedWrite(Duration earliestTimeOfCompleteState, Duration when, UUID object) {
+            final Universe universe = new Universe(earliestTimeOfCompleteState);
+            final Universe.Transaction transaction = universe.beginTransaction();
+            transaction.beginWrite(when);
+            final ObjectState objectState = new ObjectStateTest.TestObjectState(1);
+            transaction.put(object, objectState);
+            try {
+                transaction.commit();
+            } catch (Universe.AbortedTransactionException e) {
+                throw new AssertionError(e);
+            }
+
+            close(transaction);
+        }
+
+        @Test
+        public void close_afterCommittedWriteA() {
+            close_afterCommittedWrite(DURATION_1, DURATION_2, OBJECT_A);
+        }
+
+        @Test
+        public void close_afterCommittedWriteB() {
+            close_afterCommittedWrite(DURATION_2, DURATION_3, OBJECT_B);
+        }
+
+        @Test
+        public void close_afterRead() {
+            final Universe universe = new Universe(DURATION_1);
+            final Universe.Transaction transaction = universe.beginTransaction();
+            transaction.fetchObjectState(OBJECT_A, DURATION_2);
+
+            close(transaction);
+
+            UniverseTest.assertInvariants(universe);
+        }
+
+        private void close_afterWrite(Duration earliestTimeOfCompleteState, Duration when, UUID object) {
+            final Universe universe = new Universe(earliestTimeOfCompleteState);
+            final Universe.Transaction transaction = universe.beginTransaction();
+            transaction.beginWrite(when);
+            final ObjectState objectState = new ObjectStateTest.TestObjectState(1);
+            transaction.put(object, objectState);
+
+            close(transaction);
+        }
+
+        @Test
+        public void close_afterWriteA() {
+            close_afterWrite(DURATION_1, DURATION_2, OBJECT_A);
+        }
+
+        @Test
+        public void close_afterWriteB() {
+            close_afterWrite(DURATION_2, DURATION_3, OBJECT_B);
+        }
+
         @Test
         public void close_immediately() {
             final Universe universe = new Universe(DURATION_1);
@@ -610,7 +673,7 @@ public class UniverseTest {
         }
 
         @Test
-        public void commit_ok() {
+        public void commit_putOk() {
             final Duration earliestTimeOfCompleteState = DURATION_1;
             final UUID object = OBJECT_A;
             final Duration when = DURATION_2;

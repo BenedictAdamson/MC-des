@@ -149,10 +149,23 @@ public class Universe {
          * <p>
          * Indicate that this transaction has ended.
          * </p>
+         * <ul>
+         * <li>This transaction releases any resources it holds (has acquired).</li>
+         * <li>This transaction has no record of its {@linkplain #getDependencies()
+         * dependencies}.</li>
+         * <li>This transaction has no record of its {@linkplain #getObjectStatesRead()
+         * object states read}.</li>
+         * <li>This transaction has no record of its
+         * {@linkplain #getObjectStatesWritten() object states written}.</li>
+         * <li>This transaction is in {@linkplain #getWhen() read mode}.</li>
+         * </ul>
          */
         @Override
         public final void close() {
-            // Do nothing
+            objectStatesRead.clear();
+            objectStatesWritten.clear();
+            dependencies.clear();
+            when = null;
         }
 
         /**
