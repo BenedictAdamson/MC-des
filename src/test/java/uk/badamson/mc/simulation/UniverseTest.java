@@ -202,7 +202,7 @@ public class UniverseTest {
             final ValueHistory<ObjectState> objectStateHistory1 = universe.getObjectStateHistory(object1);
             final Universe.Transaction transaction2 = universe.beginTransaction();
             transaction2.beginWrite(when);
-            transaction2.put(object2, when, objectState2);
+            transaction2.put(object2, objectState2);
 
             try {
                 transaction2.commit();
@@ -232,7 +232,7 @@ public class UniverseTest {
             final Universe.Transaction transaction = universe.beginTransaction();
             transaction.fetchObjectState(object, when1);
             transaction.beginWrite(when2);
-            transaction.put(object, when2, objectState2);
+            transaction.put(object, objectState2);
 
             try {
                 commit(transaction);
@@ -314,9 +314,10 @@ public class UniverseTest {
             fetchObjectState(transaction, object, when2);
         }
 
-        private static void put(final Universe.Transaction transaction, UUID object, Duration when, ObjectState state) {
-            final ObjectStateId id = new ObjectStateId(object, when);
-            transaction.put(object, when, state);
+        private static void put(final Universe.Transaction transaction, UUID object, ObjectState state) {
+            final ObjectStateId id = new ObjectStateId(object, transaction.getWhen());
+
+            transaction.put(object, state);
 
             assertInvariants(transaction);
             assertThat("The method records the given state as one of the states written.",
@@ -326,15 +327,18 @@ public class UniverseTest {
         private static void put_1(final Duration earliestTimeOfCompleteState, UUID object, Duration when) {
             final Set<ObjectStateId> objectStateId = Collections.singleton(new ObjectStateId(object, when));
             final ObjectState objectState = new ObjectStateTest.TestObjectState(1);
+            final ModifiableValueHistory<ObjectState> expectedHistory = new ModifiableValueHistory<>();
+            expectedHistory.appendTransition(when, objectState);
 
             final Universe universe = new Universe(earliestTimeOfCompleteState);
             final Universe.Transaction transaction = universe.beginTransaction();
             transaction.beginWrite(when);
 
-            put(transaction, object, when, objectState);
+            put(transaction, object, objectState);
 
             assertEquals("Object IDs", Collections.singleton(object), universe.getObjectIds());
             assertEquals("State transition IDs", objectStateId, universe.getStateTransitionIds());
+            assertEquals("Object state history", expectedHistory, universe.getObjectStateHistory(object));
         }
 
         private static void put_1PrehistoricDependency(final Duration when1, final Duration earliestCompleteState,
@@ -346,7 +350,7 @@ public class UniverseTest {
             transaction.fetchObjectState(OBJECT_A, when1);
             transaction.beginWrite(when2);
 
-            put(transaction, OBJECT_B, when2, objectState);
+            put(transaction, OBJECT_B, objectState);
 
             assertFalse("Will not abort commit", transaction.willAbortCommit());
         }
@@ -362,7 +366,7 @@ public class UniverseTest {
             transaction.fetchObjectState(object1, when1);
             transaction.beginWrite(when2);
 
-            put(transaction, object2, when2, objectState2);
+            put(transaction, object2, objectState2);
 
             assertFalse("Will not abort commit", transaction.willAbortCommit());
         }
@@ -380,10 +384,10 @@ public class UniverseTest {
             final Universe.Transaction transaction2 = universe.beginTransaction();
             transaction2.fetchObjectState(object, when0);
             transaction1.beginWrite(when2);
-            transaction1.put(object, when2, objectState1);
+            transaction1.put(object, objectState1);
             transaction2.beginWrite(when1);
 
-            put(transaction2, object, when1, objectState2);
+            put(transaction2, object, objectState2);
 
             assertTrue("Will abort commit", transaction2.willAbortCommit());
         }
@@ -401,10 +405,10 @@ public class UniverseTest {
             final Universe.Transaction transaction2 = universe.beginTransaction();
             transaction2.fetchObjectState(object, when0);
             transaction1.beginWrite(when1);
-            transaction1.put(object, when1, objectState1);
+            transaction1.put(object, objectState1);
             transaction2.beginWrite(when1);
 
-            put(transaction2, object, when1, objectState2);
+            put(transaction2, object, objectState2);
 
             assertTrue("Will abort commit", transaction2.willAbortCommit());
         }
@@ -424,7 +428,7 @@ public class UniverseTest {
             final Universe.Transaction transaction = universe.beginTransaction();
             transaction.beginWrite(when2);
 
-            put(transaction, object, when2, objectState2);
+            put(transaction, object, objectState2);
 
             assertTrue("Will abort commit", transaction.willAbortCommit());
         }
@@ -442,7 +446,7 @@ public class UniverseTest {
             final Universe.Transaction transaction = universe.beginTransaction();
             transaction.beginWrite(when2);
 
-            put(transaction, object, when2, objectState2);
+            put(transaction, object, objectState2);
 
             assertTrue("Will abort commit", transaction.willAbortCommit());
         }
@@ -461,7 +465,7 @@ public class UniverseTest {
             transaction.fetchObjectState(object2, when2);
             transaction.beginWrite(when3);
 
-            put(transaction, object3, when3, objectState3);
+            put(transaction, object3, objectState3);
 
             assertFalse("Will not abort commit", transaction.willAbortCommit());
         }
@@ -469,7 +473,7 @@ public class UniverseTest {
         private static void putAndCommit(final Universe universe, UUID object, Duration when, ObjectState state) {
             final Universe.Transaction transaction = universe.beginTransaction();
             transaction.beginWrite(when);
-            transaction.put(object, when, state);
+            transaction.put(object, state);
             try {
                 transaction.commit();
             } catch (Universe.AbortedTransactionException e) {
@@ -584,9 +588,9 @@ public class UniverseTest {
             final Universe.Transaction transaction2 = universe.beginTransaction();
             transaction2.fetchObjectState(object, when0);
             transaction1.beginWrite(when1);
-            transaction1.put(object, when1, objectState1);
+            transaction1.put(object, objectState1);
             transaction2.beginWrite(when1);
-            transaction2.put(object, when1, objectState2);
+            transaction2.put(object, objectState2);
 
             commit(transaction2);
         }
@@ -613,7 +617,7 @@ public class UniverseTest {
             final Universe.Transaction transaction = universe.beginTransaction();
             final ObjectState objectState = new ObjectStateTest.TestObjectState(1);
             transaction.beginWrite(when);
-            transaction.put(object, when, objectState);
+            transaction.put(object, objectState);
 
             try {
                 commit(transaction);

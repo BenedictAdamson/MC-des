@@ -1,5 +1,6 @@
 package uk.badamson.mc.simulation;
 
+import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -56,7 +57,7 @@ public class ObjectStateTest {
             }
 
             final TestObjectState nextState = new TestObjectState(i + 1);
-            transaction.put(object, when.plusSeconds(i), nextState);
+            transaction.put(object, nextState);
         }
 
         @Override
@@ -92,6 +93,9 @@ public class ObjectStateTest {
         assertInvariants(state);
         UniverseTest.TransactionTest.assertInvariants(transaction);
 
+        final Duration transactionWhen = transaction.getWhen();
+        assertThat("The method puts the given transaction into write mode with a write time-stamp in the future.",
+                transactionWhen, greaterThan(when));
         for (var dependencyEntry : transaction.getObjectStatesRead().entrySet()) {
             final ObjectStateId dependencyId = dependencyEntry.getKey();
             final UUID dependencyObject = dependencyId.getObject();

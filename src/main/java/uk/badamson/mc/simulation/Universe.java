@@ -116,8 +116,8 @@ public class Universe {
          * 
          * @param when
          *            The time-stamp of all object states to be
-         *            {@linkplain #put(UUID, Duration, ObjectState) put} (written) by
-         *            this transaction, expressed as the duration since an epoch.
+         *            {@linkplain #put(UUID, ObjectState) put} (written) by this
+         *            transaction, expressed as the duration since an epoch.
          * 
          * @throws NullPointerException
          *             If {@code when} is null.
@@ -337,7 +337,7 @@ public class Universe {
         /**
          * <p>
          * The time-stamp of an object states (to be)
-         * {@linkplain #put(UUID, Duration, ObjectState) written} by this transaction.
+         * {@linkplain #put(UUID, ObjectState) written} by this transaction.
          * </p>
          * 
          * @return the time-stamp, or null if this transaction is (still) in read mode.
@@ -355,7 +355,8 @@ public class Universe {
          * <li>Either the {@linkplain #willAbortCommit() commit abort flag } is set or
          * the given state has been appended to the
          * {@linkplain Universe#getObjectStateHistory(UUID) object state history} of the
-         * given object, with the given time as the time of the state</li>
+         * given object, with {@linkplain #getWhen() writing time-stamp} of this
+         * transaction as the time of the state</li>
          * <li>The method records the given state as one of the
          * {@linkplain #getObjectStatesWritten() states written}.</li>
          * </ul>
@@ -363,27 +364,19 @@ public class Universe {
          * @param object
          *            The ID of the object that has the given state transition at the
          *            given time.
-         * @param when
-         *            The point in time that the state transition occurs, expressed as
-         *            the duration since an epoch.
          * @param state
          *            The state of the object just after this state transition, at the
          *            given point in time. A null value indicates that the object ceases
          *            to exist at the given time.
-         * 
          * @throws NullPointerException
-         *             <ul>
-         *             <li>If {@code object} is null.</li>
-         *             <li>If {@code when} is null.</li>
-         *             </ul>
+         *             If {@code object} is null.
          * @throws IllegalStateException
          *             If this transaction is not in write mode (because its
          *             {@link #beginWrite(Duration)} method has not been called)
          */
-        public final void put(UUID object, Duration when, ObjectState state) {
+        public final void put(UUID object, ObjectState state) {
             Objects.requireNonNull(object, "object");
-            Objects.requireNonNull(when, "when");
-            if (this.when == null) {
+            if (when == null) {
                 throw new IllegalStateException("Not in write mode");
             }
 

@@ -29,33 +29,29 @@ public interface ObjectState {
      * avoided.
      * </p>
      * <ul>
-     * <li>The method must
-     * {@linkplain Universe.Transaction#put(UUID, Duration, ObjectState) put}, using
-     * the given transaction, one new state for the given object ID.</li>
-     * <li>The method must
-     * {@linkplain Universe.Transaction#put(UUID, Duration, ObjectState) put} for
-     * the given object, using the given transaction, a state that is not
-     * {@linkplain ObjectState#equals(Object) equal} to this state.</li>
-     * <li>The method may
-     * {@linkplain Universe.Transaction#put(UUID, Duration, ObjectState) put} no
-     * more than one object state for any object ID.</li>
-     * <li>New states that the method
-     * {@linkplain Universe.Transaction#put(UUID, Duration, ObjectState) puts} using
-     * the transaction must all be put for the same point in time in the future
-     * (after the given point in time).</li>
      * <li>The points in time for which the method
      * {@linkplain Universe.Transaction#fetchObjectState(UUID, Duration) fetches}
      * (reads) state information must be before the given (current) point in
      * time.</li>
+     * <li>The method puts the given transaction
+     * {@linkplain Universe.Transaction#beginWrite(Duration) into write mode}, with
+     * a write time-stamp in the future (after the given point in time).</li>
+     * <li>The method must {@linkplain Universe.Transaction#put(UUID, ObjectState)
+     * put}, using the given transaction, one new state for the given object
+     * ID.</li>
+     * <li>The method must {@linkplain Universe.Transaction#put(UUID, ObjectState)
+     * put} for the given object, using the given transaction, a state that is not
+     * {@linkplain ObjectState#equals(Object) equal} to this state.</li>
+     * <li>The method may {@linkplain Universe.Transaction#put(UUID, ObjectState)
+     * put} no more than one object state for any object ID.</li>
      * </ul>
      * 
      * @param transaction
      *            The transaction that the method must use to
      *            {@linkplain Universe.Transaction#fetchObjectState(UUID, Duration)
      *            fetch} object states it needs for the computation and to
-     *            {@linkplain Universe.Transaction#put(UUID, Duration, ObjectState)
-     *            put} new object states, including the next state transition of the
-     *            object.
+     *            {@linkplain Universe.Transaction#put(UUID, ObjectState) put} new
+     *            object states, including the next state transition of the object.
      * @param object
      *            The ID of the object for which this is a state.
      * @param when
