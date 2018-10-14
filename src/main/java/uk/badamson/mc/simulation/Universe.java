@@ -617,6 +617,38 @@ public class Universe {
 
     /**
      * <p>
+     * Get the number of pending (not yet {@linkplain Transaction#commit()
+     * committed}) {@linkplain Transaction transactions} that state of a given
+     * object at a given point in time depend on.
+     * </p>
+     * <ul>
+     * <li>The number of pending transactions for an object and time is non
+     * negative.</li>
+     * <li>Unknown {@linkplain #getObjectIds() objects} have no pending transactions
+     * for all points in time.</li>
+     * <li>The number of pending transactions for known {@linkplain #getObjectIds()
+     * objects} is zero only at points in time when then object state has been
+     * committed by a {@linkplain Transaction transactions}.</li>
+     * </ul>
+     * 
+     * @param object
+     *            The ID of the object of interest.
+     * @param when
+     *            The point in time of interest.
+     * @return The number of pending transactions for the given object at the given
+     *         point in time.
+     * @throws NullPointerException
+     *             <ul>
+     *             <li>If {@code object} is null.</li>
+     *             <li>If {@code when} is null.</li>
+     *             </ul>
+     */
+    public final int getPendingTransactionsCount(UUID object, Duration when) {
+        return -1;// FIXME
+    }
+
+    /**
+     * <p>
      * The state of an object within this universe, just after a state transition,
      * given the {@linkplain ObjectState#getId() ID} of that state transition.
      * </p>
