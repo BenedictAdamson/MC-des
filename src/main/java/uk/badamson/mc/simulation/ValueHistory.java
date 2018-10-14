@@ -18,8 +18,8 @@ import net.jcip.annotations.NotThreadSafe;
  * </p>
  * 
  * @param VALUE
- *            The class of values of this value history. This must be an
- *            {@link Immutable immutable} type.
+ *            The class of values of this value history. This must be
+ *            {@link Immutable immutable}, or have reference semantics.
  */
 @NotThreadSafe
 public interface ValueHistory<VALUE> {
