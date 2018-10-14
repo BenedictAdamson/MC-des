@@ -644,7 +644,10 @@ public class Universe {
      *             </ul>
      */
     public final int getPendingTransactionsCount(UUID object, Duration when) {
-        return -1;// FIXME
+        Objects.requireNonNull(object, "object");
+        Objects.requireNonNull(when, "when");
+        // TODO
+        return 0;
     }
 
     /**

@@ -25,6 +25,7 @@ import java.util.UUID;
 import org.junit.Test;
 
 import uk.badamson.mc.ObjectTest;
+import uk.badamson.mc.simulation.Universe.Transaction;
 
 /**
  * <p>
@@ -152,15 +153,19 @@ public class UniverseTest {
                 if (state != null) {
                     ObjectStateTest.assertInvariants(state);
                 }
+                UniverseTest.assertInvariants(transaction.getUniverse(), id.getObject(), id.getWhen());
             }
             return objectStatesRead;
         }
 
         private static Map<UUID, ObjectState> assertObjectStatesWrittenInvariants(Universe.Transaction transaction) {
+            final Duration when = transaction.getWhen();
+
             final Map<UUID, ObjectState> objectStatesWritten = transaction.getObjectStatesWritten();
+
             assertNotNull("Always have a (non null) map of object states written.", objectStatesWritten);// guard
             assertFalse("The map of object states written is empty if this transaction is in read mode.",
-                    transaction.getWhen() == null && !objectStatesWritten.isEmpty());
+                    when == null && !objectStatesWritten.isEmpty());
 
             for (var entry : objectStatesWritten.entrySet()) {
                 final UUID object = entry.getKey();
@@ -169,6 +174,7 @@ public class UniverseTest {
                 if (state != null) {
                     ObjectStateTest.assertInvariants(state);
                 }
+                UniverseTest.assertInvariants(transaction.getUniverse(), object, when);
             }
             return objectStatesWritten;
         }
@@ -864,25 +870,25 @@ public class UniverseTest {
         ObjectTest.assertInvariants(universe);// inherited
 
         final Duration earliestTimeOfCompleteState = universe.getEarliestTimeOfCompleteState();
-        final Set<UUID> objectIds = universe.getObjectIds();
-        final Set<ObjectStateId> stateTransitionIds = universe.getStateTransitionIds();
 
         assertNotNull("Always have a earliest complete state time-stamp.", earliestTimeOfCompleteState);
-        assertNotNull("Always have a set of object IDs.", objectIds);// guard
-        assertNotNull("Always have a (non null) set of state transition IDs.", stateTransitionIds);
 
-        for (ObjectStateId stateTransitionId : stateTransitionIds) {
-            assertNotNull("The set of IDs of state transitions does not have a null element.", stateTransitionId);// guard
-            ObjectStateIdTest.assertInvariants(stateTransitionId);
-            final ObjectState stateTransition = universe.getStateTransition(stateTransitionId);
-            final UUID object = stateTransitionId.getObject();
-            assertThat(
-                    "The set of IDs of state transitions does not have elements for object IDs that are not in the set of objects in this universe.",
-                    object, isIn(objectIds));
-            if (stateTransition != null) {
-                ObjectStateTest.assertInvariants(stateTransition);
-            }
-        }
+        assertObjectIdsInvariants(universe);
+        assertStateTransitionIdsInvariants(universe);
+    }
+
+    public static void assertInvariants(Universe universe1, Universe universe2) {
+        ObjectTest.assertInvariants(universe1, universe2);// inherited
+    }
+
+    public static void assertInvariants(Universe universe, UUID object, Duration when) {
+        assertPendingTransactionsCountInvariants(universe, object, when);
+    }
+
+    private static void assertObjectIdsInvariants(Universe universe) {
+        final Set<UUID> objectIds = universe.getObjectIds();
+
+        assertNotNull("Always have a set of object IDs.", objectIds);// guard
 
         for (UUID object : objectIds) {
             assertNotNull("The set of object IDs does not have a null element.", object);// guard
@@ -904,8 +910,39 @@ public class UniverseTest {
         }
     }
 
-    public static void assertInvariants(Universe universe1, Universe universe2) {
-        ObjectTest.assertInvariants(universe1, universe2);// inherited
+    private static int assertPendingTransactionsCountInvariants(Universe universe, UUID object, Duration when) {
+        final Set<UUID> objectIds = universe.getObjectIds();
+        final int count = universe.getPendingTransactionsCount(object, when);
+
+        assertNotNull("objectIds", objectIds);// guard
+
+        assertThat("The number of pending transactions for an object and time is non negative.", count,
+                greaterThanOrEqualTo(0));
+        assertTrue("Unknown objects have no pending transactions for all points in time.",
+                objectIds.contains(object) || count == 0);
+
+        return count;
+    }
+
+    private static void assertStateTransitionIdsInvariants(Universe universe) {
+        final Set<UUID> objectIds = universe.getObjectIds();
+
+        final Set<ObjectStateId> stateTransitionIds = universe.getStateTransitionIds();
+
+        assertNotNull("Always have a (non null) set of state transition IDs.", stateTransitionIds);// guard
+
+        for (ObjectStateId stateTransitionId : stateTransitionIds) {
+            assertNotNull("The set of IDs of state transitions does not have a null element.", stateTransitionId);// guard
+            ObjectStateIdTest.assertInvariants(stateTransitionId);
+            final ObjectState stateTransition = universe.getStateTransition(stateTransitionId);
+            final UUID object = stateTransitionId.getObject();
+            assertThat(
+                    "The set of IDs of state transitions does not have elements for object IDs that are not in the set of objects in this universe.",
+                    object, isIn(objectIds));
+            if (stateTransition != null) {
+                ObjectStateTest.assertInvariants(stateTransition);
+            }
+        }
     }
 
     private static void assertUnknownObjectInvariants(Universe universe, UUID object) {
@@ -925,6 +962,35 @@ public class UniverseTest {
                 "Have a state transition only if the given object state ID is one of the known object state IDs of this universe.",
                 universe.getStateTransition(state));
     }
+
+    /**
+     * <p>
+     * Get the number of pending (not yet {@linkplain Transaction#commit()
+     * committed}) {@linkplain Transaction transactions} that state of a given
+     * object at a given point in time depend on.
+     * </p>
+     * <ul>
+     * <li>The number of pending transactions for an object and time is non
+     * negative.</li>
+     * <li>Unknown {@linkplain #getObjectIds() objects} have no pending transactions
+     * for all points in time.</li>
+     * <li>The number of pending transactions for known {@linkplain #getObjectIds()
+     * objects} is zero only at points in time when then object state has been
+     * committed by a {@linkplain Transaction transactions}.</li>
+     * </ul>
+     * 
+     * @param object
+     *            The ID of the object of interest.
+     * @param when
+     *            The point in time of interest.
+     * @return The number of pending transactions for the given object at the given
+     *         point in time.
+     * @throws NullPointerException
+     *             <ul>
+     *             <li>If {@code object} is null.</li>
+     *             <li>If {@code when} is null.</li>
+     *             </ul>
+     */
 
     private static Universe.Transaction beginTransaction(final Universe universe) {
         final Universe.Transaction transaction = universe.beginTransaction();
