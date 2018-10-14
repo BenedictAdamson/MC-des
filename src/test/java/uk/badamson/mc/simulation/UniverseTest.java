@@ -179,17 +179,20 @@ public class UniverseTest {
             assertInvariants(transaction);
         }
 
-        public static void commit(final Universe.Transaction transaction) throws Universe.AbortedTransactionException {
+        private static void commit(final Universe.Transaction transaction) throws Universe.AbortedTransactionException {
             try {
                 transaction.commit();
             } catch (Universe.AbortedTransactionException e) {
                 // Permitted
                 assertInvariants(transaction);
                 UniverseTest.AbortedTransactionExceptionTest.assertInvariants(e);
+                assertTrue("The commit abort flag is set.", transaction.willAbortCommit());
+                assertFalse("The committed flag is clear.", transaction.isCommitted());
                 throw e;
             }
 
             assertInvariants(transaction);
+            assertTrue("The committed flag of this transaction is set.", transaction.isCommitted());
         }
 
         private static void commit_2DifferentObjects(final UUID object1, final UUID object2) {
@@ -873,6 +876,8 @@ public class UniverseTest {
                 transaction.getObjectStatesRead());
         assertEquals("The returned transaction has not written any object states.", Collections.EMPTY_MAP,
                 transaction.getObjectStatesWritten());
+        assertFalse("The {@linkplain Transaction#isCommitted() committed} flag of the returned transaction is clear.",
+                transaction.isCommitted());
         assertFalse("The commit abort flag of the return transaction is clear", transaction.willAbortCommit());
         assertNull("The returned transaction is in in read mode.", transaction.getWhen());
 

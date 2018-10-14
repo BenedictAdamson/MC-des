@@ -100,6 +100,7 @@ public class Universe {
 
         private Duration when;
         private boolean abortCommit;
+        private boolean committed;
 
         private Transaction() {
             // Do nothing
@@ -164,18 +165,25 @@ public class Universe {
          * {@linkplain Universe#getObjectStateHistory(UUID) state history} of the
          * {@linkplain ObjectState#getObject() object} of the object state in the
          * {@linkplain #getUniverse() universe} of this transaction.</li>
+         * <li>The {@linkplain #isCommitted() committed} flag of this transaction is
+         * set.</li>
          * </ul>
          * 
          * @throws Universe.AbortedTransactionException
          *             If the consistency constraints of this transaction and of the
          *             {@linkplain #getUniverse() universe} of this transaction could
-         *             not then be satisfied. In this case the
-         *             {@linkplain #willAbortCommit() commit abort flag} is set.
+         *             not then be satisfied. In this case
+         *             <ul>
+         *             <li>the {@linkplain #willAbortCommit() commit abort flag} is
+         *             set</li>
+         *             <li>the {@linkplain #isCommitted() committed} flag is clear.</li>
+         *             </ul>
          */
         public final void commit() throws Universe.AbortedTransactionException {
             if (abortCommit) {
                 throw new Universe.AbortedTransactionException();
             }
+            committed = true;
         }
 
         /**
@@ -349,6 +357,17 @@ public class Universe {
 
         /**
          * <p>
+         * Whether this transaction has been successfully committed.
+         * </p>
+         * 
+         * @return whether committed.
+         */
+        public final boolean isCommitted() {
+            return committed;
+        }
+
+        /**
+         * <p>
          * Try to add a state transition (or an initial state) for an object to the
          * {@linkplain #getUniverse() universe} of this transaction.
          * <p>
@@ -459,7 +478,9 @@ public class Universe {
      * {@linkplain Universe.Transaction#getObjectStatesWritten() written any object
      * states}.</li>
      * <li>The {@linkplain Transaction#willAbortCommit() commit abort flag} of the
-     * returned transaction is clear ({@code false}.</li>
+     * returned transaction is clear ({@code false}).</li>
+     * <li>The {@linkplain Transaction#isCommitted() committed} flag of the returned
+     * transaction is clear ({@code false}).</li>
      * <li>The returned transaction is in {@linkplain Universe.Transaction#getWhen()
      * in read mode}.</li>
      * </ul>
