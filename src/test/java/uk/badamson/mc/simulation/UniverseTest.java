@@ -911,7 +911,7 @@ public class UniverseTest {
     }
 
     public static void assertInvariants(Universe universe, UUID object, Duration when) {
-        assertPendingTransactionsCountInvariants(universe, object, when);
+        // Do nothing
     }
 
     private static void assertObjectIdsInvariants(Universe universe) {
@@ -937,20 +937,6 @@ public class UniverseTest {
                     "Known objects have an unknown state just before the first known state of the state history of that object.",
                     universe.getObjectState(object, whenFirstState.minusNanos(1L)));
         }
-    }
-
-    private static int assertPendingTransactionsCountInvariants(Universe universe, UUID object, Duration when) {
-        final Set<UUID> objectIds = universe.getObjectIds();
-        final int count = universe.getPendingTransactionsCount(object, when);
-
-        assertNotNull("objectIds", objectIds);// guard
-
-        assertThat("The number of pending transactions for an object and time is non negative.", count,
-                greaterThanOrEqualTo(0));
-        assertTrue("Unknown objects have no pending transactions for all points in time.",
-                objectIds.contains(object) || count == 0);
-
-        return count;
     }
 
     private static void assertStateTransitionIdsInvariants(Universe universe) {
