@@ -132,6 +132,11 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
         transitions.put(when, value);
     }
 
+    private void clear(VALUE value) {
+        firstValue = value;
+        transitions.clear();
+    }
+
     @Override
     public final boolean equals(Object that) {
         if (that == null)
@@ -384,8 +389,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
     public final void setValueFrom(Duration when, VALUE value) {
         Objects.requireNonNull(when, "when");
         if (when.equals(START_OF_TIME)) {
-            firstValue = value;
-            transitions.clear();
+            clear(value);
         } else {
             transitions.keySet().removeIf(t -> when.compareTo(t) < 0);
             if (!Objects.equals(getLastValue(), value)) {
@@ -427,8 +431,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
     public final void setValueUntil(Duration when, VALUE value) {
         Objects.requireNonNull(when, "when");
         if (when.equals(END_OF_TIME)) {
-            firstValue = value;
-            transitions.clear();
+            clear(value);
         } else {
             VALUE lastValue0 = getLastValue();
             firstValue = value;
