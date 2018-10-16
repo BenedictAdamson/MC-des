@@ -114,6 +114,16 @@ public class ModifiableValueHistoryTest {
         ValueHistoryTest.assertInvariants(history1, history2);// inherited
     }
 
+    private static <VALUE> ModifiableValueHistory<VALUE> constructor(ValueHistory<VALUE> that) {
+        final ModifiableValueHistory<VALUE> history = new ModifiableValueHistory<>(that);
+
+        assertInvariants(history);
+        ValueHistoryTest.assertInvariants(history, that);
+        assertEquals("This equals the given value history.", that, history);
+
+        return history;
+    }
+
     private static <VALUE> void constructor_1(VALUE value) {
         final var history1 = new ModifiableValueHistory<>(value);
         final var history2 = new ModifiableValueHistory<>(value);
@@ -244,6 +254,28 @@ public class ModifiableValueHistoryTest {
     @Test
     public void constructor_1B() {
         constructor_1(Integer.MIN_VALUE);
+    }
+
+    @Test
+    public void constructor_copy_0() {
+        final ValueHistory<Boolean> that = new ModifiableValueHistory<Boolean>();
+
+        constructor(that);
+    }
+
+    @Test
+    public void constructor_copy_1() {
+        final ValueHistory<Boolean> that = new ModifiableValueHistory<Boolean>(Boolean.FALSE);
+
+        constructor(that);
+    }
+
+    @Test
+    public void constructor_copy_2() {
+        final ModifiableValueHistory<Integer> that = new ModifiableValueHistory<Integer>(0);
+        that.appendTransition(WHEN_1, 1);
+
+        constructor(that);
     }
 
     @Test

@@ -31,7 +31,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
 
     /**
      * <p>
-     * Construct an value history that is null for all points in time.
+     * Construct a value history that is null for all points in time.
      * </p>
      * <ul>
      * <li>This {@linkplain #isEmpty() is empty}.</li>
@@ -40,12 +40,12 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
      * </ul>
      */
     public ModifiableValueHistory() {
-        this(null);
+        this((VALUE) null);
     }
 
     /**
      * <p>
-     * Construct an value history that has the same given value for all points in
+     * Construct a value history that has the same given value for all points in
      * time.
      * </p>
      * <ul>
@@ -59,6 +59,25 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
      */
     public ModifiableValueHistory(VALUE value) {
         firstValue = value;
+    }
+
+    /**
+     * <p>
+     * Construct a value history that is a copy of a given value history
+     * </p>
+     * <ul>
+     * <li>This {@linkplain #equals(Object) equals} the given value history.</li>
+     * </ul>
+     * 
+     * @param that
+     *            The value history to copy.
+     * @throws NullPointerException
+     *             If {@code that} is null
+     */
+    public ModifiableValueHistory(ValueHistory<VALUE> that) {
+        Objects.requireNonNull(that, "that");
+        firstValue = that.getFirstValue();
+        that.streamOfTransitions().sequential().forEach(entry -> transitions.put(entry.getKey(), entry.getValue()));
     }
 
     /**
