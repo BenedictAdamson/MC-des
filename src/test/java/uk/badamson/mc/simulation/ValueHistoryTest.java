@@ -177,8 +177,8 @@ public class ValueHistoryTest {
         for (Duration transitionTime : transitionTimes) {
             assertNotEquals("There is not a transition at the start of time.", ValueHistory.START_OF_TIME,
                     transitionTime);// guard
-            assertThat(
-                    "For all points in time in the set of transition times, the value just before the transition is not equal to the value at the transition.",
+            assertThat("For all points in time in <" + transitionTime
+                    + "> the set of transition times, the value just before the transition is not equal to the value at the transition.",
                     history.get(transitionTime.minusNanos(1L)), not(history.get(transitionTime)));
         }
 

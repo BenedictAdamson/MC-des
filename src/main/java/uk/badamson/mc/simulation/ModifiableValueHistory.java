@@ -126,7 +126,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
             throw new IllegalStateException("Timestamp out of order");
         } else if (lastTransition != null && Objects.equals(value, lastTransition.getValue())) {
             throw new IllegalStateException("Equal values");
-        } else if (lastTransition == null && value == null) {
+        } else if (lastTransition == null && Objects.equals(firstValue, value)) {
             throw new IllegalStateException("First appended value equals value at start of time");
         }
         transitions.put(when, value);
@@ -319,6 +319,35 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
     @Override
     public final boolean isEmpty() {
         return transitions.isEmpty();
+    }
+
+    /**
+     * <p>
+     * Change this value history so {@linkplain #getTransitionTimes() set of state
+     * transitions} has no transitions at or after a given point in time.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getFirstValue() first value} of the history is
+     * unchanged.</li>
+     * <li>The {@linkplain #getTransitionTimes() set of state transitions}
+     * {@linkplain SortedSet#contains(Object) contains} no times at or after the
+     * given time.</li>
+     * <li>Removing state transitions from a given point in time does not change the
+     * {@linkplain #getTransitions() transitions} before the point in time.</li>
+     * </ul>
+     * 
+     * @param when
+     *            The point in time from which transitions must be removed,
+     *            represented as the duration since an (implied) epoch.
+     * 
+     * @throws NullPointerException
+     *             If {@code when} is null.
+     * 
+     * @see #appendTransition(Duration, Object)
+     */
+    public final void removeStateTransitionsFrom(Duration when) {
+        Objects.requireNonNull(when, "when");
+        transitions.keySet().removeIf(t -> when.compareTo(t) <= 0);
     }
 
     /**

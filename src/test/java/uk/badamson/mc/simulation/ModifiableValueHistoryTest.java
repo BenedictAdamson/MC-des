@@ -10,9 +10,12 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.junit.Test;
@@ -30,6 +33,7 @@ public class ModifiableValueHistoryTest {
     private static final Duration WHEN_1 = Duration.ZERO;
     private static final Duration WHEN_2 = Duration.ofSeconds(2);
     private static final Duration WHEN_3 = Duration.ofSeconds(3);
+    private static final Duration WHEN_4 = Duration.ofSeconds(5);
 
     private static <VALUE> void appendTransition(ModifiableValueHistory<VALUE> history, Duration when, VALUE value)
             throws IllegalStateException {
@@ -138,6 +142,50 @@ public class ModifiableValueHistoryTest {
 
         ValueHistoryTest.assertInvariants(history1, WHEN_1);
         ValueHistoryTest.assertInvariants(history1, WHEN_2);
+    }
+
+    private static <VALUE> void removeStateTransitionsFrom(ModifiableValueHistory<VALUE> history, Duration when) {
+        final VALUE firstValue0 = history.getFirstValue();
+        final SortedMap<Duration, VALUE> transitions0 = new TreeMap<>(history.getTransitions());
+
+        history.removeStateTransitionsFrom(when);
+
+        assertInvariants(history);
+        final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
+        final SortedMap<Duration, VALUE> transitions = history.getTransitions();
+        final Set<Entry<Duration, VALUE>> transitionsEntries = transitions.entrySet();
+
+        assertSame("The first value of the history is unchanged.", firstValue0, history.getFirstValue());
+        assertTrue("The set of state transitions contains no times at or after the given time.",
+                transitionTimes.isEmpty() || transitionTimes.last().compareTo(when) < 0);
+        for (var entry0 : transitions0.entrySet()) {
+            final Duration t = entry0.getKey();
+            assertTrue(
+                    "Removing state transitions from a given point  in time does not change the transitions before the point in time.",
+                    when.compareTo(t) <= 0 || transitionsEntries.contains(entry0));
+        }
+    }
+
+    private static void removeStateTransitionsFrom_1AfterLast(Duration t1, Duration t2) {
+        assert t1.compareTo(t2) < 0;
+        final ModifiableValueHistory<Boolean> history = new ModifiableValueHistory<>(Boolean.FALSE);
+        history.appendTransition(t1, Boolean.TRUE);
+        final ModifiableValueHistory<Boolean> history0 = new ModifiableValueHistory<>(history);
+
+        removeStateTransitionsFrom(history, t2);
+
+        assertEquals("Unchanged", history0, history);
+    }
+
+    private static void removeStateTransitionsFrom_1BeforeOrAtLast(Duration t1, Duration t2) {
+        assert t1.compareTo(t2) <= 0;
+        final ModifiableValueHistory<Boolean> history = new ModifiableValueHistory<>(Boolean.FALSE);
+        history.appendTransition(t2, Boolean.TRUE);
+        final ModifiableValueHistory<Boolean> expected = new ModifiableValueHistory<>(Boolean.FALSE);
+
+        removeStateTransitionsFrom(history, t1);
+
+        assertEquals("Trancated", expected, history);
     }
 
     private static <VALUE> void setValueFrom(ModifiableValueHistory<VALUE> history, Duration when, VALUE value) {
@@ -276,6 +324,56 @@ public class ModifiableValueHistoryTest {
         that.appendTransition(WHEN_1, 1);
 
         constructor(that);
+    }
+
+    @Test
+    public void removeStateTransitionsFrom_0NonNull() {
+        final ModifiableValueHistory<Boolean> history = new ModifiableValueHistory<>(Boolean.FALSE);
+
+        removeStateTransitionsFrom(history, WHEN_1);
+    }
+
+    @Test
+    public void removeStateTransitionsFrom_0Null() {
+        final ModifiableValueHistory<Boolean> history = new ModifiableValueHistory<>();
+
+        removeStateTransitionsFrom(history, WHEN_1);
+    }
+
+    @Test
+    public void removeStateTransitionsFrom_1AfterLastA() {
+        removeStateTransitionsFrom_1AfterLast(WHEN_1, WHEN_2);
+    }
+
+    @Test
+    public void removeStateTransitionsFrom_1AfterLastB() {
+        removeStateTransitionsFrom_1AfterLast(WHEN_2, WHEN_3);
+    }
+
+    @Test
+    public void removeStateTransitionsFrom_1AtLastA() {
+        final Duration when = WHEN_1;
+        removeStateTransitionsFrom_1BeforeOrAtLast(when, when);
+    }
+
+    @Test
+    public void removeStateTransitionsFrom_1BeforeLastA() {
+        removeStateTransitionsFrom_1BeforeOrAtLast(WHEN_1, WHEN_2);
+    }
+
+    @Test
+    public void removeStateTransitionsFrom_1BeforeLastB() {
+        removeStateTransitionsFrom_1BeforeOrAtLast(WHEN_2, WHEN_3);
+    }
+
+    @Test
+    public void removeStateTransitionsFrom_2BeforeLastA() {
+        final ModifiableValueHistory<Integer> history = new ModifiableValueHistory<>(1);
+        history.appendTransition(WHEN_2, 2);
+        history.appendTransition(WHEN_4, 3);
+
+        removeStateTransitionsFrom(history, WHEN_3);
+
     }
 
     @Test
