@@ -606,6 +606,35 @@ public class UniverseTest {
             close_afterWrite(DURATION_2, DURATION_3, OBJECT_B);
         }
 
+        private void close_afterWriteSecond(UUID object, Duration earliestTimeOfCompleteState, Duration when1,
+                Duration when2) {
+            assert when1.compareTo(when2) < 0;
+            final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
+            final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
+
+            final Universe universe = new Universe(earliestTimeOfCompleteState);
+            putAndCommit(universe, object, when1, objectState1);
+            final var history0 = new ModifiableValueHistory<>(universe.getObjectStateHistory(object));
+
+            final Universe.Transaction transaction = universe.beginTransaction();
+            transaction.beginWrite(when2);
+            transaction.put(object, objectState2);
+
+            close(transaction);
+
+            assertEquals("Rolled back write", history0, universe.getObjectStateHistory(object));
+        }
+
+        @Test
+        public void close_afterWriteSecondA() {
+            close_afterWriteSecond(OBJECT_A, DURATION_1, DURATION_2, DURATION_3);
+        }
+
+        @Test
+        public void close_afterWriteSecondB() {
+            close_afterWriteSecond(OBJECT_B, DURATION_2, DURATION_3, DURATION_4);
+        }
+
         @Test
         public void close_immediately() {
             final Universe universe = new Universe(DURATION_1);

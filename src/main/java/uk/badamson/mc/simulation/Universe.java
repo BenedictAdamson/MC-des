@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -145,6 +146,13 @@ public class Universe {
             this.when = when;
         }
 
+        private void clear() {
+            objectStatesRead.clear();
+            objectStatesWritten.clear();
+            dependencies.clear();
+            when = null;
+        }
+
         /**
          * <p>
          * Indicate that this transaction has ended.
@@ -158,14 +166,18 @@ public class Universe {
          * <li>This transaction has no record of its
          * {@linkplain #getObjectStatesWritten() object states written}.</li>
          * <li>This transaction is in {@linkplain #getWhen() read mode}.</li>
+         * <li>If this transaction had {@linkplain #getObjectStatesWritten() written
+         * object states}, those writes are <dfn>rolled back</dfn>, returning the
+         * {@linkplain Universe#getObjectStateHistory(UUID) state histories} to their
+         * original history.</li>
          * </ul>
          */
         @Override
         public final void close() {
-            objectStatesRead.clear();
-            objectStatesWritten.clear();
-            dependencies.clear();
-            when = null;
+            if (!committed) {
+                rollBack();
+            }
+            clear();
         }
 
         /**
@@ -430,6 +442,18 @@ public class Universe {
             } catch (IllegalStateException e) {
                 abortCommit = true;
             }
+        }
+
+        private void rollBack() {
+            final Set<UUID> removedObjects = new HashSet<>(objectStatesWritten.size());
+            for (UUID object : objectStatesWritten.keySet()) {
+                final var od = objectDataMap.get(object);
+                od.stateHistory.removeStateTransitionsFrom(when);
+                if (od.stateHistory.isEmpty()) {
+                    removedObjects.add(object);
+                }
+            }
+            objectDataMap.keySet().removeAll(removedObjects);
         }
 
         /**
