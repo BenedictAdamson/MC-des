@@ -379,6 +379,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
      *             If {@code when} is null.
      * 
      * @see #appendTransition(Duration, Object)
+     * @see #setValueUntil(Duration, Object)
      */
     public final void setValueFrom(Duration when, VALUE value) {
         Objects.requireNonNull(when, "when");
@@ -389,6 +390,51 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
             transitions.keySet().removeIf(t -> when.compareTo(t) < 0);
             if (!Objects.equals(getLastValue(), value)) {
                 transitions.put(when, value);
+            }
+        }
+    }
+
+    /**
+     * <p>
+     * Change this value history so the value {@linkplain #get(Duration) at} all
+     * points in time {@linkplain Duration#compareTo(Duration) at or before} a given
+     * point in time is equal to a given value.
+     * </p>
+     * <ul>
+     * <li>Setting the value until a given time does not change the
+     * {@linkplain #get(Duration) values} after the given point in time.</li>
+     * <li>The given value is the {@linkplain #getFirstValue() first value}.</li>
+     * <li>The given value is {@linkplain Object#equals(Object) equal} to
+     * {@linkplain #get(Duration) the value at} the given time.</li>
+     * <li>If this {@linkplain #isEmpty() has any transitions}, the
+     * {@linkplain #getFirstTansitionTime() first transition time} is at or after
+     * the given time.</li>
+     * </ul>
+     * 
+     * @param when
+     *            The point in time until which this history must have the
+     *            {@code value}, represented as the duration since an (implied)
+     *            epoch.
+     * @param value
+     *            The value that this history must have at or before the given point
+     *            in time.
+     * 
+     * @throws NullPointerException
+     *             If {@code when} is null.
+     * 
+     * @see #setValueFrom(Duration, Object)
+     */
+    public final void setValueUntil(Duration when, VALUE value) {
+        Objects.requireNonNull(when, "when");
+        if (when.equals(END_OF_TIME)) {
+            firstValue = value;
+            transitions.clear();
+        } else {
+            VALUE lastValue0 = getLastValue();
+            firstValue = value;
+            transitions.keySet().removeIf(t -> t.compareTo(when) <= 0);
+            if (!Objects.equals(lastValue0, getLastValue())) {
+                transitions.put(when.plusNanos(1L), lastValue0);
             }
         }
     }

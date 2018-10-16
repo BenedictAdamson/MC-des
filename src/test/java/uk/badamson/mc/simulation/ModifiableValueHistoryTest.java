@@ -221,6 +221,39 @@ public class ModifiableValueHistoryTest {
         return history;
     }
 
+    private static <VALUE> void setValueUntil(ModifiableValueHistory<VALUE> history, Duration when, VALUE value) {
+        final VALUE lastValue0 = history.getLastValue();
+
+        history.setValueUntil(when, value);
+
+        assertInvariants(history);
+        final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
+        assertTrue(
+                "Setting the value until a given time does not change the values after the given point in time [last value]",
+                when.equals(ValueHistory.END_OF_TIME) || Objects.equals(lastValue0, history.getLastValue()));
+        assertEquals("The given value is equal to the value at the given time.", value, history.get(when));
+        assertTrue("If this has any transitions, the first transition time is at or after the given time.",
+                transitionTimes.isEmpty() || when.compareTo(transitionTimes.first()) <= 0);
+    }
+
+    private static <VALUE> ModifiableValueHistory<VALUE> setValueUntil_1(VALUE firstValue, Duration when, VALUE value) {
+        final ModifiableValueHistory<VALUE> history = new ModifiableValueHistory<VALUE>(firstValue);
+
+        setValueUntil(history, when, value);
+
+        return history;
+    }
+
+    private static <VALUE> ModifiableValueHistory<VALUE> setValueUntil_2(VALUE firstValue, Duration when1, VALUE value1,
+            Duration when2, VALUE value2) {
+        final ModifiableValueHistory<VALUE> history = new ModifiableValueHistory<VALUE>(firstValue);
+        history.setValueUntil(when1, value1);
+
+        setValueUntil(history, when2, value2);
+
+        return history;
+    }
+
     @Test
     public void appendTransition_1A() {
         appendTransition_1(WHEN_1, Boolean.TRUE);
@@ -433,4 +466,63 @@ public class ModifiableValueHistoryTest {
         final Duration when = WHEN_1;
         setValueFrom_2(Integer.valueOf(1), when, Integer.valueOf(2), when, Integer.valueOf(3));
     }
+
+    @Test
+    public void setValueUntil_1_endOfTime() {
+        setValueUntil_1(Boolean.FALSE, ValueHistory.END_OF_TIME, Boolean.TRUE);
+    }
+
+    @Test
+    public void setValueUntil_1_noOp() {
+        final Boolean value = Boolean.FALSE;
+        setValueUntil_1(value, WHEN_1, value);
+    }
+
+    @Test
+    public void setValueUntil_1_noOpNull() {
+        final Boolean value = null;
+        setValueUntil_1(value, WHEN_1, value);
+    }
+
+    @Test
+    public void setValueUntil_1_null() {
+        setValueUntil_1(Boolean.FALSE, WHEN_1, (Boolean) null);
+    }
+
+    @Test
+    public void setValueUntil_1_startOfTime() {
+        setValueUntil_1(Boolean.FALSE, ValueHistory.START_OF_TIME, Boolean.TRUE);
+    }
+
+    @Test
+    public void setValueUntil_1A() {
+        setValueUntil_1(Boolean.FALSE, WHEN_1, Boolean.TRUE);
+    }
+
+    @Test
+    public void setValueUntil_1B() {
+        setValueUntil_1(Integer.MIN_VALUE, WHEN_2, Integer.MAX_VALUE);
+    }
+
+    @Test
+    public void setValueUntil_2_after() {
+        setValueUntil_2(Integer.valueOf(1), WHEN_1, Integer.valueOf(2), WHEN_2, Integer.valueOf(3));
+    }
+
+    @Test
+    public void setValueUntil_2_prepend_A() {
+        setValueUntil_2(Integer.valueOf(1), WHEN_2, Integer.valueOf(2), WHEN_1, Integer.valueOf(3));
+    }
+
+    @Test
+    public void setValueUntil_2_prepend_B() {
+        setValueUntil_2(Integer.valueOf(5), WHEN_3, Integer.valueOf(7), WHEN_2, Integer.valueOf(11));
+    }
+
+    @Test
+    public void setValueUntil_2_replace() {
+        final Duration when = WHEN_1;
+        setValueUntil_2(Integer.valueOf(1), when, Integer.valueOf(2), when, Integer.valueOf(3));
+    }
+
 }
