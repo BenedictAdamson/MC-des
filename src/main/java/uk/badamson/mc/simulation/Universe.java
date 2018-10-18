@@ -264,19 +264,22 @@ public class Universe {
                 throw new IllegalStateException("In write mode");
             }
             ObjectState objectState;
-            // TODO use the cache
-            final var od = objectDataMap.get(object);
-            if (od == null) {// unknown object
-                objectState = null;
-            } else {
-                objectState = od.stateHistory.get(when);
-                od.uncommittedReaders.addUntil(when, this);
+            objectState = objectStatesRead.get(id);
+            if (objectState == null && !objectStatesRead.containsKey(id)) {
+                final var od = objectDataMap.get(object);
+                if (od == null) {// unknown object
+                    objectState = null;
+                } else {
+                    objectState = od.stateHistory.get(when);
+                    od.uncommittedReaders.addUntil(when, this);
+                }
+                objectStatesRead.put(id, objectState);
+                final ObjectStateId dependency0 = dependencies.get(object);
+                if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
+                    dependencies.put(object, id);
+                }
             }
-            objectStatesRead.put(id, objectState);
-            final ObjectStateId dependency0 = dependencies.get(object);
-            if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
-                dependencies.put(object, id);
-            }
+            // else used cached value
             return objectState;
         }
 
