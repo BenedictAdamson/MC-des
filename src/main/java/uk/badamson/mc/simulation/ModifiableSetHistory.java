@@ -2,8 +2,8 @@ package uk.badamson.mc.simulation;
 
 import java.time.Duration;
 import java.util.AbstractMap;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -34,7 +34,7 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
 
     private static final ValueHistory<Boolean> ABSENT = new ModifiableValueHistory<>(Boolean.FALSE);
 
-    private final Set<VALUE> emptySet = Collections.emptySet();
+    private final Set<VALUE> firstValue = new HashSet<>();
     private final Map<VALUE, ModifiableValueHistory<Boolean>> containsMap = new HashMap<>();
 
     /**
@@ -64,8 +64,7 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
         if (that instanceof ModifiableSetHistory) {
             @SuppressWarnings("unchecked")
             final ModifiableSetHistory<VALUE> thatValueHistory = (ModifiableSetHistory<VALUE>) that;
-            return Objects.equals(emptySet, thatValueHistory.emptySet)
-                    && containsMap.equals(thatValueHistory.containsMap);
+            return firstValue.equals(thatValueHistory.firstValue) && containsMap.equals(thatValueHistory.containsMap);
         } else if (that instanceof ValueHistory) {
             @SuppressWarnings("unchecked")
             final ValueHistory<VALUE> thatValueHistory = (ValueHistory<VALUE>) that;
@@ -81,9 +80,6 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
         Objects.requireNonNull(t, "t");
         Set<VALUE> result = containsMap.entrySet().stream().filter(e -> e.getValue().get(t).booleanValue())
                 .map(e -> e.getKey()).collect(Collectors.toSet());
-        if (result.isEmpty()) {
-            result = emptySet;
-        }
         return result;
     }
 
@@ -93,19 +89,9 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
                 .min((t1, t2) -> t1.compareTo(t2)).orElse(null);
     }
 
-    /**
-     * {@inheritDoc}
-     * 
-     * <p>
-     * What is more:
-     * </p>
-     * <ul>
-     * <li>The first value is an {@linkplain Set#isEmpty() empty set}.</li>
-     * </ul>
-     */
     @Override
     public final Set<VALUE> getFirstValue() {
-        return emptySet;
+        return firstValue;
     }
 
     @Override
@@ -186,6 +172,50 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
             containsMap.put(value, c);
         }
         c.setValueFrom(when, Boolean.TRUE);
+    }
+
+    /**
+     * <p>
+     * Change this set history so the set {@linkplain #get(Duration) at} all points
+     * in time {@linkplain Duration#compareTo(Duration) at or before} a given point
+     * in time {@linkplain Set#contains(Object) contains} a given value.
+     * </p>
+     * <ul>
+     * <li>Setting presence until a given time does not change the
+     * {@linkplain #get(Duration) set} after the given point in time.</li>
+     * <li>The {@linkplain ValueHistory#getFirstValue() first value} of the
+     * {@linkplain #contains(Object) contains history} for the given value is
+     * {@link Boolean#TRUE}.</li>
+     * <li>The {@linkplain ValueHistory#get(Duration) value at} the given time of
+     * the {@linkplain #contains(Object) contains history} for the given value is
+     * {@link Boolean#TRUE}.</li>
+     * <li>The {@linkplain #contains(Object) contains history} for the given value
+     * has its {@linkplain ValueHistory#getFirstTansitionTime() first transition
+     * time} after the given time.</li>
+     * </ul>
+     * 
+     * @param when
+     *            The point in time until which this set history must have the
+     *            {@code value} as one of the values of the set, represented as the
+     *            duration since an (implied) epoch.
+     * @param value
+     *            The value that this set history must have as one of the values of
+     *            the set at or before the given point in time.
+     * 
+     * @throws NullPointerException
+     *             If {@code when} is null.
+     * 
+     * @see ModifiableValueHistory#setValueUntil(Duration, Object)
+     */
+    public final void setPresentUntil(Duration when, VALUE value) {
+        Objects.requireNonNull(when, "when");
+        var c = containsMap.get(value);
+        if (c == null) {
+            c = new ModifiableValueHistory<>(Boolean.FALSE);
+            containsMap.put(value, c);
+        }
+        c.setValueUntil(when, Boolean.TRUE);
+        firstValue.add(value);
     }
 
     @Override

@@ -99,8 +99,9 @@ public interface ValueHistory<VALUE> {
      * {@linkplain #START_OF_TIME start of time}.
      * </p>
      * <ul>
-     * <li>The first value is the same as the {@linkplain #get(Duration) value at}
-     * the {@linkplain #START_OF_TIME start of time}.</li>
+     * <li>The first value {@linkplain Object#equals(Object) equals} the
+     * {@linkplain #get(Duration) value at} the {@linkplain #START_OF_TIME start of
+     * time}.</li>
      * <li>This method is more efficient than using the {@link #get(Duration)}
      * method.</li>
      * </ul>
@@ -138,8 +139,8 @@ public interface ValueHistory<VALUE> {
      * <li>The last value is equal to the {@linkplain #get(Duration) value at} the
      * {@linkplain #END_OF_TIME end of time}.</li>
      * <li>If this history has no {@linkplain #getTransitionTimes() transitions},
-     * the last value is the same as the {@linkplain #getFirstValue() first
-     * value}.</li>
+     * the last value is {@linkplain Objects#equals(Object, Object) equal to (or
+     * equally null as)} the {@linkplain #getFirstValue() first value}.</li>
      * <li>If this history has {@linkplain #getTransitionTimes() transitions}, the
      * last value is {@linkplain Objects#equals(Object, Object) equal to (or equally
      * null as)} the value at the {@linkplain #getLastTansitionTime() last

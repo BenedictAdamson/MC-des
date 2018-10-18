@@ -30,9 +30,6 @@ public class SetHistoryTest {
                 .collect(Collectors.toSet());
         assertThat("The containment history for a value has a value for all points in time [at transition times].",
                 containsValues, not(hasItem(nullValue())));
-        assertSame(
-                "The containment history for a value indicates that the value is not contained at the start of time.",
-                Boolean.FALSE, contains.getFirstValue());
         assertThat(
                 "The transition times of the containment history of a value is a sub set of the transition times of this history.",
                 transitionTimes, everyItem(isIn(history.getTransitionTimes())));

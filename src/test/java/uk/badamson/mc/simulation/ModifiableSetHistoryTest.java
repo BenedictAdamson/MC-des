@@ -28,8 +28,6 @@ public class ModifiableSetHistoryTest {
     private static <VALUE> Set<VALUE> assertFirstValueInvariants(ModifiableSetHistory<VALUE> history) {
         final Set<VALUE> firstValue = history.getFirstValue();
 
-        assertEquals("The first value is an empty set.", Collections.EMPTY_SET, firstValue);
-
         return firstValue;
     }
 
@@ -190,4 +188,136 @@ public class ModifiableSetHistoryTest {
         final Duration when = WHEN_1;
         setPresentFrom_2_sameValue(when, when, Integer.MIN_VALUE);
     }
+   
+
+    
+    private static <VALUE> void setPresentUntil(ModifiableSetHistory<VALUE> history, Duration when, VALUE value) {
+        history.setPresentUntil(when, value);
+
+        assertInvariants(history);
+        assertInvariants(history, value);
+        final ValueHistory<Boolean> contains = history.contains(value);
+        assertSame("The first value of the contains history for the given value is TRUE.", Boolean.TRUE,
+                contains.getFirstValue());
+        assertSame("The value at the given time of the contains history for the given value is TRUE.", Boolean.TRUE,
+                contains.get(when));
+        assertTrue(
+                "The contains history for the given value has its first transition time after the given time.",
+                when.compareTo(contains.getFirstTansitionTime()) < 0);
+    }
+
+    private static <VALUE> void setPresentUntil_1(Duration when, VALUE value) {
+        final Duration justAfter = when.plusNanos(1L);
+        final Map<Duration, Set<VALUE>> expectedTransitions = Collections.singletonMap(justAfter,
+                Collections.emptySet());
+        final Map<Duration, Boolean> expectedContainsTransitions = Collections.singletonMap(justAfter, Boolean.FALSE);
+        final ModifiableSetHistory<VALUE> history0 = new ModifiableSetHistory<>();
+        final ModifiableSetHistory<VALUE> history1 = new ModifiableSetHistory<>();
+        final ModifiableSetHistory<VALUE> history2 = new ModifiableSetHistory<>();
+        history2.setPresentUntil(when, value);
+
+        setPresentUntil(history1, when, value);
+
+        assertInvariants(history0, history1);
+        assertInvariants(history1, history2);
+
+        assertEquals("Set at end of time", Collections.EMPTY_SET, history1.getLastValue());
+        assertEquals("Transitions", expectedTransitions, ValueHistoryTest.getTransitionValues(history1));
+        assertEquals("contains transisions", expectedContainsTransitions,
+                ValueHistoryTest.getTransitionValues(history1.contains(value)));
+
+        assertNotEquals("Value semantics", history0, history1);
+        assertEquals("Value semantics", history1, history2);
+    }
+
+    private static <VALUE> void setPresentUntil_2_differentValues(Duration when1, VALUE value1, Duration when2,
+            VALUE value2) {
+        assert when1.compareTo(when2) < 0;
+        final Duration justAfter1 = when1.plusNanos(1L);
+        final Duration justAfter2 = when2.plusNanos(1L);
+        final Set<Duration> expectedTransitionTimes = Set.of(justAfter1, justAfter2);
+        final Map<Duration, Set<VALUE>> expectedTransitions = Map.of(justAfter1, Collections.singleton(value2), justAfter2,
+                Collections.emptySet());
+        final Map<Duration, Boolean> expectedContainsTransitions1 = Collections.singletonMap(justAfter1, Boolean.FALSE);
+        final Map<Duration, Boolean> expectedContainsTransitions2 = Collections.singletonMap(justAfter2, Boolean.FALSE);
+
+        final ModifiableSetHistory<VALUE> history = new ModifiableSetHistory<>();
+        history.setPresentUntil(when1, value1);
+
+        setPresentUntil(history, when2, value2);
+
+        assertEquals("Set at start of time", Set.of(value1, value2), history.getFirstValue());
+        assertEquals("transitionTimes", expectedTransitionTimes, history.getTransitionTimes());
+        assertEquals("Transitions", expectedTransitions, ValueHistoryTest.getTransitionValues(history));
+        assertEquals("contains transisions [1]", expectedContainsTransitions1,
+                ValueHistoryTest.getTransitionValues(history.contains(value1)));
+        assertEquals("contains transisions [2]", expectedContainsTransitions2,
+                ValueHistoryTest.getTransitionValues(history.contains(value2)));
+    }
+
+    private static <VALUE> void setPresentUntil_2_sameValue(Duration when1, Duration when2, VALUE value) {
+        final Duration whenLatest = when1.compareTo(when2) <= 0 ? when2 : when1;
+        final Duration justAfter = whenLatest.plusNanos(1L);
+        final Map<Duration, Set<VALUE>> expectedTransitions = Collections.singletonMap(justAfter,
+                Collections.emptySet());
+        final Map<Duration, Boolean> expectedContainsTransitions = Collections.singletonMap(justAfter, Boolean.FALSE);
+
+        final ModifiableSetHistory<VALUE> history = new ModifiableSetHistory<>();
+        history.setPresentUntil(when1, value);
+
+        setPresentUntil(history, when2, value);
+
+        assertEquals("Set at start of time", Collections.singleton(value), history.getFirstValue());
+        assertEquals("Transitions", expectedTransitions, ValueHistoryTest.getTransitionValues(history));
+        assertEquals("contains transitions", expectedContainsTransitions,
+                ValueHistoryTest.getTransitionValues(history.contains(value)));
+    }
+
+
+    @Test
+    public void setPresentUntil_1A() {
+        setPresentUntil_1(WHEN_1, Integer.MIN_VALUE);
+    }
+
+    @Test
+    public void setPresentUntil_1B() {
+        setPresentUntil_1(WHEN_2, "value");
+    }
+
+    @Test
+    public void setPresentUntil_2_differentValues_A() {
+        setPresentUntil_2_differentValues(WHEN_1, Integer.valueOf(1), WHEN_2, Integer.valueOf(2));
+    }
+
+    @Test
+    public void setPresentUntil_2_differentValues_B() {
+        setPresentUntil_2_differentValues(WHEN_1, Integer.valueOf(2), WHEN_2, Integer.valueOf(1));
+    }
+
+    @Test
+    public void setPresentUntil_2_differentValues_C() {
+        setPresentUntil_2_differentValues(WHEN_2, "value 1", WHEN_3, "value 2");
+    }
+
+    @Test
+    public void setPresentUntil_2_sameValue_A() {
+        setPresentUntil_2_sameValue(WHEN_1, WHEN_2, Integer.MIN_VALUE);
+    }
+
+    @Test
+    public void setPresentUntil_2_sameValue_B() {
+        setPresentUntil_2_sameValue(WHEN_2, WHEN_3, Integer.MAX_VALUE);
+    }
+
+    @Test
+    public void setPresentUntil_2_sameValue_C() {
+        setPresentUntil_2_sameValue(WHEN_2, WHEN_1, Integer.MIN_VALUE);
+    }
+
+    @Test
+    public void setPresentUntil_2_sameValue_sameTime() {
+        final Duration when = WHEN_1;
+        setPresentUntil_2_sameValue(when, when, Integer.MIN_VALUE);
+    }
+    
 }

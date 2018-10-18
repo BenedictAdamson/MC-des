@@ -30,9 +30,6 @@ public interface SetHistory<VALUE> extends ValueHistory<Set<VALUE>> {
      * <li>Always have a (non null) containment history for a value.</li>
      * <li>The containment history for a value has a (non null)
      * {@linkplain ValueHistory#get(Duration) value} for all points in time.</li>
-     * <li>The containment history for a value indicates that the value is
-     * {@linkplain Boolean#FALSE not} contained at the
-     * {@linkplain ValueHistory#getFirstValue() start of time}.</li>
      * <li>The containment history for a value indicates that the value
      * {@linkplain Boolean#TRUE is} present {@linkplain ValueHistory#get(Duration)
      * for a point in time} if, and only if, that value is

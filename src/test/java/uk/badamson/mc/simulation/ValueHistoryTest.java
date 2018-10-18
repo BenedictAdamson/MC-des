@@ -49,7 +49,7 @@ public class ValueHistoryTest {
     private static <VALUE> VALUE assertFirstValueInvariants(ValueHistory<VALUE> history) {
         final VALUE firstValue = history.getFirstValue();
 
-        assertSame("The first value is the same as the value at the start of time.",
+        assertEquals("The first value is the equal to the value at the start of time.",
                 history.get(ValueHistory.START_OF_TIME), firstValue);
 
         return firstValue;
@@ -115,8 +115,8 @@ public class ValueHistoryTest {
 
         assertEquals("The last value is equal to the value at the end of time.", history.get(ValueHistory.END_OF_TIME),
                 lastValue);
-        assertTrue("If this history has no transitions, the last value is the same as the first value.",
-                lastTansitionTime != null || lastValue == firstValue);
+        assertTrue("If this history has no transitions, the last value is equal to the first value.",
+                lastTansitionTime != null || Objects.equals(lastValue, firstValue));
         assertTrue("If this history has transitions, the last value is equal to the value at the last transition.",
                 lastTansitionTime == null || Objects.equals(lastValue, valueAtLastTransitionTime));
 
