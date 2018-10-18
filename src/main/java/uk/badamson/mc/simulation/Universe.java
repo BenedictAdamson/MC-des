@@ -221,6 +221,14 @@ public class Universe {
                 throw new Universe.AbortedTransactionException();
             }
             committed = true;
+            for (UUID object : objectStatesWritten.keySet()) {
+                final var od = objectDataMap.get(object);
+                final Set<Transaction> invalidatedReaders = od.dependentReaderTransactions.get(when);
+                for (var invalidatedReader : invalidatedReaders) {
+                    assert !invalidatedReader.committed;
+                    invalidatedReader.abortCommit = true;
+                }
+            }
         }
 
         /**

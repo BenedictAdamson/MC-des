@@ -266,6 +266,36 @@ public class UniverseTest {
                     objectState1, universe.getObjectState(object, when2.minusNanos(1L)));
         }
 
+        private static void commit_putRollBackOtherRead(final Duration earliestTimeOfCompleteState, Duration when1,
+                Duration when2, Duration when3, Duration when4, UUID object1, UUID object2) {
+            assert when1.compareTo(when2) < 0;
+            assert when2.compareTo(when3) < 0;
+            assert when3.compareTo(when4) <= 0;
+            final ObjectStateTest.TestObjectState state1 = new ObjectStateTest.TestObjectState(1);
+            final ObjectStateTest.TestObjectState state2 = new ObjectStateTest.TestObjectState(2);
+            final ObjectStateTest.TestObjectState state3 = new ObjectStateTest.TestObjectState(3);
+
+            final Universe universe = new Universe(earliestTimeOfCompleteState);
+            putAndCommit(universe, object1, when1, state1);
+            putAndCommit(universe, object2, when2, state2);
+            final Universe.Transaction transaction1 = universe.beginTransaction();
+            transaction1.getObjectState(object1, when1);
+            transaction1.getObjectState(object2, when4);// reads state2
+            final Universe.Transaction transaction2 = universe.beginTransaction();
+            transaction2.getObjectState(object2, when2);
+            transaction2.beginWrite(when3);
+            transaction2.put(object2, state3);
+            // transaction3.getObjectState(object2, when4); would read state3
+
+            try {
+                commit(transaction2);
+            } catch (Universe.AbortedTransactionException e) {
+                throw new AssertionError(e);
+            }
+
+            assertTrue("Read transaction will abort", transaction1.willAbortCommit());
+        }
+
         public static ObjectState getObjectState(final Universe.Transaction transaction, UUID object, Duration when) {
             final ObjectStateId id = new ObjectStateId(object, when);
             final boolean wasPreviouslyRead = transaction.getObjectStatesRead().containsKey(id);
@@ -767,6 +797,22 @@ public class UniverseTest {
         }
 
         @Test
+        public void commit_putRollBackOtherReadA() {
+            commit_putRollBackOtherRead(DURATION_1, DURATION_2, DURATION_3, DURATION_4, DURATION_5, OBJECT_A, OBJECT_B);
+        }
+
+        @Test
+        public void commit_putRollBackOtherReadB() {
+            commit_putRollBackOtherRead(DURATION_2, DURATION_3, DURATION_4, DURATION_5, DURATION_6, OBJECT_B, OBJECT_A);
+        }
+
+        @Test
+        public void commit_putRollBackOtherReadClose() {
+            final Duration when3 = DURATION_4;
+            commit_putRollBackOtherRead(DURATION_1, DURATION_2, DURATION_3, when3, when3, OBJECT_A, OBJECT_B);
+        }
+
+        @Test
         public void getObjectState_1A() {
             getObjectState_1(DURATION_1, OBJECT_A, DURATION_2, DURATION_3);
         }
@@ -906,6 +952,7 @@ public class UniverseTest {
     private static final Duration DURATION_3 = Duration.ofSeconds(23);
     private static final Duration DURATION_4 = Duration.ofSeconds(29);
     private static final Duration DURATION_5 = Duration.ofSeconds(31);
+    private static final Duration DURATION_6 = Duration.ofSeconds(37);
 
     public static void assertInvariants(Universe universe) {
         ObjectTest.assertInvariants(universe);// inherited
