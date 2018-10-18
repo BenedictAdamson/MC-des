@@ -78,7 +78,7 @@ public class Universe {
 
     private static final class ObjectData {
         final ModifiableValueHistory<ObjectState> stateHistory = new ModifiableValueHistory<>();
-        final ModifiableSetHistory<Transaction> dependentReaders = new ModifiableSetHistory<>();
+        final ModifiableSetHistory<Transaction> dependentReaderTransactions = new ModifiableSetHistory<>();
     }// class
 
     /**
@@ -148,6 +148,13 @@ public class Universe {
         }
 
         private void clear() {
+            final Set<UUID> objects = objectStatesRead.keySet().stream().map(id -> id.getObject())
+                    .collect(Collectors.toSet());
+            objects.retainAll(objectDataMap.keySet());
+            for (var object : objects) {
+                var od = objectDataMap.get(object);
+                od.dependentReaderTransactions.remove(this);
+            }
             objectStatesRead.clear();
             objectStatesWritten.clear();
             dependencies.clear();
@@ -305,7 +312,7 @@ public class Universe {
                     objectState = null;
                 } else {
                     objectState = od.stateHistory.get(when);
-                    od.dependentReaders.addUntil(when, this);
+                    od.dependentReaderTransactions.addUntil(when, this);
                 }
                 objectStatesRead.put(id, objectState);
                 final ObjectStateId dependency0 = dependencies.get(object);
@@ -467,7 +474,7 @@ public class Universe {
                 if (od.stateHistory.isEmpty()) {
                     removedObjects.add(object);
                 }
-                for (Transaction uncommittedReader : od.dependentReaders.get(when)) {
+                for (Transaction uncommittedReader : od.dependentReaderTransactions.get(when)) {
                     uncommittedReader.abortCommit = true;
                 }
             }
