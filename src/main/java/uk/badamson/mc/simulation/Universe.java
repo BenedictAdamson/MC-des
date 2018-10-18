@@ -78,7 +78,7 @@ public class Universe {
 
     private static final class ObjectData {
         final ModifiableValueHistory<ObjectState> stateHistory = new ModifiableValueHistory<>();
-        final ModifiableSetHistory<Transaction> uncommittedReaders = new ModifiableSetHistory<>();
+        final ModifiableSetHistory<Transaction> dependentReaders = new ModifiableSetHistory<>();
     }// class
 
     /**
@@ -214,7 +214,6 @@ public class Universe {
                 throw new Universe.AbortedTransactionException();
             }
             committed = true;
-            // TODO remove from od.uncommittedReaders
         }
 
         /**
@@ -306,7 +305,7 @@ public class Universe {
                     objectState = null;
                 } else {
                     objectState = od.stateHistory.get(when);
-                    od.uncommittedReaders.addUntil(when, this);
+                    od.dependentReaders.addUntil(when, this);
                 }
                 objectStatesRead.put(id, objectState);
                 final ObjectStateId dependency0 = dependencies.get(object);
@@ -468,7 +467,7 @@ public class Universe {
                 if (od.stateHistory.isEmpty()) {
                     removedObjects.add(object);
                 }
-                for (Transaction uncommittedReader : od.uncommittedReaders.get(when)) {
+                for (Transaction uncommittedReader : od.dependentReaders.get(when)) {
                     uncommittedReader.abortCommit = true;
                 }
             }
