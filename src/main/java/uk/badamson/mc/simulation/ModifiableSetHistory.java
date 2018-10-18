@@ -49,6 +49,95 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
         // Do nothing
     }
 
+    /**
+     * <p>
+     * Change this set history so the set {@linkplain #get(Duration) at} all points
+     * in time {@linkplain Duration#compareTo(Duration) at or after} a given point
+     * in time {@linkplain Set#contains(Object) contains} a given value.
+     * </p>
+     * <ul>
+     * <li>Setting the value from a given time does not change the
+     * {@linkplain #get(Duration) set} before the given point in time.</li>
+     * <li>The {@linkplain ValueHistory#getLastValue() last value} of the
+     * {@linkplain #contains(Object) contains history} for the given value is
+     * {@link Boolean#TRUE}.</li>
+     * <li>The {@linkplain ValueHistory#get(Duration) value at} the given time of
+     * the {@linkplain #contains(Object) contains history} for the given value is
+     * {@link Boolean#TRUE}.</li>
+     * <li>The {@linkplain #contains(Object) contains history} for the given value
+     * has its {@linkplain ValueHistory#getLastTansitionTime() last transition time}
+     * is at or before the given time.</li>
+     * </ul>
+     * 
+     * @param when
+     *            The point in time from which this set history must have the
+     *            {@code value} as one of the values of the set, represented as the
+     *            duration since an (implied) epoch.
+     * @param value
+     *            The value that this set history must have as one of the values of
+     *            the set at or after the given point in time.
+     * 
+     * @throws NullPointerException
+     *             If {@code when} is null.
+     * 
+     * @see ModifiableValueHistory#setValueFrom(Duration, Object)
+     * @see Set#add(Object)
+     */
+    public final void addFrom(Duration when, VALUE value) {
+        Objects.requireNonNull(when, "when");
+        var c = containsMap.get(value);
+        if (c == null) {
+            c = new ModifiableValueHistory<>(Boolean.FALSE);
+            containsMap.put(value, c);
+        }
+        c.setValueFrom(when, Boolean.TRUE);
+    }
+
+    /**
+     * <p>
+     * Change this set history so the set {@linkplain #get(Duration) at} all points
+     * in time {@linkplain Duration#compareTo(Duration) at or before} a given point
+     * in time {@linkplain Set#contains(Object) contains} a given value.
+     * </p>
+     * <ul>
+     * <li>Setting presence until a given time does not change the
+     * {@linkplain #get(Duration) set} after the given point in time.</li>
+     * <li>The {@linkplain ValueHistory#getFirstValue() first value} of the
+     * {@linkplain #contains(Object) contains history} for the given value is
+     * {@link Boolean#TRUE}.</li>
+     * <li>The {@linkplain ValueHistory#get(Duration) value at} the given time of
+     * the {@linkplain #contains(Object) contains history} for the given value is
+     * {@link Boolean#TRUE}.</li>
+     * <li>The {@linkplain #contains(Object) contains history} for the given value
+     * has its {@linkplain ValueHistory#getFirstTansitionTime() first transition
+     * time} after the given time.</li>
+     * </ul>
+     * 
+     * @param when
+     *            The point in time until which this set history must have the
+     *            {@code value} as one of the values of the set, represented as the
+     *            duration since an (implied) epoch.
+     * @param value
+     *            The value that this set history must have as one of the values of
+     *            the set at or before the given point in time.
+     * 
+     * @throws NullPointerException
+     *             If {@code when} is null.
+     * 
+     * @see ModifiableValueHistory#setValueUntil(Duration, Object)
+     * @see Set#add(Object)
+     */
+    public final void addUntil(Duration when, VALUE value) {
+        Objects.requireNonNull(when, "when");
+        var c = containsMap.get(value);
+        if (c == null) {
+            c = new ModifiableValueHistory<>(Boolean.FALSE);
+            containsMap.put(value, c);
+        }
+        c.setValueUntil(when, Boolean.TRUE);
+        firstValue.add(value);
+    }
+
     @Override
     public final ValueHistory<Boolean> contains(VALUE value) {
         final var c = containsMap.get(value);
@@ -129,93 +218,6 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
     @Override
     public final boolean isEmpty() {
         return containsMap.isEmpty();
-    }
-
-    /**
-     * <p>
-     * Change this set history so the set {@linkplain #get(Duration) at} all points
-     * in time {@linkplain Duration#compareTo(Duration) at or after} a given point
-     * in time {@linkplain Set#contains(Object) contains} a given value.
-     * </p>
-     * <ul>
-     * <li>Setting the value from a given time does not change the
-     * {@linkplain #get(Duration) set} before the given point in time.</li>
-     * <li>The {@linkplain ValueHistory#getLastValue() last value} of the
-     * {@linkplain #contains(Object) contains history} for the given value is
-     * {@link Boolean#TRUE}.</li>
-     * <li>The {@linkplain ValueHistory#get(Duration) value at} the given time of
-     * the {@linkplain #contains(Object) contains history} for the given value is
-     * {@link Boolean#TRUE}.</li>
-     * <li>The {@linkplain #contains(Object) contains history} for the given value
-     * has its {@linkplain ValueHistory#getLastTansitionTime() last transition time}
-     * is at or before the given time.</li>
-     * </ul>
-     * 
-     * @param when
-     *            The point in time from which this set history must have the
-     *            {@code value} as one of the values of the set, represented as the
-     *            duration since an (implied) epoch.
-     * @param value
-     *            The value that this set history must have as one of the values of
-     *            the set at or after the given point in time.
-     * 
-     * @throws NullPointerException
-     *             If {@code when} is null.
-     * 
-     * @see ModifiableValueHistory#setValueFrom(Duration, Object)
-     */
-    public final void setPresentFrom(Duration when, VALUE value) {
-        Objects.requireNonNull(when, "when");
-        var c = containsMap.get(value);
-        if (c == null) {
-            c = new ModifiableValueHistory<>(Boolean.FALSE);
-            containsMap.put(value, c);
-        }
-        c.setValueFrom(when, Boolean.TRUE);
-    }
-
-    /**
-     * <p>
-     * Change this set history so the set {@linkplain #get(Duration) at} all points
-     * in time {@linkplain Duration#compareTo(Duration) at or before} a given point
-     * in time {@linkplain Set#contains(Object) contains} a given value.
-     * </p>
-     * <ul>
-     * <li>Setting presence until a given time does not change the
-     * {@linkplain #get(Duration) set} after the given point in time.</li>
-     * <li>The {@linkplain ValueHistory#getFirstValue() first value} of the
-     * {@linkplain #contains(Object) contains history} for the given value is
-     * {@link Boolean#TRUE}.</li>
-     * <li>The {@linkplain ValueHistory#get(Duration) value at} the given time of
-     * the {@linkplain #contains(Object) contains history} for the given value is
-     * {@link Boolean#TRUE}.</li>
-     * <li>The {@linkplain #contains(Object) contains history} for the given value
-     * has its {@linkplain ValueHistory#getFirstTansitionTime() first transition
-     * time} after the given time.</li>
-     * </ul>
-     * 
-     * @param when
-     *            The point in time until which this set history must have the
-     *            {@code value} as one of the values of the set, represented as the
-     *            duration since an (implied) epoch.
-     * @param value
-     *            The value that this set history must have as one of the values of
-     *            the set at or before the given point in time.
-     * 
-     * @throws NullPointerException
-     *             If {@code when} is null.
-     * 
-     * @see ModifiableValueHistory#setValueUntil(Duration, Object)
-     */
-    public final void setPresentUntil(Duration when, VALUE value) {
-        Objects.requireNonNull(when, "when");
-        var c = containsMap.get(value);
-        if (c == null) {
-            c = new ModifiableValueHistory<>(Boolean.FALSE);
-            containsMap.put(value, c);
-        }
-        c.setValueUntil(when, Boolean.TRUE);
-        firstValue.add(value);
     }
 
     @Override
