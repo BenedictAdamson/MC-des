@@ -78,6 +78,7 @@ public class Universe {
 
     private static final class ObjectData {
         final ModifiableValueHistory<ObjectState> stateHistory = new ModifiableValueHistory<>();
+        final ModifiableSetHistory<Transaction> uncommittedReaders = new ModifiableSetHistory<>();
     }// class
 
     /**
@@ -158,6 +159,14 @@ public class Universe {
          * Indicate that this transaction has ended.
          * </p>
          * <ul>
+         * <li>If this transaction had {@linkplain #getObjectStatesWritten() written
+         * object states}, those writes are <dfn>rolled back</dfn>, returning the
+         * {@linkplain Universe#getObjectStateHistory(UUID) state histories} to their
+         * original history.</li>
+         * <li>If that roll-back removes any {@linkplain #getObjectStatesRead() object
+         * states read} by any other ({@linkplain #isCommitted() uncommitted})
+         * transactions, those transactions are invalid, and so if necessary are
+         * {@linkplain #willAbortCommit() flagged as needing to be aborted}.</li>
          * <li>This transaction releases any resources it holds (has acquired).</li>
          * <li>This transaction has no record of its {@linkplain #getDependencies()
          * dependencies}.</li>
@@ -166,10 +175,6 @@ public class Universe {
          * <li>This transaction has no record of its
          * {@linkplain #getObjectStatesWritten() object states written}.</li>
          * <li>This transaction is in {@linkplain #getWhen() read mode}.</li>
-         * <li>If this transaction had {@linkplain #getObjectStatesWritten() written
-         * object states}, those writes are <dfn>rolled back</dfn>, returning the
-         * {@linkplain Universe#getObjectStateHistory(UUID) state histories} to their
-         * original history.</li>
          * </ul>
          */
         @Override
@@ -209,6 +214,7 @@ public class Universe {
                 throw new Universe.AbortedTransactionException();
             }
             committed = true;
+            // TODO remove from od.uncommittedReaders
         }
 
         /**
@@ -254,11 +260,18 @@ public class Universe {
          */
         public final ObjectState fetchObjectState(UUID object, Duration when) {
             ObjectStateId id = new ObjectStateId(object, when);
-            // TODO use the cache
             if (this.when != null) {
                 throw new IllegalStateException("In write mode");
             }
-            final ObjectState objectState = Universe.this.getObjectState(object, when);
+            ObjectState objectState;
+            // TODO use the cache
+            final var od = objectDataMap.get(object);
+            if (od == null) {// unknown object
+                objectState = null;
+            } else {
+                objectState = od.stateHistory.get(when);
+                od.uncommittedReaders.addUntil(when, this);
+            }
             objectStatesRead.put(id, objectState);
             final ObjectStateId dependency0 = dependencies.get(object);
             if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
@@ -451,6 +464,9 @@ public class Universe {
                 od.stateHistory.removeStateTransitionsFrom(when);
                 if (od.stateHistory.isEmpty()) {
                     removedObjects.add(object);
+                }
+                for (Transaction uncommittedReader : od.uncommittedReaders.get(when)) {
+                    uncommittedReader.abortCommit = true;
                 }
             }
             objectDataMap.keySet().removeAll(removedObjects);

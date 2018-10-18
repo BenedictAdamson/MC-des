@@ -645,6 +645,46 @@ public class UniverseTest {
             UniverseTest.assertInvariants(universe);
         }
 
+        private void close_rollBackOtherRead(UUID object, Duration earliestTimeOfCompleteState, Duration when1,
+                Duration when2, Duration when3) {
+            assert when1.compareTo(when2) < 0;
+            assert when2.compareTo(when3) <= 0;
+            final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
+            final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
+
+            final Universe universe = new Universe(earliestTimeOfCompleteState);
+            putAndCommit(universe, object, when1, objectState1);
+            final var history0 = new ModifiableValueHistory<>(universe.getObjectStateHistory(object));
+
+            final Universe.Transaction transaction1 = universe.beginTransaction();
+            transaction1.beginWrite(when2);
+            transaction1.put(object, objectState2);
+            final Universe.Transaction transaction2 = universe.beginTransaction();
+            transaction2.fetchObjectState(object, when3);
+            assert transaction2.getObjectStatesRead().get(new ObjectStateId(object, when3)) == objectState2;
+
+            close(transaction1);
+
+            assertEquals("Rolled back write", history0, universe.getObjectStateHistory(object));
+            assertTrue("Will abort the reader transaction", transaction2.willAbortCommit());
+        }
+
+        @Test
+        public void close_rollBackOtherReadA() {
+            close_rollBackOtherRead(OBJECT_A, DURATION_1, DURATION_2, DURATION_3, DURATION_4);
+        }
+
+        @Test
+        public void close_rollBackOtherReadAt() {
+            final Duration when3 = DURATION_3;
+            close_rollBackOtherRead(OBJECT_A, DURATION_1, DURATION_2, when3, when3);
+        }
+
+        @Test
+        public void close_rollBackOtherReadB() {
+            close_rollBackOtherRead(OBJECT_B, DURATION_2, DURATION_3, DURATION_4, DURATION_5);
+        }
+
         @Test
         public void commit_2DifferentObjectsA() {
             commit_2DifferentObjects(OBJECT_A, OBJECT_B);
@@ -856,34 +896,6 @@ public class UniverseTest {
         public void put_3TransitiveDependencyB() {
             put_3TransitiveDependency(DURATION_2, DURATION_3, DURATION_4, DURATION_5, OBJECT_B, OBJECT_C, OBJECT_A);
         }
-
-        /**
-         * <p>
-         * Change this transaction from read mode to write mode.
-         * </p>
-         * <ul>
-         * <li>The {@linkplain #getWhen() time-stamp of any object states to be written}
-         * by this transaction is the same as the given time-stamp.
-         * </ul>
-         * 
-         * @param when
-         *            The time-stamp of all object states to be
-         *            {@linkplain #put(UUID, Duration, ObjectState) put} (written) by
-         *            this transaction, expressed as the duration since an epoch.
-         * 
-         * @throws NullPointerException
-         *             If {@code when} is null.
-         * @throws IllegalStateException
-         *             <ul>
-         *             <li>If the any of the {@linkplain #getObjectStatesRead() reads}
-         *             done by this transaction were for for
-         *             {@linkplain ObjectStateId#getWhen() times} at of after the given
-         *             time.</li>
-         *             </ul>
-         *             If this transaction is already in write mode. That is, if this
-         *             method has already been called for this transaction.</li>
-         *             </ul>
-         */
     }// class
 
     private static final UUID OBJECT_A = ObjectStateIdTest.OBJECT_A;
@@ -1069,4 +1081,5 @@ public class UniverseTest {
     public void constructor_B() {
         constructor(DURATION_2);
     }
+
 }
