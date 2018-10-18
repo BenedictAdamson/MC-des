@@ -205,6 +205,18 @@ public class ModifiableSetHistoryTest {
         SetHistoryTest.assertInvariants(history, value);
     }
 
+    private static <VALUE> void remove(ModifiableSetHistory<VALUE> history, VALUE value) {
+        history.remove(value);
+
+        assertInvariants(history);
+        assertInvariants(history, value);
+        final var contains = history.contains(value);
+        assertSame("This history does not contain the given value at any points in time [start of time].",
+                Boolean.FALSE, contains.getFirstValue());
+        assertTrue("This history does not contain the given value at any points in time [no transitions].",
+                contains.isEmpty());
+    }
+
     @Test
     public void addFrom_1A() {
         addFrom_1(WHEN_1, Integer.MIN_VALUE);
@@ -314,4 +326,65 @@ public class ModifiableSetHistoryTest {
         assertInvariants(history1, Integer.MIN_VALUE);
     }
 
+    private void remove_absent(final Duration when, final Integer value1, final Integer value2) {
+        final ModifiableSetHistory<Integer> history = new ModifiableSetHistory<>();
+        history.addFrom(when, value1);
+        final var contains10 = new ModifiableValueHistory<>(history.contains(value1));
+
+        remove(history, value2);
+
+        assertEquals("Whether this history contains other values is unchanged [1].", contains10,
+                history.contains(value1));
+    }
+
+    @Test
+    public void remove_absentA() {
+        remove_absent(WHEN_1, 1, 2);
+    }
+
+    @Test
+    public void remove_absentB() {
+        remove_absent(WHEN_2, 13, 7);
+    }
+
+    @Test
+    public void remove_empty() {
+        final ModifiableSetHistory<Integer> history = new ModifiableSetHistory<>();
+
+        remove(history, 1);
+    }
+
+    private void remove_presentFrom(final Duration when, final Integer value) {
+        final ModifiableSetHistory<Integer> history = new ModifiableSetHistory<>();
+        history.addFrom(when, value);
+
+        remove(history, value);
+    }
+
+    @Test
+    public void remove_presentFromA() {
+        remove_presentFrom(WHEN_1, 1);
+    }
+
+    @Test
+    public void remove_presentFromB() {
+        remove_presentFrom(WHEN_2, 2);
+    }
+
+    private void remove_presentUntil(final Duration when, final Integer value) {
+        final ModifiableSetHistory<Integer> history = new ModifiableSetHistory<>();
+        history.addUntil(when, value);
+
+        remove(history, value);
+    }
+
+    @Test
+    public void remove_presentUntilA() {
+        remove_presentUntil(WHEN_1, 1);
+    }
+
+    @Test
+    public void remove_presentUntilB() {
+        remove_presentUntil(WHEN_2, 2);
+    }
 }

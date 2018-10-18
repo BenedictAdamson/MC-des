@@ -2,6 +2,7 @@ package uk.badamson.mc.simulation;
 
 import java.time.Duration;
 import java.util.AbstractMap;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -180,7 +181,7 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
 
     @Override
     public final Set<VALUE> getFirstValue() {
-        return firstValue;
+        return Collections.unmodifiableSet(firstValue);
     }
 
     @Override
@@ -218,6 +219,28 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
     @Override
     public final boolean isEmpty() {
         return containsMap.isEmpty();
+    }
+
+    /**
+     * <p>
+     * Remove a given object from the set for which this is the history, for all
+     * points in time.
+     * </p>
+     * <ul>
+     * <li>This history does not {@linkplain #contains(Object) contain} the given
+     * value at any points in time.</li>
+     * <li>Whether this history {@linkplain #contains(Object) contains} other values
+     * is unchanged.</li>
+     * </ul>
+     * 
+     * @param value
+     *            The value to remove
+     * 
+     * @see Set#remove(Object)
+     */
+    public final void remove(VALUE value) {
+        containsMap.remove(value);
+        firstValue.remove(value);
     }
 
     @Override
