@@ -30,7 +30,7 @@ public interface ObjectState {
      * </p>
      * <ul>
      * <li>The points in time for which the method
-     * {@linkplain Universe.Transaction#fetchObjectState(UUID, Duration) fetches}
+     * {@linkplain Universe.Transaction#getObjectState(UUID, Duration) fetches}
      * (reads) state information must be before the given (current) point in
      * time.</li>
      * <li>The method puts the given transaction
@@ -48,7 +48,7 @@ public interface ObjectState {
      * 
      * @param transaction
      *            The transaction that the method must use to
-     *            {@linkplain Universe.Transaction#fetchObjectState(UUID, Duration)
+     *            {@linkplain Universe.Transaction#getObjectState(UUID, Duration)
      *            fetch} object states it needs for the computation and to
      *            {@linkplain Universe.Transaction#put(UUID, ObjectState) put} new
      *            object states, including the next state transition of the object.

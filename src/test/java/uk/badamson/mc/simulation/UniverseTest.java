@@ -247,7 +247,7 @@ public class UniverseTest {
             putAndCommit(universe, object, when1, objectState1);
 
             final Universe.Transaction transaction = universe.beginTransaction();
-            transaction.fetchObjectState(object, when1);
+            transaction.getObjectState(object, when1);
             transaction.beginWrite(when2);
             transaction.put(object, objectState2);
 
@@ -266,13 +266,13 @@ public class UniverseTest {
                     objectState1, universe.getObjectState(object, when2.minusNanos(1L)));
         }
 
-        public static ObjectState fetchObjectState(final Universe.Transaction transaction, UUID object, Duration when) {
+        public static ObjectState getObjectState(final Universe.Transaction transaction, UUID object, Duration when) {
             final ObjectStateId id = new ObjectStateId(object, when);
             final boolean wasPreviouslyRead = transaction.getObjectStatesRead().containsKey(id);
             final ObjectState previouslyReadState = transaction.getObjectStatesRead().get(id);
             final ObjectState universeObjectState = transaction.getUniverse().getObjectState(object, when);
 
-            final ObjectState objectState = transaction.fetchObjectState(object, when);
+            final ObjectState objectState = transaction.getObjectState(object, when);
 
             assertInvariants(transaction);
             assertThat(
@@ -292,7 +292,7 @@ public class UniverseTest {
             return objectState;
         }
 
-        private static void fetchObjectState_1(final Duration earliestTimeOfCompleteState, UUID object, Duration when1,
+        private static void getObjectState_1(final Duration earliestTimeOfCompleteState, UUID object, Duration when1,
                 Duration when2) {
             final ObjectStateId id2 = new ObjectStateId(object, when2);
             final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
@@ -301,22 +301,22 @@ public class UniverseTest {
             putAndCommit(universe, object, when1, objectState1);
             final Universe.Transaction transaction = universe.beginTransaction();
 
-            final ObjectState objectState2 = fetchObjectState(transaction, object, when2);
+            final ObjectState objectState2 = getObjectState(transaction, object, when2);
 
             assertSame("objectState", objectState1, objectState2);
             assertEquals("objectStatesRead", Collections.singletonMap(id2, objectState1),
                     transaction.getObjectStatesRead());
         }
 
-        private static void fetchObjectState_1Empty(final Duration earliestTimeOfCompleteState, UUID object,
+        private static void getObjectState_1Empty(final Duration earliestTimeOfCompleteState, UUID object,
                 Duration when) {
             final Universe universe = new Universe(earliestTimeOfCompleteState);
             final Universe.Transaction transaction = universe.beginTransaction();
 
-            fetchObjectState(transaction, object, when);
+            getObjectState(transaction, object, when);
         }
 
-        private static void fetchObjectState_1ObjectSuccesiveTimes(final Duration earliestTimeOfCompleteState,
+        private static void getObjectState_1ObjectSuccesiveTimes(final Duration earliestTimeOfCompleteState,
                 UUID object, Duration when1, Duration when2, Duration when3) {
             final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
             final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
@@ -326,9 +326,9 @@ public class UniverseTest {
             putAndCommit(universe, object, when3, objectState2);
 
             final Universe.Transaction transaction = universe.beginTransaction();
-            transaction.fetchObjectState(object, when1);
+            transaction.getObjectState(object, when1);
 
-            fetchObjectState(transaction, object, when2);
+            getObjectState(transaction, object, when2);
         }
 
         private static void put(final Universe.Transaction transaction, UUID object, ObjectState state) {
@@ -362,7 +362,7 @@ public class UniverseTest {
 
             final Universe universe = new Universe(earliestCompleteState);
             final Universe.Transaction transaction = universe.beginTransaction();
-            transaction.fetchObjectState(OBJECT_A, when1);
+            transaction.getObjectState(OBJECT_A, when1);
             transaction.beginWrite(when2);
 
             put(transaction, OBJECT_B, objectState);
@@ -378,7 +378,7 @@ public class UniverseTest {
             final Universe universe = new Universe(earliestCompleteState);
             putAndCommit(universe, object1, when1, objectState1);
             final Universe.Transaction transaction = universe.beginTransaction();
-            transaction.fetchObjectState(object1, when1);
+            transaction.getObjectState(object1, when1);
             transaction.beginWrite(when2);
 
             put(transaction, object2, objectState2);
@@ -395,9 +395,9 @@ public class UniverseTest {
             final Universe universe = new Universe(earliestTimeOfCompleteState);
             putAndCommit(universe, object, when0, objectState0);
             final Universe.Transaction transaction1 = universe.beginTransaction();
-            transaction1.fetchObjectState(object, when0);
+            transaction1.getObjectState(object, when0);
             final Universe.Transaction transaction2 = universe.beginTransaction();
-            transaction2.fetchObjectState(object, when0);
+            transaction2.getObjectState(object, when0);
             transaction1.beginWrite(when2);
             transaction1.put(object, objectState1);
             transaction2.beginWrite(when1);
@@ -416,9 +416,9 @@ public class UniverseTest {
             final Universe universe = new Universe(earliestTimeOfCompleteState);
             putAndCommit(universe, object, when0, objectState0);
             final Universe.Transaction transaction1 = universe.beginTransaction();
-            transaction1.fetchObjectState(object, when0);
+            transaction1.getObjectState(object, when0);
             final Universe.Transaction transaction2 = universe.beginTransaction();
-            transaction2.fetchObjectState(object, when0);
+            transaction2.getObjectState(object, when0);
             transaction1.beginWrite(when1);
             transaction1.put(object, objectState1);
             transaction2.beginWrite(when1);
@@ -477,7 +477,7 @@ public class UniverseTest {
             putAndCommit(universe, object2, when2, objectState2);
 
             final Universe.Transaction transaction = universe.beginTransaction();
-            transaction.fetchObjectState(object2, when2);
+            transaction.getObjectState(object2, when2);
             transaction.beginWrite(when3);
 
             put(transaction, object3, objectState3);
@@ -527,7 +527,7 @@ public class UniverseTest {
             assert when1.compareTo(when2) < 0;
             final Universe universe = new Universe(earliestTimeOfCompleteState);
             Universe.Transaction transaction = universe.beginTransaction();
-            transaction.fetchObjectState(object, when1);
+            transaction.getObjectState(object, when1);
 
             beginWrite(transaction, when2);
         }
@@ -579,7 +579,7 @@ public class UniverseTest {
         public void close_afterRead() {
             final Universe universe = new Universe(DURATION_1);
             final Universe.Transaction transaction = universe.beginTransaction();
-            transaction.fetchObjectState(OBJECT_A, DURATION_2);
+            transaction.getObjectState(OBJECT_A, DURATION_2);
 
             close(transaction);
 
@@ -660,7 +660,7 @@ public class UniverseTest {
             transaction1.beginWrite(when2);
             transaction1.put(object, objectState2);
             final Universe.Transaction transaction2 = universe.beginTransaction();
-            transaction2.fetchObjectState(object, when3);
+            transaction2.getObjectState(object, when3);
             assert transaction2.getObjectStatesRead().get(new ObjectStateId(object, when3)) == objectState2;
 
             close(transaction1);
@@ -724,9 +724,9 @@ public class UniverseTest {
             final Universe universe = new Universe(earliestTimeOfCompleteState);
             putAndCommit(universe, object, when0, objectState0);
             final Universe.Transaction transaction1 = universe.beginTransaction();
-            transaction1.fetchObjectState(object, when0);
+            transaction1.getObjectState(object, when0);
             final Universe.Transaction transaction2 = universe.beginTransaction();
-            transaction2.fetchObjectState(object, when0);
+            transaction2.getObjectState(object, when0);
             transaction1.beginWrite(when1);
             transaction1.put(object, objectState1);
             transaction2.beginWrite(when1);
@@ -767,39 +767,39 @@ public class UniverseTest {
         }
 
         @Test
-        public void fetchObjectState_1A() {
-            fetchObjectState_1(DURATION_1, OBJECT_A, DURATION_2, DURATION_3);
+        public void getObjectState_1A() {
+            getObjectState_1(DURATION_1, OBJECT_A, DURATION_2, DURATION_3);
         }
 
         @Test
-        public void fetchObjectState_1B() {
-            fetchObjectState_1(DURATION_2, OBJECT_B, DURATION_3, DURATION_4);
+        public void getObjectState_1B() {
+            getObjectState_1(DURATION_2, OBJECT_B, DURATION_3, DURATION_4);
         }
 
         @Test
-        public void fetchObjectState_1EmptyA() {
-            fetchObjectState_1Empty(DURATION_1, OBJECT_A, DURATION_2);
+        public void getObjectState_1EmptyA() {
+            getObjectState_1Empty(DURATION_1, OBJECT_A, DURATION_2);
         }
 
         @Test
-        public void fetchObjectState_1EmptyB() {
-            fetchObjectState_1Empty(DURATION_2, OBJECT_B, DURATION_3);
+        public void getObjectState_1EmptyB() {
+            getObjectState_1Empty(DURATION_2, OBJECT_B, DURATION_3);
         }
 
         @Test
-        public void fetchObjectState_1ObjectSuccesiveTimesA() {
-            fetchObjectState_1ObjectSuccesiveTimes(DURATION_1, OBJECT_A, DURATION_2, DURATION_3, DURATION_4);
+        public void getObjectState_1ObjectSuccesiveTimesA() {
+            getObjectState_1ObjectSuccesiveTimes(DURATION_1, OBJECT_A, DURATION_2, DURATION_3, DURATION_4);
         }
 
         @Test
-        public void fetchObjectState_1ObjectSuccesiveTimesB() {
-            fetchObjectState_1ObjectSuccesiveTimes(DURATION_2, OBJECT_B, DURATION_3, DURATION_4, DURATION_5);
+        public void getObjectState_1ObjectSuccesiveTimesB() {
+            getObjectState_1ObjectSuccesiveTimes(DURATION_2, OBJECT_B, DURATION_3, DURATION_4, DURATION_5);
         }
 
         @Test
-        public void fetchObjectState_1Precise() {
+        public void getObjectState_1Precise() {
             final Duration when = DURATION_2;
-            fetchObjectState_1(DURATION_1, OBJECT_A, when, when);
+            getObjectState_1(DURATION_1, OBJECT_A, when, when);
         }
 
         @Test

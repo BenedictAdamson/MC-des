@@ -219,72 +219,6 @@ public class Universe {
 
         /**
          * <p>
-         * Get the state of a given object, of the {@linkplain #getUniverse() universe}
-         * of this transaction, at a given point in time.
-         * </p>
-         * <ul>
-         * <li>The object state of for an object ID and point in time is either the same
-         * object state as can be {@linkplain Universe#getObjectState(UUID, Duration)
-         * got} from the {@linkplain #getUniverse() universe} of this transaction, or is
-         * the same object state as has already been {@linkplain #getObjectStatesRead()
-         * read} by this transaction.</li>
-         * <li>The object state of for an object ID and point in time that has not
-         * already been {@linkplain #getObjectStatesRead() read} by this transaction is
-         * the same object state as can be
-         * {@linkplain Universe#getObjectState(UUID, Duration) got} from the
-         * {@linkplain #getUniverse() universe} of this transaction.</li>
-         * <li>The object state for an object ID and point in time that has already been
-         * {@linkplain #getObjectStatesRead() read} by this transaction is the same
-         * object state as was read previously. That is, the transaction object caches
-         * reads.</li>
-         * <li>The method records the returned state as one of the
-         * {@linkplain #getObjectStatesRead() read states}. Hence this method is not a
-         * simple getter.</li>
-         * </ul>
-         * 
-         * @param object
-         *            The ID of the object of interest.
-         * @param when
-         *            The point in time of interest.
-         * @return The state of the given object at the given point in time.
-         * @throws NullPointerException
-         *             <ul>
-         *             <li>If {@code object} is null.</li>
-         *             <li>If {@code when} is null.</li>
-         *             </ul>
-         * @throws IllegalStateException
-         *             If this transaction is in write mode (because its
-         *             {@link #beginWrite(Duration)} method has been called) and the
-         *             requested object is not one of the
-         *             {@linkplain #getObjectStatesRead() object states already read}.
-         */
-        public final ObjectState fetchObjectState(UUID object, Duration when) {
-            ObjectStateId id = new ObjectStateId(object, when);
-            if (this.when != null) {
-                throw new IllegalStateException("In write mode");
-            }
-            ObjectState objectState;
-            objectState = objectStatesRead.get(id);
-            if (objectState == null && !objectStatesRead.containsKey(id)) {
-                final var od = objectDataMap.get(object);
-                if (od == null) {// unknown object
-                    objectState = null;
-                } else {
-                    objectState = od.stateHistory.get(when);
-                    od.uncommittedReaders.addUntil(when, this);
-                }
-                objectStatesRead.put(id, objectState);
-                final ObjectStateId dependency0 = dependencies.get(object);
-                if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
-                    dependencies.put(object, id);
-                }
-            }
-            // else used cached value
-            return objectState;
-        }
-
-        /**
-         * <p>
          * The {@linkplain #getObjectStatesRead() object states read} by this
          * transaction, expressed as the implied
          * {@linkplain ObjectState#getDependencies() dependencies} of a
@@ -316,6 +250,72 @@ public class Universe {
          */
         public final Map<UUID, ObjectStateId> getDependencies() {
             return new HashMap<>(dependencies);
+        }
+
+        /**
+         * <p>
+         * Get the state of a given object, of the {@linkplain #getUniverse() universe}
+         * of this transaction, at a given point in time.
+         * </p>
+         * <ul>
+         * <li>The object state of for an object ID and point in time is either the same
+         * object state as can be {@linkplain Universe#getObjectState(UUID, Duration)
+         * got} from the {@linkplain #getUniverse() universe} of this transaction, or is
+         * the same object state as has already been {@linkplain #getObjectStatesRead()
+         * got} by this transaction.</li>
+         * <li>The object state of for an object ID and point in time that has not
+         * already been {@linkplain #getObjectStatesRead() read} by this transaction is
+         * the same object state as can be
+         * {@linkplain Universe#getObjectState(UUID, Duration) got} from the
+         * {@linkplain #getUniverse() universe} of this transaction.</li>
+         * <li>The object state for an object ID and point in time that has already been
+         * {@linkplain #getObjectStatesRead() read} by this transaction is the same
+         * object state as was read previously. That is, the transaction object caches
+         * reads.</li>
+         * <li>The method records the returned state as one of the
+         * {@linkplain #getObjectStatesRead() read states}. Hence this method is not a
+         * simple getter.</li>
+         * </ul>
+         * 
+         * @param object
+         *            The ID of the object of interest.
+         * @param when
+         *            The point in time of interest.
+         * @return The state of the given object at the given point in time.
+         * @throws NullPointerException
+         *             <ul>
+         *             <li>If {@code object} is null.</li>
+         *             <li>If {@code when} is null.</li>
+         *             </ul>
+         * @throws IllegalStateException
+         *             If this transaction is in write mode (because its
+         *             {@link #beginWrite(Duration)} method has been called) and the
+         *             requested object is not one of the
+         *             {@linkplain #getObjectStatesRead() object states already read}.
+         */
+        public final ObjectState getObjectState(UUID object, Duration when) {
+            ObjectStateId id = new ObjectStateId(object, when);
+            if (this.when != null) {
+                throw new IllegalStateException("In write mode");
+            }
+            ObjectState objectState;
+            objectState = objectStatesRead.get(id);
+            if (objectState == null && !objectStatesRead.containsKey(id)) {
+                final var od = objectDataMap.get(object);
+                if (od == null) {// unknown object
+                    objectState = null;
+                } else {
+                    objectState = od.stateHistory.get(when);
+                    od.uncommittedReaders.addUntil(when, this);
+                }
+                objectStatesRead.put(id, objectState);
+                final ObjectStateId dependency0 = dependencies.get(object);
+                if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
+                    dependencies.put(object, id);
+                }
+            }
+            // else used cached value
+            return objectState;
         }
 
         /**
