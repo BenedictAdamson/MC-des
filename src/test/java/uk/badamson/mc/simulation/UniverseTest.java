@@ -192,6 +192,60 @@ public class UniverseTest {
             assertNull("This transaction is in read mode.", transaction.getWhen());
         }
 
+        private static void close_potentiallyInvalidateOtherRead(final Duration earliestTimeOfCompleteState,
+                Duration when1, Duration when2, Duration when3, Duration when4, UUID object1, UUID object2) {
+            assert when1.compareTo(when2) < 0;
+            assert when2.compareTo(when3) < 0;
+            assert when3.compareTo(when4) <= 0;
+            final ObjectStateTest.TestObjectState state1 = new ObjectStateTest.TestObjectState(1);
+            final ObjectStateTest.TestObjectState state2 = new ObjectStateTest.TestObjectState(2);
+            final ObjectStateTest.TestObjectState state3 = new ObjectStateTest.TestObjectState(3);
+
+            final Universe universe = new Universe(earliestTimeOfCompleteState);
+            putAndCommit(universe, object1, when1, state1);
+            putAndCommit(universe, object2, when2, state2);
+            final Universe.Transaction transaction1 = universe.beginTransaction();
+            transaction1.getObjectState(object1, when1);
+            transaction1.getObjectState(object2, when4);// reads state2
+            final Universe.Transaction transaction2 = universe.beginTransaction();
+            transaction2.getObjectState(object2, when2);
+            transaction2.beginWrite(when3);
+
+            put(transaction2, object2, state3);
+
+            assertSame("Provisionally wrote new value", state3, universe.getObjectState(object2, when3));
+            assertFalse("Read transaction will not abort (write transaction might be rolled back)",
+                    transaction1.willAbortCommit());
+        }
+
+        private static void close_putAllowOtherRead(final Duration earliestTimeOfCompleteState, Duration when1,
+                Duration when2, Duration when3, Duration when4, UUID object1, UUID object2) {
+            assert when1.compareTo(when2) < 0;
+            assert when2.compareTo(when3) < 0;
+            assert when3.compareTo(when4) <= 0;
+            final ObjectStateTest.TestObjectState state1 = new ObjectStateTest.TestObjectState(1);
+            final ObjectStateTest.TestObjectState state2 = new ObjectStateTest.TestObjectState(2);
+            final ObjectStateTest.TestObjectState state3 = new ObjectStateTest.TestObjectState(3);
+
+            final Universe universe = new Universe(earliestTimeOfCompleteState);
+            putAndCommit(universe, object1, when1, state1);
+            putAndCommit(universe, object2, when2, state2);
+            final Universe.Transaction transaction1 = universe.beginTransaction();
+            transaction1.getObjectState(object1, when1);
+            transaction1.getObjectState(object2, when4);// reads state2
+            final Universe.Transaction transaction2 = universe.beginTransaction();
+            transaction2.getObjectState(object2, when2);
+            transaction2.beginWrite(when3);
+            transaction2.put(object2, state3);
+            // transaction3.getObjectState(object2, when4); would read state3
+
+            close(transaction2);
+
+            assertSame("Rolled-back write [after]", state2, universe.getObjectState(object2, when4));
+            assertSame("Rolled-back write [at]", state2, universe.getObjectState(object2, when3));
+            assertFalse("Read transaction will not abort", transaction1.willAbortCommit());
+        }
+
         private static void commit(final Universe.Transaction transaction) throws Universe.AbortedTransactionException {
             try {
                 transaction.commit();
@@ -675,6 +729,28 @@ public class UniverseTest {
             UniverseTest.assertInvariants(universe);
         }
 
+        @Test
+        public void close_potentiallyInvalidateOtherRead_A() {
+            close_potentiallyInvalidateOtherRead(DURATION_1, DURATION_2, DURATION_3, DURATION_4, DURATION_5, OBJECT_A,
+                    OBJECT_B);
+        }
+
+        @Test
+        public void close_potentiallyInvalidateOtherRead_B() {
+            close_potentiallyInvalidateOtherRead(DURATION_2, DURATION_3, DURATION_4, DURATION_5, DURATION_6, OBJECT_B,
+                    OBJECT_A);
+        }
+
+        @Test
+        public void close_putAllowOtherRead_A() {
+            close_putAllowOtherRead(DURATION_1, DURATION_2, DURATION_3, DURATION_4, DURATION_5, OBJECT_A, OBJECT_B);
+        }
+
+        @Test
+        public void close_putAllowOtherRead_B() {
+            close_putAllowOtherRead(DURATION_2, DURATION_3, DURATION_4, DURATION_5, DURATION_6, OBJECT_B, OBJECT_A);
+        }
+
         private void close_rollBackOtherRead(UUID object, Duration earliestTimeOfCompleteState, Duration when1,
                 Duration when2, Duration when3) {
             assert when1.compareTo(when2) < 0;
@@ -942,6 +1018,7 @@ public class UniverseTest {
         public void put_3TransitiveDependencyB() {
             put_3TransitiveDependency(DURATION_2, DURATION_3, DURATION_4, DURATION_5, OBJECT_B, OBJECT_C, OBJECT_A);
         }
+
     }// class
 
     private static final UUID OBJECT_A = ObjectStateIdTest.OBJECT_A;

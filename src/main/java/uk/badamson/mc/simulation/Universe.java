@@ -482,8 +482,24 @@ public class Universe {
                 if (od.stateHistory.isEmpty()) {
                     removedObjects.add(object);
                 }
+                // Transactions that read the state we rolled-back must abort.
+                final var revertedState = od.stateHistory.get(when);
                 for (Transaction uncommittedReader : od.dependentReaderTransactions.get(when)) {
-                    uncommittedReader.abortCommit = true;
+                    if (uncommittedReader.abortCommit) {
+                        continue;// optimisation
+                    }
+                    for (var readEntry : uncommittedReader.objectStatesRead.entrySet()) {
+                        final ObjectStateId readId = readEntry.getKey();
+                        final UUID readObject = readId.getObject();
+                        final Duration readWhen = readId.getWhen();
+                        final ObjectState readState = readEntry.getValue();
+                        if (when.compareTo(readWhen) <= 0 && object.equals(readObject)
+                                && !Objects.equals(revertedState, readState)) {
+                            // The reader read the state we are now rolling back, so it must abort.
+                            uncommittedReader.abortCommit = true;
+                            break;
+                        }
+                    }
                 }
             }
             objectDataMap.keySet().removeAll(removedObjects);
