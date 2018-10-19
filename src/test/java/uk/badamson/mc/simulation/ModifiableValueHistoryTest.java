@@ -1,10 +1,11 @@
 package uk.badamson.mc.simulation;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Collection;
@@ -18,7 +19,7 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import uk.badamson.mc.ObjectTest;
 
@@ -47,24 +48,24 @@ public class ModifiableValueHistoryTest {
             assertInvariants(history);
             final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
             final Map<Duration, VALUE> transitionValues = ValueHistoryTest.getTransitionValues(history);
-            assertEquals("This history is unchanged if it throws IllegalStateException [transitionTimes].",
-                    transitionTimes0, transitionTimes);
-            assertEquals("This history is unchanged if it throws IllegalStateException [transitionValues].",
-                    transitionValues0, transitionValues);
+            assertEquals(transitionTimes0, transitionTimes,
+                    "This history is unchanged if it throws IllegalStateException [transitionTimes].");
+            assertEquals(transitionValues0, transitionValues,
+                    "This history is unchanged if it throws IllegalStateException [transitionValues].");
             throw e;
         }
 
         assertInvariants(history);
         final Collection<Duration> transitionTimes = history.getTransitionTimes();
         final Map<Duration, VALUE> transitionValues = ValueHistoryTest.getTransitionValues(history);
-        assertTrue("Appending a transition does not remove any times from the set of transition times.",
-                transitionTimes.containsAll(transitionTimes0));
-        assertTrue("Appending a transition does not change the values before the given point in time.",
-                transitionValues.entrySet().containsAll(transitionValues0.entrySet()));
-        assertEquals("Appending a transition increments the number of transition times.", transitionTimes0.size() + 1,
-                transitionTimes.size());
-        assertSame("The given point in time becomes the last transition time.", history.getLastTansitionTime(), when);
-        assertSame("The given value becomes the last value.", history.getLastValue(), value);
+        assertTrue(transitionTimes.containsAll(transitionTimes0),
+                "Appending a transition does not remove any times from the set of transition times.");
+        assertTrue(transitionValues.entrySet().containsAll(transitionValues0.entrySet()),
+                "Appending a transition does not change the values before the given point in time.");
+        assertEquals(transitionTimes0.size() + 1, transitionTimes.size(),
+                "Appending a transition increments the number of transition times.");
+        assertSame(history.getLastTansitionTime(), when, "The given point in time becomes the last transition time.");
+        assertSame(history.getLastValue(), value, "The given value becomes the last value.");
     }
 
     private static <VALUE> void appendTransition_1(Duration when, VALUE value) {
@@ -80,11 +81,11 @@ public class ModifiableValueHistoryTest {
 
         final SortedSet<Duration> transitionTimes = history2.getTransitionTimes();
         final Map<Duration, VALUE> transitionValues = ValueHistoryTest.getTransitionValues(history2);
-        assertEquals("transitionTimes.", Collections.singleton(when), transitionTimes);
-        assertEquals("transitionValues.", Collections.singletonMap(when, value), transitionValues);
+        assertEquals(Collections.singleton(when), transitionTimes, "transitionTimes.");
+        assertEquals(Collections.singletonMap(when, value), transitionValues, "transitionValues.");
 
-        assertNotEquals("Value semantics (before and after)", history0, history2);
-        assertEquals("Value semantics (same changes)", history1, history2);
+        assertNotEquals(history0, history2, "Value semantics (before and after)");
+        assertEquals(history1, history2, "Value semantics (same changes)");
     }
 
     private static <VALUE> void appendTransition_2(Duration when1, VALUE value1, Duration when2, VALUE value2) {
@@ -95,16 +96,16 @@ public class ModifiableValueHistoryTest {
         appendTransition(history, when2, value2);
 
         final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
-        assertEquals("transitionTimes.", Set.of(when1, when2), transitionTimes);
+        assertEquals(Set.of(when1, when2), transitionTimes, "transitionTimes.");
     }
 
     private static <VALUE> void appendTransition_2InvalidState(Duration when1, VALUE value1, Duration when2,
-            VALUE value2) throws IllegalStateException {
+            VALUE value2) {
         assert when2.compareTo(when1) <= 0 || Objects.equals(value1, value2);
         final ModifiableValueHistory<VALUE> history = new ModifiableValueHistory<>();
         history.appendTransition(when1, value1);
 
-        appendTransition(history, when2, value2);
+        assertThrows(IllegalStateException.class, () -> appendTransition(history, when2, value2));
     }
 
     public static <VALUE> void assertInvariants(ModifiableValueHistory<VALUE> history) {
@@ -123,7 +124,7 @@ public class ModifiableValueHistoryTest {
 
         assertInvariants(history);
         ValueHistoryTest.assertInvariants(history, that);
-        assertEquals("This equals the given value history.", that, history);
+        assertEquals(that, history, "This equals the given value history.");
 
         return history;
     }
@@ -135,10 +136,10 @@ public class ModifiableValueHistoryTest {
         assertInvariants(history1);
         assertInvariants(history1, history2);
 
-        assertSame("The value of this history at the start of time is the given value.", value,
-                history1.getFirstValue());
-        assertTrue("This is empty.", history1.isEmpty());
-        assertEquals("Value semantics", history1, history2);
+        assertSame(value, history1.getFirstValue(),
+                "The value of this history at the start of time is the given value.");
+        assertTrue(history1.isEmpty(), "This is empty.");
+        assertEquals(history1, history2, "Value semantics");
 
         ValueHistoryTest.assertInvariants(history1, WHEN_1);
         ValueHistoryTest.assertInvariants(history1, WHEN_2);
@@ -155,14 +156,13 @@ public class ModifiableValueHistoryTest {
         final SortedMap<Duration, VALUE> transitions = history.getTransitions();
         final Set<Entry<Duration, VALUE>> transitionsEntries = transitions.entrySet();
 
-        assertSame("The first value of the history is unchanged.", firstValue0, history.getFirstValue());
-        assertTrue("The set of state transitions contains no times at or after the given time.",
-                transitionTimes.isEmpty() || transitionTimes.last().compareTo(when) < 0);
+        assertSame(firstValue0, history.getFirstValue(), "The first value of the history is unchanged.");
+        assertTrue(transitionTimes.isEmpty() || transitionTimes.last().compareTo(when) < 0,
+                "The set of state transitions contains no times at or after the given time.");
         for (var entry0 : transitions0.entrySet()) {
             final Duration t = entry0.getKey();
-            assertTrue(
-                    "Removing state transitions from a given point  in time does not change the transitions before the point in time.",
-                    when.compareTo(t) <= 0 || transitionsEntries.contains(entry0));
+            assertTrue(when.compareTo(t) <= 0 || transitionsEntries.contains(entry0),
+                    "Removing state transitions from a given point  in time does not change the transitions before the point in time.");
         }
     }
 
@@ -174,7 +174,7 @@ public class ModifiableValueHistoryTest {
 
         removeStateTransitionsFrom(history, t2);
 
-        assertEquals("Unchanged", history0, history);
+        assertEquals(history0, history, "Unchanged");
     }
 
     private static void removeStateTransitionsFrom_1BeforeOrAtLast(Duration t1, Duration t2) {
@@ -185,7 +185,7 @@ public class ModifiableValueHistoryTest {
 
         removeStateTransitionsFrom(history, t1);
 
-        assertEquals("Trancated", expected, history);
+        assertEquals(expected, history, "Trancated");
     }
 
     private static <VALUE> void setValueFrom(ModifiableValueHistory<VALUE> history, Duration when, VALUE value) {
@@ -196,11 +196,12 @@ public class ModifiableValueHistoryTest {
         assertInvariants(history);
         final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
         assertTrue(
-                "Setting the value from a given time does not change the values before the given point in time [first value]",
-                when.equals(ValueHistory.START_OF_TIME) || Objects.equals(firstValue0, history.getFirstValue()));
-        assertEquals("The given value is equal to the value at the given time.", value, history.get(when));
-        assertTrue("If this has any transitions, the last transition time is at or before the given time.",
-                transitionTimes.isEmpty() || transitionTimes.last().compareTo(when) <= 0);
+
+                when.equals(ValueHistory.START_OF_TIME) || Objects.equals(firstValue0, history.getFirstValue()),
+                "Setting the value from a given time does not change the values before the given point in time [first value]");
+        assertEquals(value, history.get(when), "The given value is equal to the value at the given time.");
+        assertTrue(transitionTimes.isEmpty() || transitionTimes.last().compareTo(when) <= 0,
+                "If this has any transitions, the last transition time is at or before the given time.");
     }
 
     private static <VALUE> ModifiableValueHistory<VALUE> setValueFrom_1(VALUE firstValue, Duration when, VALUE value) {
@@ -228,12 +229,11 @@ public class ModifiableValueHistoryTest {
 
         assertInvariants(history);
         final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
-        assertTrue(
-                "Setting the value until a given time does not change the values after the given point in time [last value]",
-                when.equals(ValueHistory.END_OF_TIME) || Objects.equals(lastValue0, history.getLastValue()));
-        assertEquals("The given value is equal to the value at the given time.", value, history.get(when));
-        assertTrue("If this has any transitions, the first transition time is at or after the given time.",
-                transitionTimes.isEmpty() || when.compareTo(transitionTimes.first()) <= 0);
+        assertTrue(when.equals(ValueHistory.END_OF_TIME) || Objects.equals(lastValue0, history.getLastValue()),
+                "Setting the value until a given time does not change the values after the given point in time [last value]");
+        assertEquals(value, history.get(when), "The given value is equal to the value at the given time.");
+        assertTrue(transitionTimes.isEmpty() || when.compareTo(transitionTimes.first()) <= 0,
+                "If this has any transitions, the first transition time is at or after the given time.");
     }
 
     private static <VALUE> ModifiableValueHistory<VALUE> setValueUntil_1(VALUE firstValue, Duration when, VALUE value) {
@@ -264,12 +264,12 @@ public class ModifiableValueHistoryTest {
         appendTransition_1(WHEN_2, Integer.MAX_VALUE);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void appendTransition_1InvalidState_valuesNull() {
         final Boolean value = null;
         final ModifiableValueHistory<Boolean> history = new ModifiableValueHistory<>();
 
-        appendTransition(history, WHEN_1, value);
+        assertThrows(IllegalStateException.class, () -> appendTransition(history, WHEN_1, value));
     }
 
     @Test
@@ -282,17 +282,17 @@ public class ModifiableValueHistoryTest {
         appendTransition_2(WHEN_2, Integer.MIN_VALUE, WHEN_3, Integer.MAX_VALUE);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void appendTransition_2InvalidState_timesOrder() {
         appendTransition_2InvalidState(WHEN_2, Boolean.FALSE, WHEN_1, Boolean.TRUE);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void appendTransition_2InvalidState_timesSame() {
         appendTransition_2InvalidState(WHEN_1, Boolean.FALSE, WHEN_1, Boolean.TRUE);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void appendTransition_2InvalidState_valuesEqual() {
         final String value1 = "Value";
         final String value2 = new String(value1);
@@ -301,7 +301,7 @@ public class ModifiableValueHistoryTest {
         appendTransition_2InvalidState(WHEN_1, Boolean.FALSE, WHEN_2, Boolean.FALSE);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void appendTransition_2InvalidState_valuesSame() {
         appendTransition_2InvalidState(WHEN_1, Boolean.FALSE, WHEN_2, Boolean.FALSE);
     }
@@ -314,9 +314,9 @@ public class ModifiableValueHistoryTest {
         assertInvariants(history1);
         assertInvariants(history1, history2);
 
-        assertNull("The value of this history at the start of time is null.", history1.getFirstValue());
-        assertTrue("This is empty.", history1.isEmpty());
-        assertEquals("Value semantics", history1, history2);
+        assertNull(history1.getFirstValue(), "The value of this history at the start of time is null.");
+        assertTrue(history1.isEmpty(), "This is empty.");
+        assertEquals(history1, history2, "Value semantics");
 
         ValueHistoryTest.assertInvariants(history1, WHEN_1);
         ValueHistoryTest.assertInvariants(history1, WHEN_2);
