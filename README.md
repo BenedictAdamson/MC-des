@@ -10,8 +10,9 @@ Licensed using the [GNU GENERAL PUBLIC LICENSE](https://www.gnu.org/licenses/gpl
 
 ## Technologies Used
 
-* Java 10
-* JUnit 5
-* Maven
-* JCIP annotations
-* Git
+* [Java 10](https://docs.oracle.com/javase/10/)
+* [JUnit 5](https://junit.org/junit5/)
+* [Java Hamcrest](http://hamcrest.org/JavaHamcrest/)
+* [Maven](https://maven.apache.org/)
+* [JCIP annotations](http://jcip.net/annotations/doc/net/jcip/annotations/package-summary.html)
+* [Git](https://git-scm.com/)
