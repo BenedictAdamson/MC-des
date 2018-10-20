@@ -4,6 +4,7 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsSame.sameInstance;
 import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -33,26 +34,27 @@ public class ObjectStateIdTest {
         final UUID objectId = id.getObject();
         final Duration when = id.getWhen();
 
-        assertNotNull(objectId, "objectId");
-        assertNotNull(when, "when");
+        assertAll(() -> assertNotNull(objectId, "objectId"), () -> assertNotNull(when, "when"));
     }
 
     public static void assertInvariants(ObjectStateId id1, ObjectStateId id2) {
         ObjectTest.assertInvariants(id1, id2);// inherited
 
         final boolean equals = id1.equals(id2);
-        assertFalse(equals && !id1.getObject().equals(id2.getObject()),
-                "ObjectStateId objects are equivalent only if they have equals object IDs");
-        assertFalse(equals && !id1.getWhen().equals(id2.getWhen()),
-                "ObjectStateId objects are equivalent only if they have equals timestamps");
+        assertAll("ObjectStateId objects are equivalent only if they have equals",
+                () -> assertFalse(equals && !id1.getObject().equals(id2.getObject()), "object IDs"),
+                () -> assertFalse(equals && !id1.getWhen().equals(id2.getWhen()), "timestamps"));
     }
 
     private static void constructor(UUID object, Duration when) {
         final ObjectStateId id = new ObjectStateId(object, when);
 
         assertInvariants(id);
-        assertThat("The object ID of this ID is the given object ID.", id.getObject(), sameInstance(object));
-        assertThat("The time-stamp of this ID is the given time-stamp.", id.getWhen(), sameInstance(when));
+        assertAll(
+                () -> assertThat("The object ID of this ID is the given object ID.", id.getObject(),
+                        sameInstance(object)),
+                () -> assertThat("The time-stamp of this ID is the given time-stamp.", id.getWhen(),
+                        sameInstance(when)));
     }
 
     private static void constructor_2Equal(UUID object, Duration when) {
