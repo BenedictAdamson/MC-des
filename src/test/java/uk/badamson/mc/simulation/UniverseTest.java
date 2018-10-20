@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
@@ -22,7 +23,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.simulation.Universe.Transaction;
@@ -800,8 +801,8 @@ public class UniverseTest {
             TransactionTest.commit_2SuccessiveStates(DURATION_1, DURATION_1.plusNanos(1));
         }
 
-        @Test(expected = Universe.AbortedTransactionException.class)
-        public void commit_failure() throws Universe.AbortedTransactionException {
+        @Test
+        public void commit_failure() {
             final Duration earliestTimeOfCompleteState = DURATION_1;
             final UUID object = OBJECT_A;
             final Duration when0 = DURATION_2;
@@ -822,7 +823,7 @@ public class UniverseTest {
             transaction2.beginWrite(when1);
             transaction2.put(object, objectState2);
 
-            commit(transaction2);
+            assertThrows(Universe.AbortedTransactionException.class, () -> commit(transaction2));
         }
 
         @Test
