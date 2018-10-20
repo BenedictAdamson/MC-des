@@ -7,11 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-
-import org.junit.jupiter.api.Test;
 
 /**
  * <p>
@@ -79,12 +76,6 @@ public class ObjectStateTest {
         // Do nothing
     }
 
-    private static void constructor(UUID object, Duration when, Map<UUID, ObjectStateId> dependencies) {
-        final ObjectState state = new TestObjectState(1);
-
-        assertInvariants(state);
-    }
-
     public static void putNextStateTransition(ObjectState state, Universe.Transaction transaction, UUID object,
             Duration when) {
         state.putNextStateTransition(transaction, object, when);
@@ -107,18 +98,5 @@ public class ObjectStateTest {
                     dependencyObject.equals(object) || dependencyWhen.compareTo(when) < 0,
                     "The points in time for which the method fetches state information must be before the given point in time.");
         }
-    }
-
-    @Test
-    public void constructor_A() {
-        final Map<UUID, ObjectStateId> dependencies = Collections.emptyMap();
-        constructor(OBJECT_A, WHEN_1, dependencies);
-    }
-
-    @Test
-    public void constructor_B() {
-        final Map<UUID, ObjectStateId> dependencies = Collections.singletonMap(OBJECT_A,
-                new ObjectStateId(OBJECT_A, WHEN_1));
-        constructor(OBJECT_B, WHEN_2, dependencies);
     }
 }
