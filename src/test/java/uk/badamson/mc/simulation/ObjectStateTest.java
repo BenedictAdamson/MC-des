@@ -13,11 +13,10 @@ import java.util.UUID;
 
 import org.junit.Test;
 
-import uk.badamson.mc.ObjectTest;
-
 /**
  * <p>
- * Unit tests and auxiliary test code for the {@link ObjectState} class.
+ * Unit tests and auxiliary test code for classes that implement the
+ * {@link ObjectState} interface.
  * </p>
  */
 public class ObjectStateTest {
@@ -73,11 +72,11 @@ public class ObjectStateTest {
     static final Duration WHEN_2 = Duration.ofSeconds(23);
 
     public static void assertInvariants(ObjectState state) {
-        ObjectTest.assertInvariants(state);// inherited
+        // Do nothing
     }
 
     public static void assertInvariants(ObjectState state1, ObjectState state2) {
-        ObjectTest.assertInvariants(state1, state2);// inherited
+        // Do nothing
     }
 
     private static void constructor(UUID object, Duration when, Map<UUID, ObjectStateId> dependencies) {
