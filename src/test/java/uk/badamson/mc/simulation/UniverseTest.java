@@ -6,13 +6,13 @@ import static org.hamcrest.core.AnyOf.anyOf;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsSame.sameInstance;
 import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -54,7 +54,7 @@ public class UniverseTest {
             final Universe.AbortedTransactionException exception = new Universe.AbortedTransactionException(cause);
 
             assertInvariants(exception);
-            assertSame("cause", cause, exception.getCause());
+            assertSame(cause, exception.getCause(), "cause");
         }
 
         @Test
@@ -85,32 +85,20 @@ public class UniverseTest {
 
         private static Map<UUID, ObjectStateId> assertDependenciesInvariants(Universe.Transaction transaction) {
             final Map<UUID, ObjectStateId> dependencies = transaction.getDependencies();
-            assertNotNull("Always has a dependency map.", dependencies);
+            assertNotNull(dependencies, "Always has a dependency map.");// guard
             final Set<ObjectStateId> objectStatesRead = transaction.getObjectStatesRead().keySet();
             for (var entry : dependencies.entrySet()) {
                 final UUID object = entry.getKey();
                 final ObjectStateId objectStateId = entry.getValue();
-                assertNotNull("The dependency map does not have a null key.", object);// guard
-                assertNotNull("The dependency map does not have null values.", objectStateId);// guard
+                assertNotNull(object, "The dependency map does not have a null key.");// guard
+                assertNotNull(objectStateId, "The dependency map does not have null values.");// guard
 
                 ObjectStateIdTest.assertInvariants(objectStateId);
-                assertSame(
-                        "Each object ID key of the dependency map maps to a value that has that same object ID as the object of the object state ID.",
-                        object, objectStateId.getObject());
+                assertSame(object, objectStateId.getObject(),
+                        "Each object ID key of the dependency map maps to a value that has that same object ID as the object of the object state ID.");
                 assertThat(
                         "The collection of values of the dependencies map is a sub set of the keys of the object states read.",
                         objectStateId, isIn(objectStatesRead));
-                /**
-                 * <li>The {@linkplain ObjectStateId#getWhen() time-stamp} of each
-                 * {@linkplain Map#keySet() object state ID key} of the
-                 * {@linkplain #getObjectStatesRead() object states read} map is at or after the
-                 * time-stamp of the {@linkplain Map#get(Object) value} in the dependencies map
-                 * for the {@linkplain ObjectStateId#getObject() object ID} of that object state
-                 * ID.</li>
-                 * </ul>
-                 * 
-                 * @return The dependency information
-                 */
             }
             for (ObjectStateId objectStateRead : objectStatesRead) {
                 final UUID object = objectStateRead.getObject();
@@ -129,7 +117,7 @@ public class UniverseTest {
 
             final Universe universe = transaction.getUniverse();
 
-            assertNotNull("Not null, universe", universe);// guard
+            assertNotNull(universe, "universe");// guard
 
             UniverseTest.assertInvariants(universe);
             assertObjectStatesReadInvariants(transaction);
@@ -144,11 +132,11 @@ public class UniverseTest {
         private static Map<ObjectStateId, ObjectState> assertObjectStatesReadInvariants(
                 Universe.Transaction transaction) {
             final Map<ObjectStateId, ObjectState> objectStatesRead = transaction.getObjectStatesRead();
-            assertNotNull("Always have a (non null) map of object states read.", objectStatesRead);// guard
+            assertNotNull(objectStatesRead, "Always have a map of object states read.");// guard
             for (var entry : objectStatesRead.entrySet()) {
                 final ObjectStateId id = entry.getKey();
                 final ObjectState state = entry.getValue();
-                assertNotNull("The map of object states read does not have a null key.", id);// guard
+                assertNotNull(id, "The map of object states read does not have a null key.");// guard
                 ObjectStateIdTest.assertInvariants(id);
                 if (state != null) {
                     ObjectStateTest.assertInvariants(state);
@@ -163,14 +151,14 @@ public class UniverseTest {
 
             final Map<UUID, ObjectState> objectStatesWritten = transaction.getObjectStatesWritten();
 
-            assertNotNull("Always have a (non null) map of object states written.", objectStatesWritten);// guard
-            assertFalse("The map of object states written is empty if this transaction is in read mode.",
-                    when == null && !objectStatesWritten.isEmpty());
+            assertNotNull(objectStatesWritten, "Always have a map of object states written.");// guard
+            assertFalse(when == null && !objectStatesWritten.isEmpty(),
+                    "The map of object states written is empty if this transaction is in read mode.");
 
             for (var entry : objectStatesWritten.entrySet()) {
                 final UUID object = entry.getKey();
                 final ObjectState state = entry.getValue();
-                assertNotNull("The map of object states written does not have a null key.", object);
+                assertNotNull(object, "The map of object states written does not have a null key.");
                 if (state != null) {
                     ObjectStateTest.assertInvariants(state);
                 }
@@ -183,13 +171,13 @@ public class UniverseTest {
             transaction.close();
 
             assertInvariants(transaction);
-            assertEquals("This transaction has no record of its dependencies.", Collections.EMPTY_MAP,
-                    transaction.getDependencies());
-            assertEquals("This transaction has no record of its object states read.", Collections.EMPTY_MAP,
-                    transaction.getObjectStatesRead());
-            assertEquals("This transaction has no record of its object states written.", Collections.EMPTY_MAP,
-                    transaction.getObjectStatesWritten());
-            assertNull("This transaction is in read mode.", transaction.getWhen());
+            assertEquals(Collections.EMPTY_MAP, transaction.getDependencies(),
+                    "This transaction has no record of its dependencies.");
+            assertEquals(Collections.EMPTY_MAP, transaction.getObjectStatesRead(),
+                    "This transaction has no record of its object states read.");
+            assertEquals(Collections.EMPTY_MAP, transaction.getObjectStatesWritten(),
+                    "This transaction has no record of its object states written.");
+            assertNull(transaction.getWhen(), "This transaction is in read mode.");
         }
 
         private static void close_potentiallyInvalidateOtherRead(final Duration earliestTimeOfCompleteState,
@@ -213,9 +201,9 @@ public class UniverseTest {
 
             put(transaction2, object2, state3);
 
-            assertSame("Provisionally wrote new value", state3, universe.getObjectState(object2, when3));
-            assertFalse("Read transaction will not abort (write transaction might be rolled back)",
-                    transaction1.willAbortCommit());
+            assertSame(state3, universe.getObjectState(object2, when3), "Provisionally wrote new value");
+            assertFalse(transaction1.willAbortCommit(),
+                    "Read transaction will not abort (write transaction might be rolled back)");
         }
 
         private static void close_putAllowOtherRead(final Duration earliestTimeOfCompleteState, Duration when1,
@@ -241,9 +229,9 @@ public class UniverseTest {
 
             close(transaction2);
 
-            assertSame("Rolled-back write [after]", state2, universe.getObjectState(object2, when4));
-            assertSame("Rolled-back write [at]", state2, universe.getObjectState(object2, when3));
-            assertFalse("Read transaction will not abort", transaction1.willAbortCommit());
+            assertSame(state2, universe.getObjectState(object2, when4), "Rolled-back write [after]");
+            assertSame(state2, universe.getObjectState(object2, when3), "Rolled-back write [at]");
+            assertFalse(transaction1.willAbortCommit(), "Read transaction will not abort");
         }
 
         private static void commit(final Universe.Transaction transaction) throws Universe.AbortedTransactionException {
@@ -253,13 +241,13 @@ public class UniverseTest {
                 // Permitted
                 assertInvariants(transaction);
                 UniverseTest.AbortedTransactionExceptionTest.assertInvariants(e);
-                assertTrue("The commit abort flag is set.", transaction.willAbortCommit());
-                assertFalse("The committed flag is clear.", transaction.isCommitted());
+                assertTrue(transaction.willAbortCommit(), "The commit abort flag is set.");
+                assertFalse(transaction.isCommitted(), "The committed flag is clear.");
                 throw e;
             }
 
             assertInvariants(transaction);
-            assertTrue("The committed flag of this transaction is set.", transaction.isCommitted());
+            assertTrue(transaction.isCommitted(), "The committed flag of this transaction is set.");
         }
 
         private static void commit_2DifferentObjects(final UUID object1, final UUID object2) {
@@ -281,9 +269,9 @@ public class UniverseTest {
                 throw new AssertionError(e);
             }
 
-            assertEquals("Object IDs", Set.of(object1, object2), universe.getObjectIds());
-            assertEquals("The object state histories of other objects are unchanged.", objectStateHistory1,
-                    universe.getObjectStateHistory(object1));
+            assertEquals(Set.of(object1, object2), universe.getObjectIds(), "Object IDs");
+            assertEquals(objectStateHistory1, universe.getObjectStateHistory(object1),
+                    "The object state histories of other objects are unchanged.");
         }
 
         private static void commit_2SuccessiveStates(final Duration when1, final Duration when2) {
@@ -311,13 +299,12 @@ public class UniverseTest {
                 throw new AssertionError(e);
             }
 
-            assertEquals("Object IDs.", Collections.singleton(object), universe.getObjectIds());
-            assertEquals("Object state history.", expectedObjectStateHistory, universe.getObjectStateHistory(object));
-            assertSame(
+            assertEquals(Collections.singleton(object), universe.getObjectIds(), "Object IDs.");
+            assertEquals(expectedObjectStateHistory, universe.getObjectStateHistory(object), "Object state history.");
+            assertSame(objectState1, universe.getObjectState(object, when2.minusNanos(1L)),
                     "The state of an object at a given point in time is "
                             + "the state it had at the latest state transition "
-                            + "at or before that point in time (just before second)",
-                    objectState1, universe.getObjectState(object, when2.minusNanos(1L)));
+                            + "at or before that point in time (just before second)");
         }
 
         private static void commit_putRollBackOtherRead(final Duration earliestTimeOfCompleteState, Duration when1,
@@ -347,7 +334,7 @@ public class UniverseTest {
                 throw new AssertionError(e);
             }
 
-            assertTrue("Read transaction will abort", transaction1.willAbortCommit());
+            assertTrue(transaction1.willAbortCommit(), "Read transaction will abort");
         }
 
         public static ObjectState getObjectState(final Universe.Transaction transaction, UUID object, Duration when) {
@@ -362,16 +349,14 @@ public class UniverseTest {
             assertThat(
                     "The object state of for an object ID and point in time is either the same object state as can be got from the universe of this transaction, or is the same object state as has already read by this transaction.",
                     objectState, anyOf(sameInstance(previouslyReadState), sameInstance(universeObjectState)));
-            assertTrue(
-                    "The object state of for an object ID and point in time that has not already been read by this transaction is the same object state as can be  got from the universe of this transaction.",
-                    wasPreviouslyRead || objectState == universeObjectState);
-            assertTrue(
-                    "The object state of for an object ID and point in time that has already been read by this transaction is the same object state as was read previously.",
-                    !wasPreviouslyRead || objectState == previouslyReadState);
+            assertTrue(wasPreviouslyRead || objectState == universeObjectState,
+                    "The object state of for an object ID and point in time that has not already been read by this transaction is the same object state as can be  got from the universe of this transaction.");
+            assertTrue(!wasPreviouslyRead || objectState == previouslyReadState,
+                    "The object state of for an object ID and point in time that has already been read by this transaction is the same object state as was read previously.");
             assertThat("The method records the returned state as one of the read states (has key).", id,
                     isIn(transaction.getObjectStatesRead().keySet()));
-            assertSame("The method records the returned state as one of the read states (state).", objectState,
-                    transaction.getObjectStatesRead().get(id));
+            assertSame(objectState, transaction.getObjectStatesRead().get(id),
+                    "The method records the returned state as one of the read states (state).");
 
             return objectState;
         }
@@ -387,9 +372,9 @@ public class UniverseTest {
 
             final ObjectState objectState2 = getObjectState(transaction, object, when2);
 
-            assertSame("objectState", objectState1, objectState2);
-            assertEquals("objectStatesRead", Collections.singletonMap(id2, objectState1),
-                    transaction.getObjectStatesRead());
+            assertSame(objectState1, objectState2, "objectState");
+            assertEquals(Collections.singletonMap(id2, objectState1), transaction.getObjectStatesRead(),
+                    "objectStatesRead");
         }
 
         private static void getObjectState_1Empty(final Duration earliestTimeOfCompleteState, UUID object,
@@ -435,9 +420,9 @@ public class UniverseTest {
 
             put(transaction, object, objectState);
 
-            assertEquals("Object IDs", Collections.singleton(object), universe.getObjectIds());
-            assertEquals("State transition IDs", objectStateId, universe.getStateTransitionIds());
-            assertEquals("Object state history", expectedHistory, universe.getObjectStateHistory(object));
+            assertEquals(Collections.singleton(object), universe.getObjectIds(), "Object IDs");
+            assertEquals(objectStateId, universe.getStateTransitionIds(), "State transition IDs");
+            assertEquals(expectedHistory, universe.getObjectStateHistory(object), "Object state history");
         }
 
         private static void put_1PrehistoricDependency(final Duration when1, final Duration earliestCompleteState,
@@ -451,7 +436,7 @@ public class UniverseTest {
 
             put(transaction, OBJECT_B, objectState);
 
-            assertFalse("Will not abort commit", transaction.willAbortCommit());
+            assertFalse(transaction.willAbortCommit(), "Will not abort commit");
         }
 
         private static void put_2Dependency(final Duration earliestCompleteState, final Duration when1,
@@ -467,7 +452,7 @@ public class UniverseTest {
 
             put(transaction, object2, objectState2);
 
-            assertFalse("Will not abort commit", transaction.willAbortCommit());
+            assertFalse(transaction.willAbortCommit(), "Will not abort commit");
         }
 
         private static void put_2InvalidEventTimeStampOrder(final Duration earliestTimeOfCompleteState, UUID object,
@@ -488,7 +473,7 @@ public class UniverseTest {
 
             put(transaction2, object, objectState2);
 
-            assertTrue("Will abort commit", transaction2.willAbortCommit());
+            assertTrue(transaction2.willAbortCommit(), "Will abort commit");
         }
 
         private static void put_2NotSuccessiveForSameObject(final Duration earliestTimeOfCompleteState, UUID object,
@@ -509,7 +494,7 @@ public class UniverseTest {
 
             put(transaction2, object, objectState2);
 
-            assertTrue("Will abort commit", transaction2.willAbortCommit());
+            assertTrue(transaction2.willAbortCommit(), "Will abort commit");
         }
 
         private static void put_2OutOfOrderStates(final Duration when1, final Duration when2) {
@@ -529,7 +514,7 @@ public class UniverseTest {
 
             put(transaction, object, objectState2);
 
-            assertTrue("Will abort commit", transaction.willAbortCommit());
+            assertTrue(transaction.willAbortCommit(), "Will abort commit");
         }
 
         private static void put_3AttemptedResurection(final Duration earliestTimeOfCompleteState, UUID object,
@@ -547,7 +532,7 @@ public class UniverseTest {
 
             put(transaction, object, objectState2);
 
-            assertTrue("Will abort commit", transaction.willAbortCommit());
+            assertTrue(transaction.willAbortCommit(), "Will abort commit");
         }
 
         private static void put_3TransitiveDependency(final Duration earliestCompleteState, final Duration when1,
@@ -566,7 +551,7 @@ public class UniverseTest {
 
             put(transaction, object3, objectState3);
 
-            assertFalse("Will not abort commit", transaction.willAbortCommit());
+            assertFalse(transaction.willAbortCommit(), "Will not abort commit");
         }
 
         private static void putAndCommit(final Universe universe, UUID object, Duration when, ObjectState state) {
@@ -584,9 +569,8 @@ public class UniverseTest {
             transaction.beginWrite(when);
 
             assertInvariants(transaction);
-            assertSame(
-                    "The time-stamp of any object states to be written by this transaction becomes the same as the given time-stamp.",
-                    when, transaction.getWhen());
+            assertSame(when, transaction.getWhen(),
+                    "The time-stamp of any object states to be written by this transaction becomes the same as the given time-stamp.");
         }
 
         private final void beginWrite_0(Duration earliestTimeOfCompleteState, Duration when) {
@@ -706,7 +690,7 @@ public class UniverseTest {
 
             close(transaction);
 
-            assertEquals("Rolled back write", history0, universe.getObjectStateHistory(object));
+            assertEquals(history0, universe.getObjectStateHistory(object), "Rolled back write");
         }
 
         @Test
@@ -771,8 +755,8 @@ public class UniverseTest {
 
             close(transaction1);
 
-            assertEquals("Rolled back write", history0, universe.getObjectStateHistory(object));
-            assertTrue("Will abort the reader transaction", transaction2.willAbortCommit());
+            assertEquals(history0, universe.getObjectStateHistory(object), "Rolled back write");
+            assertTrue(transaction2.willAbortCommit(), "Will abort the reader transaction");
         }
 
         @Test
@@ -1036,7 +1020,7 @@ public class UniverseTest {
 
         final Duration earliestTimeOfCompleteState = universe.getEarliestTimeOfCompleteState();
 
-        assertNotNull("Always have a earliest complete state time-stamp.", earliestTimeOfCompleteState);
+        assertNotNull(earliestTimeOfCompleteState, "Always have a earliest complete state time-stamp.");
 
         assertObjectIdsInvariants(universe);
         assertStateTransitionIdsInvariants(universe);
@@ -1053,25 +1037,22 @@ public class UniverseTest {
     private static void assertObjectIdsInvariants(Universe universe) {
         final Set<UUID> objectIds = universe.getObjectIds();
 
-        assertNotNull("Always have a set of object IDs.", objectIds);// guard
+        assertNotNull(objectIds, "Always have a set of object IDs.");// guard
 
         for (UUID object : objectIds) {
-            assertNotNull("The set of object IDs does not have a null element.", object);// guard
+            assertNotNull(object, "The set of object IDs does not have a null element.");// guard
             final ValueHistory<ObjectState> objectStateHistory = universe.getObjectStateHistory(object);
             final Duration whenFirstState = universe.getWhenFirstState(object);
 
-            assertNotNull(
-                    "A universe has an object state history for a given object if that object is one of the  objects in the universe.",
-                    objectStateHistory);// guard
-            assertNotNull("An object has a first state time-stamp if it is a known object.", whenFirstState);
+            assertNotNull(objectStateHistory,
+                    "A universe has an object state history for a given object if that object is one of the  objects in the universe.");// guard
+            assertNotNull(whenFirstState, "An object has a first state time-stamp if it is a known object.");
 
-            assertFalse("A object state history for a given object is not empty.", objectStateHistory.isEmpty());// guard
-            assertSame(
-                    "If an object is known, its first state time-stamp is the first transition time of the state history of that object.",
-                    objectStateHistory.getFirstTansitionTime(), whenFirstState);
-            assertNull(
-                    "Known objects have an unknown state just before the first known state of the state history of that object.",
-                    universe.getObjectState(object, whenFirstState.minusNanos(1L)));
+            assertFalse(objectStateHistory.isEmpty(), "A object state history for a given object is not empty.");// guard
+            assertSame(objectStateHistory.getFirstTansitionTime(), whenFirstState,
+                    "If an object is known, its first state time-stamp is the first transition time of the state history of that object.");
+            assertNull(universe.getObjectState(object, whenFirstState.minusNanos(1L)),
+                    "Known objects have an unknown state just before the first known state of the state history of that object.");
         }
     }
 
@@ -1080,10 +1061,10 @@ public class UniverseTest {
 
         final Set<ObjectStateId> stateTransitionIds = universe.getStateTransitionIds();
 
-        assertNotNull("Always have a (non null) set of state transition IDs.", stateTransitionIds);// guard
+        assertNotNull(stateTransitionIds, "Always have a (non null) set of state transition IDs.");// guard
 
         for (ObjectStateId stateTransitionId : stateTransitionIds) {
-            assertNotNull("The set of IDs of state transitions does not have a null element.", stateTransitionId);// guard
+            assertNotNull(stateTransitionId, "The set of IDs of state transitions does not have a null element.");// guard
             ObjectStateIdTest.assertInvariants(stateTransitionId);
             final ObjectState stateTransition = universe.getStateTransition(stateTransitionId);
             final UUID object = stateTransitionId.getObject();
@@ -1098,20 +1079,20 @@ public class UniverseTest {
 
     private static void assertUnknownObjectInvariants(Universe universe, UUID object) {
         assertThat("Not a known object ID", object, not(isIn(universe.getObjectIds())));
-        assertNull("A universe has an object state history for a given object only if "
-                + "that object is one of the objects in the universe.", universe.getObjectStateHistory(object));
-        assertNull("An object has a first state time-stamp only if it is a known object.",
-                universe.getWhenFirstState(object));
-        assertNull("Unknown objects have an unknown state for all points in time.",
-                universe.getObjectState(object, DURATION_1));
-        assertNull("Unknown objects have an unknown state for all points in time.",
-                universe.getObjectState(object, DURATION_2));
+        assertNull(universe.getObjectStateHistory(object),
+                "A universe has an object state history for a given object only if "
+                        + "that object is one of the objects in the universe.");
+        assertNull(universe.getWhenFirstState(object),
+                "An object has a first state time-stamp only if it is a known object.");
+        assertNull(universe.getObjectState(object, DURATION_1),
+                "Unknown objects have an unknown state for all points in time.");
+        assertNull(universe.getObjectState(object, DURATION_2),
+                "Unknown objects have an unknown state for all points in time.");
     }
 
     private static void assertUnknownObjectStateInvariants(Universe universe, ObjectStateId state) {
-        assertNull(
-                "Have a state transition only if the given object state ID is one of the known object state IDs of this universe.",
-                universe.getStateTransition(state));
+        assertNull(universe.getStateTransition(state),
+                "Have a state transition only if the given object state ID is one of the known object state IDs of this universe.");
     }
 
     /**
@@ -1146,20 +1127,19 @@ public class UniverseTest {
     private static Universe.Transaction beginTransaction(final Universe universe) {
         final Universe.Transaction transaction = universe.beginTransaction();
 
-        assertNotNull("Not null, transaction", transaction);// guard
+        assertNotNull(transaction, "Not null, transaction");// guard
         assertInvariants(universe);
         TransactionTest.assertInvariants(transaction);
 
-        assertSame("The universe of the returned transaction is this transaction.", universe,
-                transaction.getUniverse());
-        assertEquals("The returned transaction has not read any object states.", Collections.EMPTY_MAP,
-                transaction.getObjectStatesRead());
-        assertEquals("The returned transaction has not written any object states.", Collections.EMPTY_MAP,
-                transaction.getObjectStatesWritten());
-        assertFalse("The {@linkplain Transaction#isCommitted() committed} flag of the returned transaction is clear.",
-                transaction.isCommitted());
-        assertFalse("The commit abort flag of the return transaction is clear", transaction.willAbortCommit());
-        assertNull("The returned transaction is in in read mode.", transaction.getWhen());
+        assertSame(universe, transaction.getUniverse(),
+                "The universe of the returned transaction is this transaction.");
+        assertEquals(Collections.EMPTY_MAP, transaction.getObjectStatesRead(),
+                "The returned transaction has not read any object states.");
+        assertEquals(Collections.EMPTY_MAP, transaction.getObjectStatesWritten(),
+                "The returned transaction has not written any object states.");
+        assertFalse(transaction.isCommitted(), "The committed flag of the returned transaction is clear.");
+        assertFalse(transaction.willAbortCommit(), "The commit abort flag of the return transaction is clear");
+        assertNull(transaction.getWhen(), "The returned transaction is in in read mode.");
 
         return transaction;
     }
@@ -1169,12 +1149,11 @@ public class UniverseTest {
 
         assertInvariants(universe);
 
-        assertSame(
+        assertSame(earliestTimeOfCompleteState, universe.getEarliestTimeOfCompleteState(),
                 "The earliest complete state time-stamp of this universe is "
-                        + "the given earliest complete state time-stamp.",
-                earliestTimeOfCompleteState, universe.getEarliestTimeOfCompleteState());
-        assertEquals("The set of object IDs is empty.", Collections.emptySet(), universe.getObjectIds());
-        assertEquals("The set of IDs of object states is empty.", Collections.emptySet(), universe.getObjectIds());
+                        + "the given earliest complete state time-stamp.");
+        assertEquals(Collections.emptySet(), universe.getObjectIds(), "The set of object IDs is empty.");
+        assertEquals(Collections.emptySet(), universe.getObjectIds(), "The set of IDs of object states is empty.");
 
         assertUnknownObjectInvariants(universe, OBJECT_A);
         assertUnknownObjectInvariants(universe, OBJECT_B);
