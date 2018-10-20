@@ -1,9 +1,9 @@
 package uk.badamson.mc.simulation;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -31,13 +31,14 @@ public class ModifiableSetHistoryTest {
         assertInvariants(history);
         assertInvariants(history, value);
         final ValueHistory<Boolean> contains = history.contains(value);
-        assertSame("The last value of the contains history for the given value is TRUE.", Boolean.TRUE,
-                contains.getLastValue());
-        assertSame("The value at the given time of the contains history for the given value is TRUE.", Boolean.TRUE,
-                contains.get(when));
+        assertSame(Boolean.TRUE, contains.getLastValue(),
+                "The last value of the contains history for the given value is TRUE.");
+        assertSame(Boolean.TRUE, contains.get(when),
+                "The value at the given time of the contains history for the given value is TRUE.");
         assertTrue(
-                "The contains history for the given value has its last transition time is at or before the given time.",
-                contains.getLastTansitionTime().compareTo(when) <= 0);
+
+                contains.getLastTansitionTime().compareTo(when) <= 0,
+                "The contains history for the given value has its last transition time is at or before the given time.");
     }
 
     private static <VALUE> void addFrom_1(Duration when, VALUE value) {
@@ -54,13 +55,13 @@ public class ModifiableSetHistoryTest {
         assertInvariants(history0, history1);
         assertInvariants(history1, history2);
 
-        assertEquals("Set at start of time", Collections.EMPTY_SET, history1.getFirstValue());
-        assertEquals("Transitions", expectedTransitions, ValueHistoryTest.getTransitionValues(history1));
-        assertEquals("contains transisions", expectedContainsTransitions,
-                ValueHistoryTest.getTransitionValues(history1.contains(value)));
+        assertEquals(Collections.EMPTY_SET, history1.getFirstValue(), "Set at start of time");
+        assertEquals(expectedTransitions, ValueHistoryTest.getTransitionValues(history1), "Transitions");
+        assertEquals(expectedContainsTransitions, ValueHistoryTest.getTransitionValues(history1.contains(value)),
+                "contains transitions");
 
-        assertNotEquals("Value semantics", history0, history1);
-        assertEquals("Value semantics", history1, history2);
+        assertNotEquals(history0, history1, "Value semantics");
+        assertEquals(history1, history2, "Value semantics");
     }
 
     private static <VALUE> void addFrom_2_differentValues(Duration when1, VALUE value1, Duration when2, VALUE value2) {
@@ -76,13 +77,13 @@ public class ModifiableSetHistoryTest {
 
         addFrom(history, when2, value2);
 
-        assertEquals("Set at start of time", Collections.EMPTY_SET, history.getFirstValue());
-        assertEquals("transitionTimes", expectedTransitionTimes, history.getTransitionTimes());
-        assertEquals("Transitions", expectedTransitions, ValueHistoryTest.getTransitionValues(history));
-        assertEquals("contains transisions [1]", expectedContainsTransitions1,
-                ValueHistoryTest.getTransitionValues(history.contains(value1)));
-        assertEquals("contains transisions [2]", expectedContainsTransitions2,
-                ValueHistoryTest.getTransitionValues(history.contains(value2)));
+        assertEquals(Collections.EMPTY_SET, history.getFirstValue(), "Set at start of time");
+        assertEquals(expectedTransitionTimes, history.getTransitionTimes(), "transitionTimes");
+        assertEquals(expectedTransitions, ValueHistoryTest.getTransitionValues(history), "Transitions");
+        assertEquals(expectedContainsTransitions1, ValueHistoryTest.getTransitionValues(history.contains(value1)),
+                "contains transisions [1]");
+        assertEquals(expectedContainsTransitions2, ValueHistoryTest.getTransitionValues(history.contains(value2)),
+                "contains transisions [2]");
     }
 
     private static <VALUE> void addFrom_2_sameValue(Duration when1, Duration when2, VALUE value) {
@@ -96,10 +97,10 @@ public class ModifiableSetHistoryTest {
 
         addFrom(history, when2, value);
 
-        assertEquals("Set at start of time", Collections.EMPTY_SET, history.getFirstValue());
-        assertEquals("Transitions", expectedTransitions, ValueHistoryTest.getTransitionValues(history));
-        assertEquals("contains transisions", expectedContainsTransitions,
-                ValueHistoryTest.getTransitionValues(history.contains(value)));
+        assertEquals(Collections.EMPTY_SET, history.getFirstValue(), "Set at start of time");
+        assertEquals(expectedTransitions, ValueHistoryTest.getTransitionValues(history), "Transitions");
+        assertEquals(expectedContainsTransitions, ValueHistoryTest.getTransitionValues(history.contains(value)),
+                "contains transitions");
     }
 
     private static <VALUE> void addUntil(ModifiableSetHistory<VALUE> history, Duration when, VALUE value) {
@@ -108,12 +109,12 @@ public class ModifiableSetHistoryTest {
         assertInvariants(history);
         assertInvariants(history, value);
         final ValueHistory<Boolean> contains = history.contains(value);
-        assertSame("The first value of the contains history for the given value is TRUE.", Boolean.TRUE,
-                contains.getFirstValue());
-        assertSame("The value at the given time of the contains history for the given value is TRUE.", Boolean.TRUE,
-                contains.get(when));
-        assertTrue("The contains history for the given value has its first transition time after the given time.",
-                when.compareTo(contains.getFirstTansitionTime()) < 0);
+        assertSame(Boolean.TRUE, contains.getFirstValue(),
+                "The first value of the contains history for the given value is TRUE.");
+        assertSame(Boolean.TRUE, contains.get(when),
+                "The value at the given time of the contains history for the given value is TRUE.");
+        assertTrue(when.compareTo(contains.getFirstTansitionTime()) < 0,
+                "The contains history for the given value has its first transition time after the given time.");
     }
 
     private static <VALUE> void addUntil_1(Duration when, VALUE value) {
@@ -131,13 +132,13 @@ public class ModifiableSetHistoryTest {
         assertInvariants(history0, history1);
         assertInvariants(history1, history2);
 
-        assertEquals("Set at end of time", Collections.EMPTY_SET, history1.getLastValue());
-        assertEquals("Transitions", expectedTransitions, ValueHistoryTest.getTransitionValues(history1));
-        assertEquals("contains transisions", expectedContainsTransitions,
-                ValueHistoryTest.getTransitionValues(history1.contains(value)));
+        assertEquals(Collections.EMPTY_SET, history1.getLastValue(), "Set at end of time");
+        assertEquals(expectedTransitions, ValueHistoryTest.getTransitionValues(history1), "Transitions");
+        assertEquals(expectedContainsTransitions, ValueHistoryTest.getTransitionValues(history1.contains(value)),
+                "contains transisions");
 
-        assertNotEquals("Value semantics", history0, history1);
-        assertEquals("Value semantics", history1, history2);
+        assertNotEquals(history0, history1, "Value semantics");
+        assertEquals(history1, history2, "Value semantics");
     }
 
     private static <VALUE> void addUntil_2_differentValues(Duration when1, VALUE value1, Duration when2, VALUE value2) {
@@ -155,13 +156,13 @@ public class ModifiableSetHistoryTest {
 
         addUntil(history, when2, value2);
 
-        assertEquals("Set at start of time", Set.of(value1, value2), history.getFirstValue());
-        assertEquals("transitionTimes", expectedTransitionTimes, history.getTransitionTimes());
-        assertEquals("Transitions", expectedTransitions, ValueHistoryTest.getTransitionValues(history));
-        assertEquals("contains transisions [1]", expectedContainsTransitions1,
-                ValueHistoryTest.getTransitionValues(history.contains(value1)));
-        assertEquals("contains transisions [2]", expectedContainsTransitions2,
-                ValueHistoryTest.getTransitionValues(history.contains(value2)));
+        assertEquals(Set.of(value1, value2), history.getFirstValue(), "Set at start of time");
+        assertEquals(expectedTransitionTimes, history.getTransitionTimes(), "transitionTimes");
+        assertEquals(expectedTransitions, ValueHistoryTest.getTransitionValues(history), "Transitions");
+        assertEquals(expectedContainsTransitions1, ValueHistoryTest.getTransitionValues(history.contains(value1)),
+                "contains transisions [1]");
+        assertEquals(expectedContainsTransitions2, ValueHistoryTest.getTransitionValues(history.contains(value2)),
+                "contains transisions [2]");
     }
 
     private static <VALUE> void addUntil_2_sameValue(Duration when1, Duration when2, VALUE value) {
@@ -176,10 +177,10 @@ public class ModifiableSetHistoryTest {
 
         addUntil(history, when2, value);
 
-        assertEquals("Set at start of time", Collections.singleton(value), history.getFirstValue());
-        assertEquals("Transitions", expectedTransitions, ValueHistoryTest.getTransitionValues(history));
-        assertEquals("contains transitions", expectedContainsTransitions,
-                ValueHistoryTest.getTransitionValues(history.contains(value)));
+        assertEquals(Collections.singleton(value), history.getFirstValue(), "Set at start of time");
+        assertEquals(expectedTransitions, ValueHistoryTest.getTransitionValues(history), "Transitions");
+        assertEquals(expectedContainsTransitions, ValueHistoryTest.getTransitionValues(history.contains(value)),
+                "contains transitions");
     }
 
     private static <VALUE> Set<VALUE> assertFirstValueInvariants(ModifiableSetHistory<VALUE> history) {
@@ -211,10 +212,10 @@ public class ModifiableSetHistoryTest {
         assertInvariants(history);
         assertInvariants(history, value);
         final var contains = history.contains(value);
-        assertSame("This history does not contain the given value at any points in time [start of time].",
-                Boolean.FALSE, contains.getFirstValue());
-        assertTrue("This history does not contain the given value at any points in time [no transitions].",
-                contains.isEmpty());
+        assertSame(Boolean.FALSE, contains.getFirstValue(),
+                "This history does not contain the given value at any points in time [start of time].");
+        assertTrue(contains.isEmpty(),
+                "This history does not contain the given value at any points in time [no transitions].");
     }
 
     @Test
@@ -317,8 +318,8 @@ public class ModifiableSetHistoryTest {
         assertInvariants(history1);
         assertInvariants(history1, history2);
 
-        assertEquals("This has no transition times.", Collections.EMPTY_SET, history1.getTransitionTimes());
-        assertEquals("Value semantics", history1, history2);
+        assertEquals(Collections.EMPTY_SET, history1.getTransitionTimes(), "This has no transition times.");
+        assertEquals(history1, history2, "Value semantics");
 
         ValueHistoryTest.assertInvariants(history1, WHEN_1);
         ValueHistoryTest.assertInvariants(history1, WHEN_2);
@@ -333,8 +334,8 @@ public class ModifiableSetHistoryTest {
 
         remove(history, value2);
 
-        assertEquals("Whether this history contains other values is unchanged [1].", contains10,
-                history.contains(value1));
+        assertEquals(contains10, history.contains(value1),
+                "Whether this history contains other values is unchanged [1].");
     }
 
     @Test
