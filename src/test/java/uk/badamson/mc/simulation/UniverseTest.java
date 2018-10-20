@@ -7,6 +7,7 @@ import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsSame.sameInstance;
 import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
 import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -26,7 +27,6 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 import uk.badamson.mc.ObjectTest;
-import uk.badamson.mc.simulation.Universe.Transaction;
 
 /**
  * <p>
@@ -91,8 +91,8 @@ public class UniverseTest {
             for (var entry : dependencies.entrySet()) {
                 final UUID object = entry.getKey();
                 final ObjectStateId objectStateId = entry.getValue();
-                assertNotNull(object, "The dependency map does not have a null key.");// guard
-                assertNotNull(objectStateId, "The dependency map does not have null values.");// guard
+                assertAll(() -> assertNotNull(object, "The dependency map does not have a null key."), // guard
+                        () -> assertNotNull(objectStateId, "The dependency map does not have null values."));// guard
 
                 ObjectStateIdTest.assertInvariants(objectStateId);
                 assertSame(object, objectStateId.getObject(),
@@ -120,10 +120,10 @@ public class UniverseTest {
 
             assertNotNull(universe, "universe");// guard
 
-            UniverseTest.assertInvariants(universe);
-            assertObjectStatesReadInvariants(transaction);
-            assertObjectStatesWrittenInvariants(transaction);
-            assertDependenciesInvariants(transaction);
+            assertAll(() -> UniverseTest.assertInvariants(universe),
+                    () -> assertObjectStatesReadInvariants(transaction),
+                    () -> assertObjectStatesWrittenInvariants(transaction),
+                    () -> assertDependenciesInvariants(transaction));
         }
 
         public static void assertInvariants(Universe.Transaction transaction1, Universe.Transaction transaction2) {
@@ -172,12 +172,11 @@ public class UniverseTest {
             transaction.close();
 
             assertInvariants(transaction);
-            assertEquals(Collections.EMPTY_MAP, transaction.getDependencies(),
-                    "This transaction has no record of its dependencies.");
-            assertEquals(Collections.EMPTY_MAP, transaction.getObjectStatesRead(),
-                    "This transaction has no record of its object states read.");
-            assertEquals(Collections.EMPTY_MAP, transaction.getObjectStatesWritten(),
-                    "This transaction has no record of its object states written.");
+            assertAll("This transaction has no record of its",
+                    () -> assertEquals(Collections.EMPTY_MAP, transaction.getDependencies(), "dependencies."),
+                    () -> assertEquals(Collections.EMPTY_MAP, transaction.getObjectStatesRead(), "object states read."),
+                    () -> assertEquals(Collections.EMPTY_MAP, transaction.getObjectStatesWritten(),
+                            "object states written."));
             assertNull(transaction.getWhen(), "This transaction is in read mode.");
         }
 
@@ -230,8 +229,8 @@ public class UniverseTest {
 
             close(transaction2);
 
-            assertSame(state2, universe.getObjectState(object2, when4), "Rolled-back write [after]");
-            assertSame(state2, universe.getObjectState(object2, when3), "Rolled-back write [at]");
+            assertAll("Rolled-back write", () -> assertSame(state2, universe.getObjectState(object2, when4), "after"),
+                    () -> assertSame(state2, universe.getObjectState(object2, when3), "at"));
             assertFalse(transaction1.willAbortCommit(), "Read transaction will not abort");
         }
 
@@ -347,17 +346,16 @@ public class UniverseTest {
             final ObjectState objectState = transaction.getObjectState(object, when);
 
             assertInvariants(transaction);
-            assertThat(
-                    "The object state of for an object ID and point in time is either the same object state as can be got from the universe of this transaction, or is the same object state as has already read by this transaction.",
-                    objectState, anyOf(sameInstance(previouslyReadState), sameInstance(universeObjectState)));
-            assertTrue(wasPreviouslyRead || objectState == universeObjectState,
-                    "The object state of for an object ID and point in time that has not already been read by this transaction is the same object state as can be  got from the universe of this transaction.");
-            assertTrue(!wasPreviouslyRead || objectState == previouslyReadState,
-                    "The object state of for an object ID and point in time that has already been read by this transaction is the same object state as was read previously.");
-            assertThat("The method records the returned state as one of the read states (has key).", id,
-                    isIn(transaction.getObjectStatesRead().keySet()));
-            assertSame(objectState, transaction.getObjectStatesRead().get(id),
-                    "The method records the returned state as one of the read states (state).");
+            assertAll("The object state for an object ID and point in time", () -> assertThat(
+                    "is either the same object state as can be got from the universe of this transaction, or is the same object state as has already read by this transaction.",
+                    objectState, anyOf(sameInstance(previouslyReadState), sameInstance(universeObjectState))),
+                    () -> assertTrue(wasPreviouslyRead || objectState == universeObjectState,
+                            "that has not already been read by this transaction is the same object state as can be  got from the universe of this transaction."),
+                    () -> assertTrue(!wasPreviouslyRead || objectState == previouslyReadState,
+                            "that has already been read by this transaction is the same object state as was read previously."));
+            assertAll("The method records the returned state as one of the read states.",
+                    () -> assertThat("has key.", id, isIn(transaction.getObjectStatesRead().keySet())),
+                    () -> assertSame(objectState, transaction.getObjectStatesRead().get(id), "state"));
 
             return objectState;
         }
@@ -421,9 +419,10 @@ public class UniverseTest {
 
             put(transaction, object, objectState);
 
-            assertEquals(Collections.singleton(object), universe.getObjectIds(), "Object IDs");
-            assertEquals(objectStateId, universe.getStateTransitionIds(), "State transition IDs");
-            assertEquals(expectedHistory, universe.getObjectStateHistory(object), "Object state history");
+            assertAll(() -> assertEquals(Collections.singleton(object), universe.getObjectIds(), "Object IDs"),
+                    () -> assertEquals(objectStateId, universe.getStateTransitionIds(), "State transition IDs"),
+                    () -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
+                            "Object state history"));
         }
 
         private static void put_1PrehistoricDependency(final Duration when1, final Duration earliestCompleteState,
@@ -1023,8 +1022,7 @@ public class UniverseTest {
 
         assertNotNull(earliestTimeOfCompleteState, "Always have a earliest complete state time-stamp.");
 
-        assertObjectIdsInvariants(universe);
-        assertStateTransitionIdsInvariants(universe);
+        assertAll(() -> assertObjectIdsInvariants(universe), () -> assertStateTransitionIdsInvariants(universe));
     }
 
     public static void assertInvariants(Universe universe1, Universe universe2) {
@@ -1079,51 +1077,22 @@ public class UniverseTest {
     }
 
     private static void assertUnknownObjectInvariants(Universe universe, UUID object) {
-        assertThat("Not a known object ID", object, not(isIn(universe.getObjectIds())));
-        assertNull(universe.getObjectStateHistory(object),
-                "A universe has an object state history for a given object only if "
-                        + "that object is one of the objects in the universe.");
-        assertNull(universe.getWhenFirstState(object),
-                "An object has a first state time-stamp only if it is a known object.");
-        assertNull(universe.getObjectState(object, DURATION_1),
-                "Unknown objects have an unknown state for all points in time.");
-        assertNull(universe.getObjectState(object, DURATION_2),
-                "Unknown objects have an unknown state for all points in time.");
+        assertAll(() -> assertThat("Not a known object ID", object, not(isIn(universe.getObjectIds()))),
+                () -> assertNull(universe.getObjectStateHistory(object),
+                        "A universe has an object state history for a given object only if "
+                                + "that object is one of the objects in the universe."),
+                () -> assertNull(universe.getWhenFirstState(object),
+                        "An object has a first state time-stamp only if it is a known object."),
+                () -> assertNull(universe.getObjectState(object, DURATION_1),
+                        "Unknown objects have an unknown state for all points in time."),
+                () -> assertNull(universe.getObjectState(object, DURATION_2),
+                        "Unknown objects have an unknown state for all points in time."));
     }
 
     private static void assertUnknownObjectStateInvariants(Universe universe, ObjectStateId state) {
         assertNull(universe.getStateTransition(state),
                 "Have a state transition only if the given object state ID is one of the known object state IDs of this universe.");
     }
-
-    /**
-     * <p>
-     * Get the number of pending (not yet {@linkplain Transaction#commit()
-     * committed}) {@linkplain Transaction transactions} that state of a given
-     * object at a given point in time depend on.
-     * </p>
-     * <ul>
-     * <li>The number of pending transactions for an object and time is non
-     * negative.</li>
-     * <li>Unknown {@linkplain #getObjectIds() objects} have no pending transactions
-     * for all points in time.</li>
-     * <li>The number of pending transactions for known {@linkplain #getObjectIds()
-     * objects} is zero only at points in time when then object state has been
-     * committed by a {@linkplain Transaction transactions}.</li>
-     * </ul>
-     * 
-     * @param object
-     *            The ID of the object of interest.
-     * @param when
-     *            The point in time of interest.
-     * @return The number of pending transactions for the given object at the given
-     *         point in time.
-     * @throws NullPointerException
-     *             <ul>
-     *             <li>If {@code object} is null.</li>
-     *             <li>If {@code when} is null.</li>
-     *             </ul>
-     */
 
     private static Universe.Transaction beginTransaction(final Universe universe) {
         final Universe.Transaction transaction = universe.beginTransaction();
@@ -1132,15 +1101,18 @@ public class UniverseTest {
         assertInvariants(universe);
         TransactionTest.assertInvariants(transaction);
 
-        assertSame(universe, transaction.getUniverse(),
-                "The universe of the returned transaction is this transaction.");
-        assertEquals(Collections.EMPTY_MAP, transaction.getObjectStatesRead(),
-                "The returned transaction has not read any object states.");
-        assertEquals(Collections.EMPTY_MAP, transaction.getObjectStatesWritten(),
-                "The returned transaction has not written any object states.");
-        assertFalse(transaction.isCommitted(), "The committed flag of the returned transaction is clear.");
-        assertFalse(transaction.willAbortCommit(), "The commit abort flag of the return transaction is clear");
-        assertNull(transaction.getWhen(), "The returned transaction is in in read mode.");
+        assertAll(
+                () -> assertSame(universe, transaction.getUniverse(),
+                        "The universe of the returned transaction is this transaction."),
+                () -> assertEquals(Collections.EMPTY_MAP, transaction.getObjectStatesRead(),
+                        "The returned transaction has not read any object states."),
+                () -> assertEquals(Collections.EMPTY_MAP, transaction.getObjectStatesWritten(),
+                        "The returned transaction has not written any object states."),
+                () -> assertFalse(transaction.isCommitted(),
+                        "The committed flag of the returned transaction is clear."),
+                () -> assertFalse(transaction.willAbortCommit(),
+                        "The commit abort flag of the return transaction is clear"),
+                () -> assertNull(transaction.getWhen(), "The returned transaction is in in read mode."));
 
         return transaction;
     }
