@@ -3,9 +3,9 @@ package uk.badamson.mc.simulation;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsSame.sameInstance;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -33,18 +33,18 @@ public class ObjectStateIdTest {
         final UUID objectId = id.getObject();
         final Duration when = id.getWhen();
 
-        assertNotNull("objectId", objectId);
-        assertNotNull("when", when);
+        assertNotNull(objectId, "objectId");
+        assertNotNull(when, "when");
     }
 
     public static void assertInvariants(ObjectStateId id1, ObjectStateId id2) {
         ObjectTest.assertInvariants(id1, id2);// inherited
 
         final boolean equals = id1.equals(id2);
-        assertFalse("ObjectStateId objects are equivalent only if they have equals object IDs",
-                equals && !id1.getObject().equals(id2.getObject()));
-        assertFalse("ObjectStateId objects are equivalent only if they have equals timestamps",
-                equals && !id1.getWhen().equals(id2.getWhen()));
+        assertFalse(equals && !id1.getObject().equals(id2.getObject()),
+                "ObjectStateId objects are equivalent only if they have equals object IDs");
+        assertFalse(equals && !id1.getWhen().equals(id2.getWhen()),
+                "ObjectStateId objects are equivalent only if they have equals timestamps");
     }
 
     private static void constructor(UUID object, Duration when) {

@@ -163,6 +163,7 @@ public class ModifiableSetHistoryTest {
                     "The contains history for the given value has its last transition time is at or before the given time.");
         }
     }// class
+
     @Nested
     public class AddUntil {
 
@@ -308,6 +309,7 @@ public class ModifiableSetHistoryTest {
                     "The contains history for the given value has its first transition time after the given time.");
         }
     }// class
+
     @Nested
     public class Remove {
 
