@@ -3,7 +3,7 @@ package uk.badamson.mc.simulation;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * <p>
@@ -103,8 +103,9 @@ public class ObjectStateTest {
                     "The points in time for which the method fetches state information must be before the given point in time.",
                     dependencyWhen, lessThanOrEqualTo(when));
             assertTrue(
-                    "The points in time for which the method fetches state information must be before the given point in time.",
-                    dependencyObject.equals(object) || dependencyWhen.compareTo(when) < 0);
+
+                    dependencyObject.equals(object) || dependencyWhen.compareTo(when) < 0,
+                    "The points in time for which the method fetches state information must be before the given point in time.");
         }
     }
 
