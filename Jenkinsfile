@@ -35,29 +35,25 @@ pipeline {
         }
     }
     stages {
-        stage('Configure') { 
-            steps {
-                script{
-                    configFileProvider([configFile(fileId: 'maven-settings')]){
-                        echo 'Set up Maven settings file'
-                    }
-
-                }
-            }
-        } 
         stage('Build') { 
-            steps { 
-               sh 'mvn -s settings.xml clean package'
+            steps {
+                configFileProvider([configFile(fileId: 'maven-settings', variable: 'MAVEN_SETTINGS')]){ 
+                    sh 'mvn -s $MAVEN_SETTINGS clean package'
+                }
             }
         }
         stage('Check') { 
-            steps { 
-               sh 'mvn -s settings.xml spotbugs:spotbugs'
+            steps {
+                configFileProvider([configFile(fileId: 'maven-settings', variable: 'MAVEN_SETTINGS')]){  
+                    sh 'mvn -s $MAVEN_SETTINGS spotbugs:spotbugs'
+                }
             }
         }
         stage('Test') { 
-            steps { 
-               sh 'mvn -s settings.xml test'
+            steps {
+               configFileProvider([configFile(fileId: 'maven-settings', variable: 'MAVEN_SETTINGS')]){   
+                   sh 'mvn -s $MAVEN_SETTINGS test'
+               }
             }
         }
         stage('Deploy') {
@@ -67,8 +63,10 @@ pipeline {
                     branch 'master';
                 }
             }
-            steps { 
-               sh 'mvn -s settings.xml deploy'
+            steps {
+                configFileProvider([configFile(fileId: 'maven-settings', variable: 'MAVEN_SETTINGS')]){ 
+                    sh 'mvn -s $MAVEN_SETTINGS deploy'
+                }
             }
         }
     }
