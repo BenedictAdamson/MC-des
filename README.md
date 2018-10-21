@@ -27,7 +27,7 @@ along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
 * [Java 10](https://docs.oracle.com/javase/10/)
 * Annotations:
     * [JCIP annotations](http://jcip.net/annotations/doc/net/jcip/annotations/package-summary.html)
-    * [SpotBugs annotations)[https://javadoc.io/doc/com.github.spotbugs/spotbugs-annotations/3.1.8]
+    * [SpotBugs annotations](https://javadoc.io/doc/com.github.spotbugs/spotbugs-annotations/3.1.8)
 * Development environment:
     * [Eclipse IDE](https://www.eclipse.org/ide/)
     * [Jenkins Editor](https://github.com/de-jcup/eclipse-jenkins-editor)
@@ -38,9 +38,11 @@ along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
      * [GitHub](https://github.com)
 * Building:
     * [Maven](https://maven.apache.org/)
+    * [SpotBugs Maven plugin](https://spotbugs.github.io/spotbugs-maven-plugin/index.html)
     * [Jenkins](https://jenkins.io/)
     * [Docker](https://www.docker.com/)
     * [Ubuntu 18.04](http://releases.ubuntu.com/18.04/)
-* Testing:
+* Static analysis and testing:
     * [JUnit 5](https://junit.org/junit5/)
     * [Java Hamcrest](http://hamcrest.org/JavaHamcrest/)
+    * [SpotBugs](https://spotbugs.github.io/)
