@@ -51,7 +51,7 @@ pipeline {
             when {
                 anyOf{
                     branch 'develop';
-                    branch buildingTag();
+                    branch 'master';
                 }
             }
             steps { 
