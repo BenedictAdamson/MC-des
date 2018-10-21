@@ -78,5 +78,8 @@ pipeline {
             }
             junit 'target/surefire-reports/**/*.xml' 
         }
+        success {
+            archiveArtifacts artifacts: 'target/MC-des-*.jar', fingerprint: true
+        }
     }
 }
