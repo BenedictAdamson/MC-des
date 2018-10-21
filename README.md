@@ -25,9 +25,16 @@ along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
 ## Technologies Used
 
 * [Java 10](https://docs.oracle.com/javase/10/)
-* [JUnit 5](https://junit.org/junit5/)
-* [Java Hamcrest](http://hamcrest.org/JavaHamcrest/)
-* [Maven](https://maven.apache.org/)
 * [JCIP annotations](http://jcip.net/annotations/doc/net/jcip/annotations/package-summary.html)
-* [Git](https://git-scm.com/)
-* [Eclipse IDE](https://www.eclipse.org/ide/)
+* Development environment:
+    * [Eclipse IDE](https://www.eclipse.org/ide/)
+    * [Jenkins Editor](https://github.com/de-jcup/eclipse-jenkins-editor)
+* Software configuration management:
+     * [Git](https://git-scm.com/)
+     * [GitHub](https://github.com)
+* Building:
+    * [Maven](https://maven.apache.org/)
+    * [Jenkins](https://jenkins.io/)
+* Testing:
+    * [JUnit 5](https://junit.org/junit5/)
+    * [Java Hamcrest](http://hamcrest.org/JavaHamcrest/)
