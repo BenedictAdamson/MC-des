@@ -35,6 +35,7 @@ along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
 * Building:
     * [Maven](https://maven.apache.org/)
     * [Jenkins](https://jenkins.io/)
+    * [Docker](https://www.docker.com/)
 * Testing:
     * [JUnit 5](https://junit.org/junit5/)
     * [Java Hamcrest](http://hamcrest.org/JavaHamcrest/)
