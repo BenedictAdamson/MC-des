@@ -36,8 +36,10 @@ pipeline {
     }
     stages {
         stage('Configure') { 
-            steps { 
-               configFileProvider ["maven-settings"]
+            steps {
+                script{
+                    configFileProvider ["maven-settings"]
+                }
             }
         } 
         stage('Build') { 
