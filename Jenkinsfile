@@ -32,6 +32,11 @@ pipeline {
                sh 'mvn clean package'
             }
         }
+        stage('Check') { 
+            steps { 
+               sh 'mvn spotbugs:spotbugs'
+            }
+        }
         stage('Test') { 
             steps { 
                sh 'mvn test'
@@ -39,7 +44,9 @@ pipeline {
         }
     }
     post {
-        always {// We ESPECIALLY want the test reports on failure
+        always {// We ESPECIALLY want the reports on failure
+            publisIssues(scanForIssues(tool: 'SpotBugs', pattern: 'target/spotbugsXml.xml'))
+            publishIssues;
             junit 'target/surefire-reports/**/*.xml' 
         }
     }
