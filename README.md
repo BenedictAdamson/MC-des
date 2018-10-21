@@ -16,3 +16,4 @@ Licensed using the [GNU GENERAL PUBLIC LICENSE](https://www.gnu.org/licenses/gpl
 * [Maven](https://maven.apache.org/)
 * [JCIP annotations](http://jcip.net/annotations/doc/net/jcip/annotations/package-summary.html)
 * [Git](https://git-scm.com/)
+* [Eclipse IDE](https://www.eclipse.org/ide/)
