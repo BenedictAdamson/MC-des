@@ -38,7 +38,7 @@ pipeline {
         stage('Configure') { 
             steps {
                 script{
-                    configFileProvider ["maven-settings"]
+                    configFileProvider managedFiles:["maven-settings"]
                 }
             }
         } 
