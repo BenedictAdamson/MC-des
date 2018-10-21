@@ -28,6 +28,7 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.stream.Stream;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import net.jcip.annotations.Immutable;
 import net.jcip.annotations.NotThreadSafe;
 
@@ -137,7 +138,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
      * 
      * @see #setValueFrom(Duration, Object)
      */
-    public void appendTransition(Duration when, VALUE value) throws IllegalStateException {
+    public void appendTransition(@NonNull Duration when, VALUE value) throws IllegalStateException {
         Objects.requireNonNull(when, "when");
         final var lastTransition = transitions.lastEntry();
         if (lastTransition != null && when.compareTo(lastTransition.getKey()) <= 0) {
@@ -189,7 +190,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
      *             If {@code when} is null.
      */
     @Override
-    public final VALUE get(Duration t) {
+    public final VALUE get(@NonNull Duration t) {
         Objects.requireNonNull(t, "t");
         final var previousTransition = transitions.floorEntry(t);
         return previousTransition == null ? firstValue : previousTransition.getValue();
@@ -287,7 +288,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
     }
 
     @Override
-    public final SortedMap<Duration, VALUE> getTransitions() {
+    public final @NonNull SortedMap<Duration, VALUE> getTransitions() {
         return new TreeMap<>(transitions);
     }
 
@@ -317,7 +318,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
      * @return the transition times
      */
     @Override
-    public final SortedSet<Duration> getTransitionTimes() {
+    public final @NonNull SortedSet<Duration> getTransitionTimes() {
         return Collections.unmodifiableSortedSet(transitions.navigableKeySet());
     }
 
@@ -368,7 +369,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
      * 
      * @see #appendTransition(Duration, Object)
      */
-    public final void removeStateTransitionsFrom(Duration when) {
+    public final void removeStateTransitionsFrom(@NonNull Duration when) {
         Objects.requireNonNull(when, "when");
         transitions.keySet().removeIf(t -> when.compareTo(t) <= 0);
     }
@@ -404,7 +405,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
      * @see #appendTransition(Duration, Object)
      * @see #setValueUntil(Duration, Object)
      */
-    public final void setValueFrom(Duration when, VALUE value) {
+    public final void setValueFrom(@NonNull Duration when, VALUE value) {
         Objects.requireNonNull(when, "when");
         if (when.equals(START_OF_TIME)) {
             clear(value);
@@ -446,7 +447,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
      * 
      * @see #setValueFrom(Duration, Object)
      */
-    public final void setValueUntil(Duration when, VALUE value) {
+    public final void setValueUntil(@NonNull Duration when, VALUE value) {
         Objects.requireNonNull(when, "when");
         if (when.equals(END_OF_TIME)) {
             clear(value);
@@ -461,7 +462,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
     }
 
     @Override
-    public final Stream<Entry<Duration, VALUE>> streamOfTransitions() {
+    public final @NonNull Stream<Entry<Duration, VALUE>> streamOfTransitions() {
         return transitions.entrySet().stream();
     }
 

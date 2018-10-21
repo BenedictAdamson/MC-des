@@ -27,6 +27,7 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.stream.Stream;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import net.jcip.annotations.Immutable;
 import net.jcip.annotations.NotThreadSafe;
 
@@ -89,7 +90,7 @@ public interface ValueHistory<VALUE> {
      * @throws NullPointerException
      *             If {@code when} is null.
      */
-    public VALUE get(Duration t);
+    public VALUE get(@NonNull Duration t);
 
     /**
      * <p>
@@ -194,7 +195,7 @@ public interface ValueHistory<VALUE> {
      * 
      * @return a map of the transitions.
      */
-    public SortedMap<Duration, VALUE> getTransitions();
+    public @NonNull SortedMap<Duration, VALUE> getTransitions();
 
     /**
      * <p>
@@ -222,7 +223,7 @@ public interface ValueHistory<VALUE> {
      * 
      * @return the transition times
      */
-    public SortedSet<Duration> getTransitionTimes();
+    public @NonNull SortedSet<Duration> getTransitionTimes();
 
     /**
      * <p>
@@ -271,6 +272,6 @@ public interface ValueHistory<VALUE> {
      * 
      * @return a stream of the transitions.
      */
-    public Stream<Map.Entry<Duration, VALUE>> streamOfTransitions();
+    public @NonNull Stream<Map.Entry<Duration, VALUE>> streamOfTransitions();
 
 }

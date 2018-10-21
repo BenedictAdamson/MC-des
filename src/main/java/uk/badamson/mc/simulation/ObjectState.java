@@ -21,6 +21,7 @@ package uk.badamson.mc.simulation;
 import java.time.Duration;
 import java.util.UUID;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import net.jcip.annotations.Immutable;
 
 /**
@@ -87,5 +88,6 @@ public interface ObjectState {
      *             than an entry for this state with the given object ID and
      *             time-stamp.
      */
-    public abstract void putNextStateTransition(Universe.Transaction transaction, UUID object, Duration when);
+    public abstract void putNextStateTransition(@NonNull Universe.Transaction transaction, @NonNull UUID object,
+            @NonNull Duration when);
 }

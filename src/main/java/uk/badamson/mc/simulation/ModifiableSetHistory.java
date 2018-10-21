@@ -33,6 +33,7 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import net.jcip.annotations.Immutable;
 import net.jcip.annotations.NotThreadSafe;
 
@@ -102,7 +103,7 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
      * @see ModifiableValueHistory#setValueFrom(Duration, Object)
      * @see Set#add(Object)
      */
-    public final void addFrom(Duration when, VALUE value) {
+    public final void addFrom(@NonNull Duration when, VALUE value) {
         Objects.requireNonNull(when, "when");
         var c = containsMap.get(value);
         if (c == null) {
@@ -146,7 +147,7 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
      * @see ModifiableValueHistory#setValueUntil(Duration, Object)
      * @see Set#add(Object)
      */
-    public final void addUntil(Duration when, VALUE value) {
+    public final void addUntil(@NonNull Duration when, VALUE value) {
         Objects.requireNonNull(when, "when");
         var c = containsMap.get(value);
         if (c == null) {
@@ -158,7 +159,7 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
     }
 
     @Override
-    public final ValueHistory<Boolean> contains(VALUE value) {
+    public final @NonNull ValueHistory<Boolean> contains(VALUE value) {
         final var c = containsMap.get(value);
         return c == null ? ABSENT : c;
     }
@@ -184,7 +185,7 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
     }
 
     @Override
-    public final Set<VALUE> get(Duration t) {
+    public final @NonNull Set<VALUE> get(@NonNull Duration t) {
         Objects.requireNonNull(t, "t");
         Set<VALUE> result = containsMap.entrySet().stream().filter(e -> e.getValue().get(t).booleanValue())
                 .map(e -> e.getKey()).collect(Collectors.toSet());
@@ -198,7 +199,7 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
     }
 
     @Override
-    public final Set<VALUE> getFirstValue() {
+    public final @NonNull Set<VALUE> getFirstValue() {
         return Collections.unmodifiableSet(firstValue);
     }
 
@@ -209,12 +210,12 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
     }
 
     @Override
-    public final Set<VALUE> getLastValue() {
+    public final @NonNull Set<VALUE> getLastValue() {
         return get(END_OF_TIME);
     }
 
     @Override
-    public final SortedMap<Duration, Set<VALUE>> getTransitions() {
+    public final @NonNull SortedMap<Duration, Set<VALUE>> getTransitions() {
         final SortedMap<Duration, Set<VALUE>> transitions = new TreeMap<>();
         for (var t : getTransitionTimes()) {
             transitions.put(t, get(t));
@@ -223,7 +224,7 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
     }
 
     @Override
-    public final SortedSet<Duration> getTransitionTimes() {
+    public final @NonNull SortedSet<Duration> getTransitionTimes() {
         return new TreeSet<>(streamOfTransitionTimes().collect(Collectors.toSet()));
     }
 
@@ -260,7 +261,7 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
     }
 
     @Override
-    public final Stream<Map.Entry<Duration, Set<VALUE>>> streamOfTransitions() {
+    public final @NonNull Stream<Map.Entry<Duration, Set<VALUE>>> streamOfTransitions() {
         return streamOfTransitionTimes().map(t -> new AbstractMap.SimpleImmutableEntry<>(t, get(t)));
     }
 

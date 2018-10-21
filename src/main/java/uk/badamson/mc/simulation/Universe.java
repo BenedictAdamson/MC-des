@@ -31,6 +31,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import net.jcip.annotations.NotThreadSafe;
 
 /**
@@ -153,7 +154,7 @@ public class Universe {
          *             method has already been called for this transaction.</li>
          *             </ul>
          */
-        public final void beginWrite(Duration when) {
+        public final void beginWrite(@NonNull Duration when) {
             Objects.requireNonNull(when, "when");
             if (objectStatesRead.keySet().stream().map(id -> id.getWhen()).filter(t -> 0 <= t.compareTo(when)).findAny()
                     .orElse(null) != null) {
@@ -280,7 +281,7 @@ public class Universe {
          * 
          * @return The dependency information
          */
-        public final Map<UUID, ObjectStateId> getDependencies() {
+        public final @NonNull Map<UUID, ObjectStateId> getDependencies() {
             return new HashMap<>(dependencies);
         }
 
@@ -325,7 +326,7 @@ public class Universe {
          *             requested object is not one of the
          *             {@linkplain #getObjectStatesRead() object states already read}.
          */
-        public final ObjectState getObjectState(UUID object, Duration when) {
+        public final ObjectState getObjectState(@NonNull UUID object, @NonNull Duration when) {
             ObjectStateId id = new ObjectStateId(object, when);
             if (this.when != null) {
                 throw new IllegalStateException("In write mode");
@@ -373,7 +374,7 @@ public class Universe {
          * @return the object states read.
          * @see Universe#getObjectState(UUID, Duration)
          */
-        public final Map<ObjectStateId, ObjectState> getObjectStatesRead() {
+        public final @NonNull Map<ObjectStateId, ObjectState> getObjectStatesRead() {
             return Collections.unmodifiableMap(objectStatesRead);
         }
 
@@ -401,7 +402,7 @@ public class Universe {
          * 
          * @see Universe#getObjectState(UUID, Duration)
          */
-        public final Map<UUID, ObjectState> getObjectStatesWritten() {
+        public final @NonNull Map<UUID, ObjectState> getObjectStatesWritten() {
             return Collections.unmodifiableMap(objectStatesWritten);
         }
 
@@ -412,7 +413,7 @@ public class Universe {
          * 
          * @return the universe; not null.
          */
-        public final Universe getUniverse() {
+        public final @NonNull Universe getUniverse() {
             return Universe.this;
         }
 
@@ -467,7 +468,7 @@ public class Universe {
          *             If this transaction is not in write mode (because its
          *             {@link #beginWrite(Duration)} method has not been called)
          */
-        public final void put(UUID object, ObjectState state) {
+        public final void put(@NonNull UUID object, ObjectState state) {
             Objects.requireNonNull(object, "object");
             if (when == null) {
                 throw new IllegalStateException("Not in write mode");

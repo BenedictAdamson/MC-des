@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.UUID;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import net.jcip.annotations.Immutable;
 
 /**
@@ -58,7 +59,7 @@ public final class ObjectStateId {
      *             <li>If {@code when} is null.</li>
      *             </ul>
      */
-    public ObjectStateId(UUID object, Duration when) {
+    public ObjectStateId(@NonNull UUID object, @NonNull Duration when) {
         this.object = Objects.requireNonNull(object, "object");
         this.when = Objects.requireNonNull(when, "when");
     }
@@ -97,7 +98,7 @@ public final class ObjectStateId {
      * 
      * @return The object ID; not null.
      */
-    public final UUID getObject() {
+    public final @NonNull UUID getObject() {
         return object;
     }
 
@@ -113,7 +114,7 @@ public final class ObjectStateId {
      * 
      * @return the amount of time since the epoch; not null.
      */
-    public final Duration getWhen() {
+    public final @NonNull Duration getWhen() {
         return when;
     }
 
