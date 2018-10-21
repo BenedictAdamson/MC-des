@@ -47,6 +47,18 @@ pipeline {
                sh 'mvn test'
             }
         }
+        stage('Deploy') { 
+            steps { 
+               sh 'mvn deploy'
+            }
+        }
+        when {
+            anyOf{
+                branch 'master';
+                branch 'develop';
+                branch buildingTag();
+             }
+           }
     }
     post {
         always {// We ESPECIALLY want the reports on failure
