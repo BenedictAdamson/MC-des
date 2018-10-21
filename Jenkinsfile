@@ -37,10 +37,10 @@ pipeline {
                sh 'mvn test'
             }
         }
-        post {
-            always {
-                junit 'target/surefire-reports/**/*.xml' 
-            }
+    }
+    post {
+        always {// We ESPECIALLY want the test reports on failure
+            junit 'target/surefire-reports/**/*.xml' 
         }
     }
 }
