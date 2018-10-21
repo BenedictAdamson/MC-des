@@ -29,6 +29,7 @@ along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
 * Development environment:
     * [Eclipse IDE](https://www.eclipse.org/ide/)
     * [Jenkins Editor](https://github.com/de-jcup/eclipse-jenkins-editor)
+    * [Eclipse Docker Tooling](https://marketplace.eclipse.org/content/eclipse-docker-tooling)
 * Software configuration management:
      * [Git](https://git-scm.com/)
      * [GitHub](https://github.com)
@@ -36,6 +37,7 @@ along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
     * [Maven](https://maven.apache.org/)
     * [Jenkins](https://jenkins.io/)
     * [Docker](https://www.docker.com/)
+    * [Debian 9](https://www.debian.org/releases/stretch/)
 * Testing:
     * [JUnit 5](https://junit.org/junit5/)
     * [Java Hamcrest](http://hamcrest.org/JavaHamcrest/)
