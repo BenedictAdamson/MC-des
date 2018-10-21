@@ -45,8 +45,7 @@ pipeline {
     }
     post {
         always {// We ESPECIALLY want the reports on failure
-            publisIssues(scanForIssues(tool: 'SpotBugs', pattern: 'target/spotbugsXml.xml'))
-            publishIssues;
+            publishIssues(scanForIssues(tool: 'SpotBugs', pattern: 'target/spotbugsXml.xml'))
             junit 'target/surefire-reports/**/*.xml' 
         }
     }
