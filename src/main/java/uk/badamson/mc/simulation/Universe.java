@@ -218,6 +218,13 @@ public class Universe {
          * <p>
          * Complete this transaction.
          * </p>
+         * <p>
+         * The transaction {@linkplain #willBlockCommit() may block}, awaiting commits
+         * by other transactions, before committing or aborting. Therefore it is usually
+         * and error for one tread to {@linkplain Universe#beginTransaction() begin} a
+         * second transaction before committing or {@linkplain #close() closing} the
+         * first transaction. Trying to do so is likely to result in deadlock.
+         * </p>
          * <ul>
          * <li>If this transaction included a {@linkplain #put(ObjectState) put} (write)
          * of an object state, that object state has been recorded in the
@@ -609,6 +616,13 @@ public class Universe {
     /**
      * <p>
      * Begin a new transaction for changing the state of this {@link Universe}.
+     * </p>
+     * <p>
+     * Transaction {@linkplain Universe.Transaction#willBlockCommit() may block when
+     * committing them is attempted}, because they are awaiting commits by other
+     * transactions. Therefore it is usually and error for one tread to begin a
+     * second transaction before committing or {@linkplain #close() closing} the
+     * first transaction. Trying to do so is likely to result in deadlock.
      * </p>
      * <ul>
      * <li>Always returns a (non null) transaction.</li>
