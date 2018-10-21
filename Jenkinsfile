@@ -31,7 +31,7 @@ pipeline {
     agent {
         dockerfile {
             filename 'Jenkins.Dockerfile'
-            args '-v $HOME/.m2:/root/.m2'
+            args '-v $HOME/.m2:/root/.m2 --network="host"'
         }
     }
     stages {
