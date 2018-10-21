@@ -126,7 +126,6 @@ public class ModifiableValueHistoryTest {
                     final String value1 = "Value";
                     final String value2 = new String(value1);
                     assert value1.equals(value2);
-                    assert value1 != value2;// tough test
 
                     appendTransition_2InvalidState(WHEN_1, Boolean.FALSE, WHEN_2, Boolean.FALSE);
                 }

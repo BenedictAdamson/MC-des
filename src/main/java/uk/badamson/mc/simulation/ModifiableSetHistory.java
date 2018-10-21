@@ -229,9 +229,7 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
 
     @Override
     public final int hashCode() {
-        final Set<VALUE> firstValue = getFirstValue();
-        return (firstValue == null ? 0 : firstValue.hashCode())
-                + streamOfTransitions().mapToInt(entry -> entry.hashCode()).sum();
+        return getFirstValue().hashCode() + streamOfTransitions().mapToInt(entry -> entry.hashCode()).sum();
     }
 
     @Override
