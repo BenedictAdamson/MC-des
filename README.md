@@ -37,7 +37,7 @@ along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
     * [Maven](https://maven.apache.org/)
     * [Jenkins](https://jenkins.io/)
     * [Docker](https://www.docker.com/)
-    * [Debian 9](https://www.debian.org/releases/stretch/)
+    * [Ubuntu 18.04](http://releases.ubuntu.com/18.04/)
 * Testing:
     * [JUnit 5](https://junit.org/junit5/)
     * [Java Hamcrest](http://hamcrest.org/JavaHamcrest/)

@@ -19,7 +19,7 @@
 # along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-FROM debian:9
+FROM ubuntu:18.04
 RUN apt-get update && apt-get install \
    maven \
    openjdk-11-jdk-headless
