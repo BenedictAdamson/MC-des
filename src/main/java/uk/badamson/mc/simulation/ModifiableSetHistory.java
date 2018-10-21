@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import net.jcip.annotations.Immutable;
 import net.jcip.annotations.NotThreadSafe;
 
@@ -103,7 +104,7 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
      * @see ModifiableValueHistory#setValueFrom(Duration, Object)
      * @see Set#add(Object)
      */
-    public final void addFrom(@NonNull Duration when, VALUE value) {
+    public final void addFrom(@NonNull Duration when, @Nullable VALUE value) {
         Objects.requireNonNull(when, "when");
         var c = containsMap.get(value);
         if (c == null) {
@@ -147,7 +148,7 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
      * @see ModifiableValueHistory#setValueUntil(Duration, Object)
      * @see Set#add(Object)
      */
-    public final void addUntil(@NonNull Duration when, VALUE value) {
+    public final void addUntil(@NonNull Duration when, @Nullable VALUE value) {
         Objects.requireNonNull(when, "when");
         var c = containsMap.get(value);
         if (c == null) {
@@ -159,7 +160,7 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
     }
 
     @Override
-    public final @NonNull ValueHistory<Boolean> contains(VALUE value) {
+    public final @NonNull ValueHistory<Boolean> contains(@Nullable VALUE value) {
         final var c = containsMap.get(value);
         return c == null ? ABSENT : c;
     }
@@ -193,7 +194,7 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
     }
 
     @Override
-    public final Duration getFirstTansitionTime() {
+    public final @Nullable Duration getFirstTansitionTime() {
         return containsMap.values().stream().map(contains -> contains.getFirstTansitionTime())
                 .min((t1, t2) -> t1.compareTo(t2)).orElse(null);
     }
@@ -204,7 +205,7 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
     }
 
     @Override
-    public final Duration getLastTansitionTime() {
+    public final @Nullable Duration getLastTansitionTime() {
         return containsMap.values().stream().map(contains -> contains.getLastTansitionTime())
                 .max((t1, t2) -> t1.compareTo(t2)).orElse(null);
     }
@@ -255,7 +256,7 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
      * 
      * @see Set#remove(Object)
      */
-    public final void remove(VALUE value) {
+    public final void remove(@Nullable VALUE value) {
         containsMap.remove(value);
         firstValue.remove(value);
     }

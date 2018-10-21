@@ -28,6 +28,7 @@ import java.util.SortedSet;
 import java.util.stream.Stream;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import net.jcip.annotations.Immutable;
 import net.jcip.annotations.NotThreadSafe;
 
@@ -90,7 +91,7 @@ public interface ValueHistory<VALUE> {
      * @throws NullPointerException
      *             If {@code when} is null.
      */
-    public VALUE get(@NonNull Duration t);
+    public @Nullable VALUE get(@NonNull Duration t);
 
     /**
      * <p>
@@ -110,7 +111,7 @@ public interface ValueHistory<VALUE> {
      * 
      * @return the first transition time.
      */
-    public Duration getFirstTansitionTime();
+    public @Nullable Duration getFirstTansitionTime();
 
     /**
      * <p>
@@ -127,7 +128,7 @@ public interface ValueHistory<VALUE> {
      * 
      * @return the last value.
      */
-    public VALUE getFirstValue();
+    public @Nullable VALUE getFirstValue();
 
     /**
      * <p>
@@ -147,7 +148,7 @@ public interface ValueHistory<VALUE> {
      * 
      * @return the last transition time.
      */
-    public Duration getLastTansitionTime();
+    public @Nullable Duration getLastTansitionTime();
 
     /**
      * <p>
@@ -170,7 +171,7 @@ public interface ValueHistory<VALUE> {
      * 
      * @return the last value.
      */
-    public VALUE getLastValue();
+    public @Nullable VALUE getLastValue();
 
     /**
      * <p>

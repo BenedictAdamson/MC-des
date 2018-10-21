@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import net.jcip.annotations.NotThreadSafe;
 
 /**
@@ -326,7 +327,7 @@ public class Universe {
          *             requested object is not one of the
          *             {@linkplain #getObjectStatesRead() object states already read}.
          */
-        public final ObjectState getObjectState(@NonNull UUID object, @NonNull Duration when) {
+        public final @Nullable ObjectState getObjectState(@NonNull UUID object, @NonNull Duration when) {
             ObjectStateId id = new ObjectStateId(object, when);
             if (this.when != null) {
                 throw new IllegalStateException("In write mode");
@@ -425,7 +426,7 @@ public class Universe {
          * 
          * @return the time-stamp, or null if this transaction is (still) in read mode.
          */
-        public final Duration getWhen() {
+        public final @Nullable Duration getWhen() {
             return when;
         }
 
@@ -468,7 +469,7 @@ public class Universe {
          *             If this transaction is not in write mode (because its
          *             {@link #beginWrite(Duration)} method has not been called)
          */
-        public final void put(@NonNull UUID object, ObjectState state) {
+        public final void put(@NonNull UUID object, @Nullable ObjectState state) {
             Objects.requireNonNull(object, "object");
             if (when == null) {
                 throw new IllegalStateException("Not in write mode");
@@ -540,7 +541,7 @@ public class Universe {
     }// class
 
     private Duration earliestTimeOfCompleteState;
-    private Map<UUID, ObjectData> objectDataMap = new HashMap<>();
+    private final Map<UUID, ObjectData> objectDataMap = new HashMap<>();
 
     /**
      * <p>
@@ -563,7 +564,7 @@ public class Universe {
      * @throws NullPointerException
      *             If {@code earliestCompleteState} is null
      */
-    public Universe(final Duration earliestTimeOfCompleteState) {
+    public Universe(final @NonNull Duration earliestTimeOfCompleteState) {
         this.earliestTimeOfCompleteState = Objects.requireNonNull(earliestTimeOfCompleteState,
                 "earliestTimeOfCompleteState");
     }
@@ -592,7 +593,7 @@ public class Universe {
      * 
      * @return a new transaction object; not null
      */
-    public final Transaction beginTransaction() {
+    public final @NonNull Transaction beginTransaction() {
         return new Transaction();
     }
 
@@ -609,7 +610,7 @@ public class Universe {
      * @return the point in time, expressed as the duration since an epoch; not
      *         null.
      */
-    public final Duration getEarliestTimeOfCompleteState() {
+    public final @NonNull Duration getEarliestTimeOfCompleteState() {
         return earliestTimeOfCompleteState;
     }
 
@@ -627,7 +628,7 @@ public class Universe {
      * 
      * @return the object IDs.
      */
-    public final Set<UUID> getObjectIds() {
+    public final @NonNull Set<UUID> getObjectIds() {
         return Collections.unmodifiableSet(objectDataMap.keySet());
     }
 
@@ -662,7 +663,7 @@ public class Universe {
      *             <li>If {@code when} is null.</li>
      *             </ul>
      */
-    public final ObjectState getObjectState(UUID object, Duration when) {
+    public final @Nullable ObjectState getObjectState(@NonNull UUID object, @NonNull Duration when) {
         Objects.requireNonNull(when, "when");
         final var history = getObjectStateHistory(object);
         if (history == null) {
@@ -697,7 +698,7 @@ public class Universe {
      * @throws NullPointerException
      *             If {@code object} is null
      */
-    public final ValueHistory<ObjectState> getObjectStateHistory(UUID object) {
+    public final @Nullable ValueHistory<ObjectState> getObjectStateHistory(@NonNull UUID object) {
         Objects.requireNonNull(object, "object");
         final var od = objectDataMap.get(object);
         if (od == null) {
@@ -732,7 +733,7 @@ public class Universe {
      * @throws NullPointerException
      *             If {@code objectStateId} is null.
      */
-    public final ObjectState getStateTransition(ObjectStateId objectStateId) {
+    public final @Nullable ObjectState getStateTransition(@NonNull ObjectStateId objectStateId) {
         Objects.requireNonNull(objectStateId, "objectStateId");
         final var history = getObjectStateHistory(objectStateId.getObject());
         if (history == null) {
@@ -763,7 +764,7 @@ public class Universe {
      * 
      * @return the IDs
      */
-    public final Set<ObjectStateId> getStateTransitionIds() {
+    public final @NonNull Set<ObjectStateId> getStateTransitionIds() {
         final Stream<ObjectStateId> stream = objectDataMap.entrySet().stream().flatMap(objectDataMapEntry -> {
             final UUID object = objectDataMapEntry.getKey();
             final ValueHistory<ObjectState> history = objectDataMapEntry.getValue().stateHistory;
@@ -796,7 +797,7 @@ public class Universe {
      *         as its ID, or null if {@code object} is not a
      *         {@linkplain #getObjectIds() known object ID}.
      */
-    public final Duration getWhenFirstState(UUID object) {
+    public final @Nullable Duration getWhenFirstState(@NonNull UUID object) {
         final var history = getObjectStateHistory(object);
         if (history == null) {
             return null;

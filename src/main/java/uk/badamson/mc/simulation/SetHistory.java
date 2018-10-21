@@ -21,6 +21,8 @@ package uk.badamson.mc.simulation;
 import java.time.Duration;
 import java.util.Set;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import net.jcip.annotations.Immutable;
 import net.jcip.annotations.NotThreadSafe;
 
@@ -65,5 +67,5 @@ public interface SetHistory<VALUE> extends ValueHistory<Set<VALUE>> {
      * 
      * @see Set#contains(Object)
      */
-    public ValueHistory<Boolean> contains(VALUE value);
+    public @NonNull ValueHistory<Boolean> contains(@Nullable VALUE value);
 }

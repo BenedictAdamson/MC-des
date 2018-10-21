@@ -29,6 +29,7 @@ import java.util.TreeMap;
 import java.util.stream.Stream;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import net.jcip.annotations.Immutable;
 import net.jcip.annotations.NotThreadSafe;
 
@@ -45,6 +46,7 @@ import net.jcip.annotations.NotThreadSafe;
 @NotThreadSafe
 public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> {
 
+    @Nullable
     private VALUE firstValue;
     private final NavigableMap<Duration, VALUE> transitions = new TreeMap<>();
 
@@ -76,7 +78,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
      * @param value
      *            The value at all points in time
      */
-    public ModifiableValueHistory(VALUE value) {
+    public ModifiableValueHistory(@Nullable VALUE value) {
         firstValue = value;
     }
 
@@ -93,7 +95,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
      * @throws NullPointerException
      *             If {@code that} is null
      */
-    public ModifiableValueHistory(ValueHistory<VALUE> that) {
+    public ModifiableValueHistory(@NonNull ValueHistory<VALUE> that) {
         Objects.requireNonNull(that, "that");
         firstValue = that.getFirstValue();
         that.streamOfTransitions().sequential().forEach(entry -> transitions.put(entry.getKey(), entry.getValue()));
@@ -190,7 +192,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
      *             If {@code when} is null.
      */
     @Override
-    public final VALUE get(@NonNull Duration t) {
+    public final @Nullable VALUE get(@NonNull Duration t) {
         Objects.requireNonNull(t, "t");
         final var previousTransition = transitions.floorEntry(t);
         return previousTransition == null ? firstValue : previousTransition.getValue();
@@ -215,7 +217,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
      * @return the first transition time.
      */
     @Override
-    public final Duration getFirstTansitionTime() {
+    public final @Nullable Duration getFirstTansitionTime() {
         return transitions.isEmpty() ? null : transitions.firstKey();
     }
 
@@ -234,7 +236,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
      * @return the last value.
      */
     @Override
-    public final VALUE getFirstValue() {
+    public final @Nullable VALUE getFirstValue() {
         return firstValue;
     }
 
@@ -257,7 +259,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
      * @return the last transition time.
      */
     @Override
-    public final Duration getLastTansitionTime() {
+    public final @Nullable Duration getLastTansitionTime() {
         return transitions.isEmpty() ? null : transitions.lastKey();
     }
 
@@ -282,7 +284,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
      * @return the last value.
      */
     @Override
-    public final VALUE getLastValue() {
+    public final @Nullable VALUE getLastValue() {
         final var lastTransition = transitions.lastEntry();
         return lastTransition == null ? firstValue : lastTransition.getValue();
     }
@@ -405,7 +407,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
      * @see #appendTransition(Duration, Object)
      * @see #setValueUntil(Duration, Object)
      */
-    public final void setValueFrom(@NonNull Duration when, VALUE value) {
+    public final void setValueFrom(@NonNull Duration when, @Nullable VALUE value) {
         Objects.requireNonNull(when, "when");
         if (when.equals(START_OF_TIME)) {
             clear(value);
@@ -447,7 +449,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
      * 
      * @see #setValueFrom(Duration, Object)
      */
-    public final void setValueUntil(@NonNull Duration when, VALUE value) {
+    public final void setValueUntil(@NonNull Duration when, @Nullable VALUE value) {
         Objects.requireNonNull(when, "when");
         if (when.equals(END_OF_TIME)) {
             clear(value);
