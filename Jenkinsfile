@@ -38,7 +38,10 @@ pipeline {
         stage('Configure') { 
             steps {
                 script{
-                    configFileProvider([configFile(fileId: 'maven-settings')])
+                    configFileProvider([configFile(fileId: 'maven-settings')]){
+                        echo 'Set up Maven settings file'
+                    }
+
                 }
             }
         } 
