@@ -23,7 +23,6 @@ pipeline {
     agent {
         dockerfile {
             filename 'Jenkins.dockerfile'
-            label 'mc-des-jenkins'
             args '-v $HOME/.m2:/root/.m2'
         }
     }
