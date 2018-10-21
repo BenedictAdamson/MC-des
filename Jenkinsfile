@@ -19,6 +19,11 @@
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
  
+ /*
+  * Jenkins plugins used:
+  * Warnings 5
+  */
+ 
 pipeline { 
     agent {
         dockerfile {
