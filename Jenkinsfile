@@ -21,6 +21,9 @@
  
  /*
   * Jenkins plugins used:
+  * Config File Provider
+  *     - Should configure the file settings.xml with ID 'maven-settings' as the Maven settings file
+  * JUnit
   * Warnings 5
   */
  
@@ -31,20 +34,25 @@ pipeline {
             args '-v $HOME/.m2:/root/.m2'
         }
     }
-    stages { 
+    stages {
+        stage('Configure') { 
+            steps { 
+               configFileProvider ["maven-settings"]
+            }
+        } 
         stage('Build') { 
             steps { 
-               sh 'mvn clean package'
+               sh 'mvn -s settings.xml clean package'
             }
         }
         stage('Check') { 
             steps { 
-               sh 'mvn spotbugs:spotbugs'
+               sh 'mvn -s settings.xml spotbugs:spotbugs'
             }
         }
         stage('Test') { 
             steps { 
-               sh 'mvn test'
+               sh 'mvn -s settings.xml test'
             }
         }
         stage('Deploy') {
@@ -55,7 +63,7 @@ pipeline {
                 }
             }
             steps { 
-               sh 'mvn deploy'
+               sh 'mvn -s settings.xml deploy'
             }
         }
     }
