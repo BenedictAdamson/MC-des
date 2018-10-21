@@ -22,11 +22,14 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * <p>
  * Unit tests for the {@link Object} class.
  * </p>
  */
+@SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
 public final class ObjectTest {
 
     public static void assertInvariants(Object object) {
