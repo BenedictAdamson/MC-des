@@ -99,6 +99,8 @@ public class Universe {
     private static final class ObjectData {
         final ModifiableValueHistory<ObjectState> stateHistory = new ModifiableValueHistory<>();
         final ModifiableSetHistory<Transaction> dependentReaderTransactions = new ModifiableSetHistory<>();
+        @NonNull
+        Duration lastCommit = ValueHistory.START_OF_TIME;
     }// class
 
     /**
@@ -243,6 +245,8 @@ public class Universe {
             committed = true;
             for (UUID object : objectStatesWritten.keySet()) {
                 final var od = objectDataMap.get(object);
+                assert od.lastCommit.compareTo(when) < 0;
+                od.lastCommit = when;
                 final Set<Transaction> invalidatedReaders = od.dependentReaderTransactions.get(when);
                 for (var invalidatedReader : invalidatedReaders) {
                     assert !invalidatedReader.committed;
@@ -538,6 +542,39 @@ public class Universe {
             return abortCommit;
         }
 
+        /**
+         * <p>
+         * Whether it is already known that attempting to {@linkplain #commit() commit}
+         * this transaction will block.
+         * </p>
+         * <p>
+         * That is, whether a {@linkplain Thread thread} calling {@link #commit()} will
+         * be blocked because {@linkplain #getObjectStatesRead() object states it has
+         * read} have not yet been committed by their writing transactions.
+         * </p>
+         * <ul>
+         * <li>A transaction that is known {@linkplain #willAbortCommit() will abort if
+         * committing it is attempted} will not block (it will abort instead).</li>
+         * <li>This attribute may be expensive to compute.</li>
+         * </ul>
+         * 
+         * @return whether already known
+         */
+        public final boolean willBlockCommit() {
+            if (committed || abortCommit) {
+                return false;
+            }
+            for (var id : objectStatesRead.keySet()) {
+                final UUID object = id.getObject();
+                final Duration whenRead = id.getWhen();
+                final var od = objectDataMap.get(object);
+                if (od != null && od.lastCommit.compareTo(whenRead) < 0) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
     }// class
 
     private Duration earliestTimeOfCompleteState;
@@ -589,6 +626,8 @@ public class Universe {
      * transaction is clear ({@code false}).</li>
      * <li>The returned transaction is in {@linkplain Universe.Transaction#getWhen()
      * in read mode}.</li>
+     * <li>The {@linkplain Transaction#willBlockCommit() commit block flag} of the
+     * returned transaction is clear ({@code false}).</li>
      * </ul>
      * 
      * @return a new transaction object; not null

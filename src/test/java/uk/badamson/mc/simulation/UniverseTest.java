@@ -116,8 +116,9 @@ public class UniverseTest {
             final Universe.Transaction transaction = universe.beginTransaction();
 
             assertNotNull(transaction, "Not null, transaction");// guard
-            assertInvariants(universe);
-            TransactionTest.assertInvariants(transaction);
+
+            assertAll("Invariants", () -> assertInvariants(universe),
+                    () -> TransactionTest.assertInvariants(transaction));
 
             assertAll(
                     () -> assertSame(universe, transaction.getUniverse(),
@@ -130,7 +131,9 @@ public class UniverseTest {
                             "The committed flag of the returned transaction is clear."),
                     () -> assertFalse(transaction.willAbortCommit(),
                             "The commit abort flag of the return transaction is clear"),
-                    () -> assertNull(transaction.getWhen(), "The returned transaction is in in read mode."));
+                    () -> assertNull(transaction.getWhen(), "The returned transaction is in in read mode."),
+                    () -> assertFalse(transaction.willBlockCommit(),
+                            "The commit block flag of the returned transaction is clear."));
 
             return transaction;
         }
@@ -708,6 +711,9 @@ public class UniverseTest {
                     assertSame(objectState1, objectState2, "objectState");
                     assertEquals(Collections.singletonMap(id2, objectState1), transaction.getObjectStatesRead(),
                             "objectStatesRead");
+                    assertFalse(transaction.willAbortCommit(), "commit will not abort");
+                    assertEquals(when1.compareTo(when2) < 0, transaction.willBlockCommit(),
+                            "commit will block if it reads past the last commit");
                 }
 
             }// class
@@ -737,6 +743,9 @@ public class UniverseTest {
                     transaction.getObjectState(object, when1);
 
                     getObjectState(transaction, object, when2);
+
+                    assertFalse(transaction.willAbortCommit(), "commit will not abort");
+                    assertFalse(transaction.willBlockCommit(), "commit will not block");
                 }
 
             }// class
@@ -817,6 +826,7 @@ public class UniverseTest {
                     put(transaction, object2, objectState2);
 
                     assertFalse(transaction.willAbortCommit(), "Will not abort commit");
+                    assertFalse(transaction.willBlockCommit(), "Commit will not block");
                 }
 
             }// class
@@ -881,7 +891,8 @@ public class UniverseTest {
                     assertAll(() -> assertEquals(Collections.singleton(object), universe.getObjectIds(), "Object IDs"),
                             () -> assertEquals(objectStateId, universe.getStateTransitionIds(), "State transition IDs"),
                             () -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
-                                    "Object state history"));
+                                    "Object state history"),
+                            () -> assertFalse(transaction.willBlockCommit(), "Commit will not block"));
                 }
 
             }// class
@@ -918,6 +929,7 @@ public class UniverseTest {
                     put(transaction2, object, objectState2);
 
                     assertTrue(transaction2.willAbortCommit(), "Will abort commit");
+                    assertFalse(transaction2.willBlockCommit(), "Commit will not block");
                 }
 
             }// class
@@ -954,6 +966,7 @@ public class UniverseTest {
                     put(transaction2, object, objectState2);
 
                     assertTrue(transaction2.willAbortCommit(), "Will abort commit");
+                    assertFalse(transaction2.willBlockCommit(), "Commit will not block");
                 }
 
             }// class
@@ -999,6 +1012,7 @@ public class UniverseTest {
                     put(transaction, object, objectState2);
 
                     assertTrue(transaction.willAbortCommit(), "Will abort commit");
+                    assertFalse(transaction.willBlockCommit(), "Commit will not block");
                 }
 
             }// class
@@ -1040,6 +1054,9 @@ public class UniverseTest {
                     assertSame(state3, universe.getObjectState(object2, when3), "Provisionally wrote new value");
                     assertFalse(transaction1.willAbortCommit(),
                             "Read transaction will not abort (write transaction might be rolled back)");
+                    assertFalse(transaction2.willBlockCommit(), "Write transaction will not block");
+                    assertTrue(transaction1.willBlockCommit(),
+                            "Read transaction will block (awaiting the write transaction)");
                 }
 
             }// class
@@ -1073,6 +1090,7 @@ public class UniverseTest {
                     put(transaction, OBJECT_B, objectState);
 
                     assertFalse(transaction.willAbortCommit(), "Will not abort commit");
+                    assertFalse(transaction.willBlockCommit(), "Commit will not block");
                 }
 
             }// class
@@ -1107,6 +1125,7 @@ public class UniverseTest {
                     put(transaction, object3, objectState3);
 
                     assertFalse(transaction.willAbortCommit(), "Will not abort commit");
+                    assertFalse(transaction.willBlockCommit(), "Commit will not block");
                 }
 
             }// class
@@ -1159,7 +1178,8 @@ public class UniverseTest {
             assertAll(() -> UniverseTest.assertInvariants(universe),
                     () -> assertObjectStatesReadInvariants(transaction),
                     () -> assertObjectStatesWrittenInvariants(transaction),
-                    () -> assertDependenciesInvariants(transaction));
+                    () -> assertDependenciesInvariants(transaction),
+                    () -> assertWillBlockCommitInvariants(transaction));
         }
 
         public static void assertInvariants(Universe.Transaction transaction1, Universe.Transaction transaction2) {
@@ -1202,6 +1222,15 @@ public class UniverseTest {
                 UniverseTest.assertInvariants(transaction.getUniverse(), object, when);
             }
             return objectStatesWritten;
+        }
+
+        private static boolean assertWillBlockCommitInvariants(Universe.Transaction transaction) {
+            final boolean willBlock = transaction.willBlockCommit();
+
+            assertFalse(willBlock && transaction.willAbortCommit(),
+                    "A transaction that is known will abort if committing it is attempted will not block.");
+
+            return willBlock;
         }
 
         private static void putAndCommit(final Universe universe, UUID object, Duration when, ObjectState state) {
