@@ -88,8 +88,6 @@ public class UniverseTest {
                             "The returned transaction has not written any object states."),
                     () -> assertFalse(transaction.didBeginCommit(),
                             "The began commit flag of the returned transaction is clear."),
-                    () -> assertFalse(transaction.isCommitted(),
-                            "The committed flag of the returned transaction is clear."),
                     () -> assertNull(transaction.getWhen(), "The returned transaction is in in read mode."));
 
             return transaction;
@@ -1100,15 +1098,6 @@ public class UniverseTest {
             }
         }// class
 
-        private static boolean assertCommittedInvariants(Universe.Transaction transaction) {
-            final boolean committed = transaction.isCommitted();
-
-            assertFalse(committed && !transaction.didBeginCommit(),
-                    "To be committed, committing the transaction must have been begun.");
-
-            return committed;
-        }
-
         private static Map<UUID, ObjectStateId> assertDependenciesInvariants(Universe.Transaction transaction) {
             final Map<UUID, ObjectStateId> dependencies = transaction.getDependencies();
             assertNotNull(dependencies, "Always has a dependency map.");// guard
@@ -1148,7 +1137,7 @@ public class UniverseTest {
             assertAll(() -> UniverseTest.assertInvariants(universe),
                     () -> assertObjectStatesReadInvariants(transaction),
                     () -> assertObjectStatesWrittenInvariants(transaction),
-                    () -> assertDependenciesInvariants(transaction), () -> assertCommittedInvariants(transaction));
+                    () -> assertDependenciesInvariants(transaction));
         }
 
         public static void assertInvariants(Universe.Transaction transaction1, Universe.Transaction transaction2) {

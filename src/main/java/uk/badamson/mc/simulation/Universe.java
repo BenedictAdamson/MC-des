@@ -492,8 +492,6 @@ public class Universe {
      * states}.</li>
      * <li>The {@linkplain Transaction#didBeginCommit() began commit} flag of the
      * returned transaction is clear ({@code false}).</li>
-     * <li>The {@linkplain Transaction#isCommitted() committed} flag of the returned
-     * transaction is clear ({@code false}).</li>
      * <li>The returned transaction is in {@linkplain Universe.Transaction#getWhen()
      * in read mode}.</li>
      * </ul>
