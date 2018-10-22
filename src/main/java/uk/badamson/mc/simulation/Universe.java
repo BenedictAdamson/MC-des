@@ -78,6 +78,7 @@ public class Universe {
 
         private Duration when;
         private boolean abortCommit;
+        private boolean beginCommit;
         private boolean committed;
 
         private Transaction() {
@@ -88,6 +89,10 @@ public class Universe {
          * <p>
          * Begin completion of this transaction, completing it if possible.
          * </p>
+         * <ul>
+         * <li>The {@linkplain #didBeginCommit() began commit flag} becomes set
+         * ({@code true}).</li>
+         * </ul>
          * 
          * @param[in] onCommit An action to perform when (if) this transaction
          *            successfully completes the commit operation.
@@ -96,13 +101,18 @@ public class Universe {
          * 
          * @throws NullPointerException
          *             <ul>
-         *             <li>If {@code onCommit} is null.
-         *             <li>
-         *             <li>If {@code onAbort} is null.
-         *             <li>
+         *             <li>If {@code onCommit} is null.</li>
+         *             <li>If {@code onAbort} is null.</li>
          *             </ul>
+         * @throws IllegalStateException
+         *             If this {@linkplain #didBeginCommit() committing this transaction
+         *             has already begun}.
          */
         public final void beginCommit(Runnable onCommit, Runnable onAbort) {
+            if (beginCommit) {
+                throw new IllegalStateException("Already began");
+            }
+            beginCommit = true;
             if (abortCommit) {
                 onAbort.run();
             } else {
@@ -157,6 +167,18 @@ public class Universe {
                 throw new IllegalStateException("Already in write mode.");
             }
             this.when = when;
+        }
+
+        /**
+         * <p>
+         * Whether {@linkplain #beginCommit(Runnable, Runnable) committing this
+         * transaction has been started}.
+         * </p>
+         * 
+         * @return whether started commit.
+         */
+        public final boolean didBeginCommit() {
+            return beginCommit;
         }
 
         /**
@@ -230,19 +252,30 @@ public class Universe {
          *             <li>If {@code when} is null.</li>
          *             </ul>
          * @throws IllegalStateException
-         *             If this transaction is in write mode (because its
+         *             <ul>
+         *             <li>If this transaction is in write mode (because its
          *             {@link #beginWrite(Duration)} method has been called) and the
          *             requested object is not one of the
-         *             {@linkplain #getObjectStatesRead() object states already read}.
+         *             {@linkplain #getObjectStatesRead() object states already
+         *             read}.</li>
+         *             <li>If {@linkplain #didBeginCommit() committing this transaction
+         *             has started} (because its
+         *             {@link #beginCommit(Runnable, Runnable)} method has been called)
+         *             and the requested object is not one of the
+         *             {@linkplain #getObjectStatesRead() object states already
+         *             read}.</li>
+         *             </ul>
          */
         public final @Nullable ObjectState getObjectState(@NonNull UUID object, @NonNull Duration when) {
             ObjectStateId id = new ObjectStateId(object, when);
-            if (this.when != null) {
-                throw new IllegalStateException("In write mode");
-            }
             ObjectState objectState;
             objectState = objectStatesRead.get(id);
             if (objectState == null && !objectStatesRead.containsKey(id)) {
+                if (this.when != null) {
+                    throw new IllegalStateException("In write mode");
+                } else if (beginCommit) {
+                    throw new IllegalStateException("Began commit");
+                }
                 final var od = objectDataMap.get(object);
                 if (od == null) {// unknown object
                     objectState = null;
@@ -342,6 +375,10 @@ public class Universe {
          * <p>
          * Whether this transaction has been successfully committed.
          * </p>
+         * <ul>
+         * <li>To be committed, committing the transaction must have
+         * {@linkplain #didBeginCommit() been begun}.</li>
+         * </ul>
          * 
          * @return whether committed.
          */
@@ -369,13 +406,21 @@ public class Universe {
          * @throws NullPointerException
          *             If {@code object} is null.
          * @throws IllegalStateException
-         *             If this transaction is not in write mode (because its
-         *             {@link #beginWrite(Duration)} method has not been called)
+         *             <ul>
+         *             <li>If this transaction is not in write mode (because its
+         *             {@link #beginWrite(Duration)} method has not been called).</li>
+         *             <li>If {@linkplain #didBeginCommit() committing this transaction
+         *             has been started} (because its
+         *             {@link #beginCommit(Runnable, Runnable)} method has been
+         *             called).</li>
+         *             </ul>
          */
         public final void put(@NonNull UUID object, @Nullable ObjectState state) {
             Objects.requireNonNull(object, "object");
             if (when == null) {
                 throw new IllegalStateException("Not in write mode");
+            } else if (beginCommit) {
+                throw new IllegalStateException("Began commit");
             }
 
             objectStatesWritten.put(object, state);
@@ -442,6 +487,8 @@ public class Universe {
      * <li>The returned transaction {@linkplain Map#isEmpty() has not}
      * {@linkplain Universe.Transaction#getObjectStatesWritten() written any object
      * states}.</li>
+     * <li>The {@linkplain Transaction#didBeginCommit() began commit} flag of the
+     * returned transaction is clear ({@code false}).</li>
      * <li>The {@linkplain Transaction#isCommitted() committed} flag of the returned
      * transaction is clear ({@code false}).</li>
      * <li>The returned transaction is in {@linkplain Universe.Transaction#getWhen()
