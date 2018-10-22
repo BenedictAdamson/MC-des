@@ -132,6 +132,54 @@ public class Universe {
 
         /**
          * <p>
+         * Begin completion of this transaction, completeing it if possible.
+         * </p>
+         * <p>
+         * The transaction {@linkplain #willBlockCommit() may block}, awaiting commits
+         * by other transactions, before committing or aborting. Therefore it is usually
+         * and error for one tread to {@linkplain Universe#beginTransaction() begin} a
+         * second transaction before committing or {@linkplain #close() closing} the
+         * first transaction. Trying to do so is likely to result in deadlock.
+         * </p>
+         * <ul>
+         * <li>If this transaction included a {@linkplain #put(ObjectState) put} (write)
+         * of an object state, that object state has been recorded in the
+         * {@linkplain Universe#getObjectStateHistory(UUID) state history} of the
+         * {@linkplain ObjectState#getObject() object} of the object state in the
+         * {@linkplain #getUniverse() universe} of this transaction.</li>
+         * <li>The {@linkplain #isCommitted() committed} flag of this transaction is
+         * set.</li>
+         * </ul>
+         * 
+         * @throws Universe.AbortedTransactionException
+         *             If the consistency constraints of this transaction and of the
+         *             {@linkplain #getUniverse() universe} of this transaction could
+         *             not then be satisfied. In this case
+         *             <ul>
+         *             <li>the {@linkplain #willAbortCommit() commit abort flag} is
+         *             set</li>
+         *             <li>the {@linkplain #isCommitted() committed} flag is clear.</li>
+         *             </ul>
+         */
+        public final void beginCommit() throws Universe.AbortedTransactionException {
+            if (abortCommit) {
+                throw new Universe.AbortedTransactionException();
+            }
+            committed = true;
+            for (UUID object : objectStatesWritten.keySet()) {
+                final var od = objectDataMap.get(object);
+                assert od.lastCommit.compareTo(when) < 0;
+                od.lastCommit = when;
+                final Set<Transaction> invalidatedReaders = od.dependentReaderTransactions.get(when);
+                for (var invalidatedReader : invalidatedReaders) {
+                    assert !invalidatedReader.committed;
+                    invalidatedReader.abortCommit = true;
+                }
+            }
+        }
+
+        /**
+         * <p>
          * Change this transaction from read mode to write mode.
          * </p>
          * <ul>
@@ -212,54 +260,6 @@ public class Universe {
                 rollBack();
             }
             clear();
-        }
-
-        /**
-         * <p>
-         * Complete this transaction.
-         * </p>
-         * <p>
-         * The transaction {@linkplain #willBlockCommit() may block}, awaiting commits
-         * by other transactions, before committing or aborting. Therefore it is usually
-         * and error for one tread to {@linkplain Universe#beginTransaction() begin} a
-         * second transaction before committing or {@linkplain #close() closing} the
-         * first transaction. Trying to do so is likely to result in deadlock.
-         * </p>
-         * <ul>
-         * <li>If this transaction included a {@linkplain #put(ObjectState) put} (write)
-         * of an object state, that object state has been recorded in the
-         * {@linkplain Universe#getObjectStateHistory(UUID) state history} of the
-         * {@linkplain ObjectState#getObject() object} of the object state in the
-         * {@linkplain #getUniverse() universe} of this transaction.</li>
-         * <li>The {@linkplain #isCommitted() committed} flag of this transaction is
-         * set.</li>
-         * </ul>
-         * 
-         * @throws Universe.AbortedTransactionException
-         *             If the consistency constraints of this transaction and of the
-         *             {@linkplain #getUniverse() universe} of this transaction could
-         *             not then be satisfied. In this case
-         *             <ul>
-         *             <li>the {@linkplain #willAbortCommit() commit abort flag} is
-         *             set</li>
-         *             <li>the {@linkplain #isCommitted() committed} flag is clear.</li>
-         *             </ul>
-         */
-        public final void commit() throws Universe.AbortedTransactionException {
-            if (abortCommit) {
-                throw new Universe.AbortedTransactionException();
-            }
-            committed = true;
-            for (UUID object : objectStatesWritten.keySet()) {
-                final var od = objectDataMap.get(object);
-                assert od.lastCommit.compareTo(when) < 0;
-                od.lastCommit = when;
-                final Set<Transaction> invalidatedReaders = od.dependentReaderTransactions.get(when);
-                for (var invalidatedReader : invalidatedReaders) {
-                    assert !invalidatedReader.committed;
-                    invalidatedReader.abortCommit = true;
-                }
-            }
         }
 
         /**
@@ -538,8 +538,8 @@ public class Universe {
 
         /**
          * <p>
-         * Whether it is already known that attempting to {@linkplain #commit() commit}
-         * this transaction will fail (that is, will throw a
+         * Whether it is already known that attempting to {@linkplain #beginCommit()
+         * commit} this transaction will fail (that is, will throw a
          * {@link Universe.AbortedTransactionException}.
          * </p>
          * 
@@ -551,13 +551,13 @@ public class Universe {
 
         /**
          * <p>
-         * Whether it is already known that attempting to {@linkplain #commit() commit}
-         * this transaction will block.
+         * Whether it is already known that attempting to {@linkplain #beginCommit()
+         * commit} this transaction will block.
          * </p>
          * <p>
-         * That is, whether a {@linkplain Thread thread} calling {@link #commit()} will
-         * be blocked because {@linkplain #getObjectStatesRead() object states it has
-         * read} have not yet been committed by their writing transactions.
+         * That is, whether a {@linkplain Thread thread} calling {@link #beginCommit()}
+         * will be blocked because {@linkplain #getObjectStatesRead() object states it
+         * has read} have not yet been committed by their writing transactions.
          * </p>
          * <ul>
          * <li>A transaction that is known {@linkplain #willAbortCommit() will abort if
