@@ -52,7 +52,6 @@ public class Universe {
 
     private static final class ObjectData {
         final ModifiableValueHistory<ObjectState> stateHistory = new ModifiableValueHistory<>();
-        final ModifiableSetHistory<Transaction> dependentReaderTransactions = new ModifiableSetHistory<>();
         @NonNull
         Duration lastCommit = ValueHistory.START_OF_TIME;
     }// class
@@ -124,10 +123,6 @@ public class Universe {
                     final var od = objectDataMap.get(object);
                     assert od.lastCommit.compareTo(when) < 0;
                     od.lastCommit = when;
-                    final Set<Transaction> invalidatedReaders = od.dependentReaderTransactions.get(when);
-                    for (var invalidatedReader : invalidatedReaders) {
-                        invalidatedReader.abortCommit = true;
-                    }
                 }
                 onCommit.run();
             }
@@ -284,7 +279,6 @@ public class Universe {
                     objectState = null;
                 } else {
                     objectState = od.stateHistory.get(when);
-                    od.dependentReaderTransactions.addUntil(when, this);
                 }
                 objectStatesRead.put(id, objectState);
                 final ObjectStateId dependency0 = dependencies.get(object);
