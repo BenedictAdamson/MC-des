@@ -355,11 +355,6 @@ public class Universe {
          * {@linkplain #getUniverse() universe} of this transaction.
          * <p>
          * <ul>
-         * <li>Either the {@linkplain #willAbortCommit() commit abort flag } is set or
-         * the given state has been appended to the
-         * {@linkplain Universe#getObjectStateHistory(UUID) object state history} of the
-         * given object, with {@linkplain #getWhen() writing time-stamp} of this
-         * transaction as the time of the state</li>
          * <li>The method records the given state as one of the
          * {@linkplain #getObjectStatesWritten() states written}.</li>
          * </ul>
@@ -405,18 +400,6 @@ public class Universe {
         /**
          * <p>
          * Whether it is already known that attempting to {@linkplain #beginCommit()
-         * commit} this transaction will immediately fail.
-         * </p>
-         * 
-         * @return whether already known
-         */
-        public final boolean willAbortCommit() {
-            return abortCommit;
-        }
-
-        /**
-         * <p>
-         * Whether it is already known that attempting to {@linkplain #beginCommit()
          * commit} this transaction will block.
          * </p>
          * <p>
@@ -425,8 +408,6 @@ public class Universe {
          * has read} have not yet been committed by their writing transactions.
          * </p>
          * <ul>
-         * <li>A transaction that is known {@linkplain #willAbortCommit() will abort if
-         * committing it is attempted} will not block (it will abort instead).</li>
          * <li>This attribute may be expensive to compute.</li>
          * </ul>
          * 
@@ -499,8 +480,6 @@ public class Universe {
      * <li>The returned transaction {@linkplain Map#isEmpty() has not}
      * {@linkplain Universe.Transaction#getObjectStatesWritten() written any object
      * states}.</li>
-     * <li>The {@linkplain Transaction#willAbortCommit() commit abort flag} of the
-     * returned transaction is clear ({@code false}).</li>
      * <li>The {@linkplain Transaction#isCommitted() committed} flag of the returned
      * transaction is clear ({@code false}).</li>
      * <li>The returned transaction is in {@linkplain Universe.Transaction#getWhen()
