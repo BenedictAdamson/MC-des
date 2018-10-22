@@ -22,7 +22,6 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -116,7 +115,7 @@ public class Universe {
      * </p>
      */
     @NotThreadSafe
-    public final class Transaction implements AutoCloseable {
+    public final class Transaction {
 
         private final Map<ObjectStateId, ObjectState> objectStatesRead = new HashMap<>();
         private final Map<UUID, ObjectState> objectStatesWritten = new HashMap<>();
@@ -215,51 +214,6 @@ public class Universe {
                 throw new IllegalStateException("Already in write mode.");
             }
             this.when = when;
-        }
-
-        private void clear() {
-            final Set<UUID> objects = objectStatesRead.keySet().stream().map(id -> id.getObject())
-                    .collect(Collectors.toSet());
-            objects.retainAll(objectDataMap.keySet());
-            for (var object : objects) {
-                var od = objectDataMap.get(object);
-                od.dependentReaderTransactions.remove(this);
-            }
-            objectStatesRead.clear();
-            objectStatesWritten.clear();
-            dependencies.clear();
-            when = null;
-        }
-
-        /**
-         * <p>
-         * Indicate that this transaction has ended.
-         * </p>
-         * <ul>
-         * <li>If this transaction had {@linkplain #getObjectStatesWritten() written
-         * object states}, those writes are <dfn>rolled back</dfn>, returning the
-         * {@linkplain Universe#getObjectStateHistory(UUID) state histories} to their
-         * original history.</li>
-         * <li>If that roll-back removes any {@linkplain #getObjectStatesRead() object
-         * states read} by any other ({@linkplain #isCommitted() uncommitted})
-         * transactions, those transactions are invalid, and so if necessary are
-         * {@linkplain #willAbortCommit() flagged as needing to be aborted}.</li>
-         * <li>This transaction releases any resources it holds (has acquired).</li>
-         * <li>This transaction has no record of its {@linkplain #getDependencies()
-         * dependencies}.</li>
-         * <li>This transaction has no record of its {@linkplain #getObjectStatesRead()
-         * object states read}.</li>
-         * <li>This transaction has no record of its
-         * {@linkplain #getObjectStatesWritten() object states written}.</li>
-         * <li>This transaction is in {@linkplain #getWhen() read mode}.</li>
-         * </ul>
-         */
-        @Override
-        public final void close() {
-            if (!committed) {
-                rollBack();
-            }
-            clear();
         }
 
         /**
@@ -503,37 +457,6 @@ public class Universe {
             } catch (IllegalStateException e) {
                 abortCommit = true;
             }
-        }
-
-        private void rollBack() {
-            final Set<UUID> removedObjects = new HashSet<>(objectStatesWritten.size());
-            for (UUID object : objectStatesWritten.keySet()) {
-                final var od = objectDataMap.get(object);
-                od.stateHistory.removeStateTransitionsFrom(when);
-                if (od.stateHistory.isEmpty()) {
-                    removedObjects.add(object);
-                }
-                // Transactions that read the state we rolled-back must abort.
-                final var revertedState = od.stateHistory.get(when);
-                for (Transaction uncommittedReader : od.dependentReaderTransactions.get(when)) {
-                    if (uncommittedReader.abortCommit) {
-                        continue;// optimisation
-                    }
-                    for (var readEntry : uncommittedReader.objectStatesRead.entrySet()) {
-                        final ObjectStateId readId = readEntry.getKey();
-                        final UUID readObject = readId.getObject();
-                        final Duration readWhen = readId.getWhen();
-                        final ObjectState readState = readEntry.getValue();
-                        if (when.compareTo(readWhen) <= 0 && object.equals(readObject)
-                                && !Objects.equals(revertedState, readState)) {
-                            // The reader read the state we are now rolling back, so it must abort.
-                            uncommittedReader.abortCommit = true;
-                            break;
-                        }
-                    }
-                }
-            }
-            objectDataMap.keySet().removeAll(removedObjects);
         }
 
         /**
