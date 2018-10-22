@@ -52,6 +52,10 @@ public class Universe {
 
     private static final class ObjectData {
         final ModifiableValueHistory<ObjectState> stateHistory = new ModifiableValueHistory<>();
+        // TODO final Map<Duration, Set<Transaction>> pastTheEndReaders = new
+        // HashMap<>();
+        // TODO final ModifiableSetHistory<Transaction> uncommittedWriters = new
+        // ModifiableSetHistory<>();
         @NonNull
         Duration lastCommit = ValueHistory.START_OF_TIME;
     }// class
@@ -74,6 +78,16 @@ public class Universe {
         private final Map<ObjectStateId, ObjectState> objectStatesRead = new HashMap<>();
         private final Map<UUID, ObjectState> objectStatesWritten = new HashMap<>();
         private final Map<UUID, ObjectStateId> dependencies = new HashMap<>();
+
+        // Must be committed before this transaction.
+        // TODO private final Set<Transaction> predecessorTransactions = new
+        // HashSet<>();
+
+        // Must be committed simultaneously with this transaction.
+        // TODO private final Set<Transaction> mutualTransactions = new HashSet<>();
+
+        // Must be committed after this transaction.
+        // TODO private final Set<Transaction> successorTransactions = new HashSet<>();
 
         private Duration when;
         private boolean abortCommit;
@@ -118,6 +132,8 @@ public class Universe {
             if (abortCommit) {
                 onAbort.run();
             } else {
+                // TODO Do not commit if have predecessors
+                // TODO Collaborate with mutual transactions
                 committed = true;
                 for (UUID object : objectStatesWritten.keySet()) {
                     final var od = objectDataMap.get(object);
@@ -125,6 +141,7 @@ public class Universe {
                     od.lastCommit = when;
                 }
                 onCommit.run();
+                // TODO Tell the successors we have committed
             }
         }
 
@@ -274,19 +291,26 @@ public class Universe {
                 } else if (beginCommit) {
                     throw new IllegalStateException("Began commit");
                 }
-                final var od = objectDataMap.get(object);
-                if (od == null) {// unknown object
-                    objectState = null;
-                } else {
-                    objectState = od.stateHistory.get(when);
-                }
-                objectStatesRead.put(id, objectState);
-                final ObjectStateId dependency0 = dependencies.get(object);
-                if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
-                    dependencies.put(object, id);
-                }
+                objectState = readObjectState(object, when, id);
             }
             // else used cached value
+            return objectState;
+        }
+
+        private ObjectState readObjectState(UUID object, Duration when, ObjectStateId id) {
+            final ObjectState objectState;
+            final var od = objectDataMap.get(object);
+            if (od == null) {// unknown object
+                objectState = null;
+            } else {
+                objectState = od.stateHistory.get(when);
+            }
+            // TODO add to precessorTransactions
+            objectStatesRead.put(id, objectState);
+            final ObjectStateId dependency0 = dependencies.get(object);
+            if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
+                dependencies.put(object, id);
+            }
             return objectState;
         }
 
@@ -429,6 +453,7 @@ public class Universe {
             }
             final ModifiableValueHistory<ObjectState> stateHistory = od.stateHistory;
             if (state != null && !stateHistory.isEmpty() && stateHistory.getLastValue() == null) {
+                // Attempted resurrection of a dead object.
                 abortCommit = true;
                 return;
             }
@@ -437,6 +462,7 @@ public class Universe {
             } catch (IllegalStateException e) {
                 abortCommit = true;
             }
+            // TODO invalidate readers of replaced past-the-end state
         }
 
     }// class
