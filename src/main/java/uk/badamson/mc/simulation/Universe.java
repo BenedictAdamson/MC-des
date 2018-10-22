@@ -50,51 +50,6 @@ import net.jcip.annotations.NotThreadSafe;
  */
 public class Universe {
 
-    /**
-     * <p>
-     * A checked exception for indicating that a {@link Universe.Transaction} must
-     * be aborted, because the consistency constraints of transaction and of the
-     * {@linkplain Universe.Transaction#getUniverse() universe} of the transaction
-     * would not then be satisfied.
-     * </p>
-     */
-    public static final class AbortedTransactionException extends Exception {
-
-        private static final long serialVersionUID = 1L;
-        private static final String MESSAGE = "Aborted transaction";
-
-        /**
-         * <p>
-         * Construct a checked exception for indicating that a
-         * {@link Universe.Transaction} must be aborted, because the consistency
-         * constraints of transaction and of the
-         * {@linkplain Universe.Transaction#getUniverse() universe} of the transaction
-         * would not then be satisfied.
-         * </p>
-         */
-        public AbortedTransactionException() {
-            super(MESSAGE);
-        }
-
-        /**
-         * <p>
-         * Construct a checked exception for indicating that a
-         * {@link Universe.Transaction} must be aborted, because the consistency
-         * constraints of transaction and of the
-         * {@linkplain Universe.Transaction#getUniverse() universe} of the transaction
-         * would not then be satisfied, and that has been indicated by an underlying
-         * cause
-         * </p>
-         * 
-         * @param cause
-         *            The exception thrown to signal the underlying cause.
-         */
-        public AbortedTransactionException(Throwable cause) {
-            super(MESSAGE, cause);
-        }
-
-    }// class
-
     private static final class ObjectData {
         final ModifiableValueHistory<ObjectState> stateHistory = new ModifiableValueHistory<>();
         final ModifiableSetHistory<Transaction> dependentReaderTransactions = new ModifiableSetHistory<>();
@@ -146,20 +101,10 @@ public class Universe {
          *             <li>If {@code onAbort} is null.
          *             <li>
          *             </ul>
-         * @throws Universe.AbortedTransactionException
-         *             If the consistency constraints of this transaction and of the
-         *             {@linkplain #getUniverse() universe} of this transaction could
-         *             not then be satisfied. In this case
-         *             <ul>
-         *             <li>the {@linkplain #willAbortCommit() commit abort flag} is
-         *             set</li>
-         *             <li>the {@linkplain #isCommitted() committed} flag is clear.</li>
-         *             </ul>
          */
-        public final void beginCommit(Runnable onCommit, Runnable onAbort) throws Universe.AbortedTransactionException {
+        public final void beginCommit(Runnable onCommit, Runnable onAbort) {
             if (abortCommit) {
                 onAbort.run();
-                throw new Universe.AbortedTransactionException();
             } else {
                 committed = true;
                 for (UUID object : objectStatesWritten.keySet()) {
@@ -460,8 +405,7 @@ public class Universe {
         /**
          * <p>
          * Whether it is already known that attempting to {@linkplain #beginCommit()
-         * commit} this transaction will fail (that is, will throw a
-         * {@link Universe.AbortedTransactionException}.
+         * commit} this transaction will immediately fail.
          * </p>
          * 
          * @return whether already known

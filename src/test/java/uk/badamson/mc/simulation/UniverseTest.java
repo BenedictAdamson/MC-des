@@ -54,47 +54,6 @@ import uk.badamson.mc.ObjectTest;
  */
 public class UniverseTest {
 
-    /**
-     * <p>
-     * Unit tests for the {@link Universe.AbortedTransactionException} class.
-     * </p>
-     */
-    public static class AbortedTransactionExceptionTest {
-
-        public static void assertInvariants(Universe.AbortedTransactionException exception) {
-            ObjectTest.assertInvariants(exception);// inherited
-        }
-
-        public static void assertInvariants(Universe.AbortedTransactionException exception1,
-                Universe.AbortedTransactionException exception2) {
-            ObjectTest.assertInvariants(exception1, exception2);// inherited
-        }
-
-        private static void constructor(Throwable cause) {
-            final Universe.AbortedTransactionException exception = new Universe.AbortedTransactionException(cause);
-
-            assertInvariants(exception);
-            assertSame(cause, exception.getCause(), "cause");
-        }
-
-        @Test
-        public void constructor_0() {
-            final Universe.AbortedTransactionException exception = new Universe.AbortedTransactionException();
-
-            assertInvariants(exception);
-        }
-
-        @Test
-        public void constructor_1A() {
-            constructor(new NullPointerException("Test exception"));
-        }
-
-        @Test
-        public void constructor_1B() {
-            constructor(new IllegalArgumentException("Test exception"));
-        }
-    }// class
-
     @Nested
     public class BeginTransaction {
 
@@ -209,11 +168,7 @@ public class UniverseTest {
                     transaction2.put(object2, objectState2);
                     final AtomicBoolean committed = new AtomicBoolean(false);
 
-                    try {
-                        transaction2.beginCommit(() -> committed.set(true), () -> committed.set(false));
-                    } catch (Universe.AbortedTransactionException e) {
-                        throw new AssertionError(e);
-                    }
+                    transaction2.beginCommit(() -> committed.set(true), () -> committed.set(false));
 
                     assertTrue(committed.get(), "Committed");
                     assertEquals(Set.of(object1, object2), universe.getObjectIds(), "Object IDs");
@@ -268,16 +223,8 @@ public class UniverseTest {
                     final AtomicBoolean writeCommitted = new AtomicBoolean(false);
                     final AtomicBoolean writeAborted = new AtomicBoolean(false);
 
-                    try {
-                        beginCommit(transaction2, () -> writeCommitted.set(true), () -> writeAborted.set(true));
-                    } catch (Universe.AbortedTransactionException e) {
-                        // TODO
-                    }
-                    try {
-                        beginCommit(transaction1, () -> readCommitted.set(true), () -> readAborted.set(true));
-                    } catch (Universe.AbortedTransactionException e) {
-                        // TODO
-                    }
+                    beginCommit(transaction2, () -> writeCommitted.set(true), () -> writeAborted.set(true));
+                    beginCommit(transaction1, () -> readCommitted.set(true), () -> readAborted.set(true));
 
                     assertTrue(writeCommitted.get(), "Write transaction committed.");
                     assertFalse(writeAborted.get(), "Write transaction did not abort.");
@@ -325,11 +272,7 @@ public class UniverseTest {
                     final AtomicBoolean writeCommitted = new AtomicBoolean(false);
                     final AtomicBoolean writeAborted = new AtomicBoolean(false);
 
-                    try {
-                        beginCommit(transaction, () -> writeCommitted.set(true), () -> writeAborted.set(true));
-                    } catch (Universe.AbortedTransactionException e) {
-                        throw new AssertionError(e);
-                    }
+                    beginCommit(transaction, () -> writeCommitted.set(true), () -> writeAborted.set(true));
 
                     assertFalse(writeAborted.get(), "Write did not abort.");
                     assertTrue(writeCommitted.get(), "Write committed.");
@@ -344,21 +287,10 @@ public class UniverseTest {
 
             }// class
 
-            private void beginCommit(final Universe.Transaction transaction, Runnable onCommit, Runnable onAbort)
-                    throws Universe.AbortedTransactionException {
-                try {
-                    transaction.beginCommit(onCommit, onAbort);
-                } catch (Universe.AbortedTransactionException e) {
-                    // Permitted
-                    assertInvariants(transaction);
-                    UniverseTest.AbortedTransactionExceptionTest.assertInvariants(e);
-                    assertTrue(transaction.willAbortCommit(), "The commit abort flag is set.");
-                    assertFalse(transaction.isCommitted(), "The committed flag is clear.");
-                    throw e;
-                }
+            private void beginCommit(final Universe.Transaction transaction, Runnable onCommit, Runnable onAbort) {
+                transaction.beginCommit(onCommit, onAbort);
 
                 assertInvariants(transaction);
-                assertTrue(transaction.isCommitted(), "The committed flag of this transaction is set.");
             }
 
             @Test
@@ -388,12 +320,9 @@ public class UniverseTest {
                 final AtomicBoolean committed2 = new AtomicBoolean(false);
                 final AtomicBoolean aborted2 = new AtomicBoolean(false);
 
-                try {
-                    transaction1.beginCommit(() -> committed1.set(true), () -> aborted1.set(true));
-                    transaction2.beginCommit(() -> committed2.set(true), () -> aborted2.set(true));
-                } catch (Universe.AbortedTransactionException e) {
-                    ;// TODO
-                }
+                beginCommit(transaction1, () -> committed1.set(true), () -> aborted1.set(true));
+                beginCommit(transaction2, () -> committed2.set(true), () -> aborted2.set(true));
+
                 assertFalse(committed2.get(), "Did not commit second transaction");
                 assertTrue(aborted2.get(), "Aborted second transaction");
             }
@@ -406,11 +335,8 @@ public class UniverseTest {
                 final AtomicBoolean committed = new AtomicBoolean(false);
                 final AtomicBoolean aborted = new AtomicBoolean(false);
 
-                try {
-                    beginCommit(transaction, () -> committed.set(true), () -> aborted.set(true));
-                } catch (Universe.AbortedTransactionException e) {
-                    throw new AssertionError(e);
-                }
+                beginCommit(transaction, () -> committed.set(true), () -> aborted.set(true));
+
                 assertFalse(aborted.get(), "Did not abort");
                 assertTrue(committed.get(), "Committed");
             }
@@ -430,11 +356,7 @@ public class UniverseTest {
                 final AtomicBoolean committed = new AtomicBoolean(false);
                 final AtomicBoolean aborted = new AtomicBoolean(false);
 
-                try {
-                    beginCommit(transaction, () -> committed.set(true), () -> aborted.set(true));
-                } catch (Universe.AbortedTransactionException e) {
-                    throw new AssertionError(e);
-                }
+                beginCommit(transaction, () -> committed.set(true), () -> aborted.set(true));
 
                 assertFalse(aborted.get(), "Did not abort");
                 assertTrue(committed.get(), "Committed");
@@ -1067,14 +989,11 @@ public class UniverseTest {
             final Universe.Transaction transaction = universe.beginTransaction();
             transaction.beginWrite(when);
             transaction.put(object, state);
-            try {
-                transaction.beginCommit(() -> {
-                }, () -> {
-                    throw new AssertionError("Does not abort");
-                });
-            } catch (Universe.AbortedTransactionException e) {
-                throw new AssertionError(e);
-            }
+            transaction.beginCommit(() -> {
+                // Do nothing
+            }, () -> {
+                throw new AssertionError("Does not abort");
+            });
         }
     }// class
 
