@@ -131,25 +131,21 @@ public class Universe {
 
         /**
          * <p>
-         * Begin completion of this transaction, completeing it if possible.
+         * Begin completion of this transaction, completing it if possible.
          * </p>
-         * <p>
-         * The transaction {@linkplain #willBlockCommit() may block}, awaiting commits
-         * by other transactions, before committing or aborting. Therefore it is usually
-         * and error for one tread to {@linkplain Universe#beginTransaction() begin} a
-         * second transaction before committing or {@linkplain #close() closing} the
-         * first transaction. Trying to do so is likely to result in deadlock.
-         * </p>
-         * <ul>
-         * <li>If this transaction included a {@linkplain #put(ObjectState) put} (write)
-         * of an object state, that object state has been recorded in the
-         * {@linkplain Universe#getObjectStateHistory(UUID) state history} of the
-         * {@linkplain ObjectState#getObject() object} of the object state in the
-         * {@linkplain #getUniverse() universe} of this transaction.</li>
-         * <li>The {@linkplain #isCommitted() committed} flag of this transaction is
-         * set.</li>
-         * </ul>
          * 
+         * @param[in] onCommit An action to perform when (if) this transaction
+         *            successfully completes the commit operation.
+         * @param[in] onAbort An action to perform when (if) this transaction aborts the
+         *            commit operation.
+         * 
+         * @throws NullPointerException
+         *             <ul>
+         *             <li>If {@code onCommit} is null.
+         *             <li>
+         *             <li>If {@code onAbort} is null.
+         *             <li>
+         *             </ul>
          * @throws Universe.AbortedTransactionException
          *             If the consistency constraints of this transaction and of the
          *             {@linkplain #getUniverse() universe} of this transaction could
@@ -160,20 +156,22 @@ public class Universe {
          *             <li>the {@linkplain #isCommitted() committed} flag is clear.</li>
          *             </ul>
          */
-        public final void beginCommit() throws Universe.AbortedTransactionException {
+        public final void beginCommit(Runnable onCommit, Runnable onAbort) throws Universe.AbortedTransactionException {
             if (abortCommit) {
+                onAbort.run();
                 throw new Universe.AbortedTransactionException();
-            }
-            committed = true;
-            for (UUID object : objectStatesWritten.keySet()) {
-                final var od = objectDataMap.get(object);
-                assert od.lastCommit.compareTo(when) < 0;
-                od.lastCommit = when;
-                final Set<Transaction> invalidatedReaders = od.dependentReaderTransactions.get(when);
-                for (var invalidatedReader : invalidatedReaders) {
-                    assert !invalidatedReader.committed;
-                    invalidatedReader.abortCommit = true;
+            } else {
+                committed = true;
+                for (UUID object : objectStatesWritten.keySet()) {
+                    final var od = objectDataMap.get(object);
+                    assert od.lastCommit.compareTo(when) < 0;
+                    od.lastCommit = when;
+                    final Set<Transaction> invalidatedReaders = od.dependentReaderTransactions.get(when);
+                    for (var invalidatedReader : invalidatedReaders) {
+                        invalidatedReader.abortCommit = true;
+                    }
                 }
+                onCommit.run();
             }
         }
 
