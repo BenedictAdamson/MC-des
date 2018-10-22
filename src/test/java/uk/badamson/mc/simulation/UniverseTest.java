@@ -88,9 +88,7 @@ public class UniverseTest {
                             "The returned transaction has not written any object states."),
                     () -> assertFalse(transaction.isCommitted(),
                             "The committed flag of the returned transaction is clear."),
-                    () -> assertNull(transaction.getWhen(), "The returned transaction is in in read mode."),
-                    () -> assertFalse(transaction.willBlockCommit(),
-                            "The commit block flag of the returned transaction is clear."));
+                    () -> assertNull(transaction.getWhen(), "The returned transaction is in in read mode."));
 
             return transaction;
         }
@@ -940,8 +938,7 @@ public class UniverseTest {
                     assertAll(() -> assertEquals(Collections.singleton(object), universe.getObjectIds(), "Object IDs"),
                             () -> assertEquals(objectStateId, universe.getStateTransitionIds(), "State transition IDs"),
                             () -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
-                                    "Object state history"),
-                            () -> assertFalse(transaction.willBlockCommit(), "Commit will not block"));
+                                    "Object state history"));
                 }
 
             }// class

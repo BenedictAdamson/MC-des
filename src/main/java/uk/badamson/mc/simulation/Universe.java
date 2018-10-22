@@ -397,37 +397,6 @@ public class Universe {
             }
         }
 
-        /**
-         * <p>
-         * Whether it is already known that attempting to {@linkplain #beginCommit()
-         * commit} this transaction will block.
-         * </p>
-         * <p>
-         * That is, whether a {@linkplain Thread thread} calling {@link #beginCommit()}
-         * will be blocked because {@linkplain #getObjectStatesRead() object states it
-         * has read} have not yet been committed by their writing transactions.
-         * </p>
-         * <ul>
-         * <li>This attribute may be expensive to compute.</li>
-         * </ul>
-         * 
-         * @return whether already known
-         */
-        public final boolean willBlockCommit() {
-            if (committed || abortCommit) {
-                return false;
-            }
-            for (var id : objectStatesRead.keySet()) {
-                final UUID object = id.getObject();
-                final Duration whenRead = id.getWhen();
-                final var od = objectDataMap.get(object);
-                if (od != null && od.lastCommit.compareTo(whenRead) < 0) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
     }// class
 
     private Duration earliestTimeOfCompleteState;
@@ -463,13 +432,6 @@ public class Universe {
      * <p>
      * Begin a new transaction for changing the state of this {@link Universe}.
      * </p>
-     * <p>
-     * Transaction {@linkplain Universe.Transaction#willBlockCommit() may block when
-     * committing them is attempted}, because they are awaiting commits by other
-     * transactions. Therefore it is usually and error for one tread to begin a
-     * second transaction before committing or {@linkplain #close() closing} the
-     * first transaction. Trying to do so is likely to result in deadlock.
-     * </p>
      * <ul>
      * <li>Always returns a (non null) transaction.</li>
      * <li>The {@linkplain Universe.Transaction#getUniverse() universe} of the
@@ -484,8 +446,6 @@ public class Universe {
      * transaction is clear ({@code false}).</li>
      * <li>The returned transaction is in {@linkplain Universe.Transaction#getWhen()
      * in read mode}.</li>
-     * <li>The {@linkplain Transaction#willBlockCommit() commit block flag} of the
-     * returned transaction is clear ({@code false}).</li>
      * </ul>
      * 
      * @return a new transaction object; not null
