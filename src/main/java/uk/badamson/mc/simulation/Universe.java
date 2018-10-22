@@ -108,7 +108,10 @@ public class Universe {
          *             If this {@linkplain #didBeginCommit() committing this transaction
          *             has already begun}.
          */
-        public final void beginCommit(Runnable onCommit, Runnable onAbort) {
+        public final void beginCommit(@NonNull Runnable onCommit, @NonNull Runnable onAbort) {
+            Objects.requireNonNull(onCommit, "onCommit");
+            Objects.requireNonNull(onAbort, "onAbort");
+
             if (beginCommit) {
                 throw new IllegalStateException("Already began");
             }
