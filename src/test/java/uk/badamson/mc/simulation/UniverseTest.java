@@ -855,6 +855,46 @@ public class UniverseTest {
 
             }// class
 
+            @Nested
+            public class ReadUncommitted {
+
+                @Test
+                public void a() {
+                    test(DURATION_1, OBJECT_A, DURATION_2, DURATION_3);
+                }
+
+                @Test
+                public void b() {
+                    test(DURATION_2, OBJECT_B, DURATION_3, DURATION_4);
+                }
+
+                @Test
+                public void precise() {
+                    final Duration when = DURATION_2;
+                    test(DURATION_1, OBJECT_A, when, when);
+                }
+
+                private void test(final Duration earliestTimeOfCompleteState, UUID object, Duration when1,
+                        Duration when2) {
+                    assert when1.compareTo(when2) <= 0;
+                    final ObjectStateId id2 = new ObjectStateId(object, when2);
+                    final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
+
+                    final Universe universe = new Universe(earliestTimeOfCompleteState);
+                    final Universe.Transaction transaction1 = universe.beginTransaction();
+                    transaction1.beginWrite(when1);
+                    transaction1.put(object, objectState1);
+                    final Universe.Transaction transaction2 = universe.beginTransaction();
+
+                    final ObjectState objectState2 = getObjectState(transaction2, object, when2);
+
+                    assertSame(objectState1, objectState2, "Read the uncommitted value");
+                    assertEquals(Collections.singletonMap(id2, objectState1), transaction2.getObjectStatesRead(),
+                            "objectStatesRead");
+                }
+
+            }// class
+
             private ObjectState getObjectState(final Universe.Transaction transaction, UUID object, Duration when) {
                 final ObjectStateId id = new ObjectStateId(object, when);
                 final boolean wasPreviouslyRead = transaction.getObjectStatesRead().containsKey(id);

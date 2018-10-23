@@ -254,6 +254,11 @@ public class Universe {
          * <li>The method records the returned state as one of the
          * {@linkplain #getObjectStatesRead() read states}. Hence this method is not a
          * simple getter.</li>
+         * <li>This method is <dfn>optimistic</dfn> and <dfn>non blocking</dfn>. It
+         * assumes that {@linkplain #put(UUID, ObjectState) writes} (made by other
+         * transactions) will be successfully committed, so the method may return
+         * uncommitted writes. It does not wait (block) until the write is
+         * committed.</li>
          * </ul>
          * 
          * @param object
@@ -294,23 +299,6 @@ public class Universe {
                 objectState = readObjectState(object, when, id);
             }
             // else used cached value
-            return objectState;
-        }
-
-        private ObjectState readObjectState(UUID object, Duration when, ObjectStateId id) {
-            final ObjectState objectState;
-            final var od = objectDataMap.get(object);
-            if (od == null) {// unknown object
-                objectState = null;
-            } else {
-                objectState = od.stateHistory.get(when);
-            }
-            // TODO add to precessorTransactions
-            objectStatesRead.put(id, objectState);
-            final ObjectStateId dependency0 = dependencies.get(object);
-            if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
-                dependencies.put(object, id);
-            }
             return objectState;
         }
 
@@ -463,6 +451,23 @@ public class Universe {
                 abortCommit = true;
             }
             // TODO invalidate readers of replaced past-the-end state
+        }
+
+        private ObjectState readObjectState(UUID object, Duration when, ObjectStateId id) {
+            final ObjectState objectState;
+            final var od = objectDataMap.get(object);
+            if (od == null) {// unknown object
+                objectState = null;
+            } else {
+                objectState = od.stateHistory.get(when);
+            }
+            // TODO add to precessorTransactions
+            objectStatesRead.put(id, objectState);
+            final ObjectStateId dependency0 = dependencies.get(object);
+            if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
+                dependencies.put(object, id);
+            }
+            return objectState;
         }
 
     }// class
