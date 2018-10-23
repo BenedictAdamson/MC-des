@@ -189,6 +189,53 @@ public class UniverseTest {
             }// class
 
             @Nested
+            public class AfterPutEnablingCommitOfReadPastLastCommit {
+
+                @Test
+                public void a() {
+                    test(DURATION_1, OBJECT_A, DURATION_2, DURATION_3, DURATION_4);
+                }
+
+                @Test
+                public void b() {
+                    test(DURATION_2, OBJECT_B, DURATION_3, DURATION_4, DURATION_5);
+                }
+
+                private void test(final Duration earliestTimeOfCompleteState, UUID object, Duration when1,
+                        Duration when2, Duration when3) {
+                    assert when1.compareTo(when2) < 0;
+                    assert when2.compareTo(when3) < 0;
+                    final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
+                    final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
+
+                    final AtomicBoolean readComitted = new AtomicBoolean(false);
+                    final AtomicBoolean readAborted = new AtomicBoolean(false);
+                    final AtomicBoolean writeComitted = new AtomicBoolean(false);
+                    final AtomicBoolean writeAborted = new AtomicBoolean(false);
+
+                    final Universe universe = new Universe(earliestTimeOfCompleteState);
+                    putAndCommit(universe, object, when1, objectState1);
+
+                    final Universe.Transaction readTransaction = universe.beginTransaction();
+                    readTransaction.getObjectState(object, when2);
+                    readTransaction.beginCommit(() -> readComitted.set(true), () -> readAborted.set(true));
+
+                    final Universe.Transaction writeTransaction = universe.beginTransaction();
+                    writeTransaction.getObjectState(object, when1);
+                    writeTransaction.beginWrite(when3);
+                    writeTransaction.put(object, objectState2);
+
+                    writeTransaction.beginCommit(() -> writeComitted.set(true), () -> writeAborted.set(true));
+
+                    assertAll(() -> assertTrue(writeComitted.get(), "Write committed"),
+                            () -> assertFalse(writeAborted.get(), "Write not aborted"),
+                            () -> assertTrue(readComitted.get(), "Read committed (subsequent write enabled commit)"),
+                            () -> assertFalse(readAborted.get(), "Read not aborted"));
+                }
+
+            }// class
+
+            @Nested
             public class AfterPutInvalidEventTimeStampOrder2 {
 
                 @Test
@@ -550,7 +597,7 @@ public class UniverseTest {
                     test(DURATION_2, OBJECT_B, DURATION_3);
                 }
 
-                private void test(final Duration earliestTimeOfCompleteState, UUID object, Duration when1) {
+                private void test(final Duration earliestTimeOfCompleteState, UUID object, Duration when) {
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
 
                     final AtomicBoolean readCommitted = new AtomicBoolean(false);
@@ -560,10 +607,10 @@ public class UniverseTest {
 
                     final Universe universe = new Universe(earliestTimeOfCompleteState);
                     final Universe.Transaction writeTransaction = universe.beginTransaction();
-                    writeTransaction.beginWrite(when1);
+                    writeTransaction.beginWrite(when);
                     writeTransaction.put(object, objectState1);
                     final Universe.Transaction readTransaction = universe.beginTransaction();
-                    readTransaction.getObjectState(object, when1);
+                    readTransaction.getObjectState(object, when);
                     readTransaction.beginCommit(() -> readCommitted.set(true), () -> readAborted.set(true));
                     assert !readCommitted.get() && !readAborted.get();
 

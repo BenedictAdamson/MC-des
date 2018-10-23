@@ -53,8 +53,6 @@ public class Universe {
 
     private static final class ObjectData {
         final ModifiableValueHistory<ObjectState> stateHistory = new ModifiableValueHistory<>();
-        // TODO final Map<Duration, Set<Transaction>> pastTheEndReaders = new
-        // HashMap<>();
         final ModifiableSetHistory<Transaction> uncommittedReaders = new ModifiableSetHistory<>();
         final ModifiableSetHistory<Transaction> uncommittedWriters = new ModifiableSetHistory<>();
 
@@ -496,6 +494,7 @@ public class Universe {
                 abortCommit = true;
                 return;
             }
+            final Duration lastTransition0 = stateHistory.getLastTansitionTime();
             try {
                 stateHistory.appendTransition(when, state);
             } catch (IllegalStateException e) {
@@ -505,7 +504,14 @@ public class Universe {
             for (Transaction uncommittedReader : od.uncommittedReaders.get(when)) {
                 uncommittedReader.abort();
             }
-            // TODO invalidate readers of replaced past-the-end state
+            if (lastTransition0 != null) {
+                for (Transaction pastTheEndReader : od.uncommittedReaders.get(lastTransition0.plusNanos(1))) {
+                    pastTheEndReader.pastTheEndReads.remove(object);
+                    pastTheEndReader.predecessorTransactions.add(this);
+                    successorTransactions.add(pastTheEndReader);
+                    // TODO handle mutual dependencies
+                }
+            }
         }
 
         private ObjectState readObjectState(UUID object, Duration when, ObjectStateId id) {
