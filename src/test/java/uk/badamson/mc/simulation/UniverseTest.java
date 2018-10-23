@@ -537,6 +537,54 @@ public class UniverseTest {
             }// class
 
             @Nested
+            public class EnablingCommitOfReadUncommitted {
+
+                @Test
+                public void a() {
+                    test(DURATION_1, OBJECT_A, DURATION_2, DURATION_3);
+                }
+
+                @Test
+                public void b() {
+                    test(DURATION_2, OBJECT_B, DURATION_3, DURATION_4);
+                }
+
+                @Test
+                public void precise() {
+                    final Duration when = DURATION_2;
+                    test(DURATION_1, OBJECT_A, when, when);
+                }
+
+                private void test(final Duration earliestTimeOfCompleteState, UUID object, Duration when1,
+                        Duration when2) {
+                    assert when1.compareTo(when2) <= 0;
+                    final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
+
+                    final AtomicBoolean readCommitted = new AtomicBoolean(false);
+                    final AtomicBoolean readAborted = new AtomicBoolean(false);
+                    final AtomicBoolean writeCommitted = new AtomicBoolean(false);
+                    final AtomicBoolean writeAborted = new AtomicBoolean(false);
+
+                    final Universe universe = new Universe(earliestTimeOfCompleteState);
+                    final Universe.Transaction writeTransaction = universe.beginTransaction();
+                    writeTransaction.beginWrite(when1);
+                    writeTransaction.put(object, objectState1);
+                    final Universe.Transaction readTransaction = universe.beginTransaction();
+                    readTransaction.getObjectState(object, when2);
+                    readTransaction.beginCommit(() -> readCommitted.set(true), () -> readAborted.set(true));
+                    assert !readCommitted.get() && !readAborted.get();
+
+                    beginCommit(writeTransaction, () -> writeCommitted.set(true), () -> writeAborted.set(true));
+
+                    assertAll(() -> assertFalse(writeAborted.get(), "Write not aborted."),
+                            () -> assertTrue(writeCommitted.get(), "Write committed."),
+                            () -> assertFalse(readAborted.get(), "Read not aborted."),
+                            () -> assertTrue(readCommitted.get(), "Read committed (triggered by commit of write)."));
+                }
+
+            }// class
+
+            @Nested
             public class InvalidateOtherRead {
 
                 @Test

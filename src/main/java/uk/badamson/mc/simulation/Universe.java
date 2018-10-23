@@ -93,6 +93,8 @@ public class Universe {
         private boolean abortCommit;
         private boolean beginCommit;
         private boolean committed;
+        private Runnable onCommit;
+        private Runnable onAbort;
 
         private Transaction() {
             // Do nothing
@@ -122,23 +124,14 @@ public class Universe {
          *             has already begun}.
          */
         public final void beginCommit(@NonNull Runnable onCommit, @NonNull Runnable onAbort) {
-            Objects.requireNonNull(onCommit, "onCommit");
-            Objects.requireNonNull(onAbort, "onAbort");
-
             if (beginCommit) {
                 throw new IllegalStateException("Already began");
             }
+            this.onCommit = Objects.requireNonNull(onCommit, "onCommit");
+            this.onAbort = Objects.requireNonNull(onAbort, "onAbort");
+
             beginCommit = true;
-            if (abortCommit) {
-                onAbort.run();
-            } else {
-                if (!predecessorTransactions.isEmpty()) {
-                    // Do not commit if have predecessors.
-                    return;
-                }
-                // TODO Collaborate with mutual transactions
-                commit(onCommit);
-            }
+            commitIfPossible();
         }
 
         /**
@@ -180,7 +173,7 @@ public class Universe {
             this.when = when;
         }
 
-        private void commit(Runnable onCommit) {
+        private void commit() {
             committed = true;
             for (UUID object : objectStatesWritten.keySet()) {
                 final var od = objectDataMap.get(object);
@@ -189,10 +182,23 @@ public class Universe {
                 od.uncommittedWriters.remove(this);
             }
             onCommit.run();
-            /*
-             * TODO for (var successor: successorTransactions) {
-             * successor.predecessorTransactions.remove(this); }
-             */
+            for (var successor : successorTransactions) {
+                successor.predecessorTransactions.remove(this);
+                successor.commitIfPossible();
+            }
+        }
+
+        private void commitIfPossible() {
+            if (abortCommit) {
+                onAbort.run();
+            } else {
+                if (!predecessorTransactions.isEmpty()) {
+                    // Do not commit if have predecessors.
+                    return;
+                }
+                // TODO Collaborate with mutual transactions
+                commit();
+            }
         }
 
         /**
