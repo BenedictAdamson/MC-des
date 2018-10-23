@@ -142,6 +142,10 @@ public class Universe {
             this.onAbort = Objects.requireNonNull(onAbort, "onAbort");
 
             beginCommit = true;
+
+            if (abortCommit) {
+                abort();
+            }
             commitIfPossible();
         }
 
@@ -202,21 +206,22 @@ public class Universe {
             onCommit.run();
             for (var successor : successorTransactions) {
                 successor.predecessorTransactions.remove(this);
-                successor.commitIfPossible();
+                if (successor.beginCommit) {
+                    successor.commitIfPossible();
+                }
             }
         }
 
         private void commitIfPossible() {
             if (abortCommit) {
-                onAbort.run();
-            } else {
-                if (!predecessorTransactions.isEmpty()) {
-                    // Do not commit if have predecessors.
-                    return;
-                }
-                // TODO Collaborate with mutual transactions
-                commit();
+                return;
             }
+            if (!predecessorTransactions.isEmpty()) {
+                // Do not commit if have predecessors.
+                return;
+            }
+            // TODO Collaborate with mutual transactions
+            commit();
         }
 
         /**
