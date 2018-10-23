@@ -55,6 +55,7 @@ public class Universe {
         final ModifiableValueHistory<ObjectState> stateHistory = new ModifiableValueHistory<>();
         // TODO final Map<Duration, Set<Transaction>> pastTheEndReaders = new
         // HashMap<>();
+        final ModifiableSetHistory<Transaction> uncommittedReaders = new ModifiableSetHistory<>();
         final ModifiableSetHistory<Transaction> uncommittedWriters = new ModifiableSetHistory<>();
 
         @NonNull
@@ -98,6 +99,16 @@ public class Universe {
 
         private Transaction() {
             // Do nothing
+        }
+
+        private void abort() {
+            abortCommit = true;
+            // TODO remove notes of uncommittedReaders, uncommittedWriters
+            // TODO rollback changes
+            if (onAbort != null) {
+                onAbort.run();
+            }
+            // TODO cascade abort
         }
 
         /**
@@ -180,6 +191,13 @@ public class Universe {
                 assert od.lastCommit.compareTo(when) < 0;
                 od.lastCommit = when;
                 od.uncommittedWriters.remove(this);
+            }
+            for (UUID object : dependencies.keySet()) {
+                final var od = objectDataMap.get(object);
+                if (od != null) {
+                    od.uncommittedReaders.remove(this);
+                }
+                // else a prehistoric dependency
             }
             onCommit.run();
             for (var successor : successorTransactions) {
@@ -420,6 +438,10 @@ public class Universe {
          * <ul>
          * <li>The method records the given state as one of the
          * {@linkplain #getObjectStatesWritten() states written}.</li>
+         * <li>This method is <dfn>optimistic</dfn>. It assumes that this transaction
+         * will be successfully committed, so any other transactions that have read the
+         * old state of the object at the {@linkplain #getWhen() time} of this write (or
+         * a later time) are now invalid and must be aborted.</li>
          * </ul>
          * 
          * @param object
@@ -468,6 +490,9 @@ public class Universe {
                 abortCommit = true;
             }
             od.uncommittedWriters.addFrom(when, this);
+            for (Transaction uncommittedReader : od.uncommittedReaders.get(when)) {
+                uncommittedReader.abort();
+            }
             // TODO invalidate readers of replaced past-the-end state
         }
 
@@ -478,6 +503,7 @@ public class Universe {
                 objectState = null;
             } else {
                 objectState = od.stateHistory.get(when);
+                od.uncommittedReaders.addUntil(when, this);
                 final Set<Transaction> uncommittedWriters = od.uncommittedWriters.get(when);
                 predecessorTransactions.addAll(uncommittedWriters);
                 for (var uncommittedWriter : uncommittedWriters) {
@@ -489,6 +515,7 @@ public class Universe {
             if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
                 dependencies.put(object, id);
             }
+            assert dependencies.containsKey(object);
             return objectState;
         }
 

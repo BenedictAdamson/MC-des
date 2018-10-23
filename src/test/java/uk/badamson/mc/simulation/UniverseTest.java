@@ -443,6 +443,8 @@ public class UniverseTest {
                 }
 
                 private void test(final Duration when1, final Duration earliestCompleteState, final Duration when2) {
+                    assert when1.compareTo(earliestCompleteState) < 0;
+                    assert earliestCompleteState.compareTo(when2) <= 0;
                     final ObjectState objectState = new ObjectStateTest.TestObjectState(1);
 
                     final Universe universe = new Universe(earliestCompleteState);
