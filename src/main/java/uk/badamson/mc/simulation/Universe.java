@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -54,8 +55,8 @@ public class Universe {
         final ModifiableValueHistory<ObjectState> stateHistory = new ModifiableValueHistory<>();
         // TODO final Map<Duration, Set<Transaction>> pastTheEndReaders = new
         // HashMap<>();
-        // TODO final ModifiableSetHistory<Transaction> uncommittedWriters = new
-        // ModifiableSetHistory<>();
+        final ModifiableSetHistory<Transaction> uncommittedWriters = new ModifiableSetHistory<>();
+
         @NonNull
         Duration lastCommit = ValueHistory.START_OF_TIME;
     }// class
@@ -80,14 +81,13 @@ public class Universe {
         private final Map<UUID, ObjectStateId> dependencies = new HashMap<>();
 
         // Must be committed before this transaction.
-        // TODO private final Set<Transaction> predecessorTransactions = new
-        // HashSet<>();
+        private final Set<Transaction> predecessorTransactions = new HashSet<>();
 
         // Must be committed simultaneously with this transaction.
         // TODO private final Set<Transaction> mutualTransactions = new HashSet<>();
 
         // Must be committed after this transaction.
-        // TODO private final Set<Transaction> successorTransactions = new HashSet<>();
+        private final Set<Transaction> successorTransactions = new HashSet<>();
 
         private Duration when;
         private boolean abortCommit;
@@ -132,16 +132,12 @@ public class Universe {
             if (abortCommit) {
                 onAbort.run();
             } else {
-                // TODO Do not commit if have predecessors
-                // TODO Collaborate with mutual transactions
-                committed = true;
-                for (UUID object : objectStatesWritten.keySet()) {
-                    final var od = objectDataMap.get(object);
-                    assert od.lastCommit.compareTo(when) < 0;
-                    od.lastCommit = when;
+                if (!predecessorTransactions.isEmpty()) {
+                    // Do not commit if have predecessors.
+                    return;
                 }
-                onCommit.run();
-                // TODO Tell the successors we have committed
+                // TODO Collaborate with mutual transactions
+                commit(onCommit);
             }
         }
 
@@ -182,6 +178,21 @@ public class Universe {
                 throw new IllegalStateException("Already in write mode.");
             }
             this.when = when;
+        }
+
+        private void commit(Runnable onCommit) {
+            committed = true;
+            for (UUID object : objectStatesWritten.keySet()) {
+                final var od = objectDataMap.get(object);
+                assert od.lastCommit.compareTo(when) < 0;
+                od.lastCommit = when;
+                od.uncommittedWriters.remove(this);
+            }
+            onCommit.run();
+            /*
+             * TODO for (var successor: successorTransactions) {
+             * successor.predecessorTransactions.remove(this); }
+             */
         }
 
         /**
@@ -450,6 +461,7 @@ public class Universe {
             } catch (IllegalStateException e) {
                 abortCommit = true;
             }
+            od.uncommittedWriters.addFrom(when, this);
             // TODO invalidate readers of replaced past-the-end state
         }
 
@@ -460,8 +472,12 @@ public class Universe {
                 objectState = null;
             } else {
                 objectState = od.stateHistory.get(when);
+                final Set<Transaction> uncommittedWriters = od.uncommittedWriters.get(when);
+                predecessorTransactions.addAll(uncommittedWriters);
+                for (var uncommittedWriter : uncommittedWriters) {
+                    uncommittedWriter.successorTransactions.add(this);
+                }
             }
-            // TODO add to precessorTransactions
             objectStatesRead.put(id, objectState);
             final ObjectStateId dependency0 = dependencies.get(object);
             if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
