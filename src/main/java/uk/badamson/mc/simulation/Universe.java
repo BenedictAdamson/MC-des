@@ -81,6 +81,9 @@ public class Universe {
         private final Map<UUID, ObjectState> objectStatesWritten = new HashMap<>();
         private final Map<UUID, ObjectStateId> dependencies = new HashMap<>();
 
+        // Must be appended to and committed before this transaction.
+        private final Set<UUID> pastTheEndReads = new HashSet<>();
+
         // Must be committed before this transaction.
         private final Set<Transaction> predecessorTransactions = new HashSet<>();
 
@@ -214,6 +217,10 @@ public class Universe {
 
         private void commitIfPossible() {
             if (abortCommit) {
+                return;
+            }
+            if (!pastTheEndReads.isEmpty()) {
+                // Do not commit if awaiting appending of a state.
                 return;
             }
             if (!predecessorTransactions.isEmpty()) {
@@ -508,6 +515,9 @@ public class Universe {
                 objectState = null;
             } else {
                 objectState = od.stateHistory.get(when);
+                if (od.stateHistory.getLastTansitionTime().compareTo(when) < 0) {
+                    pastTheEndReads.add(object);
+                }
                 od.uncommittedReaders.addUntil(when, this);
                 final Set<Transaction> uncommittedWriters = od.uncommittedWriters.get(when);
                 predecessorTransactions.addAll(uncommittedWriters);

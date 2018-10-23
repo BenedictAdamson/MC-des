@@ -319,14 +319,14 @@ public class UniverseTest {
                 }
 
                 @Test
-                public void precise() {
-                    final Duration when = DURATION_2;
-                    test(DURATION_1, OBJECT_A, when, when);
+                public void near() {
+                    final Duration when1 = DURATION_3;
+                    test(DURATION_2, OBJECT_B, when1, when1.plusNanos(1));
                 }
 
                 private void test(final Duration earliestTimeOfCompleteState, UUID object, Duration when1,
                         Duration when2) {
-                    assert when1.compareTo(when2) <= 0;
+                    assert when1.compareTo(when2) < 0;
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
 
                     final Universe universe = new Universe(earliestTimeOfCompleteState);
@@ -339,10 +339,8 @@ public class UniverseTest {
 
                     beginCommit(transaction, () -> committed.set(true), () -> aborted.set(true));
 
-                    /*
-                     * TODO assertAll(() -> assertFalse(committed.get(), "not committed"), () ->
-                     * assertFalse(aborted.get(), "not aborted"));
-                     */
+                    assertAll(() -> assertFalse(committed.get(), "not committed"),
+                            () -> assertFalse(aborted.get(), "not aborted"));
                 }
 
             }// class
@@ -544,23 +542,15 @@ public class UniverseTest {
 
                 @Test
                 public void a() {
-                    test(DURATION_1, OBJECT_A, DURATION_2, DURATION_3);
+                    test(DURATION_1, OBJECT_A, DURATION_2);
                 }
 
                 @Test
                 public void b() {
-                    test(DURATION_2, OBJECT_B, DURATION_3, DURATION_4);
+                    test(DURATION_2, OBJECT_B, DURATION_3);
                 }
 
-                @Test
-                public void precise() {
-                    final Duration when = DURATION_2;
-                    test(DURATION_1, OBJECT_A, when, when);
-                }
-
-                private void test(final Duration earliestTimeOfCompleteState, UUID object, Duration when1,
-                        Duration when2) {
-                    assert when1.compareTo(when2) <= 0;
+                private void test(final Duration earliestTimeOfCompleteState, UUID object, Duration when1) {
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
 
                     final AtomicBoolean readCommitted = new AtomicBoolean(false);
@@ -573,7 +563,7 @@ public class UniverseTest {
                     writeTransaction.beginWrite(when1);
                     writeTransaction.put(object, objectState1);
                     final Universe.Transaction readTransaction = universe.beginTransaction();
-                    readTransaction.getObjectState(object, when2);
+                    readTransaction.getObjectState(object, when1);
                     readTransaction.beginCommit(() -> readCommitted.set(true), () -> readAborted.set(true));
                     assert !readCommitted.get() && !readAborted.get();
 
@@ -627,6 +617,57 @@ public class UniverseTest {
 
                     beginCommit(writeTransaction, () -> committedWrite.set(true), () -> abortedWrite.set(true));
                     beginCommit(readTransaction, () -> committedRead.set(true), () -> abortedRead.set(true));
+
+                    assertAll(() -> assertTrue(committedRead.get() || abortedRead.get(), "Ended read transaction"),
+                            () -> assertTrue(committedWrite.get() || abortedWrite.get(), "Ended write transaction"),
+                            () -> assertTrue(committedWrite.get(), "Comitted write transaction"),
+                            () -> assertTrue(abortedRead.get(), "Aborted (invalidated) read transaction"));
+                }
+
+            }// class
+
+            @Nested
+            public class InvalidateOtherReadThatBeganCommit {
+
+                @Test
+                public void a() {
+                    test(DURATION_1, DURATION_2, DURATION_3, DURATION_4, DURATION_5, OBJECT_A, OBJECT_B);
+                }
+
+                @Test
+                public void b() {
+                    test(DURATION_2, DURATION_3, DURATION_4, DURATION_5, DURATION_6, OBJECT_B, OBJECT_A);
+                }
+
+                private void test(final Duration earliestTimeOfCompleteState, Duration when1, Duration when2,
+                        Duration when3, Duration when4, UUID object1, UUID object2) {
+                    assert when1.compareTo(when2) < 0;
+                    assert when2.compareTo(when3) < 0;
+                    assert when3.compareTo(when4) <= 0;
+                    final ObjectStateTest.TestObjectState state1 = new ObjectStateTest.TestObjectState(1);
+                    final ObjectStateTest.TestObjectState state2 = new ObjectStateTest.TestObjectState(2);
+                    final ObjectStateTest.TestObjectState state3 = new ObjectStateTest.TestObjectState(3);
+
+                    final AtomicBoolean committedRead = new AtomicBoolean(false);
+                    final AtomicBoolean abortedRead = new AtomicBoolean(false);
+                    final AtomicBoolean committedWrite = new AtomicBoolean(false);
+                    final AtomicBoolean abortedWrite = new AtomicBoolean(false);
+
+                    final Universe universe = new Universe(earliestTimeOfCompleteState);
+                    putAndCommit(universe, object1, when1, state1);
+                    putAndCommit(universe, object2, when2, state2);
+
+                    final Universe.Transaction readTransaction = universe.beginTransaction();
+                    readTransaction.getObjectState(object1, when1);
+                    readTransaction.getObjectState(object2, when4);// reads state2
+                    readTransaction.beginCommit(() -> committedRead.set(true), () -> abortedRead.set(true));
+
+                    final Universe.Transaction writeTransaction = universe.beginTransaction();
+                    writeTransaction.getObjectState(object2, when2);
+                    writeTransaction.beginWrite(when3);
+                    writeTransaction.put(object2, state3);
+
+                    beginCommit(writeTransaction, () -> committedWrite.set(true), () -> abortedWrite.set(true));
 
                     assertAll(() -> assertTrue(committedRead.get() || abortedRead.get(), "Ended read transaction"),
                             () -> assertTrue(committedWrite.get() || abortedWrite.get(), "Ended write transaction"),
