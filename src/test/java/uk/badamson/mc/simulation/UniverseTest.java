@@ -682,10 +682,14 @@ public class UniverseTest {
                     final AtomicBoolean committedWrite2 = new AtomicBoolean(false);
                     final AtomicBoolean abortedWrite2 = new AtomicBoolean(false);
 
-                    beginCommit(writeTransaction1, () -> committedWrite1.set(true), () -> abortedWrite1.set(true));
-                    beginCommit(writeTransaction2, () -> committedWrite2.set(true), () -> abortedWrite2.set(true));
+                    /*
+                     * Tough test: when the writes commit, there are call-backs for the reader
+                     * waiting.
+                     */
                     beginCommit(readTransaction, () -> readCommits.incrementAndGet(),
                             () -> readAborts.incrementAndGet());
+                    beginCommit(writeTransaction1, () -> committedWrite1.set(true), () -> abortedWrite1.set(true));
+                    beginCommit(writeTransaction2, () -> committedWrite2.set(true), () -> abortedWrite2.set(true));
 
                     assertAll(() -> assertTrue(0 < readCommits.get() || 0 < readAborts.get(), "Ended read transaction"),
                             () -> assertTrue(committedWrite1.get() || abortedWrite1.get(), "Ended write transaction 1"),
