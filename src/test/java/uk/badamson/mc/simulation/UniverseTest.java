@@ -548,6 +548,75 @@ public class UniverseTest {
             }// class
 
             @Nested
+            public class ChainedDependencies {
+
+                @Test
+                public void a() {
+                    test(DURATION_1, DURATION_2, DURATION_3, DURATION_4, DURATION_5, OBJECT_A, OBJECT_B, OBJECT_C);
+                }
+
+                @Test
+                public void b() {
+                    test(DURATION_2, DURATION_3, DURATION_4, DURATION_5, DURATION_6, OBJECT_B, OBJECT_C, OBJECT_A);
+                }
+
+                private void test(final Duration earliestTimeOfCompleteState, Duration when1, Duration when2,
+                        Duration when3, Duration when4, UUID object1, UUID object2, UUID object3) {
+                    assert when1.compareTo(when2) < 0;
+                    assert when2.compareTo(when3) < 0;
+                    assert when3.compareTo(when4) < 0;
+                    final ObjectStateTest.TestObjectState state1 = new ObjectStateTest.TestObjectState(1);
+                    final ObjectStateTest.TestObjectState state2 = new ObjectStateTest.TestObjectState(2);
+                    final ObjectStateTest.TestObjectState state3 = new ObjectStateTest.TestObjectState(3);
+                    final ObjectStateTest.TestObjectState state4 = new ObjectStateTest.TestObjectState(4);
+                    final ObjectStateTest.TestObjectState state5 = new ObjectStateTest.TestObjectState(5);
+
+                    final AtomicBoolean committedRead = new AtomicBoolean(false);
+                    final AtomicBoolean abortedRead = new AtomicBoolean(false);
+                    final AtomicBoolean committedReadWrite = new AtomicBoolean(false);
+                    final AtomicBoolean abortedReadWrite = new AtomicBoolean(false);
+                    final AtomicBoolean committedWrite = new AtomicBoolean(false);
+                    final AtomicBoolean abortedWrite = new AtomicBoolean(false);
+
+                    final Universe universe = new Universe(earliestTimeOfCompleteState);
+                    putAndCommit(universe, object1, when1, state1);
+                    putAndCommit(universe, object2, when1, state2);
+                    putAndCommit(universe, object3, when1, state3);
+
+                    final Universe.Transaction readTransaction = universe.beginTransaction();
+                    readTransaction.getObjectState(object1, when1);
+                    readTransaction.getObjectState(object2, when3);// reads state2, which will be invalidated
+                    readTransaction.beginCommit(() -> committedRead.set(true), () -> abortedRead.set(true));
+                    assert !committedRead.get() && !abortedRead.get();
+
+                    final Universe.Transaction readWriteTransaction = universe.beginTransaction();
+                    readWriteTransaction.getObjectState(object2, when1);
+                    readWriteTransaction.getObjectState(object3, when2);// reads state3, which will be invalidated
+                    readWriteTransaction.beginWrite(when3);
+                    readWriteTransaction.put(object2, state4);
+                    readWriteTransaction.beginCommit(() -> committedReadWrite.set(true),
+                            () -> abortedReadWrite.set(true));
+                    assert !committedReadWrite.get() && !abortedReadWrite.get();
+
+                    final Universe.Transaction writeTransaction = universe.beginTransaction();
+                    writeTransaction.getObjectState(object3, when1);
+                    writeTransaction.beginWrite(when2);
+                    writeTransaction.put(object3, state5);
+
+                    beginCommit(writeTransaction, () -> committedWrite.set(true), () -> abortedWrite.set(true));
+
+                    assertAll(() -> assertTrue(committedRead.get() || abortedRead.get(), "Ended read transaction"),
+                            () -> assertTrue(committedReadWrite.get() || abortedReadWrite.get(),
+                                    "Ended read-write transaction"),
+                            () -> assertTrue(committedWrite.get() || abortedWrite.get(), "Ended write transaction"),
+                            () -> assertTrue(committedWrite.get(), "Comitted write transaction"),
+                            () -> assertTrue(abortedReadWrite.get(), "Aborted (invalidated) read-write transaction"),
+                            () -> assertTrue(abortedRead.get(), "Aborted (invalidated) read transaction"));
+                }
+
+            }// class
+
+            @Nested
             public class DifferentObjects2 {
 
                 @Test
