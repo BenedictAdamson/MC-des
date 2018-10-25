@@ -349,16 +349,16 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
 
     /**
      * <p>
-     * Change this value history so {@linkplain #getTransitionTimes() set of state
+     * Change this value history so {@linkplain #getTransitionTimes() set of
      * transitions} has no transitions at or after a given point in time.
      * </p>
      * <ul>
      * <li>The {@linkplain #getFirstValue() first value} of the history is
      * unchanged.</li>
-     * <li>The {@linkplain #getTransitionTimes() set of state transitions}
+     * <li>The {@linkplain #getTransitionTimes() set of transition times}
      * {@linkplain SortedSet#contains(Object) contains} no times at or after the
      * given time.</li>
-     * <li>Removing state transitions from a given point in time does not change the
+     * <li>Removing transitions from a given point in time does not change the
      * {@linkplain #getTransitions() transitions} before the point in time.</li>
      * </ul>
      * 
@@ -371,7 +371,7 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
      * 
      * @see #appendTransition(Duration, Object)
      */
-    public final void removeStateTransitionsFrom(@NonNull Duration when) {
+    public final void removeTransitionsFrom(@NonNull Duration when) {
         Objects.requireNonNull(when, "when");
         transitions.keySet().removeIf(t -> when.compareTo(t) <= 0);
     }
