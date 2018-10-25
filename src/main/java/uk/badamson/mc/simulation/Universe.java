@@ -110,13 +110,13 @@ public class Universe {
             for (UUID object : dependencies.keySet()) {
                 var od = objectDataMap.get(object);
                 od.uncommittedReaders.remove(this);
-                // TODO remove notes of uncommittedWriters
             }
 
             // roll-back changes:
             for (UUID object : objectStatesWritten.keySet()) {
                 var od = objectDataMap.get(object);
                 od.stateHistory.removeTransitionsFrom(when);
+                od.uncommittedWriters.remove(this);// optimisation
                 // TODO cascade to uncommittedreaders
                 // TODO cascade to uncommitedwriters
                 if (od.stateHistory.isEmpty()) {
