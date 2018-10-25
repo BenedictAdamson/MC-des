@@ -860,61 +860,6 @@ public class UniverseTest {
             }// class
 
             @Nested
-            public class PutRollBackOtherRead {
-
-                @Test
-                public void a() {
-                    test(DURATION_1, DURATION_2, DURATION_3, DURATION_4, DURATION_5, OBJECT_A, OBJECT_B);
-                }
-
-                @Test
-                public void b() {
-                    test(DURATION_2, DURATION_3, DURATION_4, DURATION_5, DURATION_6, OBJECT_B, OBJECT_A);
-                }
-
-                @Test
-                public void near() {
-                    final Duration when3 = DURATION_4;
-                    test(DURATION_1, DURATION_2, DURATION_3, when3, when3, OBJECT_A, OBJECT_B);
-                }
-
-                private void test(final Duration earliestTimeOfCompleteState, Duration when1, Duration when2,
-                        Duration when3, Duration when4, UUID object1, UUID object2) {
-                    assert when1.compareTo(when2) < 0;
-                    assert when2.compareTo(when3) < 0;
-                    assert when3.compareTo(when4) <= 0;
-                    final ObjectStateTest.TestObjectState state1 = new ObjectStateTest.TestObjectState(1);
-                    final ObjectStateTest.TestObjectState state2 = new ObjectStateTest.TestObjectState(2);
-                    final ObjectStateTest.TestObjectState state3 = new ObjectStateTest.TestObjectState(3);
-
-                    final Universe universe = new Universe(earliestTimeOfCompleteState);
-                    putAndCommit(universe, object1, when1, state1);
-                    putAndCommit(universe, object2, when2, state2);
-                    final Universe.Transaction transaction1 = universe.beginTransaction();
-                    transaction1.getObjectState(object1, when1);
-                    transaction1.getObjectState(object2, when4);// reads state2
-                    final Universe.Transaction transaction2 = universe.beginTransaction();
-                    transaction2.getObjectState(object2, when2);
-                    transaction2.beginWrite(when3);
-                    transaction2.put(object2, state3);
-                    // transaction3.getObjectState(object2, when4); would read state3
-
-                    final AtomicBoolean readCommitted = new AtomicBoolean(false);
-                    final AtomicBoolean readAborted = new AtomicBoolean(false);
-                    final AtomicBoolean writeCommitted = new AtomicBoolean(false);
-                    final AtomicBoolean writeAborted = new AtomicBoolean(false);
-
-                    beginCommit(transaction2, () -> writeCommitted.set(true), () -> writeAborted.set(true));
-                    beginCommit(transaction1, () -> readCommitted.set(true), () -> readAborted.set(true));
-
-                    assertTrue(writeCommitted.get(), "Write transaction committed.");
-                    assertFalse(writeAborted.get(), "Write transaction did not abort.");
-                    assertFalse(readCommitted.get(), "Read transaction did not commit.");
-                    assertTrue(readAborted.get(), "Read transaction aborted.");
-                }
-            }// class
-
-            @Nested
             public class SuccessiveStates2 {
                 @Test
                 public void a() {
