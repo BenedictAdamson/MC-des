@@ -97,6 +97,7 @@ public class Universe {
         private boolean abortCommit;
         private boolean beginCommit;
         private boolean committed;
+        private boolean aborted;
 
         private Transaction(@NonNull TransactionListener listener) {
             this.listener = Objects.requireNonNull(listener, "listener");
@@ -104,7 +105,13 @@ public class Universe {
 
         private void abort() {
             abortCommit = true;
-            // TODO remove notes of uncommittedReaders, uncommittedWriters
+            aborted = true;
+
+            for (UUID object : dependencies.keySet()) {
+                var od = objectDataMap.get(object);
+                od.uncommittedReaders.remove(this);
+                // TODO remove notes of uncommittedWriters
+            }
 
             // roll-back changes:
             for (UUID object : objectStatesWritten.keySet()) {
@@ -119,6 +126,12 @@ public class Universe {
 
             listener.onAbort();
             // TODO cascade abort
+        }
+
+        private void abortIfNecessary() {
+            if (abortCommit && !aborted) {
+                abort();
+            }
         }
 
         /**
@@ -144,9 +157,7 @@ public class Universe {
             }
             beginCommit = true;
 
-            if (abortCommit) {
-                abort();
-            }
+            abortIfNecessary();
             commitIfPossible();
         }
 

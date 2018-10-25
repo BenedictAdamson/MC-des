@@ -139,11 +139,13 @@ public class UniverseTest {
 
         @Override
         public void onAbort() {
+            assertEquals(0, aborts, "Aborts at most once");
             ++aborts;
         }
 
         @Override
         public void onCommit() {
+            assertEquals(0, commits, "Commits at most once");
             ++commits;
         }
 
