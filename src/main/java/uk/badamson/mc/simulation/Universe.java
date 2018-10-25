@@ -75,6 +75,8 @@ public class Universe {
     @NotThreadSafe
     public final class Transaction {
 
+        private final TransactionListener listener;
+
         private final Map<ObjectStateId, ObjectState> objectStatesRead = new HashMap<>();
         private final Map<UUID, ObjectState> objectStatesWritten = new HashMap<>();
         private final Map<UUID, ObjectStateId> dependencies = new HashMap<>();
@@ -95,11 +97,9 @@ public class Universe {
         private boolean abortCommit;
         private boolean beginCommit;
         private boolean committed;
-        private Runnable onCommit;
-        private Runnable onAbort;
 
-        private Transaction() {
-            // Do nothing
+        private Transaction(@NonNull TransactionListener listener) {
+            this.listener = Objects.requireNonNull(listener, "listener");
         }
 
         private void abort() {
@@ -117,9 +117,7 @@ public class Universe {
                 }
             }
 
-            if (onAbort != null) {
-                onAbort.run();
-            }
+            listener.onAbort();
             // TODO cascade abort
         }
 
@@ -136,23 +134,14 @@ public class Universe {
          *            successfully completes the commit operation.
          * @param[in] onAbort An action to perform when (if) this transaction aborts the
          *            commit operation.
-         * 
-         * @throws NullPointerException
-         *             <ul>
-         *             <li>If {@code onCommit} is null.</li>
-         *             <li>If {@code onAbort} is null.</li>
-         *             </ul>
          * @throws IllegalStateException
          *             If this {@linkplain #didBeginCommit() committing this transaction
          *             has already begun}.
          */
-        public final void beginCommit(@NonNull Runnable onCommit, @NonNull Runnable onAbort) {
+        public final void beginCommit() {
             if (beginCommit) {
                 throw new IllegalStateException("Already began");
             }
-            this.onCommit = Objects.requireNonNull(onCommit, "onCommit");
-            this.onAbort = Objects.requireNonNull(onAbort, "onAbort");
-
             beginCommit = true;
 
             if (abortCommit) {
@@ -215,7 +204,7 @@ public class Universe {
                 }
                 // else a prehistoric dependency
             }
-            onCommit.run();
+            listener.onCommit();
             for (var successor : successorTransactions) {
                 successor.predecessorTransactions.remove(this);
                 if (successor.beginCommit) {
@@ -242,8 +231,8 @@ public class Universe {
 
         /**
          * <p>
-         * Whether {@linkplain #beginCommit(Runnable, Runnable) committing this
-         * transaction has been started}.
+         * Whether {@linkplain #beginCommit() committing this transaction has been
+         * started}.
          * </p>
          * 
          * @return whether started commit.
@@ -335,9 +324,8 @@ public class Universe {
          *             {@linkplain #getObjectStatesRead() object states already
          *             read}.</li>
          *             <li>If {@linkplain #didBeginCommit() committing this transaction
-         *             has started} (because its
-         *             {@link #beginCommit(Runnable, Runnable)} method has been called)
-         *             and the requested object is not one of the
+         *             has started} (because its {@link #beginCommit()} method has been
+         *             called) and the requested object is not one of the
          *             {@linkplain #getObjectStatesRead() object states already
          *             read}.</li>
          *             </ul>
@@ -479,9 +467,8 @@ public class Universe {
          *             <li>If this transaction is not in write mode (because its
          *             {@link #beginWrite(Duration)} method has not been called).</li>
          *             <li>If {@linkplain #didBeginCommit() committing this transaction
-         *             has been started} (because its
-         *             {@link #beginCommit(Runnable, Runnable)} method has been
-         *             called).</li>
+         *             has been started} (because its {@link #beginCommit()} method has
+         *             been called).</li>
          *             </ul>
          */
         public final void put(@NonNull UUID object, @Nullable ObjectState state) {
@@ -553,6 +540,29 @@ public class Universe {
 
     }// class
 
+    /**
+     * <p>
+     * An object that can respond to {@link Universe.Transaction} events.
+     * </p>
+     */
+    public interface TransactionListener {
+        /**
+         * <p>
+         * An action to perform when (if) a transaction successfully completes its
+         * commit operation.
+         * </p>
+         */
+        public void onAbort();
+
+        /**
+         * <p>
+         * An action to perform when (if) a transaction aborts its commit operation.
+         * </p>
+         */
+        public void onCommit();
+
+    }// interface
+
     private Duration earliestTimeOfCompleteState;
     private final Map<UUID, ObjectData> objectDataMap = new HashMap<>();
 
@@ -602,10 +612,14 @@ public class Universe {
      * in read mode}.</li>
      * </ul>
      * 
+     * @param listener
+     *            The transaction listener to use for this transaction.
      * @return a new transaction object; not null
+     * @throws NullPointerException
+     *             If {@code listener} is null
      */
-    public final @NonNull Transaction beginTransaction() {
-        return new Transaction();
+    public final @NonNull Transaction beginTransaction(@NonNull TransactionListener listener) {
+        return new Transaction(listener);
     }
 
     /**
