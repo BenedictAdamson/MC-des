@@ -860,6 +860,67 @@ public class UniverseTest {
             }// class
 
             @Nested
+            public class RollbackWrite {
+
+                @Test
+                public void a() {
+                    test(DURATION_1, DURATION_2, DURATION_3, DURATION_4, DURATION_5, DURATION_6, OBJECT_A, OBJECT_B);
+                }
+
+                @Test
+                public void b() {
+                    test(DURATION_2, DURATION_3, DURATION_4, DURATION_5, DURATION_6, DURATION_7, OBJECT_B, OBJECT_A);
+                }
+
+                private void test(final Duration earliestTimeOfCompleteState, Duration when1, Duration when2,
+                        Duration when3, Duration when4, Duration when5, UUID object1, UUID object2) {
+                    assert when1.compareTo(when2) < 0;
+                    assert when2.compareTo(when3) < 0;
+                    assert when3.compareTo(when4) < 0;
+                    assert when4.compareTo(when5) < 0;
+                    final ObjectStateTest.TestObjectState state1 = new ObjectStateTest.TestObjectState(1);
+                    final ObjectStateTest.TestObjectState state2 = new ObjectStateTest.TestObjectState(2);
+                    final ObjectStateTest.TestObjectState state3 = new ObjectStateTest.TestObjectState(3);
+                    final ObjectStateTest.TestObjectState state4 = new ObjectStateTest.TestObjectState(4);
+
+                    final AtomicBoolean committed1 = new AtomicBoolean(false);
+                    final AtomicBoolean aborted1 = new AtomicBoolean(false);
+                    final AtomicBoolean committed2 = new AtomicBoolean(false);
+                    final AtomicBoolean aborted2 = new AtomicBoolean(false);
+
+                    final Universe universe = new Universe(earliestTimeOfCompleteState);
+                    putAndCommit(universe, object1, when1, state1);
+                    putAndCommit(universe, object2, when2, state2);
+
+                    final Universe.Transaction transaction1 = universe.beginTransaction();
+                    transaction1.getObjectState(object1, when1);
+                    transaction1.getObjectState(object2, when4);// reads state2
+                    transaction1.beginWrite(when5);
+                    transaction1.put(object1, state4);// was previously state1
+                    transaction1.beginCommit(() -> committed1.set(true), () -> aborted1.set(true));
+
+                    final Universe.Transaction transaction2 = universe.beginTransaction();
+                    transaction2.getObjectState(object2, when2);
+                    transaction2.beginWrite(when3);
+                    transaction2.put(object2, state3);
+
+                    beginCommit(transaction2, () -> committed2.set(true), () -> aborted2.set(true));
+
+                    assertAll(() -> assertTrue(committed1.get() || aborted1.get(), "Ended transaction 1"),
+                            () -> assertTrue(committed2.get() || aborted2.get(), "Ended transaction 2"),
+                            () -> assertTrue(committed2.get(), "Comitted transaction 2"),
+                            () -> assertTrue(aborted1.get(), "Aborted (invalidated) transaction 1"));
+                    assertAll(
+                            () -> assertSame(state1, universe.getObjectState(object1, when5),
+                                    "Rolled back aborted write [values]"),
+                            () -> assertEquals(Collections.singleton(when1),
+                                    universe.getObjectStateHistory(object1).getTransitionTimes(),
+                                    "Rolled back aborted write [transition times]"));
+                }
+
+            }// class
+
+            @Nested
             public class SuccessiveStates2 {
                 @Test
                 public void a() {

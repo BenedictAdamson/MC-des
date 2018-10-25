@@ -105,7 +105,18 @@ public class Universe {
         private void abort() {
             abortCommit = true;
             // TODO remove notes of uncommittedReaders, uncommittedWriters
-            // TODO rollback changes
+
+            // roll-back changes:
+            for (UUID object : objectStatesWritten.keySet()) {
+                var od = objectDataMap.get(object);
+                od.stateHistory.removeTransitionsFrom(when);
+                // TODO cascade to uncommittedreaders
+                // TODO cascade to uncommitedwriters
+                if (od.stateHistory.isEmpty()) {
+                    objectDataMap.remove(object);
+                }
+            }
+
             if (onAbort != null) {
                 onAbort.run();
             }
