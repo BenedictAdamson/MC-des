@@ -317,12 +317,12 @@ public class UniverseTest {
             @Nested
             public class InvalidateOtherRead {
 
-                // TODO
+                @Test
                 public void a() {
                     test(DURATION_1, DURATION_2, DURATION_3, DURATION_4, OBJECT_A);
                 }
 
-                // TODO
+                @Test
                 public void b() {
                     test(DURATION_2, DURATION_3, DURATION_4, DURATION_5, OBJECT_B);
                 }

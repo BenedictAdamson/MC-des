@@ -125,11 +125,12 @@ public class Universe {
             }
 
             // roll-back changes:
+            final Set<Transaction> dependentTransactions = new HashSet<>();
             for (UUID object : objectStatesWritten.keySet()) {
                 var od = objectDataMap.get(object);
                 od.stateHistory.removeTransitionsFrom(when);
                 od.uncommittedWriters.remove(this);// optimisation
-                // TODO cascade to uncommittedreaders
+                dependentTransactions.addAll(od.uncommittedReaders.get(when));
                 // TODO cascade to uncommitedwriters
                 if (od.stateHistory.isEmpty()) {
                     objectDataMap.remove(object);
@@ -137,7 +138,10 @@ public class Universe {
             }
 
             listener.onAbort();
-            // TODO cascade abort
+
+            for (var dependent : dependentTransactions) {
+                dependent.abort();
+            }
         }
 
         private void abortIfNecessary() {
