@@ -103,7 +103,19 @@ public class Universe {
             this.listener = Objects.requireNonNull(listener, "listener");
         }
 
-        private void abort() {
+        /**
+         * <p>
+         * End this transaction, if possible, rolling back any
+         * {@linkplain #put(UUID, ObjectState) writes} it has performed.
+         * </p>
+         * <ul>
+         * <li>The method does not change whether the transaction has
+         * {@linkplain #isCommitted() been committed}.</li>
+         * <li>The method is flagged as either {@linkplain #isAborted() aborted} or
+         * {@linkplain #isCommitted() committed}.</li>
+         * </ul>
+         */
+        public final void abort() {
             abortCommit = true;
             aborted = true;
 
@@ -437,11 +449,25 @@ public class Universe {
 
         /**
          * <p>
+         * Whether this transaction has been aborted (or is in the process of being
+         * aborted).
+         * </p>
+         * 
+         * @return whether aborted.
+         */
+        public final boolean isAborted() {
+            return aborted;
+        }
+
+        /**
+         * <p>
          * Whether this transaction has been successfully committed.
          * </p>
          * <ul>
-         * <li>To be committed, committing the transaction must have
-         * {@linkplain #didBeginCommit() been begun}.</li>
+         * <li>To be committed, a transaction must have {@linkplain #didBeginCommit()
+         * begun committing}.</li>
+         * <li>A transaction can not be both committed and {@linkplain #isAborted()
+         * aborted}.</li>
          * </ul>
          * 
          * @return whether committed.
@@ -621,6 +647,10 @@ public class Universe {
      * returned transaction is clear ({@code false}).</li>
      * <li>The returned transaction is in {@linkplain Universe.Transaction#getWhen()
      * in read mode}.</li>
+     * <li>The returned transaction has not
+     * {@linkplain Universe.Transaction#isCommitted() been committed}.</li>
+     * <li>The returned transaction has not
+     * {@linkplain Universe.Transaction#isAborted() been aborted}.</li>
      * </ul>
      * 
      * @param listener
