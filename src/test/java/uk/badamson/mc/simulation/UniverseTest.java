@@ -356,6 +356,51 @@ public class UniverseTest {
 
             }// class
 
+            @Nested
+            public class InvalidateSubsequentWrite {
+
+                @Test
+                public void a() {
+                    test(DURATION_1, DURATION_2, DURATION_3, DURATION_4, OBJECT_A);
+                }
+
+                @Test
+                public void b() {
+                    test(DURATION_2, DURATION_3, DURATION_4, DURATION_5, OBJECT_B);
+                }
+
+                private void test(final Duration earliestTimeOfCompleteState, Duration when1, Duration when2,
+                        Duration when3, UUID object) {
+                    assert when1.compareTo(when2) < 0;
+                    assert when2.compareTo(when3) < 0;
+                    final ObjectStateTest.TestObjectState state1 = new ObjectStateTest.TestObjectState(1);
+                    final ObjectStateTest.TestObjectState state2 = new ObjectStateTest.TestObjectState(2);
+                    final ObjectStateTest.TestObjectState state3 = new ObjectStateTest.TestObjectState(3);
+
+                    final CountingTransactionListener listener1 = new CountingTransactionListener();
+                    final CountingTransactionListener listener2 = new CountingTransactionListener();
+
+                    final Universe universe = new Universe(earliestTimeOfCompleteState);
+                    putAndCommit(universe, object, when1, state1);
+                    final Universe.Transaction transaction1 = universe.beginTransaction(listener1);
+                    transaction1.getObjectState(object, when1);
+                    transaction1.beginWrite(when2);
+                    transaction1.put(object, state2);
+                    final Universe.Transaction transaction2 = universe.beginTransaction(listener2);
+                    transaction2.getObjectState(object, when2);
+                    transaction2.beginWrite(when3);
+                    transaction2.put(object, state3);
+
+                    abort(transaction1);
+
+                    assertAll(() -> assertEquals(1, listener1.getEnds(), "Ended transaction 1"),
+                            () -> assertEquals(1, listener2.getEnds(), "Ended transaction 2"),
+                            () -> assertEquals(1, listener1.aborts, "Aborted transaction 1"),
+                            () -> assertEquals(1, listener2.aborts, "Aborted (invalidated) transaction 2"));
+                }
+
+            }// class
+
             private void abort(Universe.Transaction transaction) {
                 final boolean committed0 = transaction.isCommitted();
 
