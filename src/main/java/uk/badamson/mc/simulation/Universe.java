@@ -434,7 +434,7 @@ public class Universe {
          */
         public final void put(@NonNull UUID object, @Nullable ObjectState state) {
             Objects.requireNonNull(object, "object");
-            reallyPut(object, state);
+            openness.put(this, object, state);
         }
 
         private void reallyAbort() {
