@@ -447,6 +447,37 @@ public class Universe {
          */
         public final void put(@NonNull UUID object, @Nullable ObjectState state) {
             Objects.requireNonNull(object, "object");
+            reallyPut(object, state);
+        }
+
+        private void reallyAbort() {
+            openness = TransactionOpenness.ABORTING;
+
+            for (UUID object : dependencies.keySet()) {
+                var od = objectDataMap.get(object);
+                od.uncommittedReaders.remove(this);
+            }
+
+            // roll-back changes:
+            for (UUID object : objectStatesWritten.keySet()) {
+                var od = objectDataMap.get(object);
+                od.stateHistory.removeTransitionsFrom(when);
+                od.uncommittedWriters.remove(this);// optimisation
+                if (od.stateHistory.isEmpty()) {
+                    objectDataMap.remove(object);
+                }
+            }
+
+            openness = TransactionOpenness.ABORTED;
+            listener.onAbort();
+
+            // TODO abort mutalTransactions
+            for (var successor : successorTransactions) {
+                successor.abort();
+            }
+        }
+
+        private void reallyPut(UUID object, ObjectState state) {
             if (openness != TransactionOpenness.WRITING) {
                 throw new IllegalStateException("Began commit");
             }
@@ -481,33 +512,6 @@ public class Universe {
                     successorTransactions.add(pastTheEndReader);
                     // TODO handle mutual dependencies
                 }
-            }
-        }
-
-        private void reallyAbort() {
-            openness = TransactionOpenness.ABORTING;
-
-            for (UUID object : dependencies.keySet()) {
-                var od = objectDataMap.get(object);
-                od.uncommittedReaders.remove(this);
-            }
-
-            // roll-back changes:
-            for (UUID object : objectStatesWritten.keySet()) {
-                var od = objectDataMap.get(object);
-                od.stateHistory.removeTransitionsFrom(when);
-                od.uncommittedWriters.remove(this);// optimisation
-                if (od.stateHistory.isEmpty()) {
-                    objectDataMap.remove(object);
-                }
-            }
-
-            openness = TransactionOpenness.ABORTED;
-            listener.onAbort();
-
-            // TODO abort mutalTransactions
-            for (var successor : successorTransactions) {
-                successor.abort();
             }
         }
 
@@ -608,11 +612,15 @@ public class Universe {
             }
 
             @Override
+            void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
+                throw new IllegalStateException("Not in writing mode");
+            }
+
+            @Override
             @Nullable
             ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
                 return transaction.reallyReadUncachedObjectState(id);
             }
-
         },
         /**
          * <p>
@@ -644,6 +652,11 @@ public class Universe {
             }
 
             @Override
+            void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
+                transaction.reallyPut(object, state);
+            }
+
+            @Override
             @Nullable
             ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
                 throw new IllegalStateException("Already writing");
@@ -669,6 +682,11 @@ public class Universe {
             @Override
             void beginWrite(Transaction transaction, @NonNull Duration when) {
                 throw new IllegalStateException("Already committing");
+            }
+
+            @Override
+            void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
+                throw new IllegalStateException("Commiting");
             }
 
             @Override
@@ -700,6 +718,11 @@ public class Universe {
             }
 
             @Override
+            void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
+                // Do nothing: refrain from adding additional write dependencies.
+            }
+
+            @Override
             @Nullable
             ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
                 // Refrain from adding additional read dependencies.
@@ -728,20 +751,24 @@ public class Universe {
 
             @Override
             void beginCommit(Transaction transaction) {
-                throw new IllegalStateException("Already began");
+                throw new IllegalStateException("Committed");
             }
 
             @Override
             void beginWrite(Transaction transaction, @NonNull Duration when) {
-                throw new IllegalStateException("Already committed");
+                throw new IllegalStateException("Committed");
+            }
+
+            @Override
+            void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
+                throw new IllegalStateException("Committed");
             }
 
             @Override
             @Nullable
             ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
-                throw new IllegalStateException("Already committed");
+                throw new IllegalStateException("Committed");
             }
-
         },
         /**
          * <p>
@@ -768,15 +795,19 @@ public class Universe {
 
             @Override
             void beginWrite(Transaction transaction, @NonNull Duration when) {
-                throw new IllegalStateException("Already aborted");
+                throw new IllegalStateException("Aborted");
+            }
+
+            @Override
+            void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
+                throw new IllegalStateException("Aborted");
             }
 
             @Override
             @Nullable
             ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
-                throw new IllegalStateException("Already aborted");
+                throw new IllegalStateException("Aborted");
             }
-
         };
 
         abstract void abort(Universe.Transaction transaction);
@@ -784,6 +815,8 @@ public class Universe {
         abstract void beginCommit(Universe.Transaction transaction);
 
         abstract void beginWrite(Transaction transaction, @NonNull Duration when);
+
+        abstract void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state);
 
         abstract @Nullable ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id);
     }// enum
