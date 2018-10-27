@@ -304,7 +304,7 @@ public class Universe {
             ObjectState objectState;
             objectState = objectStatesRead.get(id);
             if (objectState == null && !objectStatesRead.containsKey(id)) {
-                objectState = reallyReadUncachedObjectState(id);
+                objectState = openness.readUncachedObjectState(this, id);
             }
             // else used cached value
             return objectState;
