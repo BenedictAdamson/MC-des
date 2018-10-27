@@ -20,8 +20,10 @@ package uk.badamson.mc.simulation;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsIn.isIn;
+import static org.hamcrest.collection.IsIn.isOneOf;
 import static org.hamcrest.collection.IsMapContaining.hasEntry;
 import static org.hamcrest.core.AnyOf.anyOf;
+import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsSame.sameInstance;
 import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
@@ -45,6 +47,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import uk.badamson.mc.ObjectTest;
+import uk.badamson.mc.simulation.Universe.TransactionOpenness;
 
 /**
  * <p>
@@ -88,11 +91,8 @@ public class UniverseTest {
                             "The returned transaction has not read any object states."),
                     () -> assertEquals(Collections.EMPTY_MAP, transaction.getObjectStatesWritten(),
                             "The returned transaction has not written any object states."),
-                    () -> assertFalse(transaction.didBeginCommit(),
-                            "The began commit flag of the returned transaction is clear."),
-                    () -> assertNull(transaction.getWhen(), "The returned transaction is in in read mode."),
-                    () -> assertFalse(transaction.isCommitted(), "The returned transaction has not been committed."),
-                    () -> assertFalse(transaction.isAborted(), "The returned transaction has not been aborted."));
+                    () -> assertEquals(Universe.TransactionOpenness.READING, transaction.getOpenness(),
+                            "The transaction is in read mode."));
 
             return transaction;
         }
@@ -402,18 +402,18 @@ public class UniverseTest {
             }// class
 
             private void abort(Universe.Transaction transaction) {
-                final boolean committed0 = transaction.isCommitted();
+                final boolean committed0 = transaction.getOpenness() == TransactionOpenness.COMMITTED;
 
                 transaction.abort();
 
                 assertInvariants(transaction);
 
-                final boolean committed = transaction.isCommitted();
+                final Universe.TransactionOpenness openness = transaction.getOpenness();
                 assertAll(
-                        () -> assertEquals(committed0, committed,
-                                "The method does not change whether the transaction has been committed."),
-                        () -> assertTrue(transaction.isAborted() || committed,
-                                "The method is flagged as either aborted or committed."));
+                        () -> assertThat("The transaction is either aborted or committed.", openness,
+                                isOneOf(TransactionOpenness.COMMITTED, TransactionOpenness.ABORTED)),
+                        () -> assertTrue(!committed0 || openness == TransactionOpenness.COMMITTED,
+                                "If this transaction was committed, it remains committed."));
             }
 
             @Test
@@ -1242,7 +1242,9 @@ public class UniverseTest {
                 transaction.beginCommit();
 
                 assertInvariants(transaction);
-                assertTrue(transaction.didBeginCommit()|| transaction.isCommitted() || transaction.isAborted(), "The began commit flag becomes set, or the transaction immediately commits or aborts.");
+                final Universe.TransactionOpenness openness = transaction.getOpenness();
+                assertThat("The transaction is not reading or writing.", openness,
+                        not(anyOf(is(Universe.TransactionOpenness.READING), is(Universe.TransactionOpenness.WRITING))));
             }
 
             @Test
@@ -1734,13 +1736,6 @@ public class UniverseTest {
             }
         }// class
 
-        private static boolean assertCommittedInvariants(Universe.Transaction transaction) {
-            final boolean commited = transaction.isCommitted();
-            assertFalse(commited && transaction.isAborted(),
-                            "A transaction can not be both committed and aborted.");
-            return commited;
-        }
-
         private static Map<UUID, ObjectStateId> assertDependenciesInvariants(Universe.Transaction transaction) {
             final Map<UUID, ObjectStateId> dependencies = transaction.getDependencies();
             assertNotNull(dependencies, "Always has a dependency map.");// guard
@@ -1780,7 +1775,7 @@ public class UniverseTest {
             assertAll(() -> UniverseTest.assertInvariants(universe),
                     () -> assertObjectStatesReadInvariants(transaction),
                     () -> assertObjectStatesWrittenInvariants(transaction),
-                    () -> assertDependenciesInvariants(transaction), () -> assertCommittedInvariants(transaction));
+                    () -> assertDependenciesInvariants(transaction), () -> assertOpennessInvariants(transaction));
         }
 
         public static void assertInvariants(Universe.Transaction transaction1, Universe.Transaction transaction2) {
@@ -1823,6 +1818,12 @@ public class UniverseTest {
                 UniverseTest.assertInvariants(transaction.getUniverse(), object, when);
             }
             return objectStatesWritten;
+        }
+
+        private static Universe.TransactionOpenness assertOpennessInvariants(Universe.Transaction transaction) {
+            final Universe.TransactionOpenness openness = transaction.getOpenness();
+            assertNotNull(openness, "openness");
+            return openness;
         }
 
         private static void putAndCommit(final Universe universe, UUID object, Duration when, ObjectState state) {

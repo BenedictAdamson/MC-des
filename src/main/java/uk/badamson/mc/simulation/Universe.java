@@ -75,6 +75,7 @@ public class Universe {
     @NotThreadSafe
     public final class Transaction {
 
+        @NonNull
         private final TransactionListener listener;
 
         private final Map<ObjectStateId, ObjectState> objectStatesRead = new HashMap<>();
@@ -94,6 +95,8 @@ public class Universe {
         private final Set<Transaction> successorTransactions = new HashSet<>();
 
         private Duration when;
+
+        @NonNull
         private TransactionOpenness openness = TransactionOpenness.READING;
 
         private Transaction(@NonNull TransactionListener listener) {
@@ -106,10 +109,12 @@ public class Universe {
          * {@linkplain #put(UUID, ObjectState) writes} it has performed.
          * </p>
          * <ul>
-         * <li>The method does not change whether the transaction has
-         * {@linkplain #isCommitted() been committed}.</li>
-         * <li>The method is flagged as either {@linkplain #isAborted() aborted} or
-         * {@linkplain #isCommitted() committed}.</li>
+         * <li>If this transaction {@linkplain #getOpenness() was}
+         * {@linkplain Universe.TransactionOpenness#COMMITTED committed}, it remains
+         * committed.</li>
+         * <li>The transaction {@linkplain #getOpenness() is} either
+         * {@linkplain Universe.TransactionOpenness#ABORTED aborted} or
+         * {@linkplain Universe.TransactionOpenness#COMMITTED committed}.</li>
          * </ul>
          */
         public final void abort() {
@@ -144,9 +149,9 @@ public class Universe {
          * Begin completion of this transaction, completing it if possible.
          * </p>
          * <ul>
-         * <li>The {@linkplain #didBeginCommit() began commit flag} becomes set
-         * ({@code true}), or the transaction immediately {@linkplain #isCommitted()
-         * commits} or {@linkplain #isAborted() aborts}.</li>
+         * <li>The transaction {@linkplain #getOpenness() is} not (anymore)
+         * {@linkplain Universe.TransactionOpenness#READING reading} or
+         * {@linkplain Universe.TransactionOpenness#WRITING writing}.</li>
          * </ul>
          * 
          * @param[in] onCommit An action to perform when (if) this transaction
@@ -248,18 +253,6 @@ public class Universe {
             }
             // TODO Collaborate with mutual transactions
             commit();
-        }
-
-        /**
-         * <p>
-         * Whether {@linkplain #beginCommit() committing this transaction has been
-         * started}.
-         * </p>
-         * 
-         * @return whether started commit.
-         */
-        public final boolean didBeginCommit() {
-            return openness == TransactionOpenness.COMMITTING;
         }
 
         /**
@@ -422,6 +415,18 @@ public class Universe {
 
         /**
          * <p>
+         * The degree to which this transaction can be said to be <dfn>open</dfn>.
+         * </p>
+         * 
+         * @return the degree of openness; not null.
+         */
+        @NonNull
+        public final TransactionOpenness getOpenness() {
+            return openness;
+        }
+
+        /**
+         * <p>
          * The {@link Universe} for which this transaction changes the state.
          * </p>
          * 
@@ -441,33 +446,6 @@ public class Universe {
          */
         public final @Nullable Duration getWhen() {
             return when;
-        }
-
-        /**
-         * <p>
-         * Whether this transaction has been aborted (or is in the process of being
-         * aborted).
-         * </p>
-         * 
-         * @return whether aborted.
-         */
-        public final boolean isAborted() {
-            return openness == TransactionOpenness.ABORTED;
-        }
-
-        /**
-         * <p>
-         * Whether this transaction has been successfully committed.
-         * </p>
-         * <ul>
-         * <li>A transaction can not be both committed and {@linkplain #isAborted()
-         * aborted}.</li>
-         * </ul>
-         * 
-         * @return whether committed.
-         */
-        public final boolean isCommitted() {
-            return openness == TransactionOpenness.COMMITTED;
         }
 
         /**
@@ -702,14 +680,8 @@ public class Universe {
      * <li>The returned transaction {@linkplain Map#isEmpty() has not}
      * {@linkplain Universe.Transaction#getObjectStatesWritten() written any object
      * states}.</li>
-     * <li>The {@linkplain Transaction#didBeginCommit() began commit} flag of the
-     * returned transaction is clear ({@code false}).</li>
-     * <li>The returned transaction is in {@linkplain Universe.Transaction#getWhen()
-     * in read mode}.</li>
-     * <li>The returned transaction has not
-     * {@linkplain Universe.Transaction#isCommitted() been committed}.</li>
-     * <li>The returned transaction has not
-     * {@linkplain Universe.Transaction#isAborted() been aborted}.</li>
+     * <li>The transaction {@linkplain Universe.Transaction#getOpenness() is in}
+     * {@linkplain Universe.TransactionOpenness#READING read mode}.</li>
      * </ul>
      * 
      * @param listener
