@@ -284,27 +284,27 @@ public class ModifiableValueHistoryTest {
     }// class
 
     @Nested
-    public class RemoveStateTransitionsFrom {
+    public class RemoveTransitionsFrom {
 
         @Nested
         public class AfterLastTransition {
             @Test
             public void a() {
-                removeStateTransitionsFrom_1AfterLast(WHEN_1, WHEN_2);
+                test(WHEN_1, WHEN_2);
             }
 
             @Test
             public void b() {
-                removeStateTransitionsFrom_1AfterLast(WHEN_2, WHEN_3);
+                test(WHEN_2, WHEN_3);
             }
 
-            private void removeStateTransitionsFrom_1AfterLast(Duration t1, Duration t2) {
+            private void test(Duration t1, Duration t2) {
                 assert t1.compareTo(t2) < 0;
                 final ModifiableValueHistory<Boolean> history = new ModifiableValueHistory<>(Boolean.FALSE);
                 history.appendTransition(t1, Boolean.TRUE);
                 final ModifiableValueHistory<Boolean> history0 = new ModifiableValueHistory<>(history);
 
-                removeStateTransitionsFrom(history, t2);
+                removeTransitionsFrom(history, t2);
 
                 assertEquals(history0, history, "Unchanged");
             }
@@ -316,12 +316,12 @@ public class ModifiableValueHistoryTest {
 
             @Test
             public void a() {
-                removeStateTransitionsFrom_1BeforeOrAtLast(WHEN_1, WHEN_2);
+                test(WHEN_1, WHEN_2);
             }
 
             @Test
             public void b() {
-                removeStateTransitionsFrom_1BeforeOrAtLast(WHEN_2, WHEN_3);
+                test(WHEN_2, WHEN_3);
             }
 
             @Test
@@ -330,7 +330,7 @@ public class ModifiableValueHistoryTest {
                 history.appendTransition(WHEN_2, 2);
                 history.appendTransition(WHEN_4, 3);
 
-                removeStateTransitionsFrom(history, WHEN_3);
+                removeTransitionsFrom(history, WHEN_3);
 
             }
 
@@ -342,14 +342,14 @@ public class ModifiableValueHistoryTest {
             public void isNull() {
                 final ModifiableValueHistory<Boolean> history = new ModifiableValueHistory<>();
 
-                removeStateTransitionsFrom(history, WHEN_1);
+                removeTransitionsFrom(history, WHEN_1);
             }
 
             @Test
             public void nonNull() {
                 final ModifiableValueHistory<Boolean> history = new ModifiableValueHistory<>(Boolean.FALSE);
 
-                removeStateTransitionsFrom(history, WHEN_1);
+                removeTransitionsFrom(history, WHEN_1);
             }
 
         }// class
@@ -357,14 +357,14 @@ public class ModifiableValueHistoryTest {
         @Test
         public void atLast() {
             final Duration when = WHEN_1;
-            removeStateTransitionsFrom_1BeforeOrAtLast(when, when);
+            test(when, when);
         }
 
-        private <VALUE> void removeStateTransitionsFrom(ModifiableValueHistory<VALUE> history, Duration when) {
+        private <VALUE> void removeTransitionsFrom(ModifiableValueHistory<VALUE> history, Duration when) {
             final VALUE firstValue0 = history.getFirstValue();
             final SortedMap<Duration, VALUE> transitions0 = new TreeMap<>(history.getTransitions());
 
-            history.removeStateTransitionsFrom(when);
+            history.removeTransitionsFrom(when);
 
             assertInvariants(history);
             final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
@@ -381,13 +381,13 @@ public class ModifiableValueHistoryTest {
             }
         }
 
-        private void removeStateTransitionsFrom_1BeforeOrAtLast(Duration t1, Duration t2) {
+        private void test(Duration t1, Duration t2) {
             assert t1.compareTo(t2) <= 0;
             final ModifiableValueHistory<Boolean> history = new ModifiableValueHistory<>(Boolean.FALSE);
             history.appendTransition(t2, Boolean.TRUE);
             final ModifiableValueHistory<Boolean> expected = new ModifiableValueHistory<>(Boolean.FALSE);
 
-            removeStateTransitionsFrom(history, t1);
+            removeTransitionsFrom(history, t1);
 
             assertEquals(expected, history, "Trancated");
         }
