@@ -118,30 +118,7 @@ public class Universe {
          * </ul>
          */
         public final void abort() {
-            openness = TransactionOpenness.ABORTING;
-
-            for (UUID object : dependencies.keySet()) {
-                var od = objectDataMap.get(object);
-                od.uncommittedReaders.remove(this);
-            }
-
-            // roll-back changes:
-            for (UUID object : objectStatesWritten.keySet()) {
-                var od = objectDataMap.get(object);
-                od.stateHistory.removeTransitionsFrom(when);
-                od.uncommittedWriters.remove(this);// optimisation
-                if (od.stateHistory.isEmpty()) {
-                    objectDataMap.remove(object);
-                }
-            }
-
-            openness = TransactionOpenness.ABORTED;
-            listener.onAbort();
-
-            // TODO abort mutalTransactions
-            for (var successor : successorTransactions) {
-                successor.abort();
-            }
+            openness.abort(this);
         }
 
         /**
@@ -545,6 +522,33 @@ public class Universe {
             return objectState;
         }
 
+        private void reallyAbort() {
+            openness = TransactionOpenness.ABORTING;
+
+            for (UUID object : dependencies.keySet()) {
+                var od = objectDataMap.get(object);
+                od.uncommittedReaders.remove(this);
+            }
+
+            // roll-back changes:
+            for (UUID object : objectStatesWritten.keySet()) {
+                var od = objectDataMap.get(object);
+                od.stateHistory.removeTransitionsFrom(when);
+                od.uncommittedWriters.remove(this);// optimisation
+                if (od.stateHistory.isEmpty()) {
+                    objectDataMap.remove(object);
+                }
+            }
+
+            openness = TransactionOpenness.ABORTED;
+            listener.onAbort();
+
+            // TODO abort mutalTransactions
+            for (var successor : successorTransactions) {
+                successor.abort();
+            }
+        }
+
     }// class
 
     /**
@@ -577,6 +581,11 @@ public class Universe {
      * </p>
      */
     public enum TransactionOpenness {
+        /*
+         * In addition to its public interface, this enum also acts as a Strategy for
+         * how to handle some transaction mutations.
+         */
+
         /**
          * <p>
          * The transaction is <dfn>open</dfn> and may (successfully)
@@ -584,7 +593,14 @@ public class Universe {
          * states}.
          * </p>
          */
-        READING,
+        READING {
+
+            @Override
+            void abort(Transaction transaction) {
+                transaction.reallyAbort();
+            }
+
+        },
         /**
          * <p>
          * The transaction is <dfn>open</dfn> and may (successfully)
@@ -596,19 +612,40 @@ public class Universe {
          * object states}.
          * </p>
          */
-        WRITING,
+        WRITING {
+
+            @Override
+            void abort(Transaction transaction) {
+                transaction.reallyAbort();
+            }
+
+        },
         /**
          * <p>
          * The transaction is <dfn>open</dfn> and has started committing.
          * </p>
          */
-        COMMITTING,
+        COMMITTING {
+
+            @Override
+            void abort(Transaction transaction) {
+                transaction.reallyAbort();
+            }
+
+        },
         /**
          * <p>
          * The transaction is <dfn>open</dfn> and has started aborting.
          * </p>
          */
-        ABORTING,
+        ABORTING {
+
+            @Override
+            void abort(Transaction transaction) {
+                transaction.reallyAbort();// TODO should be no-op
+            }
+
+        },
         /**
          * <p>
          * The transaction is <dfn>closed</dfn> (not <dfn>open</dfn>) and has
@@ -622,7 +659,14 @@ public class Universe {
          * values.
          * </p>
          */
-        COMMITTED,
+        COMMITTED {
+
+            @Override
+            void abort(Transaction transaction) {
+                transaction.reallyAbort();// TODO should be no-op
+            }
+
+        },
         /**
          * <p>
          * The transaction is <dfn>closed</dfn> (not <dfn>open</dfn>) and has aborted.
@@ -634,7 +678,16 @@ public class Universe {
          * reliable; the true values may be different.
          * </p>
          */
-        ABORTED
+        ABORTED {
+
+            @Override
+            void abort(Transaction transaction) {
+                transaction.reallyAbort();// TODO should be no-op
+            }
+
+        };
+
+        abstract void abort(Universe.Transaction transaction);
     }// enum
 
     private Duration earliestTimeOfCompleteState;
