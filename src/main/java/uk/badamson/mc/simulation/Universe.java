@@ -596,6 +596,17 @@ public class Universe {
                 transaction.openness = TransactionOpenness.COMMITTING;
                 transaction.commitIfPossible();
             }
+
+            @Override
+            void beginWrite(Transaction transaction, @NonNull Duration when) {
+                Objects.requireNonNull(when, "when");
+                if (transaction.objectStatesRead.keySet().stream().map(id -> id.getWhen())
+                        .filter(t -> 0 <= t.compareTo(when)).findAny().orElse(null) != null) {
+                    throw new IllegalStateException("Time-stamp of read state at or after the given time.");
+                }
+                transaction.when = when;
+                transaction.openness = TransactionOpenness.WRITING;
+            }
         },
         /**
          * <p>
@@ -620,6 +631,11 @@ public class Universe {
                 transaction.openness = TransactionOpenness.COMMITTING;
                 transaction.commitIfPossible();
             }
+
+            @Override
+            void beginWrite(Transaction transaction, @NonNull Duration when) {
+                throw new IllegalStateException("Already writing");
+            }
         },
         /**
          * <p>
@@ -637,6 +653,11 @@ public class Universe {
             void beginCommit(Transaction transaction) {
                 throw new IllegalStateException("Already began");
             }
+
+            @Override
+            void beginWrite(Transaction transaction, @NonNull Duration when) {
+                throw new IllegalStateException("Already committing");
+            }
         },
         /**
          * <p>
@@ -653,6 +674,11 @@ public class Universe {
             @Override
             void beginCommit(Transaction transaction) {
                 transaction.reallyAbort();// TODO should be no-op
+            }
+
+            @Override
+            void beginWrite(Transaction transaction, @NonNull Duration when) {
+                // Do nothing
             }
         },
         /**
@@ -679,6 +705,11 @@ public class Universe {
             void beginCommit(Transaction transaction) {
                 throw new IllegalStateException("Already began");
             }
+
+            @Override
+            void beginWrite(Transaction transaction, @NonNull Duration when) {
+                throw new IllegalStateException("Already committed");
+            }
         },
         /**
          * <p>
@@ -702,11 +733,18 @@ public class Universe {
             void beginCommit(Transaction transaction) {
                 // Do nothing
             }
+
+            @Override
+            void beginWrite(Transaction transaction, @NonNull Duration when) {
+                throw new IllegalStateException("Already aborted");
+            }
         };
 
         abstract void abort(Universe.Transaction transaction);
 
         abstract void beginCommit(Universe.Transaction transaction);
+
+        abstract void beginWrite(Transaction transaction, @NonNull Duration when);
     }// enum
 
     private Duration earliestTimeOfCompleteState;
