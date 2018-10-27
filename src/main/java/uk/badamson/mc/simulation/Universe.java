@@ -73,7 +73,7 @@ public class Universe {
      * </p>
      */
     @NotThreadSafe
-    public final class Transaction {
+    public final class Transaction implements AutoCloseable {
 
         @NonNull
         private final TransactionListener listener;
@@ -169,6 +169,39 @@ public class Universe {
          */
         public final void beginWrite(@NonNull Duration when) {
             openness.beginWrite(this, when);
+        }
+
+        /**
+         * <p>
+         * Ensure that this transaction is either {@linkplain #abort() aborted} or
+         * (eventually) committed.
+         * </p>
+         * <ul>
+         * <li>The method removes any unnecessary hidden references to this transaction
+         * object, so the transaction object can be garbage collected.</li>
+         * <li>The method ensures that any transactions dependent on this transaction
+         * can also eventually abort or commit.</li>
+         * <li>This transaction {@linkplain #getOpenness() is}
+         * {@linkplain Universe.TransactionOpenness#ABORTED aborted}
+         * {@linkplain Universe.TransactionOpenness#COMMITTING committing} or
+         * {@linkplain Universe.TransactionOpenness#COMMITTED committed}.</li>
+         * <li>If this transaction {@linkplain #getOpenness() was}
+         * {@linkplain Universe.TransactionOpenness#ABORTED aborted} it remains
+         * aborted.</li>
+         * <li>If this transaction {@linkplain #getOpenness() was}
+         * {@linkplain Universe.TransactionOpenness#COMMITTING committing} it is still
+         * committing.</li>
+         * <li>If this transaction {@linkplain #getOpenness() was}
+         * {@linkplain Universe.TransactionOpenness#COMMITTED committed} it remains
+         * committed.</li>
+         * <li>This transaction {@linkplain #getOpenness() is} (now)
+         * {@linkplain Universe.TransactionOpenness#COMMITTED committed} only if it was
+         * already committed.</li>
+         * </ul>
+         */
+        @Override
+        public final void close() {
+            openness.close(this);
         }
 
         private void commit() {
@@ -597,6 +630,11 @@ public class Universe {
             }
 
             @Override
+            void close(Universe.Transaction transaction) {
+                transaction.reallyAbort();
+            }
+
+            @Override
             void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
                 throw new IllegalStateException("Not in writing mode");
             }
@@ -637,6 +675,11 @@ public class Universe {
             }
 
             @Override
+            void close(Universe.Transaction transaction) {
+                transaction.reallyAbort();
+            }
+
+            @Override
             void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
                 transaction.reallyPut(object, state);
             }
@@ -670,6 +713,11 @@ public class Universe {
             }
 
             @Override
+            void close(Universe.Transaction transaction) {
+                // Do nothing
+            }
+
+            @Override
             void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
                 throw new IllegalStateException("Commiting");
             }
@@ -700,6 +748,11 @@ public class Universe {
             @Override
             void beginWrite(Transaction transaction, @NonNull Duration when) {
                 // Do nothing
+            }
+
+            @Override
+            void close(Universe.Transaction transaction) {
+                transaction.reallyAbort();
             }
 
             @Override
@@ -745,6 +798,11 @@ public class Universe {
             }
 
             @Override
+            void close(Universe.Transaction transaction) {
+                // Do nothing
+            }
+
+            @Override
             void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
                 throw new IllegalStateException("Committed");
             }
@@ -784,6 +842,11 @@ public class Universe {
             }
 
             @Override
+            void close(Universe.Transaction transaction) {
+                // Do nothing
+            }
+
+            @Override
             void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
                 throw new IllegalStateException("Aborted");
             }
@@ -800,6 +863,8 @@ public class Universe {
         abstract void beginCommit(Universe.Transaction transaction);
 
         abstract void beginWrite(Transaction transaction, @NonNull Duration when);
+
+        abstract void close(Universe.Transaction transaction);
 
         abstract void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state);
 

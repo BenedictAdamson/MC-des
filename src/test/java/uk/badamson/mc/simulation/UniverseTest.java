@@ -1512,6 +1512,174 @@ public class UniverseTest {
         }// class
 
         @Nested
+        public class Close {
+
+            @Nested
+            public class AfterBeginCommitReadPastLastCommit {
+
+                @Test
+                public void a() {
+                    test(DURATION_1, OBJECT_A, DURATION_2, DURATION_3);
+                }
+
+                @Test
+                public void b() {
+                    test(DURATION_2, OBJECT_B, DURATION_3, DURATION_4);
+                }
+
+                @Test
+                public void near() {
+                    final Duration when1 = DURATION_3;
+                    test(DURATION_2, OBJECT_B, when1, when1.plusNanos(1));
+                }
+
+                private void test(final Duration earliestTimeOfCompleteState, UUID object, Duration when1,
+                        Duration when2) {
+                    assert when1.compareTo(when2) < 0;
+                    final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
+
+                    final CountingTransactionListener listener = new CountingTransactionListener();
+
+                    final Universe universe = new Universe(earliestTimeOfCompleteState);
+                    putAndCommit(universe, object, when1, objectState1);
+                    final Universe.Transaction transaction = universe.beginTransaction(listener);
+                    transaction.getObjectState(object, when2);
+                    transaction.beginCommit();
+
+                    close(transaction);
+                }
+
+            }// class
+
+            @Nested
+            public class AfterWrite {
+
+                @Test
+                public void a() {
+                    test(DURATION_1, OBJECT_A, DURATION_2, DURATION_3);
+                }
+
+                @Test
+                public void b() {
+                    test(DURATION_2, OBJECT_B, DURATION_3, DURATION_4);
+                }
+
+                private void test(final Duration earliestTimeOfCompleteState, UUID object, Duration when1,
+                        Duration when2) {
+                    assert when1.compareTo(when2) < 0;
+                    final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
+                    final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
+
+                    final Universe universe = new Universe(earliestTimeOfCompleteState);
+                    putAndCommit(universe, object, when1, objectState1);
+                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final Universe.Transaction transaction = universe.beginTransaction(listener);
+                    transaction.beginWrite(when2);
+                    transaction.put(object, objectState2);
+
+                    close(transaction);
+
+                    assertAll(() -> assertEquals(1, listener.getEnds(), "Ended the transaction"),
+                            () -> assertEquals(1, listener.aborts, "Aborted the transaction"),
+                            () -> assertSame(objectState1, universe.getObjectState(object, when2),
+                                    "Rolled back aborted write [values]"),
+                            () -> assertEquals(Collections.singleton(when1),
+                                    universe.getObjectStateHistory(object).getTransitionTimes(),
+                                    "Rolled back aborted write [transition times]"));
+                }
+
+            }// class
+
+            @Nested
+            public class AfterXommitOfReadWithinHistory {
+                @Test
+                public void a() {
+                    test(DURATION_1, OBJECT_A, DURATION_2, DURATION_3, DURATION_4);
+                }
+
+                @Test
+                public void b() {
+                    test(DURATION_2, OBJECT_B, DURATION_3, DURATION_4, DURATION_5);
+                }
+
+                private void test(final Duration earliestTimeOfCompleteState, UUID object, Duration when1,
+                        Duration when2, Duration when3) {
+                    final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
+                    final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
+
+                    final CountingTransactionListener listener = new CountingTransactionListener();
+
+                    final Universe universe = new Universe(earliestTimeOfCompleteState);
+                    putAndCommit(universe, object, when1, objectState1);
+                    putAndCommit(universe, object, when3, objectState2);
+
+                    final Universe.Transaction transaction = universe.beginTransaction(listener);
+                    transaction.getObjectState(object, when1);
+                    transaction.getObjectState(object, when2);
+                    transaction.beginCommit();
+
+                    close(transaction);
+                }
+
+            }// class
+
+            @Test
+            public void afterAbort() {
+                final CountingTransactionListener listener = new CountingTransactionListener();
+
+                final Universe universe = new Universe(DURATION_1);
+                final Universe.Transaction transaction = universe.beginTransaction(listener);
+                transaction.abort();
+
+                close(transaction);
+
+                assertAll(() -> assertEquals(0, listener.commits, "Not committed"),
+                        () -> assertEquals(1, listener.aborts, "Aborted"));
+            }
+
+            private void close(final Universe.Transaction transaction) {
+                final Universe.TransactionOpenness openness0 = transaction.getOpenness();
+
+                transaction.close();
+
+                assertInvariants(transaction);
+                final Universe.TransactionOpenness openness = transaction.getOpenness();
+                assertThat("This transaction is aborted committing or committed.", openness,
+                        isOneOf(Universe.TransactionOpenness.ABORTED, Universe.TransactionOpenness.COMMITTED,
+                                Universe.TransactionOpenness.COMMITTING));
+                assertFalse(
+                        openness0 == Universe.TransactionOpenness.ABORTED
+                                && openness != Universe.TransactionOpenness.ABORTED,
+                        "If this transaction was aborted it remains aborted.");
+                assertFalse(
+                        openness0 == Universe.TransactionOpenness.COMMITTED
+                                && openness != Universe.TransactionOpenness.COMMITTED,
+                        "If this transaction was committed it remains committed.");
+                assertFalse(
+                        openness0 == Universe.TransactionOpenness.COMMITTING
+                                && openness != Universe.TransactionOpenness.COMMITTING,
+                        "If this transaction was committing it is still committing.");
+                assertFalse(
+                        openness0 != Universe.TransactionOpenness.COMMITTED
+                                && openness == Universe.TransactionOpenness.COMMITTED,
+                        "This transaction is committed only if it was already committed.");
+            }
+
+            @Test
+            public void immediately() {
+                final Universe universe = new Universe(DURATION_1);
+                final CountingTransactionListener listener = new CountingTransactionListener();
+                final Universe.Transaction transaction = universe.beginTransaction(listener);
+
+                close(transaction);
+
+                assertAll(() -> assertEquals(1, listener.getEnds(), "Ended the transaction"),
+                        () -> assertEquals(1, listener.aborts, "Aborted the transaction"));
+            }
+
+        }// class
+
+        @Nested
         public class GetObjectState {
 
             @Nested
