@@ -88,9 +88,6 @@ public class Universe {
         // Must be committed before this transaction.
         private final Set<Transaction> predecessorTransactions = new HashSet<>();
 
-        // Must be committed simultaneously with this transaction.
-        // TODO private final Set<Transaction> mutualTransactions = new HashSet<>();
-
         // Must be committed after this transaction.
         private final Set<Transaction> successorTransactions = new HashSet<>();
 
@@ -219,7 +216,6 @@ public class Universe {
                 // Do not commit if have predecessors.
                 return;
             }
-            // TODO Collaborate with mutual transactions
             commit();
         }
 
@@ -471,7 +467,6 @@ public class Universe {
             openness = TransactionOpenness.ABORTED;
             listener.onAbort();
 
-            // TODO abort mutalTransactions
             for (var successor : successorTransactions) {
                 successor.abort();
             }
@@ -510,7 +505,6 @@ public class Universe {
                     pastTheEndReader.pastTheEndReads.remove(object);
                     pastTheEndReader.predecessorTransactions.add(this);
                     successorTransactions.add(pastTheEndReader);
-                    // TODO handle mutual dependencies
                 }
             }
         }
