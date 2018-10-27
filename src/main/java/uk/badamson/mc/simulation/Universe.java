@@ -704,12 +704,12 @@ public class Universe {
 
             @Override
             void abort(Transaction transaction) {
-                transaction.reallyAbort();// TODO should be no-op
+                // Do nothing
             }
 
             @Override
             void beginCommit(Transaction transaction) {
-                transaction.reallyAbort();// TODO should be no-op
+                transaction.reallyAbort();
             }
 
             @Override
@@ -746,7 +746,7 @@ public class Universe {
 
             @Override
             void abort(Transaction transaction) {
-                transaction.reallyAbort();// TODO should be no-op
+                throw new IllegalStateException("Committed");
             }
 
             @Override
@@ -785,7 +785,7 @@ public class Universe {
 
             @Override
             void abort(Transaction transaction) {
-                transaction.reallyAbort();// TODO should be no-op
+                // Do nothing
             }
 
             @Override
