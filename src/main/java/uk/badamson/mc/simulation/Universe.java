@@ -140,16 +140,7 @@ public class Universe {
          *             has already begun}.
          */
         public final void beginCommit() {
-            if (openness == TransactionOpenness.COMMITTING) {
-                throw new IllegalStateException("Already began");
-            }
-
-            if (openness == TransactionOpenness.ABORTING) {
-                abort();
-            } else {
-                openness = TransactionOpenness.COMMITTING;
-                commitIfPossible();
-            }
+            openness.beginCommit(this);
         }
 
         /**
@@ -600,6 +591,11 @@ public class Universe {
                 transaction.reallyAbort();
             }
 
+            @Override
+            void beginCommit(Transaction transaction) {
+                transaction.openness = TransactionOpenness.COMMITTING;
+                transaction.commitIfPossible();
+            }
         },
         /**
          * <p>
@@ -619,6 +615,11 @@ public class Universe {
                 transaction.reallyAbort();
             }
 
+            @Override
+            void beginCommit(Transaction transaction) {
+                transaction.openness = TransactionOpenness.COMMITTING;
+                transaction.commitIfPossible();
+            }
         },
         /**
          * <p>
@@ -632,6 +633,10 @@ public class Universe {
                 transaction.reallyAbort();
             }
 
+            @Override
+            void beginCommit(Transaction transaction) {
+                throw new IllegalStateException("Already began");
+            }
         },
         /**
          * <p>
@@ -645,6 +650,10 @@ public class Universe {
                 transaction.reallyAbort();// TODO should be no-op
             }
 
+            @Override
+            void beginCommit(Transaction transaction) {
+                transaction.reallyAbort();// TODO should be no-op
+            }
         },
         /**
          * <p>
@@ -666,6 +675,10 @@ public class Universe {
                 transaction.reallyAbort();// TODO should be no-op
             }
 
+            @Override
+            void beginCommit(Transaction transaction) {
+                throw new IllegalStateException("Already began");
+            }
         },
         /**
          * <p>
@@ -685,9 +698,15 @@ public class Universe {
                 transaction.reallyAbort();// TODO should be no-op
             }
 
+            @Override
+            void beginCommit(Transaction transaction) {
+                // Do nothing
+            }
         };
 
         abstract void abort(Universe.Transaction transaction);
+
+        abstract void beginCommit(Universe.Transaction transaction);
     }// enum
 
     private Duration earliestTimeOfCompleteState;
