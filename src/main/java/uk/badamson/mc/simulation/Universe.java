@@ -168,16 +168,7 @@ public class Universe {
          *             </ul>
          */
         public final void beginWrite(@NonNull Duration when) {
-            Objects.requireNonNull(when, "when");
-            if (objectStatesRead.keySet().stream().map(id -> id.getWhen()).filter(t -> 0 <= t.compareTo(when)).findAny()
-                    .orElse(null) != null) {
-                throw new IllegalStateException("Time-stamp of read state at or after the given time.");
-            }
-            if (this.when != null) {
-                throw new IllegalStateException("Already in write mode.");
-            }
-            this.when = when;
-            openness = TransactionOpenness.WRITING;
+            openness.beginWrite(this, when);
         }
 
         private void commit() {
