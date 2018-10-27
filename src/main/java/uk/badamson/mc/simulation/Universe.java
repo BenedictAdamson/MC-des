@@ -94,10 +94,7 @@ public class Universe {
         private final Set<Transaction> successorTransactions = new HashSet<>();
 
         private Duration when;
-        private boolean abortCommit;
-        private boolean beginCommit;
-        private boolean committed;
-        private boolean aborted;
+        private TransactionOpenness openness = TransactionOpenness.READING;
 
         private Transaction(@NonNull TransactionListener listener) {
             this.listener = Objects.requireNonNull(listener, "listener");
@@ -116,8 +113,7 @@ public class Universe {
          * </ul>
          */
         public final void abort() {
-            abortCommit = true;
-            aborted = true;
+            openness = TransactionOpenness.ABORTING;
 
             for (UUID object : dependencies.keySet()) {
                 var od = objectDataMap.get(object);
@@ -134,17 +130,12 @@ public class Universe {
                 }
             }
 
+            openness = TransactionOpenness.ABORTED;
             listener.onAbort();
 
             // TODO abort mutalTransactions
             for (var successor : successorTransactions) {
                 successor.abort();
-            }
-        }
-
-        private void abortIfNecessary() {
-            if (abortCommit && !aborted) {
-                abort();
             }
         }
 
@@ -154,7 +145,8 @@ public class Universe {
          * </p>
          * <ul>
          * <li>The {@linkplain #didBeginCommit() began commit flag} becomes set
-         * ({@code true}).</li>
+         * ({@code true}), or the transaction immediately {@linkplain #isCommitted()
+         * commits} or {@linkplain #isAborted() aborts}.</li>
          * </ul>
          * 
          * @param[in] onCommit An action to perform when (if) this transaction
@@ -166,13 +158,16 @@ public class Universe {
          *             has already begun}.
          */
         public final void beginCommit() {
-            if (beginCommit) {
+            if (openness == TransactionOpenness.COMMITTING) {
                 throw new IllegalStateException("Already began");
             }
-            beginCommit = true;
 
-            abortIfNecessary();
-            commitIfPossible();
+            if (openness == TransactionOpenness.ABORTING) {
+                abort();
+            } else {
+                openness = TransactionOpenness.COMMITTING;
+                commitIfPossible();
+            }
         }
 
         /**
@@ -212,10 +207,11 @@ public class Universe {
                 throw new IllegalStateException("Already in write mode.");
             }
             this.when = when;
+            openness = TransactionOpenness.WRITING;
         }
 
         private void commit() {
-            committed = true;
+            openness = TransactionOpenness.COMMITTED;
             for (UUID object : objectStatesWritten.keySet()) {
                 final var od = objectDataMap.get(object);
                 assert od.lastCommit.compareTo(when) < 0;
@@ -232,14 +228,14 @@ public class Universe {
             listener.onCommit();
             for (var successor : successorTransactions) {
                 successor.predecessorTransactions.remove(this);
-                if (successor.beginCommit) {
+                if (successor.openness == TransactionOpenness.COMMITTING) {
                     successor.commitIfPossible();
                 }
             }
         }
 
         private void commitIfPossible() {
-            if (abortCommit) {
+            if (openness != TransactionOpenness.COMMITTING) {
                 return;
             }
             if (!pastTheEndReads.isEmpty()) {
@@ -263,7 +259,7 @@ public class Universe {
          * @return whether started commit.
          */
         public final boolean didBeginCommit() {
-            return beginCommit;
+            return openness == TransactionOpenness.COMMITTING;
         }
 
         /**
@@ -360,9 +356,7 @@ public class Universe {
             ObjectState objectState;
             objectState = objectStatesRead.get(id);
             if (objectState == null && !objectStatesRead.containsKey(id)) {
-                if (this.when != null) {
-                    throw new IllegalStateException("In write mode");
-                } else if (beginCommit) {
+                if (openness != TransactionOpenness.READING) {
                     throw new IllegalStateException("Began commit");
                 }
                 objectState = readObjectState(object, when, id);
@@ -458,7 +452,7 @@ public class Universe {
          * @return whether aborted.
          */
         public final boolean isAborted() {
-            return aborted;
+            return openness == TransactionOpenness.ABORTED;
         }
 
         /**
@@ -466,8 +460,6 @@ public class Universe {
          * Whether this transaction has been successfully committed.
          * </p>
          * <ul>
-         * <li>To be committed, a transaction must have {@linkplain #didBeginCommit()
-         * begun committing}.</li>
          * <li>A transaction can not be both committed and {@linkplain #isAborted()
          * aborted}.</li>
          * </ul>
@@ -475,7 +467,7 @@ public class Universe {
          * @return whether committed.
          */
         public final boolean isCommitted() {
-            return committed;
+            return openness == TransactionOpenness.COMMITTED;
         }
 
         /**
@@ -512,9 +504,7 @@ public class Universe {
          */
         public final void put(@NonNull UUID object, @Nullable ObjectState state) {
             Objects.requireNonNull(object, "object");
-            if (when == null) {
-                throw new IllegalStateException("Not in write mode");
-            } else if (beginCommit) {
+            if (openness != TransactionOpenness.WRITING) {
                 throw new IllegalStateException("Began commit");
             }
 
@@ -528,14 +518,14 @@ public class Universe {
             final ModifiableValueHistory<ObjectState> stateHistory = od.stateHistory;
             if (state != null && !stateHistory.isEmpty() && stateHistory.getLastValue() == null) {
                 // Attempted resurrection of a dead object.
-                abortCommit = true;
+                openness = TransactionOpenness.ABORTING;
                 return;
             }
             final Duration lastTransition0 = stateHistory.getLastTansitionTime();
             try {
                 stateHistory.appendTransition(when, state);
             } catch (IllegalStateException e) {
-                abortCommit = true;
+                openness = TransactionOpenness.ABORTING;
             }
             od.uncommittedWriters.addFrom(when, this);
             for (Transaction uncommittedReader : od.uncommittedReaders.get(when)) {
@@ -601,6 +591,73 @@ public class Universe {
         public void onCommit();
 
     }// interface
+
+    /**
+     * <p>
+     * The degree to which an {@link Universe.Transaction} can be said to be
+     * <dfn>open</dfn>.
+     * </p>
+     */
+    public enum TransactionOpenness {
+        /**
+         * <p>
+         * The transaction is <dfn>open</dfn> and may (successfully)
+         * {@linkplain Universe.Transaction#getObjectState(UUID, Duration) read object
+         * states}.
+         * </p>
+         */
+        READING,
+        /**
+         * <p>
+         * The transaction is <dfn>open</dfn> and may (successfully)
+         * {@linkplain Universe.Transaction#put(UUID, ObjectState) write object states}.
+         * </p>
+         * <p>
+         * The transaction may not
+         * {@linkplain Universe.Transaction#getObjectState(UUID, Duration) read more
+         * object states}.
+         * </p>
+         */
+        WRITING,
+        /**
+         * <p>
+         * The transaction is <dfn>open</dfn> and has started committing.
+         * </p>
+         */
+        COMMITTING,
+        /**
+         * <p>
+         * The transaction is <dfn>open</dfn> and has started aborting.
+         * </p>
+         */
+        ABORTING,
+        /**
+         * <p>
+         * The transaction is <dfn>closed</dfn> (not <dfn>open</dfn>) and has
+         * <dfn>committed<dfn>.
+         * </p>
+         * <p>
+         * Object states it has
+         * {@linkplain Universe.Transaction#getObjectState(UUID, Duration) read} or
+         * {@linkplain Universe.Transaction#put(UUID, ObjectState) written} will not be
+         * rolled back. The read and written values can be relied on to be the true
+         * values.
+         * </p>
+         */
+        COMMITTED,
+        /**
+         * <p>
+         * The transaction is <dfn>closed</dfn> (not <dfn>open</dfn>) and has aborted.
+         * </p>
+         * <p>
+         * Object states it has
+         * {@linkplain Universe.Transaction#getObjectState(UUID, Duration) read} or
+         * {@linkplain Universe.Transaction#put(UUID, ObjectState) written} are not
+         * reliable; the true values may be different.
+         * </p>
+         */
+        ABORTED
+    }// enum
 
     private Duration earliestTimeOfCompleteState;
     private final Map<UUID, ObjectData> objectDataMap = new HashMap<>();

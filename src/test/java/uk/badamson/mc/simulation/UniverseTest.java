@@ -1242,7 +1242,7 @@ public class UniverseTest {
                 transaction.beginCommit();
 
                 assertInvariants(transaction);
-                assertTrue(transaction.didBeginCommit(), "The began commit flag becomes set.");
+                assertTrue(transaction.didBeginCommit()|| transaction.isCommitted() || transaction.isAborted(), "The began commit flag becomes set, or the transaction immediately commits or aborts.");
             }
 
             @Test
@@ -1736,11 +1736,8 @@ public class UniverseTest {
 
         private static boolean assertCommittedInvariants(Universe.Transaction transaction) {
             final boolean commited = transaction.isCommitted();
-            assertAll(
-                    () -> assertFalse(commited && !transaction.didBeginCommit(),
-                            "To be committed, a transaction must have begun committing."),
-                    () -> assertFalse(commited && transaction.isAborted(),
-                            "A transaction can not be both committed and aborted."));
+            assertFalse(commited && transaction.isAborted(),
+                            "A transaction can not be both committed and aborted.");
             return commited;
         }
 
