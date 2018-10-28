@@ -46,6 +46,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.simulation.Universe.TransactionOpenness;
 
@@ -125,8 +126,6 @@ public class UniverseTest {
 
             assertUnknownObjectInvariants(universe, OBJECT_A);
             assertUnknownObjectInvariants(universe, OBJECT_B);
-            assertUnknownObjectStateInvariants(universe, new ObjectStateId(OBJECT_A, DURATION_1));
-            assertUnknownObjectStateInvariants(universe, new ObjectStateId(OBJECT_B, DURATION_2));
         }
     }// class
 
@@ -2274,19 +2273,29 @@ public class UniverseTest {
 
         for (UUID object : objectIds) {
             assertNotNull(object, "The set of object IDs does not have a null element.");// guard
-            final ValueHistory<ObjectState> objectStateHistory = universe.getObjectStateHistory(object);
+            final ValueHistory<ObjectState> objectStateHistory = assertObjectStateHistoryInvariants(universe, object);
             final Duration whenFirstState = universe.getWhenFirstState(object);
 
-            assertNotNull(objectStateHistory,
-                    "A universe has an object state history for a given object if that object is one of the  objects in the universe.");// guard
             assertNotNull(whenFirstState, "An object has a first state time-stamp if it is a known object.");
-
-            assertFalse(objectStateHistory.isEmpty(), "A object state history for a given object is not empty.");// guard
+            assertFalse(objectStateHistory.isEmpty(), "A object state history for a known object is not empty.");// guard
             assertSame(objectStateHistory.getFirstTansitionTime(), whenFirstState,
                     "If an object is known, its first state time-stamp is the first transition time of the state history of that object.");
             assertNull(universe.getObjectState(object, whenFirstState.minusNanos(1L)),
                     "Known objects have an unknown state just before the first known state of the state history of that object.");
         }
+    }
+
+    private static @NonNull ValueHistory<ObjectState> assertObjectStateHistoryInvariants(Universe universe,
+            @NonNull UUID object) {
+        final ValueHistory<ObjectState> history = universe.getObjectStateHistory(object);
+
+        assertNotNull(history, "A universe always has an object state history for a given object.");// guard
+        ValueHistoryTest.assertInvariants(history);
+
+        assertFalse(!history.isEmpty() && !universe.getObjectIds().contains(object),
+                "The object state history for a given object is not empty only if the object is one of the {@linkplain #getObjectIds() known objects} in this universe.");
+
+        return history;
     }
 
     private static void assertStateTransitionIdsInvariants(Universe universe) {
@@ -2312,20 +2321,14 @@ public class UniverseTest {
 
     private static void assertUnknownObjectInvariants(Universe universe, UUID object) {
         assertAll(() -> assertThat("Not a known object ID", object, not(isIn(universe.getObjectIds()))),
-                () -> assertNull(universe.getObjectStateHistory(object),
-                        "A universe has an object state history for a given object only if "
-                                + "that object is one of the objects in the universe."),
+                () -> assertTrue(assertObjectStateHistoryInvariants(universe, object).isEmpty(),
+                        "unknown objects have an empty state history"),
                 () -> assertNull(universe.getWhenFirstState(object),
                         "An object has a first state time-stamp only if it is a known object."),
                 () -> assertNull(universe.getObjectState(object, DURATION_1),
                         "Unknown objects have an unknown state for all points in time."),
                 () -> assertNull(universe.getObjectState(object, DURATION_2),
                         "Unknown objects have an unknown state for all points in time."));
-    }
-
-    private static void assertUnknownObjectStateInvariants(Universe universe, ObjectStateId state) {
-        assertNull(universe.getStateTransition(state),
-                "Have a state transition only if the given object state ID is one of the known object state IDs of this universe.");
     }
 
 }

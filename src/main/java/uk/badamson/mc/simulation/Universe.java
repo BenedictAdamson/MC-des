@@ -896,6 +896,8 @@ public class Universe {
         abstract @Nullable ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id);
     }// enum
 
+    private static final ValueHistory<ObjectState> EMPTY_STATE_HISTORY = new ModifiableValueHistory<>();
+
     @NonNull
     private Duration earliestTimeOfCompleteState;
     private final Map<UUID, ObjectData> objectDataMap = new HashMap<>();
@@ -1022,12 +1024,7 @@ public class Universe {
      */
     public final @Nullable ObjectState getObjectState(@NonNull UUID object, @NonNull Duration when) {
         Objects.requireNonNull(when, "when");
-        final var history = getObjectStateHistory(object);
-        if (history == null) {
-            return null;
-        } else {
-            return history.get(when);
-        }
+        return getObjectStateHistory(object).get(when);
     }
 
     /**
@@ -1036,11 +1033,11 @@ public class Universe {
      * states) of a given object in this universe.
      * </p>
      * <ul>
-     * <li>A universe has a (non null) object state history for a given object if,
-     * and only if, that object is one of the {@linkplain #getObjectIds() objects}
-     * in the universe.</li>
-     * <li>A (non null) object state history for a given object is not
-     * {@linkplain ValueHistory#isEmpty() empty}.</li>
+     * <li>A universe always has a (non null) object state history for a given
+     * object.</li>
+     * <li>The object state history for a given object is not
+     * {@linkplain ValueHistory#isEmpty() empty} only if the object is one of the
+     * {@linkplain #getObjectIds() known objects} in this universe..</li>
      * <li>Only the {@linkplain ValueHistory#getLastValue() last value} in a (non
      * null) object state history may be a null state (indicating that the object
      * ceased to exist at that time).</li>
@@ -1055,12 +1052,11 @@ public class Universe {
      * @throws NullPointerException
      *             If {@code object} is null
      */
-    public final @Nullable ValueHistory<ObjectState> getObjectStateHistory(@NonNull UUID object) {
+    public final @NonNull ValueHistory<ObjectState> getObjectStateHistory(@NonNull UUID object) {
         Objects.requireNonNull(object, "object");
         final var od = objectDataMap.get(object);
         if (od == null) {
-            // TODO instead return an empty history
-            return null;
+            return EMPTY_STATE_HISTORY;
         } else {
             return od.stateHistory;
         }
@@ -1095,10 +1091,6 @@ public class Universe {
         // TODO remove unnecessary method
         Objects.requireNonNull(objectStateId, "objectStateId");
         final var history = getObjectStateHistory(objectStateId.getObject());
-        if (history == null) {
-            // TODO instead return an empty history
-            return null;
-        }
         final Duration when = objectStateId.getWhen();
         if (history.getTransitionTimes().contains(when)) {
             return history.get(when);
@@ -1159,11 +1151,6 @@ public class Universe {
      *         {@linkplain #getObjectIds() known object ID}.
      */
     public final @Nullable Duration getWhenFirstState(@NonNull UUID object) {
-        final var history = getObjectStateHistory(object);
-        if (history == null) {
-            return null;
-        } else {
-            return history.getFirstTansitionTime();
-        }
+        return getObjectStateHistory(object).getFirstTansitionTime();
     }
 }
