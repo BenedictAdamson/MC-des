@@ -43,9 +43,8 @@ import net.jcip.annotations.NotThreadSafe;
  * <p>
  * This collection enforces constraints that ensure that the object state
  * histories are <dfn>consistent</dfn>. Consistency means that if a universe
- * contains an {@linkplain #getStateTransition(ObjectStateId) object state}, it
- * also contains all the {@linkplain ObjectState#getDepenendedUponStates()
- * depended upon states} of that state, unless those states are
+ * contains an object state, it also contains all the depended upon states of
+ * that state, unless those states are
  * {@linkplain #getEarliestTimeOfCompleteState() too old}.
  * </p>
  */
@@ -1059,43 +1058,6 @@ public class Universe {
             return EMPTY_STATE_HISTORY;
         } else {
             return od.stateHistory;
-        }
-    }
-
-    /**
-     * <p>
-     * The state of an object within this universe, just after a state transition,
-     * given the {@linkplain ObjectState#getId() ID} of that state transition.
-     * </p>
-     * <ul>
-     * <li>Have a (non null) state transition if, and only if, the given object
-     * state ID is one of the {@linkplain #getStateTransitionIds() known object
-     * state IDs} of this universe.</li>
-     * <li>A (non null) state transition accessed using a given object state ID has
-     * an {@linkplain ObjectStateId#equals(Object) equivalent} object state ID as
-     * its {@linkplain ObjectState#getId() ID}.</li>
-     * <li>All the {@linkplain ObjectState#getDependencies() dependencies} of the
-     * state transitions either have a {@linkplain ObjectStateId#getWhen()
-     * time-stamp} before the {@linkplain #getEarliestTimeOfCompleteState() earliest
-     * complete state} time-stamp of the universe, or are for
-     * {@linkplain #getObjectIds() known objects}.</li>
-     * </ul>
-     * 
-     * @param objectStateId
-     *            The ID of the state transition of interest.
-     * @return the state transition
-     * @throws NullPointerException
-     *             If {@code objectStateId} is null.
-     */
-    public final @Nullable ObjectState getStateTransition(@NonNull ObjectStateId objectStateId) {
-        // TODO remove unnecessary method
-        Objects.requireNonNull(objectStateId, "objectStateId");
-        final var history = getObjectStateHistory(objectStateId.getObject());
-        final Duration when = objectStateId.getWhen();
-        if (history.getTransitionTimes().contains(when)) {
-            return history.get(when);
-        } else {
-            return null;
         }
     }
 

@@ -2255,7 +2255,7 @@ public class UniverseTest {
 
         assertNotNull(earliestTimeOfCompleteState, "Always have a earliest complete state time-stamp.");
 
-        assertAll(() -> assertObjectIdsInvariants(universe), () -> assertStateTransitionIdsInvariants(universe));
+        assertObjectIdsInvariants(universe);
     }
 
     public static void assertInvariants(Universe universe1, Universe universe2) {
@@ -2296,27 +2296,6 @@ public class UniverseTest {
                 "The object state history for a given object is not empty only if the object is one of the {@linkplain #getObjectIds() known objects} in this universe.");
 
         return history;
-    }
-
-    private static void assertStateTransitionIdsInvariants(Universe universe) {
-        final Set<UUID> objectIds = universe.getObjectIds();
-
-        final Set<ObjectStateId> stateTransitionIds = universe.getStateTransitionIds();
-
-        assertNotNull(stateTransitionIds, "Always have a (non null) set of state transition IDs.");// guard
-
-        for (ObjectStateId stateTransitionId : stateTransitionIds) {
-            assertNotNull(stateTransitionId, "The set of IDs of state transitions does not have a null element.");// guard
-            ObjectStateIdTest.assertInvariants(stateTransitionId);
-            final ObjectState stateTransition = universe.getStateTransition(stateTransitionId);
-            final UUID object = stateTransitionId.getObject();
-            assertThat(
-                    "The set of IDs of state transitions does not have elements for object IDs that are not in the set of objects in this universe.",
-                    object, isIn(objectIds));
-            if (stateTransition != null) {
-                ObjectStateTest.assertInvariants(stateTransition);
-            }
-        }
     }
 
     private static void assertUnknownObjectInvariants(Universe universe, UUID object) {
