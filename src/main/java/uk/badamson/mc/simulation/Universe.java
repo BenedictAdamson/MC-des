@@ -204,6 +204,8 @@ public class Universe {
         }
 
         private void commit() {
+            assert predecessorTransactions.isEmpty();
+            assert pastTheEndReads.isEmpty();
             openness = TransactionOpenness.COMMITTED;
             for (UUID object : objectStatesWritten.keySet()) {
                 assert object != null;
@@ -474,8 +476,18 @@ public class Universe {
         private void reallyAbort() {
             openness = TransactionOpenness.ABORTING;
 
+            /*
+             * Optimisation: do not have our predecessors waste time trying to get us to
+             * commit once they commit, and remove those hidden references to this
+             * transaction object.
+             */
+            for (Transaction predecessorTransaction : predecessorTransactions) {
+                predecessorTransaction.successorTransactions.remove(this);
+            }
+
             for (UUID object : dependencies.keySet()) {
                 var od = objectDataMap.get(object);
+                // TODO handle null od
                 od.uncommittedReaders.remove(this);
             }
 
@@ -500,6 +512,12 @@ public class Universe {
 
             for (var successor : successorTransactions) {
                 successor.abort();
+            }
+
+            {// Help the garbage collector
+                pastTheEndReads.clear();
+                predecessorTransactions.clear();
+                successorTransactions.clear();
             }
         }
 
