@@ -487,8 +487,10 @@ public class Universe {
 
             for (UUID object : dependencies.keySet()) {
                 var od = objectDataMap.get(object);
-                // TODO handle null od
-                od.uncommittedReaders.remove(this);
+                if (od != null) {
+                    od.uncommittedReaders.remove(this);
+                }
+                // else a non existent object
             }
 
             // roll-back changes:

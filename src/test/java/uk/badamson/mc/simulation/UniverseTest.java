@@ -200,6 +200,39 @@ public class UniverseTest {
             }// class
 
             @Nested
+            public class AfterReadNonExistent {
+
+                @Test
+                public void a() {
+                    test(DURATION_1, OBJECT_A, DURATION_3);
+                }
+
+                @Test
+                public void b() {
+                    test(DURATION_2, OBJECT_B, DURATION_4);
+                }
+
+                @Test
+                public void precise() {
+                    final Duration when = DURATION_2;
+                    test(DURATION_1, OBJECT_A, when);
+                }
+
+                private void test(final Duration earliestTimeOfCompleteState, UUID object, Duration when) {
+                    final CountingTransactionListener listener = new CountingTransactionListener();
+
+                    final Universe universe = new Universe(earliestTimeOfCompleteState);
+                    final Universe.Transaction transaction = universe.beginTransaction(listener);
+                    transaction.getObjectState(object, when);
+
+                    abort(transaction);
+
+                    assertEquals(1, listener.aborts, "Aborted.");
+                }
+
+            }// class
+
+            @Nested
             public class AfterReadPastEnd {
 
                 @Test
