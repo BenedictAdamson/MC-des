@@ -42,8 +42,7 @@ import net.jcip.annotations.NotThreadSafe;
  * This collection enforces constraints that ensure that the object state
  * histories are <dfn>consistent</dfn>. Consistency means that if a universe
  * contains an object state, it also contains all the depended upon states of
- * that state, unless those states are
- * {@linkplain #getEarliestTimeOfCompleteState() too old}.
+ * that state, unless those states are {@linkplain #getHistoryStart() too old}.
  * </p>
  */
 public class Universe {
@@ -916,7 +915,7 @@ public class Universe {
     private static final ValueHistory<ObjectState> EMPTY_STATE_HISTORY = new ModifiableValueHistory<>();
 
     @NonNull
-    private Duration earliestTimeOfCompleteState;
+    private Duration historyStart;
     private final Map<UUID, ObjectData> objectDataMap = new HashMap<>();
 
     /**
@@ -924,25 +923,21 @@ public class Universe {
      * Construct an empty universe.
      * </p>
      * <ul>
-     * <li>The {@linkplain #getEarliestTimeOfCompleteState() earliest complete
-     * state} time-stamp of this universe is the given earliest complete state
-     * time-stamp.</li>
+     * <li>The {@linkplain #getHistoryStart() history start} time-stamp of this
+     * universe is the given history start time-stamp.</li>
      * <li>The {@linkplain #getObjectIds() set of object IDs}
-     * {@linkplain Set#isEmpty() is empty}.</li>
-     * <li>The {@linkplain #getStateTransitionIds() set of IDs of object states}
      * {@linkplain Set#isEmpty() is empty}.</li>
      * </ul>
      * 
-     * @param earliestTimeOfCompleteState
+     * @param historyStart
      *            The earliest point in time for which this universe has a known
      *            {@linkplain ObjectState state} for {@linkplain #getObjectIds() all
      *            the objects} in the universe.
      * @throws NullPointerException
-     *             If {@code earliestCompleteState} is null
+     *             If {@code historyStart} is null
      */
-    public Universe(final @NonNull Duration earliestTimeOfCompleteState) {
-        this.earliestTimeOfCompleteState = Objects.requireNonNull(earliestTimeOfCompleteState,
-                "earliestTimeOfCompleteState");
+    public Universe(final @NonNull Duration historyStart) {
+        this.historyStart = Objects.requireNonNull(historyStart, "earliestTimeOfCompleteState");
     }
 
     /**
@@ -980,14 +975,14 @@ public class Universe {
      * objects} in the universe.
      * </p>
      * <ul>
-     * <li>Always have a (non null) earliest complete state time-stamp.</li>
+     * <li>Always have a (non null) history start.</li>
      * </ul>
      * 
      * @return the point in time, expressed as the duration since an epoch; not
      *         null.
      */
-    public final @NonNull Duration getEarliestTimeOfCompleteState() {
-        return earliestTimeOfCompleteState;
+    public final @NonNull Duration getHistoryStart() {
+        return historyStart;
     }
 
     /**
