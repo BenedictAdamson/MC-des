@@ -91,6 +91,7 @@ public class Universe {
         // Must be committed after this transaction.
         private final Set<Transaction> successorTransactions = new HashSet<>();
 
+        @Nullable
         private Duration when;
 
         @NonNull
@@ -168,6 +169,7 @@ public class Universe {
          *             </ul>
          */
         public final void beginWrite(@NonNull Duration when) {
+            Objects.requireNonNull(when, "when");
             openness.beginWrite(this, when);
         }
 
@@ -207,12 +209,15 @@ public class Universe {
         private void commit() {
             openness = TransactionOpenness.COMMITTED;
             for (UUID object : objectStatesWritten.keySet()) {
+                assert object != null;
+                assert when != null;
                 final var od = objectDataMap.get(object);
                 assert od.lastCommit.compareTo(when) < 0;
                 od.lastCommit = when;
                 od.uncommittedWriters.remove(this);
             }
             for (UUID object : dependencies.keySet()) {
+                assert object != null;
                 final var od = objectDataMap.get(object);
                 if (od != null) {
                     od.uncommittedReaders.remove(this);
@@ -229,9 +234,7 @@ public class Universe {
         }
 
         private void commitIfPossible() {
-            if (openness != TransactionOpenness.COMMITTING) {
-                return;
-            }
+            assert openness == TransactionOpenness.COMMITTING;
             if (!pastTheEndReads.isEmpty()) {
                 // Do not commit if awaiting appending of a state.
                 return;
@@ -333,10 +336,11 @@ public class Universe {
          *             </ul>
          */
         public final @Nullable ObjectState getObjectState(@NonNull UUID object, @NonNull Duration when) {
-            ObjectStateId id = new ObjectStateId(object, when);
+            final ObjectStateId id = new ObjectStateId(object, when);
             ObjectState objectState;
             objectState = objectStatesRead.get(id);
             if (objectState == null && !objectStatesRead.containsKey(id)) {
+                // Value is not cached
                 objectState = openness.readUncachedObjectState(this, id);
             }
             // else used cached value
@@ -480,7 +484,13 @@ public class Universe {
 
             // roll-back changes:
             for (UUID object : objectStatesWritten.keySet()) {
+                assert object != null;
+                assert when != null;
                 var od = objectDataMap.get(object);
+                /*
+                 * As we are a writer for the object, the object has at least one recorded state
+                 * (the state we wrote), so od is guaranteed to be not null.
+                 */
                 od.stateHistory.removeTransitionsFrom(when);
                 od.uncommittedWriters.remove(this);// optimisation
                 if (od.stateHistory.isEmpty()) {
@@ -497,14 +507,12 @@ public class Universe {
         }
 
         private void reallyPut(UUID object, ObjectState state) {
-            if (openness != TransactionOpenness.WRITING) {
-                throw new IllegalStateException("Began commit");
-            }
-
+            assert when != null;
             objectStatesWritten.put(object, state);
 
             ObjectData od = objectDataMap.get(object);
             if (od == null) {
+                // We are adding the object.
                 od = new ObjectData();
                 objectDataMap.put(object, od);
             }
@@ -519,13 +527,26 @@ public class Universe {
                 stateHistory.appendTransition(when, state);
             } catch (IllegalStateException e) {
                 openness = TransactionOpenness.ABORTING;
+                return;
             }
+            assert lastTransition0 == null || lastTransition0.compareTo(when) < 0;// else
             od.uncommittedWriters.addFrom(when, this);
             for (Transaction uncommittedReader : od.uncommittedReaders.get(when)) {
                 uncommittedReader.abort();
             }
+            // TODO handle lastTransition0 = end of time
             if (lastTransition0 != null) {
-                for (Transaction pastTheEndReader : od.uncommittedReaders.get(lastTransition0.plusNanos(1))) {
+                /*
+                 * Because when must be after lastTransition0, we know that lastTransition0 is
+                 * not at the end of time, so we can compute a point in time just after
+                 * lastTransition0 without danger of overflow.
+                 */
+                final Duration justAfterPreviousTransition = lastTransition0.plusNanos(1);
+                for (Transaction pastTheEndReader : od.uncommittedReaders.get(justAfterPreviousTransition)) {
+                    /*
+                     * Escalate the other transaction from being a past-the-end-reader to being a
+                     * successor of this transaction.
+                     */
                     pastTheEndReader.pastTheEndReads.remove(object);
                     pastTheEndReader.predecessorTransactions.add(this);
                     successorTransactions.add(pastTheEndReader);
@@ -533,9 +554,11 @@ public class Universe {
             }
         }
 
-        private ObjectState reallyReadUncachedObjectState(ObjectStateId id) {
+        private @Nullable ObjectState reallyReadUncachedObjectState(@NonNull ObjectStateId id) {
             final UUID object = id.getObject();
             final Duration when = id.getWhen();
+
+            @Nullable
             final ObjectState objectState;
             final var od = objectDataMap.get(object);
             if (od == null) {// unknown object
@@ -588,14 +611,14 @@ public class Universe {
 
     /**
      * <p>
-     * The degree to which an {@link Universe.Transaction} can be said to be
+     * The degree to which a {@link Universe.Transaction} can be said to be
      * <dfn>open</dfn>.
      * </p>
      */
     public enum TransactionOpenness {
         /*
          * In addition to its public interface, this enum also acts as a Strategy for
-         * how to handle some transaction mutations.
+         * how to handle most transaction mutations.
          */
 
         /**
@@ -620,7 +643,6 @@ public class Universe {
 
             @Override
             void beginWrite(Transaction transaction, @NonNull Duration when) {
-                Objects.requireNonNull(when, "when");
                 if (transaction.objectStatesRead.keySet().stream().map(id -> id.getWhen())
                         .filter(t -> 0 <= t.compareTo(when)).findAny().orElse(null) != null) {
                     throw new IllegalStateException("Time-stamp of read state at or after the given time.");
@@ -645,6 +667,7 @@ public class Universe {
                 return transaction.reallyReadUncachedObjectState(id);
             }
         },
+
         /**
          * <p>
          * The transaction is <dfn>open</dfn> and may (successfully)
@@ -767,6 +790,7 @@ public class Universe {
                 return null;
             }
         },
+
         /**
          * <p>
          * The transaction is <dfn>closed</dfn> (not <dfn>open</dfn>) and has
@@ -871,6 +895,7 @@ public class Universe {
         abstract @Nullable ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id);
     }// enum
 
+    @NonNull
     private Duration earliestTimeOfCompleteState;
     private final Map<UUID, ObjectData> objectDataMap = new HashMap<>();
 
@@ -1033,6 +1058,7 @@ public class Universe {
         Objects.requireNonNull(object, "object");
         final var od = objectDataMap.get(object);
         if (od == null) {
+            // TODO instead return an empty history
             return null;
         } else {
             return od.stateHistory;
@@ -1065,9 +1091,11 @@ public class Universe {
      *             If {@code objectStateId} is null.
      */
     public final @Nullable ObjectState getStateTransition(@NonNull ObjectStateId objectStateId) {
+        // TODO remove unnecessary method
         Objects.requireNonNull(objectStateId, "objectStateId");
         final var history = getObjectStateHistory(objectStateId.getObject());
         if (history == null) {
+            // TODO instead return an empty history
             return null;
         }
         final Duration when = objectStateId.getWhen();
@@ -1096,6 +1124,7 @@ public class Universe {
      * @return the IDs
      */
     public final @NonNull Set<ObjectStateId> getStateTransitionIds() {
+        // TODO remove unnecessary method
         final Stream<ObjectStateId> stream = objectDataMap.entrySet().stream().flatMap(objectDataMapEntry -> {
             final UUID object = objectDataMapEntry.getKey();
             final ValueHistory<ObjectState> history = objectDataMapEntry.getValue().stateHistory;
