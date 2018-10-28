@@ -1844,6 +1844,90 @@ public class UniverseTest {
             }// class
 
             @Nested
+            public class Append {
+
+                @Test
+                public void a() {
+                    test(DURATION_1, OBJECT_A, DURATION_2, DURATION_3);
+                }
+
+                @Test
+                public void b() {
+                    test(DURATION_2, OBJECT_B, DURATION_3, DURATION_4);
+                }
+
+                @Test
+                public void endOfTime() {
+                    test(DURATION_1, OBJECT_A, DURATION_2, ValueHistory.END_OF_TIME);
+                }
+
+                private void test(final Duration earliestTimeOfCompleteState, UUID object, Duration when1,
+                        Duration when2) {
+                    assert when1.compareTo(when2) < 0;
+                    final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
+                    final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
+                    final ModifiableValueHistory<ObjectState> expectedHistory = new ModifiableValueHistory<>();
+                    expectedHistory.appendTransition(when1, objectState1);
+                    expectedHistory.appendTransition(when2, objectState2);
+
+                    final Universe universe = new Universe(earliestTimeOfCompleteState);
+                    putAndCommit(universe, object, when1, objectState1);
+                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final Universe.Transaction transaction = universe.beginTransaction(listener);
+                    transaction.getObjectState(object, when1);
+                    transaction.beginWrite(when2);
+
+                    put(transaction, object, objectState2);
+
+                    assertAll(() -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
+                            "Object state history"));
+                }
+
+            }// class
+
+            @Nested
+            public class AttemptToReplaceCommittedValue {
+
+                @Test
+                public void a() {
+                    test(DURATION_1, OBJECT_A, DURATION_2);
+                }
+
+                @Test
+                public void b() {
+                    test(DURATION_2, OBJECT_B, DURATION_3);
+                }
+
+                @Test
+                public void endOfTime() {
+                    test(DURATION_1, OBJECT_A, ValueHistory.END_OF_TIME);
+                }
+
+                private void test(final Duration earliestTimeOfCompleteState, UUID object, Duration when) {
+                    final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
+                    final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
+                    final ModifiableValueHistory<ObjectState> expectedHistory = new ModifiableValueHistory<>();
+                    expectedHistory.appendTransition(when, objectState1);
+
+                    final Universe universe = new Universe(earliestTimeOfCompleteState);
+                    putAndCommit(universe, object, when, objectState1);
+                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final Universe.Transaction transaction = universe.beginTransaction(listener);
+                    // Should transaction.getObjectState(object, when), but not for this test.
+                    transaction.beginWrite(when);
+
+                    put(transaction, object, objectState2);
+
+                    assertAll(
+                            () -> assertEquals(Universe.TransactionOpenness.ABORTING, transaction.getOpenness(),
+                                    "Aborting the transaction"),
+                            () -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
+                                    "Did not replace committed history"));
+                }
+
+            }// class
+
+            @Nested
             public class Call1 {
 
                 @Test
@@ -1854,6 +1938,11 @@ public class UniverseTest {
                 @Test
                 public void b() {
                     test(DURATION_2, OBJECT_B, DURATION_3);
+                }
+
+                @Test
+                public void endOfTime() {
+                    test(DURATION_1, OBJECT_A, ValueHistory.END_OF_TIME);
                 }
 
                 private void test(final Duration earliestTimeOfCompleteState, UUID object, Duration when) {

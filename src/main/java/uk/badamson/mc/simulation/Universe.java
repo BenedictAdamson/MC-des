@@ -529,12 +529,12 @@ public class Universe {
                 openness = TransactionOpenness.ABORTING;
                 return;
             }
-            assert lastTransition0 == null || lastTransition0.compareTo(when) < 0;// else
+            assert lastTransition0 == null || lastTransition0.compareTo(when) < 0;
             od.uncommittedWriters.addFrom(when, this);
             for (Transaction uncommittedReader : od.uncommittedReaders.get(when)) {
+                // We have replaced the value written by this other transaction.
                 uncommittedReader.abort();
             }
-            // TODO handle lastTransition0 = end of time
             if (lastTransition0 != null) {
                 /*
                  * Because when must be after lastTransition0, we know that lastTransition0 is
@@ -552,6 +552,7 @@ public class Universe {
                     successorTransactions.add(pastTheEndReader);
                 }
             }
+            // else creating the object
         }
 
         private @Nullable ObjectState reallyReadUncachedObjectState(@NonNull ObjectStateId id) {
