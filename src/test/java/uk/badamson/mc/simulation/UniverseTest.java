@@ -1945,7 +1945,6 @@ public class UniverseTest {
                 }
 
                 private void test(final Duration earliestTimeOfCompleteState, UUID object, Duration when) {
-                    final Set<ObjectStateId> objectStateId = Collections.singleton(new ObjectStateId(object, when));
                     final ObjectState objectState = new ObjectStateTest.TestObjectState(1);
                     final ModifiableValueHistory<ObjectState> expectedHistory = new ModifiableValueHistory<>();
                     expectedHistory.appendTransition(when, objectState);
@@ -1958,7 +1957,6 @@ public class UniverseTest {
                     put(transaction, object, objectState);
 
                     assertAll(() -> assertEquals(Collections.singleton(object), universe.getObjectIds(), "Object IDs"),
-                            () -> assertEquals(objectStateId, universe.getStateTransitionIds(), "State transition IDs"),
                             () -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
                                     "Object state history"));
                 }

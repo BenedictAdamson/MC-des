@@ -28,8 +28,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -1059,37 +1057,6 @@ public class Universe {
         } else {
             return od.stateHistory;
         }
-    }
-
-    /**
-     * <p>
-     * All the known {@linkplain ObjectStateId identifiers} of state transitions of
-     * objects within this universe.
-     * </p>
-     * <ul>
-     * <li>Always have a (non null) set of state transitions IDs.</li>
-     * <li>The set of IDs of state transitions does not have a null element.</li>
-     * <li>The set of IDs of state transitions does not have elements for
-     * {@linkplain ObjectStateId#getObject() object IDs} that are not in the
-     * {@linkplain #getObjectIds() set of objects in this universe}.</li>
-     * <li>The set of IDs of state transitions may be immutable, or it may be a copy
-     * of an underlying collection.</li>
-     * </ul>
-     * 
-     * @return the IDs
-     */
-    public final @NonNull Set<ObjectStateId> getStateTransitionIds() {
-        // TODO remove unnecessary method
-        final Stream<ObjectStateId> stream = objectDataMap.entrySet().stream().flatMap(objectDataMapEntry -> {
-            final UUID object = objectDataMapEntry.getKey();
-            final ValueHistory<ObjectState> history = objectDataMapEntry.getValue().stateHistory;
-            return history.streamOfTransitions().map(transition -> {
-                final Duration t = transition.getKey();
-                return new ObjectStateId(object, t);
-            });
-        });
-
-        return stream.collect(Collectors.toUnmodifiableSet());
     }
 
     /**
