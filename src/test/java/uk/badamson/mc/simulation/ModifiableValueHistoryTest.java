@@ -487,13 +487,16 @@ public class ModifiableValueHistoryTest {
 
             history.setValueFrom(when, value);
 
-            assertInvariants(history);
+            assertAll(() -> assertInvariants(history), () -> ValueHistoryTest.assertInvariants(history, when));
+
             final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
-            assertTrue(when.equals(ValueHistory.START_OF_TIME) || Objects.equals(firstValue0, history.getFirstValue()),
-                    "Setting the value from a given time does not change the values before the given point in time [first value]");
-            assertEquals(value, history.get(when), "The given value is equal to the value at the given time.");
-            assertTrue(transitionTimes.isEmpty() || transitionTimes.last().compareTo(when) <= 0,
-                    "If this has any transitions, the last transition time is at or before the given time.");
+            assertAll(() -> assertTrue(
+                    when.equals(ValueHistory.START_OF_TIME) || Objects.equals(firstValue0, history.getFirstValue()),
+                    "Setting the value from a given time does not change the values before the given point in time [first value]"),
+                    () -> assertEquals(value, history.get(when),
+                            "The given value is equal to the value at the given time."),
+                    () -> assertTrue(transitionTimes.isEmpty() || transitionTimes.last().compareTo(when) <= 0,
+                            "If this has any transitions, the last transition time is at or before the given time."));
         }
     }// class
 

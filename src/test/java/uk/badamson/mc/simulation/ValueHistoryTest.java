@@ -19,7 +19,11 @@ package uk.badamson.mc.simulation;
  */
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.collection.IsIn.isIn;
+import static org.hamcrest.core.AnyOf.anyOf;
 import static org.hamcrest.core.IsNot.not;
+import static org.hamcrest.core.IsNull.nullValue;
+import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -36,6 +40,8 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.stream.Stream;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * <p>
@@ -97,11 +103,12 @@ public class ValueHistoryTest {
 
     public static <VALUE> void assertInvariants(ValueHistory<VALUE> history, Duration time) {
         final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
-        assertTrue(
-
+        assertAll(() -> assertTrue(
                 transitionTimes.contains(time) || time.equals(ValueHistory.START_OF_TIME)
                         || Objects.equals(history.get(time.minusNanos(1L)), history.get(time)),
-                "For all points in time not in the set of transition times (except the start of time), the value just before the point in time is equal to the value at the point in time.");
+                "For all points in time not in the set of transition times (except the start of time), "
+                        + "the value just before the point in time is equal to the value at the point in time."),
+                () -> assertTansitionTimeAtOrAfterInvariants(history, time));
     }
 
     public static <VALUE> void assertInvariants(ValueHistory<VALUE> history1, ValueHistory<VALUE> history2) {
@@ -168,6 +175,21 @@ public class ValueHistoryTest {
         return entries.entrySet().stream();
     }
 
+    private static <VALUE> Duration assertTansitionTimeAtOrAfterInvariants(ValueHistory<VALUE> history,
+            @NonNull Duration when) {
+        final Duration transitionTime = history.getTansitionTimeAtOrAfter(when);
+
+        assertAll(
+                () -> assertThat(
+                        "A (non null) transition time at or after the given time is at or after the given time.",
+                        transitionTime, anyOf(nullValue(Duration.class), greaterThanOrEqualTo(when))),
+                () -> assertThat(
+                        "A (non null) transition time at or after the given time is one of the transition times.",
+                        transitionTime, anyOf(nullValue(Duration.class), isIn(history.getTransitionTimes()))));
+
+        return transitionTime;
+    }
+
     private static <VALUE> SortedMap<Duration, VALUE> assertTransitionsInvariants(ValueHistory<VALUE> history) {
         final Set<Duration> transitionTimes = history.getTransitionTimes();
 
@@ -195,9 +217,11 @@ public class ValueHistoryTest {
         for (Duration transitionTime : transitionTimes) {
             assertNotEquals(ValueHistory.START_OF_TIME, transitionTime,
                     "There is not a transition at the start of time.");// guard
-            assertThat("For all points in time in <" + transitionTime
+            assertAll(() -> assertThat("For all points in time in <" + transitionTime
                     + "> the set of transition times, the value just before the transition is not equal to the value at the transition.",
-                    history.get(transitionTime.minusNanos(1L)), not(history.get(transitionTime)));
+                    history.get(transitionTime.minusNanos(1L)), not(history.get(transitionTime))),
+                    () -> assertEquals(transitionTime, history.getTansitionTimeAtOrAfter(transitionTime),
+                            "The transition time at or after a time that equals one of the transition times equals that transition time."));
         }
 
         return transitionTimes;

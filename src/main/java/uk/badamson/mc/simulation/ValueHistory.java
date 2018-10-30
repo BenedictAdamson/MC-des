@@ -175,6 +175,34 @@ public interface ValueHistory<VALUE> {
 
     /**
      * <p>
+     * The point in time when the value of this history changes that is at or after
+     * a given point in time.
+     * </p>
+     * <ul>
+     * <li>A null transition time at or after the given time indicates that this
+     * history has no transitions at or after that time.</li>
+     * <li>The point in time is represented as the duration since an (implied)
+     * epoch.</li>
+     * <li>A (non null) transition time at or after the given time is at or after
+     * the given time.</li>
+     * <li>A (non null) transition time at or after the given time
+     * {@linkplain SortedSet#contains(Object) is one of} the
+     * {@linkplain #getTransitionTimes() transition times}.</li>
+     * <li>This method is more efficient than using the
+     * {@link #getTransitionTimes()} method.</li>
+     * </ul>
+     * 
+     * @param when
+     *            The point in time of interest, expressed as a duration since an
+     *            epoch.
+     * @return the transition time at or after the given time.
+     * @throws NullPointerException
+     *             if {@code when} is null.
+     */
+    public @Nullable Duration getTansitionTimeAtOrAfter(@NonNull Duration when);
+
+    /**
+     * <p>
      * The transitions in the value of this history.
      * </p>
      * <ul>
@@ -215,6 +243,9 @@ public interface ValueHistory<VALUE> {
      * {@linkplain ValueHistory#START_OF_TIME start of time}), the
      * {@linkplain #get(Duration) value} just before the point in time is equal to
      * the value at the point in time.</li>
+     * <li>The {@linkplain #getTansitionTimeAtOrAfter(Duration) transition time at
+     * or after a time} that {@linkplain Duration#equals(Object) equals} one of the
+     * transition times equals that transition time.</li>
      * <li>The returned set might be an
      * {@linkplain Collections#unmodifiableSortedSet(SortedSet) unmodifiable} view
      * of the transition times, which will incorporate any subsequent changes to
