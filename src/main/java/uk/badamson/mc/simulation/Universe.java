@@ -58,6 +58,24 @@ public class Universe {
 
     /**
      * <p>
+     * An exception for indicating that the {@linkplain ObjectState state} of an
+     * object can not be determined for a given point in time because that point in
+     * time is before the {@linkplain Universe#getHistoryStart() start of history}.
+     * </p>
+     */
+    public static final class PrehistoryException extends IllegalStateException {
+
+        private static final long serialVersionUID = 1L;
+
+        private PrehistoryException() {
+            super("Point in time is before the start of history");
+            // Do nothing
+        }
+
+    }
+
+    /**
+     * <p>
      * A transaction for changing the state of a {@link Universe}.
      * </p>
      * <p>
@@ -353,6 +371,11 @@ public class Universe {
          *             <li>If {@code object} is null.</li>
          *             <li>If {@code when} is null.</li>
          *             </ul>
+         * @throws PrehistoryException
+         *             If this transaction is in read mode, and {@code when} is
+         *             {@linkplain Duration#compareTo(Duration) before} the
+         *             {@linkplain Universe#getHistoryStart() start of history} of the
+         *             {@linkplain #getUniverse() universe} of this transaction.
          * @throws IllegalStateException
          *             <ul>
          *             <li>If this transaction is in write mode (because its
@@ -614,6 +637,10 @@ public class Universe {
         private @Nullable ObjectState reallyReadUncachedObjectState(@NonNull ObjectStateId id) {
             final UUID object = id.getObject();
             final Duration when = id.getWhen();
+
+            if (when.compareTo(historyStart) < 0) {
+                throw new Universe.PrehistoryException();
+            }
 
             @Nullable
             final ObjectState objectState;
@@ -1093,6 +1120,11 @@ public class Universe {
      * <li>Only the {@linkplain ValueHistory#getLastValue() last value} in a (non
      * null) object state history may be a null state (indicating that the object
      * ceased to exist at that time).</li>
+     * <li>An object state history may record values before the
+     * {@linkplain #getHistoryStart() start of history}, but those records may be
+     * incomplete. In particular, the object state history may indicate that the
+     * object did not exist (has a null state) for points in time at which it
+     * actually existed.</li>
      * </ul>
      * 
      * @param object
