@@ -84,6 +84,9 @@ public class Universe {
         // Must be committed before this transaction.
         private final Set<Transaction> predecessorTransactions = new HashSet<>();
 
+        // Must be committed with this transaction.
+        private final Set<Transaction> mutualTransactions = new HashSet<>();
+
         // Must be committed after this transaction.
         private final Set<Transaction> successorTransactions = new HashSet<>();
 
@@ -113,6 +116,20 @@ public class Universe {
          */
         public final void abort() {
             openness.abort(this);
+        }
+
+        private void addAsPredecessors(final Collection<Transaction> transactions) {
+            for (var transaction : transactions) {
+                if (successorTransactions.contains(transaction)) {
+                    // Can not be both predecessor and successor.
+                    successorTransactions.remove(transaction);
+                    mutualTransactions.add(transaction);
+                    transaction.mutualTransactions.add(this);
+                } else {
+                    predecessorTransactions.add(transaction);
+                    transaction.successorTransactions.add(this);
+                }
+            }
         }
 
         /**
@@ -202,7 +219,7 @@ public class Universe {
             openness.close(this);
         }
 
-        private void commit() {
+        private void commit1() {
             assert predecessorTransactions.isEmpty();
             assert pastTheEndReads.isEmpty();
             openness = TransactionOpenness.COMMITTED;
@@ -241,7 +258,24 @@ public class Universe {
                 // Do not commit if have predecessors.
                 return;
             }
-            commit();
+            for (Transaction mutualTransaction : mutualTransactions) {
+                if (!(mutualTransaction.openness == TransactionOpenness.COMMITTING
+                        || mutualTransaction.openness == TransactionOpenness.COMMITTED)) {
+                    return;
+                }
+                if (!mutualTransaction.pastTheEndReads.isEmpty()) {
+                    return;
+                }
+                if (!mutualTransaction.predecessorTransactions.isEmpty()) {
+                    return;
+                }
+            }
+            commit1();
+            for (Transaction mutualTransaction : mutualTransactions) {
+                mutualTransaction.commit1();
+                mutualTransaction.mutualTransactions.clear();
+            }
+            mutualTransactions.clear();
         }
 
         /**
@@ -560,12 +594,18 @@ public class Universe {
                 final Duration justAfterPreviousTransition = lastTransition0.plusNanos(1);
                 for (Transaction pastTheEndReader : od.uncommittedReaders.get(justAfterPreviousTransition)) {
                     /*
-                     * Escalate the other transaction from being a past-the-end-reader to being a
-                     * successor of this transaction.
+                     * Escalate the other transaction from being past-the-end-readers to being
+                     * successors or mutual transaction of this transaction.
                      */
                     pastTheEndReader.pastTheEndReads.remove(object);
-                    pastTheEndReader.predecessorTransactions.add(this);
-                    successorTransactions.add(pastTheEndReader);
+                    if (predecessorTransactions.contains(pastTheEndReader)) {
+                        predecessorTransactions.remove(pastTheEndReader);
+                        mutualTransactions.add(pastTheEndReader);
+                        pastTheEndReader.mutualTransactions.add(this);
+                    } else {
+                        successorTransactions.add(pastTheEndReader);
+                        pastTheEndReader.predecessorTransactions.add(this);
+                    }
                 }
             }
             // else creating the object
@@ -584,13 +624,13 @@ public class Universe {
                 objectState = od.stateHistory.get(when);
                 if (od.stateHistory.getLastTansitionTime().compareTo(when) < 0) {
                     pastTheEndReads.add(object);
+                } else if (od.lastCommit.compareTo(when) < 0) {
+                    @NonNull
+                    final Duration nextWrite = od.stateHistory.getTansitionTimeAtOrAfter(when);
+                    addAsPredecessors(od.uncommittedWriters.get(nextWrite));
                 }
                 od.uncommittedReaders.addUntil(when, this);
-                final Set<Transaction> uncommittedWriters = od.uncommittedWriters.get(when);
-                predecessorTransactions.addAll(uncommittedWriters);
-                for (var uncommittedWriter : uncommittedWriters) {
-                    uncommittedWriter.successorTransactions.add(this);
-                }
+                addAsPredecessors(od.uncommittedWriters.get(when));
             }
             objectStatesRead.put(id, objectState);
             final ObjectStateId dependency0 = dependencies.get(object);
@@ -970,7 +1010,7 @@ public class Universe {
 
     /**
      * <p>
-     * The earliest point in time for which this universe has a known
+     * The earliest point in time for which this universe has a known and correct
      * {@linkplain ObjectState state} for {@linkplain #getObjectIds() all the
      * objects} in the universe.
      * </p>

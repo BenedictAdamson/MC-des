@@ -1285,6 +1285,84 @@ public class UniverseTest {
             }// class
 
             @Nested
+            public class MutualReadPastLastCommitWithAdditionalUncommittedDependency {
+
+                @Test
+                public void a() {
+                    test(DURATION_1, OBJECT_A, OBJECT_B, OBJECT_C, DURATION_2, DURATION_3, DURATION_4, DURATION_5,
+                            DURATION_6, DURATION_7, DURATION_8);
+                }
+
+                @Test
+                public void b() {
+                    test(DURATION_2, OBJECT_B, OBJECT_C, OBJECT_A, DURATION_3, DURATION_4, DURATION_5, DURATION_6,
+                            DURATION_7, DURATION_8, DURATION_9);
+                }
+
+                @Test
+                public void symmetric() {
+                    final Duration when1 = DURATION_3;
+                    final Duration when2 = DURATION_5;
+                    final Duration when3 = DURATION_7;
+                    test(DURATION_1, OBJECT_A, OBJECT_B, OBJECT_C, DURATION_2, when1, when1, when2, when2, when3,
+                            when3);
+                }
+
+                private void test(final Duration historyStart, UUID objectA, UUID objectB, UUID objectC, Duration whenA,
+                        Duration whenB1, Duration whenC1, Duration whenC2, Duration whenB2, Duration whenB3,
+                        Duration whenC3) {
+                    assert whenA.compareTo(whenB3) < 0;
+                    assert whenB1.compareTo(whenB2) < 0;
+                    assert whenB2.compareTo(whenB3) <= 0;
+                    assert whenC1.compareTo(whenC2) < 0;
+                    assert whenC2.compareTo(whenC3) <= 0;
+                    assert whenC2.compareTo(whenB3) < 0;
+                    assert whenB2.compareTo(whenC3) < 0;
+                    final ObjectState objectStateA = new ObjectStateTest.TestObjectState(0);
+                    final ObjectState objectStateB1 = new ObjectStateTest.TestObjectState(21);
+                    final ObjectState objectStateB2 = new ObjectStateTest.TestObjectState(22);
+                    final ObjectState objectStateC1 = new ObjectStateTest.TestObjectState(31);
+                    final ObjectState objectStateC2 = new ObjectStateTest.TestObjectState(32);
+
+                    final CountingTransactionListener listenerA = new CountingTransactionListener();
+                    final CountingTransactionListener listenerB = new CountingTransactionListener();
+                    final CountingTransactionListener listenerC = new CountingTransactionListener();
+
+                    final Universe universe = new Universe(historyStart);
+                    putAndCommit(universe, objectB, whenB1, objectStateB1);
+                    putAndCommit(universe, objectC, whenC1, objectStateC1);
+
+                    final Universe.Transaction transactionA = universe.beginTransaction(listenerA);
+                    transactionA.beginWrite(whenA);
+                    transactionA.put(objectA, objectStateA);// uncommitted write
+
+                    final Universe.Transaction transactionB = universe.beginTransaction(listenerB);
+                    transactionB.getObjectState(objectB, whenB1);
+                    transactionB.getObjectState(objectA, whenA);// read uncommitted
+                    transactionB.getObjectState(objectC, whenC2);
+                    transactionB.beginWrite(whenB3);
+                    transactionB.put(objectB, objectStateB2);
+
+                    final Universe.Transaction transactionC = universe.beginTransaction(listenerC);
+                    transactionC.getObjectState(objectC, whenC1);
+                    transactionC.getObjectState(objectB, whenB2);
+                    transactionC.beginWrite(whenC3);
+                    transactionC.put(objectC, objectStateC2);
+
+                    beginCommit(transactionB);
+                    beginCommit(transactionC);
+
+                    assertAll(() -> assertEquals(0, listenerA.getEnds(), "Did not end A."),
+                            () -> assertEquals(0, listenerB.getEnds(), "Did not end B."),
+                            () -> assertEquals(0, listenerC.getEnds(), "Did not end C."),
+                            () -> assertEquals(0, listenerA.commits, "Did not commit A."),
+                            () -> assertEquals(0, listenerB.commits, "Did not commit B."), () -> assertEquals(0,
+                                    listenerC.commits, "Did not commit C (awaiting indirect dependency)."));
+                }
+
+            }// class
+
+            @Nested
             public class RollbackWrite {
 
                 @Test
@@ -2265,6 +2343,7 @@ public class UniverseTest {
     private static final Duration DURATION_6 = Duration.ofSeconds(37);
     private static final Duration DURATION_7 = Duration.ofSeconds(43);
     private static final Duration DURATION_8 = Duration.ofSeconds(47);
+    private static final Duration DURATION_9 = Duration.ofSeconds(53);
 
     public static void assertInvariants(Universe universe) {
         ObjectTest.assertInvariants(universe);// inherited
