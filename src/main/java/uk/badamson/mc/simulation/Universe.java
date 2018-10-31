@@ -33,6 +33,9 @@ import java.util.UUID;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import net.jcip.annotations.NotThreadSafe;
+import uk.badamson.mc.history.ModifiableSetHistory;
+import uk.badamson.mc.history.ModifiableValueHistory;
+import uk.badamson.mc.history.ValueHistory;
 
 /**
  * <p>
