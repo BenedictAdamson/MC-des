@@ -1227,4 +1227,43 @@ public class Universe {
     public final @Nullable Duration getWhenFirstState(@NonNull UUID object) {
         return getObjectStateHistory(object).getFirstTansitionTime();
     }
+
+    /**
+     * <p>
+     * Change the {@linkplain #getHistoryStart() earliest point in time} for which
+     * this universe has a known and correct {@linkplain ObjectState state} for
+     * {@linkplain #getObjectIds() all the objects} in the universe.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getHistoryStart() history start time} of this universe
+     * is (becomes) {@linkplain Duration#equals(Object) equal to} the given history
+     * start time.</li>
+     * </ul>
+     * 
+     * @param historyStart
+     *            the point in time, expressed as the duration since an epoch.
+     * 
+     * @throws NullPointerException
+     *             If {@code historyStart} is null.
+     * @throws IllegalArgumentException
+     *             If {@code historyStart} is before the
+     *             {@linkplain #getHistoryStart() current history start}
+     * @throws IllegalStateException
+     *             If {@code historyStart} is after {@linkplain #getHistoryEnd() the
+     *             history end time}.
+     */
+    public final void setHistoryStart(@NonNull Duration historyStart) {
+        Objects.requireNonNull(historyStart, "historyStart");
+        if (historyStart.compareTo(this.historyStart) < 0) {
+            throw new IllegalArgumentException("Before current history start");
+        }
+        if (getHistoryEnd().compareTo(historyStart) < 0) {
+            throw new IllegalStateException("After current history end");
+        }
+        if (this.historyStart.equals(historyStart)) {
+            // Optimisation
+            return;
+        }
+        this.historyStart = historyStart;
+    }
 }
