@@ -143,6 +143,13 @@ public class Universe {
          */
         public final void beginAbort() {
             openness.beginAbort(this);
+
+            /*
+             * Optimisation: do not have our predecessors waste time trying to get us to
+             * commit once they commit, and remove those hidden references to this
+             * transaction object.
+             */
+            removeTriggersOfPredecessors();
         }
 
         /**
@@ -492,6 +499,16 @@ public class Universe {
             return when;
         }
 
+        private void noLongerAnUncommittedReader() {
+            for (UUID object : dependencies.keySet()) {
+                var od = objectDataMap.get(object);
+                if (od != null) {
+                    od.uncommittedReaders.remove(this);
+                }
+                // else a non existent object
+            }
+        }
+
         /**
          * <p>
          * Try to add a state transition (or an initial state) for an object to the
@@ -545,7 +562,7 @@ public class Universe {
         private void reallyBeginAbort() {
             openness = TransactionOpenness.ABORTING;
 
-            removeCommitTriggers();
+            noLongerAnUncommittedReader();
             rollBackWrites();
 
             for (var mutualTransaction : mutualTransactions) {
@@ -618,22 +635,9 @@ public class Universe {
             objectStatesWritten.put(object, state);
         }
 
-        private void removeCommitTriggers() {
-            /*
-             * Optimisation: do not have our predecessors waste time trying to get us to
-             * commit once they commit, and remove those hidden references to this
-             * transaction object.
-             */
+        private void removeTriggersOfPredecessors() {
             for (Transaction predecessorTransaction : predecessorTransactions) {
                 removeAsSuccessor(predecessorTransaction, this);
-            }
-
-            for (UUID object : dependencies.keySet()) {
-                var od = objectDataMap.get(object);
-                if (od != null) {
-                    od.uncommittedReaders.remove(this);
-                }
-                // else a non existent object
             }
         }
 
