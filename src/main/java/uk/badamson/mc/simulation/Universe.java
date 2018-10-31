@@ -582,6 +582,7 @@ public class Universe {
             @Nullable
             final ObjectState objectState;
             final Set<Transaction> additionalPredecessors = new HashSet<>();
+            boolean isPastTheEndRead = false;
             final var od = objectDataMap.get(object);
             if (od == null) {// unknown object
                 objectState = null;
@@ -589,7 +590,7 @@ public class Universe {
                 objectState = od.stateHistory.get(when);
                 if (addTriggers) {
                     if (od.stateHistory.getLastTansitionTime().compareTo(when) < 0) {
-                        pastTheEndReads.add(object);
+                        isPastTheEndRead = true;
                     } else if (od.lastCommit.compareTo(when) < 0) {
                         @NonNull
                         final Duration nextWrite = od.stateHistory.getTansitionTimeAtOrAfter(when);
@@ -599,8 +600,13 @@ public class Universe {
                     additionalPredecessors.addAll(od.uncommittedWriters.get(when));
                 }
             }
-            addAsPredecessors(additionalPredecessors);
+
             objectStatesRead.put(id, objectState);
+            addAsPredecessors(additionalPredecessors);
+            if (isPastTheEndRead) {
+                pastTheEndReads.add(object);
+            }
+
             final ObjectStateId dependency0 = dependencies.get(object);
             if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
                 dependencies.put(object, id);
