@@ -44,7 +44,7 @@ import net.jcip.annotations.NotThreadSafe;
  *            {@link Immutable immutable} type.
  */
 @NotThreadSafe
-public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> {
+public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VALUE> {
 
     @Nullable
     private VALUE firstValue;
@@ -165,17 +165,13 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
         if (this == that)
             return true;
         if (that instanceof ModifiableValueHistory) {
+            // Optimisation
             @SuppressWarnings("unchecked")
             final ModifiableValueHistory<VALUE> thatValueHistory = (ModifiableValueHistory<VALUE>) that;
             return Objects.equals(firstValue, thatValueHistory.firstValue)
                     && transitions.equals(thatValueHistory.transitions);
-        } else if (that instanceof ValueHistory) {
-            @SuppressWarnings("unchecked")
-            final ValueHistory<VALUE> thatValueHistory = (ValueHistory<VALUE>) that;
-            return Objects.equals(firstValue, thatValueHistory.getFirstValue())
-                    && transitions.equals(thatValueHistory.getTransitions());
         } else {
-            return false;
+            return super.equals(that);
         }
     }
 
@@ -472,17 +468,6 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
     @Override
     public final @NonNull Stream<Entry<Duration, VALUE>> streamOfTransitions() {
         return transitions.entrySet().stream();
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("ModifiableValueHistory [");
-        builder.append(firstValue);
-        builder.append(", ");
-        builder.append(transitions);
-        builder.append("]");
-        return builder.toString();
     }
 
 }
