@@ -144,12 +144,25 @@ public class Universe {
         public final void beginAbort() {
             openness.beginAbort(this);
 
+            beginAbortOfDependents();
             /*
              * Optimisation: do not have our predecessors waste time trying to get us to
              * commit once they commit, and remove those hidden references to this
              * transaction object.
              */
             removeTriggersOfPredecessors();
+        }
+
+        private void beginAbortOfDependents() {
+            final Set<Transaction> dependents = new HashSet<>();
+            dependents.addAll(mutualTransactions);
+            mutualTransactions.clear();
+            dependents.addAll(successorTransactions);
+            successorTransactions.clear();
+
+            for (var dependent : dependents) {
+                dependent.beginAbort();
+            }
         }
 
         /**
@@ -564,13 +577,6 @@ public class Universe {
 
             noLongerAnUncommittedReader();
             rollBackWrites();
-
-            for (var mutualTransaction : mutualTransactions) {
-                mutualTransaction.beginAbort();
-            }
-            for (var successor : successorTransactions) {
-                successor.beginAbort();
-            }
         }
 
         private void reallyBeginCommit() {
