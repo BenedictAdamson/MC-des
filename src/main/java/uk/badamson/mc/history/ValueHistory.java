@@ -290,7 +290,8 @@ public interface ValueHistory<VALUE> {
 
     /**
      * <p>
-     * Create a stream of the transitions in the value of this history.
+     * Create a stream of the {@linkplain #getTransitions() transitions} in the
+     * value of this history.
      * </p>
      * <ul>
      * <li>Always creates a (non null) steam.</li>

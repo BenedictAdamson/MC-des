@@ -18,6 +18,17 @@ package uk.badamson.mc.history;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.Collections;
+
+import org.junit.jupiter.api.Test;
+
+import edu.umd.cs.findbugs.annotations.Nullable;
+import uk.badamson.mc.ObjectTest;
+
 /**
  * <p>
  * Unit test and auxiliary test code for the {@link ConstantValueHistory} class.
@@ -25,4 +36,32 @@ package uk.badamson.mc.history;
  */
 public class ConstantValueHistoryTest {
 
+    public static <VALUE> void assertInvariants(ConstantValueHistory<VALUE> history) {
+        ObjectTest.assertInvariants(history);// inherited
+        ValueHistoryTest.assertInvariants(history);// inherited
+
+        assertAll(
+                () -> assertEquals(Collections.emptySortedSet(), history.getTransitionTimes(),
+                        "The set of transition times is empty."),
+                () -> assertEquals(Collections.emptyMap(), history.getTransitions(), "The transitions map is empty."),
+                () -> assertTrue(history.isEmpty(), "A ConstantValueHistoryis always empty."),
+                () -> assertEquals(0, history.streamOfTransitions().count(), "The stream of transitions is empty."));
+    }
+
+    public static <VALUE> void assertInvariants(ConstantValueHistory<VALUE> history1,
+            ConstantValueHistory<VALUE> history2) {
+        ObjectTest.assertInvariants(history1, history2);// inherited
+        ValueHistoryTest.assertInvariants(history1, history2);// inherited
+    }
+
+    public <VALUE> void constructor(@Nullable VALUE value) {
+        final ConstantValueHistory<VALUE> history = new ConstantValueHistory<>(value);
+
+        assertInvariants(history);
+    }
+
+    @Test
+    public void constructor_null() {
+        constructor((Boolean) null);
+    }
 }
