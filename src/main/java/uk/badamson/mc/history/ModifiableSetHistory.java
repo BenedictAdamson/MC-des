@@ -54,7 +54,7 @@ import net.jcip.annotations.NotThreadSafe;
 @NotThreadSafe
 public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<VALUE>> implements SetHistory<VALUE> {
 
-    private static final ValueHistory<Boolean> ABSENT = new ModifiableValueHistory<>(Boolean.FALSE);
+    private static final ValueHistory<Boolean> ABSENT = new ConstantValueHistory<>(Boolean.FALSE);
 
     private final Set<VALUE> firstValue = new HashSet<>();
     private final Map<VALUE, ModifiableValueHistory<Boolean>> containsMap = new HashMap<>();

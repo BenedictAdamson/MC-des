@@ -33,6 +33,7 @@ import java.util.UUID;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import net.jcip.annotations.NotThreadSafe;
+import uk.badamson.mc.history.ConstantValueHistory;
 import uk.badamson.mc.history.ModifiableSetHistory;
 import uk.badamson.mc.history.ModifiableValueHistory;
 import uk.badamson.mc.history.ValueHistory;
@@ -1011,7 +1012,7 @@ public class Universe {
         abstract @Nullable ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id);
     }// enum
 
-    private static final ValueHistory<ObjectState> EMPTY_STATE_HISTORY = new ModifiableValueHistory<>();
+    private static final ValueHistory<ObjectState> EMPTY_STATE_HISTORY = new ConstantValueHistory<>((ObjectState) null);
 
     @NonNull
     private Duration historyStart;
