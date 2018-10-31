@@ -537,10 +537,11 @@ public class Universe {
 
         private void reallyAbort() {
             reallyBeginAbort();
+
             openness = TransactionOpenness.ABORTED;
             listener.onAbort();
 
-            // TODO: mutualTransactions abort
+            // TODO begin abort of mutualTransactions
             for (var successor : successorTransactions) {
                 successor.beginAbort();
             }
@@ -557,7 +558,9 @@ public class Universe {
             removeCommitTriggers();
             rollBackWrites();
 
-            // TODO: mutualTransactions abort
+            for (var mutualTransaction : mutualTransactions) {
+                mutualTransaction.beginAbort();
+            }
             for (var successor : successorTransactions) {
                 successor.beginAbort();
             }

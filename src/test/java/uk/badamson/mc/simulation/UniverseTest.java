@@ -165,75 +165,6 @@ public class UniverseTest {
         public class BeginAbort {
 
             @Nested
-            public class AfterMutualReadPastLastCommit {
-
-                @Test
-                public void a() {
-                    test(DURATION_1, OBJECT_A, OBJECT_B, DURATION_2, DURATION_3, DURATION_4, DURATION_5, DURATION_6,
-                            DURATION_7);
-                }
-
-                @Test
-                public void b() {
-                    test(DURATION_2, OBJECT_B, OBJECT_A, DURATION_3, DURATION_4, DURATION_5, DURATION_6, DURATION_7,
-                            DURATION_8);
-                }
-
-                @Test
-                public void symmetric() {
-                    final Duration when1 = DURATION_3;
-                    final Duration when2 = DURATION_5;
-                    final Duration when3 = DURATION_7;
-
-                    test(DURATION_2, OBJECT_B, OBJECT_A, when1, when1, when2, when2, when3, when3);
-                }
-
-                private void test(final Duration historyStart, UUID objectA, UUID objectB, Duration whenA1,
-                        Duration whenB1, Duration whenB2, Duration whenA2, Duration whenA3, Duration whenB3) {
-                    assert whenA1.compareTo(whenA2) < 0;
-                    assert whenA2.compareTo(whenA3) <= 0;
-                    assert whenB1.compareTo(whenB2) < 0;
-                    assert whenB2.compareTo(whenB3) <= 0;
-                    assert whenB2.compareTo(whenA3) < 0;
-                    assert whenA2.compareTo(whenB3) < 0;
-                    final ObjectState objectStateA1 = new ObjectStateTest.TestObjectState(11);
-                    final ObjectState objectStateA2 = new ObjectStateTest.TestObjectState(12);
-                    final ObjectState objectStateB1 = new ObjectStateTest.TestObjectState(21);
-                    final ObjectState objectStateB2 = new ObjectStateTest.TestObjectState(22);
-
-                    final CountingTransactionListener listenerA = new CountingTransactionListener();
-                    final CountingTransactionListener listenerB = new CountingTransactionListener();
-
-                    final Universe universe = new Universe(historyStart);
-                    putAndCommit(universe, objectA, whenA1, objectStateA1);
-                    putAndCommit(universe, objectB, whenB1, objectStateB1);
-
-                    final Universe.Transaction transactionA = universe.beginTransaction(listenerA);
-                    transactionA.getObjectState(objectA, whenA1);
-                    transactionA.getObjectState(objectB, whenB2);
-                    transactionA.beginWrite(whenA3);
-                    transactionA.put(objectA, objectStateA2);
-
-                    final Universe.Transaction transactionB = universe.beginTransaction(listenerB);
-                    transactionB.getObjectState(objectB, whenB1);
-                    transactionB.getObjectState(objectA, whenA2);
-                    transactionB.beginWrite(whenB3);
-                    transactionB.put(objectB, objectStateB2);
-
-                    beginAbort(transactionA);
-
-                    assertAll("Did not end transactions (they have not begun committing).",
-                            () -> assertEquals(0, listenerA.getEnds(), "A"),
-                            () -> assertEquals(0, listenerB.getEnds(), "B"));
-                    assertAll("Openness",
-                            () -> assertEquals(Universe.TransactionOpenness.ABORTING, transactionA.getOpenness(),
-                                    "Aborting A"),
-                            () -> assertEquals(Universe.TransactionOpenness.ABORTING, transactionB.getOpenness(),
-                                    "Aborting B because mutual transaction is aborting"));
-                }
-            }// class
-
-            @Nested
             public class AfterReadCommitted {
 
                 @Test
@@ -430,6 +361,75 @@ public class UniverseTest {
             }// class
 
             @Nested
+            public class FirstOfMutualReadPastLastCommit {
+
+                @Test
+                public void a() {
+                    test(DURATION_1, OBJECT_A, OBJECT_B, DURATION_2, DURATION_3, DURATION_4, DURATION_5, DURATION_6,
+                            DURATION_7);
+                }
+
+                @Test
+                public void b() {
+                    test(DURATION_2, OBJECT_B, OBJECT_A, DURATION_3, DURATION_4, DURATION_5, DURATION_6, DURATION_7,
+                            DURATION_8);
+                }
+
+                @Test
+                public void symmetric() {
+                    final Duration when1 = DURATION_3;
+                    final Duration when2 = DURATION_5;
+                    final Duration when3 = DURATION_7;
+
+                    test(DURATION_2, OBJECT_B, OBJECT_A, when1, when1, when2, when2, when3, when3);
+                }
+
+                private void test(final Duration historyStart, UUID objectA, UUID objectB, Duration whenA1,
+                        Duration whenB1, Duration whenB2, Duration whenA2, Duration whenA3, Duration whenB3) {
+                    assert whenA1.compareTo(whenA2) < 0;
+                    assert whenA2.compareTo(whenA3) <= 0;
+                    assert whenB1.compareTo(whenB2) < 0;
+                    assert whenB2.compareTo(whenB3) <= 0;
+                    assert whenB2.compareTo(whenA3) < 0;
+                    assert whenA2.compareTo(whenB3) < 0;
+                    final ObjectState objectStateA1 = new ObjectStateTest.TestObjectState(11);
+                    final ObjectState objectStateA2 = new ObjectStateTest.TestObjectState(12);
+                    final ObjectState objectStateB1 = new ObjectStateTest.TestObjectState(21);
+                    final ObjectState objectStateB2 = new ObjectStateTest.TestObjectState(22);
+
+                    final CountingTransactionListener listenerA = new CountingTransactionListener();
+                    final CountingTransactionListener listenerB = new CountingTransactionListener();
+
+                    final Universe universe = new Universe(historyStart);
+                    putAndCommit(universe, objectA, whenA1, objectStateA1);
+                    putAndCommit(universe, objectB, whenB1, objectStateB1);
+
+                    final Universe.Transaction transactionA = universe.beginTransaction(listenerA);
+                    transactionA.getObjectState(objectA, whenA1);
+                    transactionA.getObjectState(objectB, whenB2);
+                    transactionA.beginWrite(whenA3);
+                    transactionA.put(objectA, objectStateA2);
+
+                    final Universe.Transaction transactionB = universe.beginTransaction(listenerB);
+                    transactionB.getObjectState(objectB, whenB1);
+                    transactionB.getObjectState(objectA, whenA2);
+                    transactionB.beginWrite(whenB3);
+                    transactionB.put(objectB, objectStateB2);
+
+                    beginAbort(transactionA);
+
+                    assertAll("Did not end transactions (they have not begun committing).",
+                            () -> assertEquals(0, listenerA.getEnds(), "A"),
+                            () -> assertEquals(0, listenerB.getEnds(), "B"));
+                    assertAll("Openness",
+                            () -> assertEquals(Universe.TransactionOpenness.ABORTING, transactionA.getOpenness(),
+                                    "Aborting A"),
+                            () -> assertEquals(Universe.TransactionOpenness.ABORTING, transactionB.getOpenness(),
+                                    "Aborting B because mutual transaction is aborting"));
+                }
+            }// class
+
+            @Nested
             public class InvalidateOtherRead {
 
                 @Test
@@ -522,6 +522,74 @@ public class UniverseTest {
                                     "Transaction 2 (invalidated)"));
                 }
 
+            }// class
+
+            @Nested
+            public class SecondOfMutualReadPastLastCommit {
+
+                @Test
+                public void a() {
+                    test(DURATION_1, OBJECT_A, OBJECT_B, DURATION_2, DURATION_3, DURATION_4, DURATION_5, DURATION_6,
+                            DURATION_7);
+                }
+
+                @Test
+                public void b() {
+                    test(DURATION_2, OBJECT_B, OBJECT_A, DURATION_3, DURATION_4, DURATION_5, DURATION_6, DURATION_7,
+                            DURATION_8);
+                }
+
+                @Test
+                public void symmetric() {
+                    final Duration when1 = DURATION_3;
+                    final Duration when2 = DURATION_5;
+                    final Duration when3 = DURATION_7;
+
+                    test(DURATION_2, OBJECT_B, OBJECT_A, when1, when1, when2, when2, when3, when3);
+                }
+
+                private void test(final Duration historyStart, UUID objectA, UUID objectB, Duration whenA1,
+                        Duration whenB1, Duration whenB2, Duration whenA2, Duration whenA3, Duration whenB3) {
+                    assert whenA1.compareTo(whenA2) < 0;
+                    assert whenA2.compareTo(whenA3) <= 0;
+                    assert whenB1.compareTo(whenB2) < 0;
+                    assert whenB2.compareTo(whenB3) <= 0;
+                    assert whenB2.compareTo(whenA3) < 0;
+                    assert whenA2.compareTo(whenB3) < 0;
+                    final ObjectState objectStateA1 = new ObjectStateTest.TestObjectState(11);
+                    final ObjectState objectStateA2 = new ObjectStateTest.TestObjectState(12);
+                    final ObjectState objectStateB1 = new ObjectStateTest.TestObjectState(21);
+                    final ObjectState objectStateB2 = new ObjectStateTest.TestObjectState(22);
+
+                    final CountingTransactionListener listenerA = new CountingTransactionListener();
+                    final CountingTransactionListener listenerB = new CountingTransactionListener();
+
+                    final Universe universe = new Universe(historyStart);
+                    putAndCommit(universe, objectA, whenA1, objectStateA1);
+                    putAndCommit(universe, objectB, whenB1, objectStateB1);
+
+                    final Universe.Transaction transactionA = universe.beginTransaction(listenerA);
+                    transactionA.getObjectState(objectA, whenA1);
+                    transactionA.getObjectState(objectB, whenB2);// read-past-the-end
+                    transactionA.beginWrite(whenA3);
+                    transactionA.put(objectA, objectStateA2);
+
+                    final Universe.Transaction transactionB = universe.beginTransaction(listenerB);
+                    transactionB.getObjectState(objectB, whenB1);
+                    transactionB.getObjectState(objectA, whenA2);
+                    transactionB.beginWrite(whenB3);
+                    transactionB.put(objectB, objectStateB2);
+
+                    beginAbort(transactionB);
+
+                    assertAll("Did not end transactions (they have not begun committing).",
+                            () -> assertEquals(0, listenerA.getEnds(), "A"),
+                            () -> assertEquals(0, listenerB.getEnds(), "B"));
+                    assertAll("Aborting transactions",
+                            () -> assertEquals(Universe.TransactionOpenness.ABORTING, transactionA.getOpenness(),
+                                    "A (because mutual transaction is aborting)"),
+                            () -> assertEquals(Universe.TransactionOpenness.ABORTING, transactionB.getOpenness(), "B"));
+                }
             }// class
 
             private void beginAbort(Universe.Transaction transaction) {
