@@ -426,7 +426,7 @@ public class Universe {
          * @see Universe#getObjectState(UUID, Duration)
          */
         public final @NonNull Map<ObjectStateId, ObjectState> getObjectStatesRead() {
-            return Collections.unmodifiableMap(objectStatesRead);
+            return new HashMap<>(objectStatesRead);
         }
 
         /**
@@ -454,7 +454,7 @@ public class Universe {
          * @see Universe#getObjectState(UUID, Duration)
          */
         public final @NonNull Map<UUID, ObjectState> getObjectStatesWritten() {
-            return Collections.unmodifiableMap(objectStatesWritten);
+            return new HashMap<>(objectStatesWritten);
         }
 
         /**
