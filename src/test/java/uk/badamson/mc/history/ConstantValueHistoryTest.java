@@ -20,8 +20,11 @@ package uk.badamson.mc.history;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.Collections;
 
 import org.junit.jupiter.api.Test;
@@ -45,7 +48,9 @@ public class ConstantValueHistoryTest {
                         "The set of transition times is empty."),
                 () -> assertEquals(Collections.emptyMap(), history.getTransitions(), "The transitions map is empty."),
                 () -> assertTrue(history.isEmpty(), "A ConstantValueHistoryis always empty."),
-                () -> assertEquals(0, history.streamOfTransitions().count(), "The stream of transitions is empty."));
+                () -> assertEquals(0, history.streamOfTransitions().count(), "The stream of transitions is empty."),
+                () -> assertNull(history.getFirstTansitionTime(), "The first transition time is null."),
+                () -> assertNull(history.getLastTansitionTime(), "The  last transition time is null."));
     }
 
     public static <VALUE> void assertInvariants(ConstantValueHistory<VALUE> history1,
@@ -54,10 +59,51 @@ public class ConstantValueHistoryTest {
         ValueHistoryTest.assertInvariants(history1, history2);// inherited
     }
 
-    public <VALUE> void constructor(@Nullable VALUE value) {
+    public static <VALUE> void assertInvariants(ValueHistory<VALUE> history, Duration time) {
+        ValueHistoryTest.assertInvariants(history, time);// inherited
+
+        assertNull(history.getTansitionTimeAtOrAfter(time), "The transition time at or after all given times is null");
+    }
+
+    private <VALUE> void constructor(@Nullable VALUE value) {
         final ConstantValueHistory<VALUE> history = new ConstantValueHistory<>(value);
 
         assertInvariants(history);
+        assertAll(() -> assertSame(value, history.getFirstValue(), "The first value is the given value."),
+                () -> assertSame(value, history.getLastValue(), "The last value is the given value."));
+    }
+
+    private <VALUE> void constructor_2Equals(@Nullable VALUE value) {
+        final ConstantValueHistory<VALUE> history1 = new ConstantValueHistory<>(value);
+        final ConstantValueHistory<VALUE> history2 = new ConstantValueHistory<>(value);
+
+        assertInvariants(history1, history2);
+        assertEquals(history1, history2);
+    }
+
+    @Test
+    public void constructor_2Equals_A() {
+        constructor_2Equals(Boolean.TRUE);
+    }
+
+    @Test
+    public void constructor_2Equals_B() {
+        constructor_2Equals(Integer.MAX_VALUE);
+    }
+
+    @Test
+    public void constructor_2Equals_null() {
+        constructor_2Equals((Boolean) null);
+    }
+
+    @Test
+    public void constructor_A() {
+        constructor(Boolean.TRUE);
+    }
+
+    @Test
+    public void constructor_B() {
+        constructor(Integer.MAX_VALUE);
     }
 
     @Test

@@ -21,6 +21,7 @@ package uk.badamson.mc.history;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.stream.Stream;
@@ -44,43 +45,110 @@ public final class ConstantValueHistory<VALUE> implements ValueHistory<VALUE> {
     @Nullable
     private final VALUE value;
 
+    /**
+     * <p>
+     * Construct a history with a given constant value.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getFirstValue() first value} is the given value.</li>
+     * <li>The {@linkplain #getLastValue() last value} is the given value.</li>
+     * </ul>
+     * 
+     * @param value
+     *            The value {@linkplain #get(Duration) at} all points in time.
+     */
     public ConstantValueHistory(@Nullable VALUE value) {
         this.value = value;
     }
 
     @Override
-    public final VALUE get(Duration t) {
-        // TODO Auto-generated method stub
-        return null;
+    public final boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        // FIXME
+        if (!(obj instanceof ConstantValueHistory))
+            return false;
+        @SuppressWarnings("unchecked")
+        ConstantValueHistory<VALUE> other = (ConstantValueHistory<VALUE>) obj;
+        return Objects.equals(value, other.value);
     }
 
     @Override
+    public final VALUE get(Duration t) {
+        Objects.requireNonNull(t, "t");
+        return value;
+    }
+
+    /**
+     * <p>
+     * The first point in time when the value of this history changes.
+     * </p>
+     * <ul>
+     * <li>The first transition time is null, to indicate that this history has no
+     * transitions. That is, the value is constant for all time.</li>
+     * <li>This method is more efficient than using the
+     * {@link #getTransitionTimes()} method.</li>
+     * </ul>
+     * 
+     * @return the first transition time.
+     */
+    @Override
     public final Duration getFirstTansitionTime() {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public final VALUE getFirstValue() {
-        // TODO Auto-generated method stub
-        return null;
+        return value;
     }
 
+    /**
+     * <p>
+     * The last point in time when the value of this history changes.
+     * </p>
+     * <ul>
+     * <li>The last transition time is null, to indicate that this history has no
+     * transitions. That is, the value is constant for all time.</li>
+     * <li>This method is more efficient than using the
+     * {@link #getTransitionTimes()} method.</li>
+     * </ul>
+     * 
+     * @return the last transition time.
+     */
     @Override
     public final Duration getLastTansitionTime() {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public final VALUE getLastValue() {
-        // TODO Auto-generated method stub
-        return null;
+        return value;
     }
 
+    /**
+     * <p>
+     * The point in time when the value of this history changes that is at or after
+     * a given point in time.
+     * </p>
+     * <ul>
+     * <li>The transition time at or after all given times is null, to indicate that
+     * this history has no transitions.</li>
+     * <li>This method is more efficient than using the
+     * {@link #getTransitionTimes()} method.</li>
+     * </ul>
+     * 
+     * @param when
+     *            The point in time of interest, expressed as a duration since an
+     *            epoch.
+     * @return the transition time at or after the given time.
+     * @throws NullPointerException
+     *             if {@code when} is null.
+     */
     @Override
     public final Duration getTansitionTimeAtOrAfter(Duration when) {
-        // TODO Auto-generated method stub
+        Objects.requireNonNull(when, "when");
         return null;
     }
 
@@ -166,4 +234,10 @@ public final class ConstantValueHistory<VALUE> implements ValueHistory<VALUE> {
     public final Stream<Entry<Duration, VALUE>> streamOfTransitions() {
         return Stream.empty();
     }
+
+    @Override
+    public String toString() {
+        return "ConstantValueHistory [" + value + "]";
+    }
+
 }
