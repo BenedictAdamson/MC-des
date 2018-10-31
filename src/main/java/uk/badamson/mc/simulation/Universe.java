@@ -21,6 +21,7 @@ package uk.badamson.mc.simulation;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -558,11 +559,14 @@ public class Universe {
                  * As we are a writer for the object, the object has at least one recorded state
                  * (the state we wrote), so od is guaranteed to be not null.
                  */
-                od.stateHistory.removeTransitionsFrom(when);
                 od.uncommittedWriters.remove(this);// optimisation
-                if (od.stateHistory.isEmpty()) {
-                    objectDataMap.remove(object);
+                if (od.lastCommit.compareTo(when) < 0) {
+                    od.stateHistory.removeTransitionsFrom(when);
+                    if (od.stateHistory.isEmpty()) {
+                        objectDataMap.remove(object);
+                    }
                 }
+                // else aborting because of an out-of-order write
             }
 
             openness = TransactionOpenness.ABORTED;
@@ -992,6 +996,8 @@ public class Universe {
      * <ul>
      * <li>The {@linkplain #getHistoryStart() history start} time-stamp of this
      * universe is the given history start time-stamp.</li>
+     * <li>The {@linkplain #getHistoryEnd() history end} time-stamp of this universe
+     * is the given history start time-stamp.</li>
      * <li>The {@linkplain #getObjectIds() set of object IDs}
      * {@linkplain Set#isEmpty() is empty}.</li>
      * </ul>
@@ -1033,6 +1039,27 @@ public class Universe {
      */
     public final @NonNull Transaction beginTransaction(@NonNull TransactionListener listener) {
         return new Transaction(listener);
+    }
+
+    /**
+     * <p>
+     * The last point in time for which this universe has a known, correct and
+     * {@linkplain TransactionOpenness#COMMITTED committed} {@linkplain ObjectState
+     * state} for {@linkplain #getObjectIds() all the objects} in the universe.
+     * </p>
+     * <ul>
+     * <li>Always have a (non null) history end.</li>
+     * <li>The history end is {@linkplain Duration#compareTo(Duration) at or after}
+     * the {@linkplain #getHistoryStart() history start}.</li>
+     * </ul>
+     * 
+     * @return the point in time, expressed as the duration since an epoch; not
+     *         null.
+     */
+    public final @NonNull Duration getHistoryEnd() {
+        final Duration earliestLastCommit = objectDataMap.values().stream().map(od -> od.lastCommit)
+                .max(Comparator.naturalOrder()).orElse(historyStart);
+        return historyStart.compareTo(earliestLastCommit) < 0 ? earliestLastCommit : historyStart;
     }
 
     /**
@@ -1125,6 +1152,12 @@ public class Universe {
      * incomplete. In particular, the object state history may indicate that the
      * object did not exist (has a null state) for points in time at which it
      * actually existed.</li>
+     * <li>An object state history may record
+     * {@linkplain ValueHistory#getTransitions() state transitions} after the
+     * {@linkplain #getHistoryEnd() end of history}, but those transitions might be
+     * transitions {@linkplain Transaction#put(UUID, ObjectState) written} by
+     * transactions that have not yet been {@linkplain TransactionOpenness#COMMITTED
+     * committed}, and so could be rolled-back.</li>
      * </ul>
      * 
      * @param object
