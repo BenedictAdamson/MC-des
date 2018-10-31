@@ -40,7 +40,7 @@ import net.jcip.annotations.Immutable;
  *            {@link Immutable immutable}, or have reference semantics.
  */
 @Immutable
-public final class ConstantValueHistory<VALUE> implements ValueHistory<VALUE> {
+public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALUE> {
 
     @Nullable
     private final VALUE value;
