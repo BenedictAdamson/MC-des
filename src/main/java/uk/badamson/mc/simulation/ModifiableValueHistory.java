@@ -290,6 +290,12 @@ public final class ModifiableValueHistory<VALUE> implements ValueHistory<VALUE> 
     }
 
     @Override
+    public final Duration getTansitionTimeAtOrAfter(@NonNull Duration when) {
+        Objects.requireNonNull(when, "when");
+        return transitions.ceilingKey(when);
+    }
+
+    @Override
     public final @NonNull SortedMap<Duration, VALUE> getTransitions() {
         return new TreeMap<>(transitions);
     }

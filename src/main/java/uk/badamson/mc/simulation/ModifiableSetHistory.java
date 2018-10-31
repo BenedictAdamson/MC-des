@@ -21,6 +21,7 @@ package uk.badamson.mc.simulation;
 import java.time.Duration;
 import java.util.AbstractMap;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -216,6 +217,13 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
     }
 
     @Override
+    public final Duration getTansitionTimeAtOrAfter(@NonNull final Duration when) {
+        Objects.requireNonNull(when, "when");
+        return streamOfTransitionTimes().filter(t -> when.compareTo(t) <= 0).min(Comparator.naturalOrder())
+                .orElse(null);
+    }
+
+    @Override
     public final @NonNull SortedMap<Duration, Set<VALUE>> getTransitions() {
         final SortedMap<Duration, Set<VALUE>> transitions = new TreeMap<>();
         for (var t : getTransitionTimes()) {
@@ -263,12 +271,12 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
 
     @Override
     public final @NonNull Stream<Map.Entry<Duration, Set<VALUE>>> streamOfTransitions() {
-        return streamOfTransitionTimes().map(t -> new AbstractMap.SimpleImmutableEntry<>(t, get(t)));
+        return streamOfTransitionTimes().distinct().map(t -> new AbstractMap.SimpleImmutableEntry<>(t, get(t)));
     }
 
     private Stream<Duration> streamOfTransitionTimes() {
         return containsMap.values().stream().flatMap(contains -> contains.streamOfTransitions())
-                .map(transition -> transition.getKey()).distinct();
+                .map(transition -> transition.getKey());
     }
 
     @Override
