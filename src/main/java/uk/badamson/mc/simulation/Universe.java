@@ -122,12 +122,6 @@ public class Universe {
             this.listener = Objects.requireNonNull(listener, "listener");
         }
 
-        private void addAsPredecessors(final Collection<Transaction> transactions) {
-            for (var transaction : transactions) {
-                addAsPredecessor(transaction, this);
-            }
-        }
-
         /**
          * <p>
          * Begin aborting this transaction, aborting it if possible.
@@ -393,13 +387,18 @@ public class Universe {
          */
         public final @Nullable ObjectState getObjectState(@NonNull UUID object, @NonNull Duration when) {
             final ObjectStateId id = new ObjectStateId(object, when);
+            @Nullable
             ObjectState objectState;
+            final Set<Transaction> additionalPredecessors = new HashSet<>();
             objectState = objectStatesRead.get(id);
             if (objectState == null && !objectStatesRead.containsKey(id)) {
                 // Value is not cached
-                objectState = openness.readUncachedObjectState(this, id);
+                objectState = openness.readUncachedObjectState(this, id, additionalPredecessors);
             }
             // else used cached value
+            for (var transaction : additionalPredecessors) {
+                addAsPredecessor(transaction, this);
+            }
             return objectState;
         }
 
@@ -571,7 +570,8 @@ public class Universe {
             openness = TransactionOpenness.WRITING;
         }
 
-        private @Nullable ObjectState reallyReadUncachedObjectState(@NonNull ObjectStateId id, boolean addTriggers) {
+        private @Nullable ObjectState reallyReadUncachedObjectState(@NonNull ObjectStateId id, boolean addTriggers,
+                Set<Transaction> additionalPredecessors) {
             final UUID object = id.getObject();
             final Duration when = id.getWhen();
 
@@ -581,7 +581,6 @@ public class Universe {
 
             @Nullable
             final ObjectState objectState;
-            final Set<Transaction> additionalPredecessors = new HashSet<>();
             boolean isPastTheEndRead = false;
             final var od = objectDataMap.get(object);
             if (od == null) {// unknown object
@@ -602,7 +601,6 @@ public class Universe {
             }
 
             objectStatesRead.put(id, objectState);
-            addAsPredecessors(additionalPredecessors);
             if (isPastTheEndRead) {
                 pastTheEndReads.add(object);
             }
@@ -786,8 +784,9 @@ public class Universe {
 
             @Override
             @Nullable
-            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
-                return transaction.reallyReadUncachedObjectState(id, true);
+            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id,
+                    Set<Transaction> additionalPredecessors) {
+                return transaction.reallyReadUncachedObjectState(id, true, additionalPredecessors);
             }
         },
 
@@ -832,7 +831,8 @@ public class Universe {
 
             @Override
             @Nullable
-            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
+            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id,
+                    Set<Transaction> additionalPredecessors) {
                 throw new IllegalStateException("Already writing");
             }
         },
@@ -870,7 +870,8 @@ public class Universe {
 
             @Override
             @Nullable
-            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
+            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id,
+                    Set<Transaction> additionalPredecessors) {
                 throw new IllegalStateException("Already committing");
             }
         },
@@ -909,9 +910,10 @@ public class Universe {
 
             @Override
             @Nullable
-            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
+            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id,
+                    Set<Transaction> additionalPredecessors) {
                 // Refrain from adding additional read dependencies.
-                return transaction.reallyReadUncachedObjectState(id, false);
+                return transaction.reallyReadUncachedObjectState(id, false, additionalPredecessors);
             }
         },
 
@@ -957,7 +959,8 @@ public class Universe {
 
             @Override
             @Nullable
-            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
+            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id,
+                    Set<Transaction> additionalPredecessors) {
                 throw new IllegalStateException("Committed");
             }
         },
@@ -1001,7 +1004,8 @@ public class Universe {
 
             @Override
             @Nullable
-            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
+            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id,
+                    Set<Transaction> additionalPredecessors) {
                 throw new IllegalStateException("Aborted");
             }
         };
@@ -1016,7 +1020,8 @@ public class Universe {
 
         abstract void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state);
 
-        abstract @Nullable ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id);
+        abstract @Nullable ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id,
+                Set<Transaction> additionalPredecessors);
     }// enum
 
     private static final ValueHistory<ObjectState> EMPTY_STATE_HISTORY = new ConstantValueHistory<>((ObjectState) null);
