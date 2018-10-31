@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>uk.badamson.mc</groupId>
 	<artifactId>MC-des</artifactId>
-	<version>0.3.0-SNAPSHOT</version>
+	<version>0.3.0</version>
 	<organization>
 		<name>Benedict Adamson</name>
 	</organization>
@@ -68,6 +68,8 @@
 					<excludes>
 						<exclude />
 					</excludes>
+					<!-- Work around OpenJDK bug: -->
+					<useSystemClassLoader>false</useSystemClassLoader>
 				</configuration>
 			</plugin>
 			<plugin>
