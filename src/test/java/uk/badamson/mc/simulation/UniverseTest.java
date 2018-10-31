@@ -2142,6 +2142,42 @@ public class UniverseTest {
         public class Put {
 
             @Nested
+            public class Aborting {
+
+                @Test
+                public void a() {
+                    test(DURATION_1, OBJECT_A, DURATION_2);
+                }
+
+                @Test
+                public void b() {
+                    test(DURATION_2, OBJECT_B, DURATION_3);
+                }
+
+                @Test
+                public void endOfTime() {
+                    test(DURATION_1, OBJECT_A, ValueHistory.END_OF_TIME);
+                }
+
+                private void test(final Duration historyStart, UUID object, Duration when) {
+                    final ObjectState objectState = new ObjectStateTest.TestObjectState(1);
+                    final ModifiableValueHistory<ObjectState> expectedHistory = new ModifiableValueHistory<>();
+
+                    final Universe universe = new Universe(historyStart);
+                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final Universe.Transaction transaction = universe.beginTransaction(listener);
+                    transaction.beginWrite(when);
+                    transaction.beginAbort();
+
+                    put(transaction, object, objectState);
+
+                    assertAll(() -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
+                            "Object state history (did not add to history because aborting)"));
+                }
+
+            }// class
+
+            @Nested
             public class AfterRead {
                 @Test
                 public void a() {

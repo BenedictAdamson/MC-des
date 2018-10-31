@@ -562,9 +562,88 @@ public class Universe {
             }
         }
 
-        private void reallyPut(UUID object, ObjectState state) {
+        private @Nullable ObjectState reallyReadUncachedObjectState(@NonNull ObjectStateId id, boolean addTriggers) {
+            final UUID object = id.getObject();
+            final Duration when = id.getWhen();
+
+            if (when.compareTo(historyStart) < 0) {
+                throw new Universe.PrehistoryException();
+            }
+
+            @Nullable
+            final ObjectState objectState;
+            final var od = objectDataMap.get(object);
+            if (od == null) {// unknown object
+                objectState = null;
+            } else {
+                objectState = od.stateHistory.get(when);
+                if (addTriggers) {
+                    if (od.stateHistory.getLastTansitionTime().compareTo(when) < 0) {
+                        pastTheEndReads.add(object);
+                    } else if (od.lastCommit.compareTo(when) < 0) {
+                        @NonNull
+                        final Duration nextWrite = od.stateHistory.getTansitionTimeAtOrAfter(when);
+                        addAsPredecessors(od.uncommittedWriters.get(nextWrite));
+                    }
+                    od.uncommittedReaders.addUntil(when, this);
+                    addAsPredecessors(od.uncommittedWriters.get(when));
+                }
+            }
+            objectStatesRead.put(id, objectState);
+            final ObjectStateId dependency0 = dependencies.get(object);
+            if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
+                dependencies.put(object, id);
+            }
+            assert dependencies.containsKey(object);
+            return objectState;
+        }
+
+        private void recordObjectStateWritten(UUID object, ObjectState state) {
             assert when != null;
             objectStatesWritten.put(object, state);
+        }
+
+        private void removeCommitTriggers() {
+            /*
+             * Optimisation: do not have our predecessors waste time trying to get us to
+             * commit once they commit, and remove those hidden references to this
+             * transaction object.
+             */
+            for (Transaction predecessorTransaction : predecessorTransactions) {
+                predecessorTransaction.successorTransactions.remove(this);
+            }
+
+            for (UUID object : dependencies.keySet()) {
+                var od = objectDataMap.get(object);
+                if (od != null) {
+                    od.uncommittedReaders.remove(this);
+                }
+                // else a non existent object
+            }
+        }
+
+        private void rollBackWrites() {
+            for (UUID object : objectStatesWritten.keySet()) {
+                assert object != null;
+                assert when != null;
+                var od = objectDataMap.get(object);
+                /*
+                 * As we are a writer for the object, the object has at least one recorded state
+                 * (the state we wrote), so od is guaranteed to be not null.
+                 */
+                od.uncommittedWriters.remove(this);// optimisation
+                if (od.lastCommit.compareTo(when) < 0) {
+                    od.stateHistory.removeTransitionsFrom(when);
+                    if (od.stateHistory.isEmpty()) {
+                        objectDataMap.remove(object);
+                    }
+                }
+                // else aborting because of an out-of-order write
+            }
+        }
+
+        private void tryToAppendToHistory(UUID object, ObjectState state) {
+            assert when != null;
 
             ObjectData od = objectDataMap.get(object);
             if (od == null) {
@@ -615,81 +694,6 @@ public class Universe {
                 }
             }
             // else creating the object
-        }
-
-        private @Nullable ObjectState reallyReadUncachedObjectState(@NonNull ObjectStateId id, boolean addTriggers) {
-            final UUID object = id.getObject();
-            final Duration when = id.getWhen();
-
-            if (when.compareTo(historyStart) < 0) {
-                throw new Universe.PrehistoryException();
-            }
-
-            @Nullable
-            final ObjectState objectState;
-            final var od = objectDataMap.get(object);
-            if (od == null) {// unknown object
-                objectState = null;
-            } else {
-                objectState = od.stateHistory.get(when);
-                if (addTriggers) {
-                    if (od.stateHistory.getLastTansitionTime().compareTo(when) < 0) {
-                        pastTheEndReads.add(object);
-                    } else if (od.lastCommit.compareTo(when) < 0) {
-                        @NonNull
-                        final Duration nextWrite = od.stateHistory.getTansitionTimeAtOrAfter(when);
-                        addAsPredecessors(od.uncommittedWriters.get(nextWrite));
-                    }
-                    od.uncommittedReaders.addUntil(when, this);
-                    addAsPredecessors(od.uncommittedWriters.get(when));
-                }
-            }
-            objectStatesRead.put(id, objectState);
-            final ObjectStateId dependency0 = dependencies.get(object);
-            if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
-                dependencies.put(object, id);
-            }
-            assert dependencies.containsKey(object);
-            return objectState;
-        }
-
-        private void removeCommitTriggers() {
-            /*
-             * Optimisation: do not have our predecessors waste time trying to get us to
-             * commit once they commit, and remove those hidden references to this
-             * transaction object.
-             */
-            for (Transaction predecessorTransaction : predecessorTransactions) {
-                predecessorTransaction.successorTransactions.remove(this);
-            }
-
-            for (UUID object : dependencies.keySet()) {
-                var od = objectDataMap.get(object);
-                if (od != null) {
-                    od.uncommittedReaders.remove(this);
-                }
-                // else a non existent object
-            }
-        }
-
-        private void rollBackWrites() {
-            for (UUID object : objectStatesWritten.keySet()) {
-                assert object != null;
-                assert when != null;
-                var od = objectDataMap.get(object);
-                /*
-                 * As we are a writer for the object, the object has at least one recorded state
-                 * (the state we wrote), so od is guaranteed to be not null.
-                 */
-                od.uncommittedWriters.remove(this);// optimisation
-                if (od.lastCommit.compareTo(when) < 0) {
-                    od.stateHistory.removeTransitionsFrom(when);
-                    if (od.stateHistory.isEmpty()) {
-                        objectDataMap.remove(object);
-                    }
-                }
-                // else aborting because of an out-of-order write
-            }
         }
 
     }// class
@@ -812,7 +816,8 @@ public class Universe {
 
             @Override
             void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
-                transaction.reallyPut(object, state);
+                transaction.recordObjectStateWritten(object, state);
+                transaction.tryToAppendToHistory(object, state);
             }
 
             @Override
@@ -888,7 +893,7 @@ public class Universe {
 
             @Override
             void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
-                // FIXME record as a write but do not change history.
+                transaction.recordObjectStateWritten(object, state);
             }
 
             @Override
