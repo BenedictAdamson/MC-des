@@ -21,7 +21,6 @@ package uk.badamson.mc.simulation;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -1086,9 +1085,14 @@ public class Universe {
      *         null.
      */
     public final @NonNull Duration getHistoryEnd() {
-        final Duration earliestLastCommit = objectDataMap.values().stream().map(od -> od.lastCommit)
-                .max(Comparator.naturalOrder()).orElse(historyStart);
-        return historyStart.compareTo(earliestLastCommit) < 0 ? earliestLastCommit : historyStart;
+        Duration historyEnd = null;
+        for (var od : objectDataMap.values()) {
+            final Duration lastCommmit = od.lastCommit;
+            if (historyEnd == null || lastCommmit.compareTo(historyEnd) < 0) {
+                historyEnd = lastCommmit;
+            }
+        }
+        return historyEnd == null || historyEnd.compareTo(historyStart) < 0 ? historyStart : historyEnd;
     }
 
     /**
