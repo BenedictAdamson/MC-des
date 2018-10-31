@@ -565,6 +565,20 @@ public class Universe {
             }
         }
 
+        private void reallyBeginCommit() {
+            openness = TransactionOpenness.COMMITTING;
+            commitIfPossible();
+        }
+
+        private void reallyBeginWrite(@NonNull Duration when) {
+            if (objectStatesRead.keySet().stream().map(id -> id.getWhen()).filter(t -> 0 <= t.compareTo(when)).findAny()
+                    .orElse(null) != null) {
+                throw new IllegalStateException("Time-stamp of read state at or after the given time.");
+            }
+            this.when = when;
+            openness = TransactionOpenness.WRITING;
+        }
+
         private @Nullable ObjectState reallyReadUncachedObjectState(@NonNull ObjectStateId id, boolean addTriggers) {
             final UUID object = id.getObject();
             final Duration when = id.getWhen();
@@ -752,18 +766,12 @@ public class Universe {
 
             @Override
             void beginCommit(Transaction transaction) {
-                transaction.openness = TransactionOpenness.COMMITTING;
-                transaction.commitIfPossible();
+                transaction.reallyBeginCommit();
             }
 
             @Override
             void beginWrite(Transaction transaction, @NonNull Duration when) {
-                if (transaction.objectStatesRead.keySet().stream().map(id -> id.getWhen())
-                        .filter(t -> 0 <= t.compareTo(when)).findAny().orElse(null) != null) {
-                    throw new IllegalStateException("Time-stamp of read state at or after the given time.");
-                }
-                transaction.when = when;
-                transaction.openness = TransactionOpenness.WRITING;
+                transaction.reallyBeginWrite(when);
             }
 
             @Override
@@ -803,8 +811,7 @@ public class Universe {
 
             @Override
             void beginCommit(Transaction transaction) {
-                transaction.openness = TransactionOpenness.COMMITTING;
-                transaction.commitIfPossible();
+                transaction.reallyBeginCommit();
             }
 
             @Override
