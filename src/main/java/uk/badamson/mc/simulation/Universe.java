@@ -124,15 +124,7 @@ public class Universe {
 
         private void addAsPredecessors(final Collection<Transaction> transactions) {
             for (var transaction : transactions) {
-                if (successorTransactions.contains(transaction)) {
-                    // Can not be both predecessor and successor.
-                    successorTransactions.remove(transaction);
-                    mutualTransactions.add(transaction);
-                    transaction.mutualTransactions.add(this);
-                } else {
-                    predecessorTransactions.add(transaction);
-                    transaction.successorTransactions.add(this);
-                }
+                addAsPredecessor(transaction, this);
             }
         }
 
@@ -1019,6 +1011,18 @@ public class Universe {
     }// enum
 
     private static final ValueHistory<ObjectState> EMPTY_STATE_HISTORY = new ConstantValueHistory<>((ObjectState) null);
+
+    private static void addAsPredecessor(Transaction predecessor, Transaction successor) {
+        if (successor.successorTransactions.contains(predecessor)) {
+            // Can not be both predecessor and successor.
+            successor.successorTransactions.remove(predecessor);
+            successor.mutualTransactions.add(predecessor);
+            predecessor.mutualTransactions.add(successor);
+        } else {
+            successor.predecessorTransactions.add(predecessor);
+            predecessor.successorTransactions.add(successor);
+        }
+    }
 
     @NonNull
     private Duration historyStart;
