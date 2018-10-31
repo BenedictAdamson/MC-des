@@ -619,7 +619,7 @@ public class Universe {
              * transaction object.
              */
             for (Transaction predecessorTransaction : predecessorTransactions) {
-                predecessorTransaction.successorTransactions.remove(this);
+                removeAsSuccessor(predecessorTransaction, this);
             }
 
             for (UUID object : dependencies.keySet()) {
@@ -896,6 +896,7 @@ public class Universe {
             @Override
             void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
                 transaction.recordObjectStateWritten(object, state);
+                // Do not change the object state history, however.
             }
 
             @Override
@@ -1022,6 +1023,11 @@ public class Universe {
             successor.predecessorTransactions.add(predecessor);
             predecessor.successorTransactions.add(successor);
         }
+    }
+
+    private static void removeAsSuccessor(Transaction predecessor, Transaction successor) {
+        successor.predecessorTransactions.remove(successor);
+        predecessor.successorTransactions.remove(predecessor);
     }
 
     @NonNull
