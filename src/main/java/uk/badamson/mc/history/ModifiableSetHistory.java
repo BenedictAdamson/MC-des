@@ -52,7 +52,7 @@ import net.jcip.annotations.NotThreadSafe;
  * @see ModifiableValueHistory
  */
 @NotThreadSafe
-public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
+public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<VALUE>> implements SetHistory<VALUE> {
 
     private static final ValueHistory<Boolean> ABSENT = new ModifiableValueHistory<>(Boolean.FALSE);
 
@@ -176,13 +176,8 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
             @SuppressWarnings("unchecked")
             final ModifiableSetHistory<VALUE> thatValueHistory = (ModifiableSetHistory<VALUE>) that;
             return firstValue.equals(thatValueHistory.firstValue) && containsMap.equals(thatValueHistory.containsMap);
-        } else if (that instanceof ValueHistory) {
-            @SuppressWarnings("unchecked")
-            final ValueHistory<VALUE> thatValueHistory = (ValueHistory<VALUE>) that;
-            return Objects.equals(getFirstValue(), thatValueHistory.getFirstValue())
-                    && getTransitions().equals(thatValueHistory.getTransitions());
         } else {
-            return false;
+            return super.equals(that);
         }
     }
 
@@ -209,11 +204,6 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
     public final @Nullable Duration getLastTansitionTime() {
         return containsMap.values().stream().map(contains -> contains.getLastTansitionTime())
                 .max((t1, t2) -> t1.compareTo(t2)).orElse(null);
-    }
-
-    @Override
-    public final @NonNull Set<VALUE> getLastValue() {
-        return get(END_OF_TIME);
     }
 
     @Override
@@ -277,17 +267,6 @@ public final class ModifiableSetHistory<VALUE> implements SetHistory<VALUE> {
     private Stream<Duration> streamOfTransitionTimes() {
         return containsMap.values().stream().flatMap(contains -> contains.streamOfTransitions())
                 .map(transition -> transition.getKey());
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("ModifiableSetHistory [");
-        builder.append(getFirstValue());
-        builder.append(", ");
-        builder.append(getTransitions());
-        builder.append("]");
-        return builder.toString();
     }
 
 }
