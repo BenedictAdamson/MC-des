@@ -1941,43 +1941,6 @@ public class UniverseTest {
         public class GetObjectState {
 
             @Nested
-            public class AfterPutAndCommit1 {
-
-                @Test
-                public void a() {
-                    test(DURATION_1, OBJECT_A, DURATION_2, DURATION_3);
-                }
-
-                @Test
-                public void b() {
-                    test(DURATION_2, OBJECT_B, DURATION_3, DURATION_4);
-                }
-
-                @Test
-                public void precise() {
-                    final Duration when = DURATION_2;
-                    test(DURATION_1, OBJECT_A, when, when);
-                }
-
-                private void test(final Duration historyStart, UUID object, Duration when1, Duration when2) {
-                    final ObjectStateId id2 = new ObjectStateId(object, when2);
-                    final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
-
-                    final Universe universe = new Universe(historyStart);
-                    putAndCommit(universe, object, when1, objectState1);
-                    final CountingTransactionListener listener = new CountingTransactionListener();
-                    final Universe.Transaction transaction = universe.beginTransaction(listener);
-
-                    final ObjectState objectState2 = getObjectState(transaction, object, when2);
-
-                    assertSame(objectState1, objectState2, "objectState");
-                    assertEquals(Collections.singletonMap(id2, objectState1), transaction.getObjectStatesRead(),
-                            "objectStatesRead");
-                }
-
-            }// class
-
-            @Nested
             public class Empty {
 
                 @Test
@@ -2028,6 +1991,81 @@ public class UniverseTest {
 
                     assertThrows(Universe.PrehistoryException.class,
                             () -> getObjectState(transaction, OBJECT_A, when1));
+                }
+
+            }// class
+
+            @Nested
+            public class ReadCommitted {
+
+                @Test
+                public void a() {
+                    test(DURATION_1, OBJECT_A, DURATION_2, DURATION_3);
+                }
+
+                @Test
+                public void b() {
+                    test(DURATION_2, OBJECT_B, DURATION_3, DURATION_4);
+                }
+
+                @Test
+                public void precise() {
+                    final Duration when = DURATION_2;
+                    test(DURATION_1, OBJECT_A, when, when);
+                }
+
+                private void test(final Duration historyStart, UUID object, Duration when1, Duration when2) {
+                    final ObjectStateId id2 = new ObjectStateId(object, when2);
+                    final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
+
+                    final Universe universe = new Universe(historyStart);
+                    putAndCommit(universe, object, when1, objectState1);
+                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final Universe.Transaction transaction = universe.beginTransaction(listener);
+
+                    final ObjectState objectState2 = getObjectState(transaction, object, when2);
+
+                    assertSame(objectState1, objectState2, "objectState");
+                    assertEquals(Collections.singletonMap(id2, objectState1), transaction.getObjectStatesRead(),
+                            "objectStatesRead");
+                }
+
+            }// class
+
+            @Nested
+            public class ReadCommittedAfterBeginAbort {
+
+                @Test
+                public void a() {
+                    test(DURATION_1, OBJECT_A, DURATION_2, DURATION_3);
+                }
+
+                @Test
+                public void b() {
+                    test(DURATION_2, OBJECT_B, DURATION_3, DURATION_4);
+                }
+
+                @Test
+                public void precise() {
+                    final Duration when = DURATION_2;
+                    test(DURATION_1, OBJECT_A, when, when);
+                }
+
+                private void test(final Duration historyStart, UUID object, Duration when1, Duration when2) {
+                    final ObjectStateId id2 = new ObjectStateId(object, when2);
+                    final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
+
+                    final Universe universe = new Universe(historyStart);
+                    putAndCommit(universe, object, when1, objectState1);
+                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final Universe.Transaction transaction = universe.beginTransaction(listener);
+                    transaction.beginAbort();
+
+                    final ObjectState objectState2 = getObjectState(transaction, object, when2);
+
+                    assertSame(objectState1, objectState2, "objectState");
+                    assertEquals(Collections.singletonMap(id2, objectState1), transaction.getObjectStatesRead(),
+                            "objectStatesRead");
                 }
 
             }// class

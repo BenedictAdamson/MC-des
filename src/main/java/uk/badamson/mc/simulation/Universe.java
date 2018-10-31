@@ -541,11 +541,6 @@ public class Universe {
             openness = TransactionOpenness.ABORTED;
             listener.onAbort();
 
-            // TODO begin abort of mutualTransactions
-            for (var successor : successorTransactions) {
-                successor.beginAbort();
-            }
-
             {// Help the garbage collector
                 pastTheEndReads.clear();
                 predecessorTransactions.clear();
@@ -555,6 +550,7 @@ public class Universe {
 
         private void reallyBeginAbort() {
             openness = TransactionOpenness.ABORTING;
+
             removeCommitTriggers();
             rollBackWrites();
 
@@ -621,7 +617,7 @@ public class Universe {
             // else creating the object
         }
 
-        private @Nullable ObjectState reallyReadUncachedObjectState(@NonNull ObjectStateId id) {
+        private @Nullable ObjectState reallyReadUncachedObjectState(@NonNull ObjectStateId id, boolean addTriggers) {
             final UUID object = id.getObject();
             final Duration when = id.getWhen();
 
@@ -636,15 +632,17 @@ public class Universe {
                 objectState = null;
             } else {
                 objectState = od.stateHistory.get(when);
-                if (od.stateHistory.getLastTansitionTime().compareTo(when) < 0) {
-                    pastTheEndReads.add(object);
-                } else if (od.lastCommit.compareTo(when) < 0) {
-                    @NonNull
-                    final Duration nextWrite = od.stateHistory.getTansitionTimeAtOrAfter(when);
-                    addAsPredecessors(od.uncommittedWriters.get(nextWrite));
+                if (addTriggers) {
+                    if (od.stateHistory.getLastTansitionTime().compareTo(when) < 0) {
+                        pastTheEndReads.add(object);
+                    } else if (od.lastCommit.compareTo(when) < 0) {
+                        @NonNull
+                        final Duration nextWrite = od.stateHistory.getTansitionTimeAtOrAfter(when);
+                        addAsPredecessors(od.uncommittedWriters.get(nextWrite));
+                    }
+                    od.uncommittedReaders.addUntil(when, this);
+                    addAsPredecessors(od.uncommittedWriters.get(when));
                 }
-                od.uncommittedReaders.addUntil(when, this);
-                addAsPredecessors(od.uncommittedWriters.get(when));
             }
             objectStatesRead.put(id, objectState);
             final ObjectStateId dependency0 = dependencies.get(object);
@@ -774,7 +772,7 @@ public class Universe {
             @Override
             @Nullable
             ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
-                return transaction.reallyReadUncachedObjectState(id);
+                return transaction.reallyReadUncachedObjectState(id, true);
             }
         },
 
@@ -896,9 +894,8 @@ public class Universe {
             @Override
             @Nullable
             ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
-                // FIXME read but do not add dependencies
                 // Refrain from adding additional read dependencies.
-                return null;
+                return transaction.reallyReadUncachedObjectState(id, false);
             }
         },
 
