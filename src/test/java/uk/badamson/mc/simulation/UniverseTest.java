@@ -162,7 +162,76 @@ public class UniverseTest {
     public static class TransactionTest {
 
         @Nested
-        public class Abort {
+        public class BeginAbort {
+
+            @Nested
+            public class AfterMutualReadPastLastCommit {
+
+                @Test
+                public void a() {
+                    test(DURATION_1, OBJECT_A, OBJECT_B, DURATION_2, DURATION_3, DURATION_4, DURATION_5, DURATION_6,
+                            DURATION_7);
+                }
+
+                @Test
+                public void b() {
+                    test(DURATION_2, OBJECT_B, OBJECT_A, DURATION_3, DURATION_4, DURATION_5, DURATION_6, DURATION_7,
+                            DURATION_8);
+                }
+
+                @Test
+                public void symmetric() {
+                    final Duration when1 = DURATION_3;
+                    final Duration when2 = DURATION_5;
+                    final Duration when3 = DURATION_7;
+
+                    test(DURATION_2, OBJECT_B, OBJECT_A, when1, when1, when2, when2, when3, when3);
+                }
+
+                private void test(final Duration historyStart, UUID objectA, UUID objectB, Duration whenA1,
+                        Duration whenB1, Duration whenB2, Duration whenA2, Duration whenA3, Duration whenB3) {
+                    assert whenA1.compareTo(whenA2) < 0;
+                    assert whenA2.compareTo(whenA3) <= 0;
+                    assert whenB1.compareTo(whenB2) < 0;
+                    assert whenB2.compareTo(whenB3) <= 0;
+                    assert whenB2.compareTo(whenA3) < 0;
+                    assert whenA2.compareTo(whenB3) < 0;
+                    final ObjectState objectStateA1 = new ObjectStateTest.TestObjectState(11);
+                    final ObjectState objectStateA2 = new ObjectStateTest.TestObjectState(12);
+                    final ObjectState objectStateB1 = new ObjectStateTest.TestObjectState(21);
+                    final ObjectState objectStateB2 = new ObjectStateTest.TestObjectState(22);
+
+                    final CountingTransactionListener listenerA = new CountingTransactionListener();
+                    final CountingTransactionListener listenerB = new CountingTransactionListener();
+
+                    final Universe universe = new Universe(historyStart);
+                    putAndCommit(universe, objectA, whenA1, objectStateA1);
+                    putAndCommit(universe, objectB, whenB1, objectStateB1);
+
+                    final Universe.Transaction transactionA = universe.beginTransaction(listenerA);
+                    transactionA.getObjectState(objectA, whenA1);
+                    transactionA.getObjectState(objectB, whenB2);
+                    transactionA.beginWrite(whenA3);
+                    transactionA.put(objectA, objectStateA2);
+
+                    final Universe.Transaction transactionB = universe.beginTransaction(listenerB);
+                    transactionB.getObjectState(objectB, whenB1);
+                    transactionB.getObjectState(objectA, whenA2);
+                    transactionB.beginWrite(whenB3);
+                    transactionB.put(objectB, objectStateB2);
+
+                    beginAbort(transactionA);
+
+                    assertAll("Did not end transactions (they have not begun committing).",
+                            () -> assertEquals(0, listenerA.getEnds(), "A"),
+                            () -> assertEquals(0, listenerB.getEnds(), "B"));
+                    assertAll("Openness",
+                            () -> assertEquals(Universe.TransactionOpenness.ABORTING, transactionA.getOpenness(),
+                                    "Aborting A"),
+                            () -> assertEquals(Universe.TransactionOpenness.ABORTING, transactionB.getOpenness(),
+                                    "Aborting B because mutual transaction is aborting"));
+                }
+            }// class
 
             @Nested
             public class AfterReadCommitted {
@@ -190,12 +259,17 @@ public class UniverseTest {
                     final Universe universe = new Universe(historyStart);
                     putAndCommit(universe, object, when1, objectState1);
                     putAndCommit(universe, object, when3, objectState2);
-                    final Universe.Transaction readTransaction = universe.beginTransaction(listener);
-                    readTransaction.getObjectState(object, when2);
 
-                    abort(readTransaction);
+                    final Universe.Transaction transaction = universe.beginTransaction(listener);
+                    transaction.getObjectState(object, when2);
 
-                    assertEquals(1, listener.aborts, "Aborted");
+                    beginAbort(transaction);
+
+                    assertAll(
+                            () -> assertEquals(0, listener.getEnds(),
+                                    "Did not end transactino (because not begun commit)"),
+                            () -> assertEquals(Universe.TransactionOpenness.ABORTING, transaction.getOpenness(),
+                                    "Aborting"));
                 }
 
             }// class
@@ -226,9 +300,13 @@ public class UniverseTest {
                     final Universe.Transaction transaction = universe.beginTransaction(listener);
                     transaction.getObjectState(object, when);
 
-                    abort(transaction);
+                    beginAbort(transaction);
 
-                    assertEquals(1, listener.aborts, "Aborted.");
+                    assertAll(
+                            () -> assertEquals(0, listener.getEnds(),
+                                    "Did not end transaction (because did not begin commit)"),
+                            () -> assertEquals(Universe.TransactionOpenness.ABORTING, transaction.getOpenness(),
+                                    "Aborting"));
                 }
 
             }// class
@@ -262,7 +340,7 @@ public class UniverseTest {
                     final Universe.Transaction transaction = universe.beginTransaction(listener);
                     transaction.getObjectState(object, when2);
 
-                    abort(transaction);
+                    beginAbort(transaction);
                 }
 
             }// class
@@ -300,9 +378,16 @@ public class UniverseTest {
                     final Universe.Transaction readTransaction = universe.beginTransaction(readListener);
                     readTransaction.getObjectState(object, when2);
 
-                    abort(readTransaction);
+                    beginAbort(readTransaction);
 
-                    assertEquals(1, readListener.aborts, "Read aborted.");
+                    assertAll("Did not end transactions (because did not begin commit)",
+                            () -> assertEquals(0, readListener.getEnds(), "reader"),
+                            () -> assertEquals(0, writeListener.getEnds(), "writer"));
+                    assertAll("Openness",
+                            () -> assertEquals(Universe.TransactionOpenness.WRITING, writeTransaction.getOpenness(),
+                                    "Writer (still) writing"),
+                            () -> assertEquals(Universe.TransactionOpenness.ABORTING, readTransaction.getOpenness(),
+                                    "Reader aborting "));
                 }
 
             }// class
@@ -332,7 +417,7 @@ public class UniverseTest {
                     transaction.beginWrite(when2);
                     transaction.put(object, objectState2);
 
-                    abort(transaction);
+                    beginAbort(transaction);
 
                     assertAll(
                             () -> assertSame(objectState1, universe.getObjectState(object, when2),
@@ -376,12 +461,16 @@ public class UniverseTest {
                     final Universe.Transaction readTransaction = universe.beginTransaction(readListener);
                     readTransaction.getObjectState(object, when3);// reads state2
 
-                    abort(writeTransaction);
+                    beginAbort(writeTransaction);
 
-                    assertAll(() -> assertEquals(1, readListener.getEnds(), "Ended read transaction"),
-                            () -> assertEquals(1, writeListener.getEnds(), "Ended write transaction"),
-                            () -> assertEquals(1, writeListener.aborts, "Aborted write transaction"),
-                            () -> assertEquals(1, readListener.aborts, "Aborted (invalidated) read transaction"));
+                    assertAll("Did not end transactions (because commit not begun)",
+                            () -> assertEquals(0, readListener.getEnds(), "Read"),
+                            () -> assertEquals(0, writeListener.getEnds(), "Write"));
+                    assertAll("Transactions are aborting",
+                            () -> assertEquals(Universe.TransactionOpenness.ABORTING, writeTransaction.getOpenness(),
+                                    "Write (as commanded)"),
+                            () -> assertEquals(Universe.TransactionOpenness.ABORTING, readTransaction.getOpenness(),
+                                    "Read (invalidated)"));
                 }
 
             }// class
@@ -417,33 +506,41 @@ public class UniverseTest {
                     transaction1.beginWrite(when2);
                     transaction1.put(object, state2);
                     final Universe.Transaction transaction2 = universe.beginTransaction(listener2);
-                    transaction2.getObjectState(object, when2);
+                    transaction2.getObjectState(object, when2);// becomes a successor of transaction1
                     transaction2.beginWrite(when3);
                     transaction2.put(object, state3);
 
-                    abort(transaction1);
+                    beginAbort(transaction1);
 
-                    assertAll(() -> assertEquals(1, listener1.getEnds(), "Ended transaction 1"),
-                            () -> assertEquals(1, listener2.getEnds(), "Ended transaction 2"),
-                            () -> assertEquals(1, listener1.aborts, "Aborted transaction 1"),
-                            () -> assertEquals(1, listener2.aborts, "Aborted (invalidated) transaction 2"));
+                    assertAll("No transactinos ended (because did not begin commit)",
+                            () -> assertEquals(0, listener1.getEnds(), "Transaction 1"),
+                            () -> assertEquals(0, listener2.getEnds(), "Transaction 2"));
+                    assertAll("Aborting transactions",
+                            () -> assertEquals(Universe.TransactionOpenness.ABORTING, transaction1.getOpenness(),
+                                    "Transaction 1"),
+                            () -> assertEquals(Universe.TransactionOpenness.ABORTING, transaction2.getOpenness(),
+                                    "Transaction 2 (invalidated)"));
                 }
 
             }// class
 
-            private void abort(Universe.Transaction transaction) {
+            private void beginAbort(Universe.Transaction transaction) {
+                final boolean aborted0 = transaction.getOpenness() == TransactionOpenness.ABORTED;
                 final boolean committed0 = transaction.getOpenness() == TransactionOpenness.COMMITTED;
 
-                transaction.abort();
+                transaction.beginAbort();
 
                 assertInvariants(transaction);
 
                 final Universe.TransactionOpenness openness = transaction.getOpenness();
                 assertAll(
-                        () -> assertThat("The transaction is either aborted or committed.", openness,
-                                isOneOf(TransactionOpenness.COMMITTED, TransactionOpenness.ABORTED)),
+                        () -> assertThat("The transaction is aborting, aborted or committed.", openness,
+                                isOneOf(TransactionOpenness.COMMITTED, TransactionOpenness.ABORTED,
+                                        TransactionOpenness.ABORTING)),
                         () -> assertTrue(!committed0 || openness == TransactionOpenness.COMMITTED,
-                                "If this transaction was committed, it remains committed."));
+                                "If this transaction was committed, it remains committed."),
+                        () -> assertTrue(!aborted0 || openness == TransactionOpenness.ABORTED,
+                                "If this transaction was aborted, it remains aborted."));
             }
 
             @Test
@@ -452,9 +549,12 @@ public class UniverseTest {
                 final CountingTransactionListener listener = new CountingTransactionListener();
                 final Universe.Transaction transaction = universe.beginTransaction(listener);
 
-                abort(transaction);
+                beginAbort(transaction);
 
-                assertEquals(1, listener.aborts, "Aborted");
+                assertAll(
+                        () -> assertEquals(0, listener.getEnds(), "Did not end transaction (because not begun commit)"),
+                        () -> assertEquals(Universe.TransactionOpenness.ABORTING, transaction.getOpenness(),
+                                "Aborting"));
             }
 
         }// class
@@ -1719,7 +1819,7 @@ public class UniverseTest {
 
                 final Universe universe = new Universe(DURATION_1);
                 final Universe.Transaction transaction = universe.beginTransaction(listener);
-                transaction.abort();
+                transaction.beginAbort();
 
                 close(transaction);
 

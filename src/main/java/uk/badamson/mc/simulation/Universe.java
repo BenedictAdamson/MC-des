@@ -119,24 +119,6 @@ public class Universe {
             this.listener = Objects.requireNonNull(listener, "listener");
         }
 
-        /**
-         * <p>
-         * End this transaction, if possible, rolling back any
-         * {@linkplain #put(UUID, ObjectState) writes} it has performed.
-         * </p>
-         * <ul>
-         * <li>If this transaction {@linkplain #getOpenness() was}
-         * {@linkplain Universe.TransactionOpenness#COMMITTED committed}, it remains
-         * committed.</li>
-         * <li>The transaction {@linkplain #getOpenness() is} either
-         * {@linkplain Universe.TransactionOpenness#ABORTED aborted} or
-         * {@linkplain Universe.TransactionOpenness#COMMITTED committed}.</li>
-         * </ul>
-         */
-        public final void abort() {
-            openness.abort(this);
-        }
-
         private void addAsPredecessors(final Collection<Transaction> transactions) {
             for (var transaction : transactions) {
                 if (successorTransactions.contains(transaction)) {
@@ -149,6 +131,29 @@ public class Universe {
                     transaction.successorTransactions.add(this);
                 }
             }
+        }
+
+        /**
+         * <p>
+         * Begin aborting this transaction, aborting it if possible.
+         * </p>
+         * <ul>
+         * <li>If this transaction {@linkplain #getOpenness() was}
+         * {@linkplain Universe.TransactionOpenness#COMMITTED committed}, it remains
+         * committed.</li>
+         * <li>If this transaction {@linkplain #getOpenness() was}
+         * {@linkplain Universe.TransactionOpenness#ABORTED aborted}, it remains
+         * committed.</li>
+         * <li>The transaction {@linkplain #getOpenness() is}
+         * {@linkplain Universe.TransactionOpenness#ABORTED aborted},
+         * {@linkplain Universe.TransactionOpenness#ABORTING aborting} or
+         * {@linkplain Universe.TransactionOpenness#COMMITTED committed}.</li>
+         * <li>The method rolls back any {@linkplain #put(UUID, ObjectState) writes} the
+         * transaction has performed.</li>
+         * </ul>
+         */
+        public final void beginAbort() {
+            openness.beginAbort(this);
         }
 
         /**
@@ -207,7 +212,7 @@ public class Universe {
 
         /**
          * <p>
-         * Ensure that this transaction is either {@linkplain #abort() aborted} or
+         * Ensure that this transaction is either {@linkplain #beginAbort() aborted} or
          * (eventually) committed.
          * </p>
          * <ul>
@@ -531,55 +536,30 @@ public class Universe {
         }
 
         private void reallyAbort() {
-            openness = TransactionOpenness.ABORTING;
-
-            /*
-             * Optimisation: do not have our predecessors waste time trying to get us to
-             * commit once they commit, and remove those hidden references to this
-             * transaction object.
-             */
-            for (Transaction predecessorTransaction : predecessorTransactions) {
-                predecessorTransaction.successorTransactions.remove(this);
-            }
-
-            for (UUID object : dependencies.keySet()) {
-                var od = objectDataMap.get(object);
-                if (od != null) {
-                    od.uncommittedReaders.remove(this);
-                }
-                // else a non existent object
-            }
-
-            // roll-back changes:
-            for (UUID object : objectStatesWritten.keySet()) {
-                assert object != null;
-                assert when != null;
-                var od = objectDataMap.get(object);
-                /*
-                 * As we are a writer for the object, the object has at least one recorded state
-                 * (the state we wrote), so od is guaranteed to be not null.
-                 */
-                od.uncommittedWriters.remove(this);// optimisation
-                if (od.lastCommit.compareTo(when) < 0) {
-                    od.stateHistory.removeTransitionsFrom(when);
-                    if (od.stateHistory.isEmpty()) {
-                        objectDataMap.remove(object);
-                    }
-                }
-                // else aborting because of an out-of-order write
-            }
-
+            reallyBeginAbort();
             openness = TransactionOpenness.ABORTED;
             listener.onAbort();
 
+            // TODO: mutualTransactions abort
             for (var successor : successorTransactions) {
-                successor.abort();
+                successor.beginAbort();
             }
 
             {// Help the garbage collector
                 pastTheEndReads.clear();
                 predecessorTransactions.clear();
                 successorTransactions.clear();
+            }
+        }
+
+        private void reallyBeginAbort() {
+            openness = TransactionOpenness.ABORTING;
+            removeCommitTriggers();
+            rollBackWrites();
+
+            // TODO: mutualTransactions abort
+            for (var successor : successorTransactions) {
+                successor.beginAbort();
             }
         }
 
@@ -610,7 +590,7 @@ public class Universe {
             od.uncommittedWriters.addFrom(when, this);
             for (Transaction uncommittedReader : od.uncommittedReaders.get(when)) {
                 // We have replaced the value written by this other transaction.
-                uncommittedReader.abort();
+                uncommittedReader.beginAbort();
             }
             if (lastTransition0 != null) {
                 /*
@@ -672,6 +652,45 @@ public class Universe {
             return objectState;
         }
 
+        private void removeCommitTriggers() {
+            /*
+             * Optimisation: do not have our predecessors waste time trying to get us to
+             * commit once they commit, and remove those hidden references to this
+             * transaction object.
+             */
+            for (Transaction predecessorTransaction : predecessorTransactions) {
+                predecessorTransaction.successorTransactions.remove(this);
+            }
+
+            for (UUID object : dependencies.keySet()) {
+                var od = objectDataMap.get(object);
+                if (od != null) {
+                    od.uncommittedReaders.remove(this);
+                }
+                // else a non existent object
+            }
+        }
+
+        private void rollBackWrites() {
+            for (UUID object : objectStatesWritten.keySet()) {
+                assert object != null;
+                assert when != null;
+                var od = objectDataMap.get(object);
+                /*
+                 * As we are a writer for the object, the object has at least one recorded state
+                 * (the state we wrote), so od is guaranteed to be not null.
+                 */
+                od.uncommittedWriters.remove(this);// optimisation
+                if (od.lastCommit.compareTo(when) < 0) {
+                    od.stateHistory.removeTransitionsFrom(when);
+                    if (od.stateHistory.isEmpty()) {
+                        objectDataMap.remove(object);
+                    }
+                }
+                // else aborting because of an out-of-order write
+            }
+        }
+
     }// class
 
     /**
@@ -719,8 +738,8 @@ public class Universe {
         READING {
 
             @Override
-            void abort(Transaction transaction) {
-                transaction.reallyAbort();
+            void beginAbort(Transaction transaction) {
+                transaction.reallyBeginAbort();
             }
 
             @Override
@@ -770,8 +789,8 @@ public class Universe {
         WRITING {
 
             @Override
-            void abort(Transaction transaction) {
-                transaction.reallyAbort();
+            void beginAbort(Transaction transaction) {
+                transaction.reallyBeginAbort();
             }
 
             @Override
@@ -809,7 +828,7 @@ public class Universe {
         COMMITTING {
 
             @Override
-            void abort(Transaction transaction) {
+            void beginAbort(Transaction transaction) {
                 transaction.reallyAbort();
             }
 
@@ -847,7 +866,7 @@ public class Universe {
         ABORTING {
 
             @Override
-            void abort(Transaction transaction) {
+            void beginAbort(Transaction transaction) {
                 // Do nothing
             }
 
@@ -868,12 +887,13 @@ public class Universe {
 
             @Override
             void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
-                // Do nothing: refrain from adding additional write dependencies.
+                // FIXME record as a write but do not change history.
             }
 
             @Override
             @Nullable
             ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
+                // FIXME read but do not add dependencies
                 // Refrain from adding additional read dependencies.
                 return null;
             }
@@ -895,7 +915,7 @@ public class Universe {
         COMMITTED {
 
             @Override
-            void abort(Transaction transaction) {
+            void beginAbort(Transaction transaction) {
                 throw new IllegalStateException("Committed");
             }
 
@@ -939,7 +959,7 @@ public class Universe {
         ABORTED {
 
             @Override
-            void abort(Transaction transaction) {
+            void beginAbort(Transaction transaction) {
                 // Do nothing
             }
 
@@ -970,7 +990,7 @@ public class Universe {
             }
         };
 
-        abstract void abort(Universe.Transaction transaction);
+        abstract void beginAbort(Universe.Transaction transaction);
 
         abstract void beginCommit(Universe.Transaction transaction);
 
