@@ -250,6 +250,14 @@ public class Universe {
             openness.beginWrite(this, when);
         }
 
+        private void cascadeEnd(Queue<Transaction> pending) {
+            pending.addAll(successorTransactions);
+            for (var successor : new ArrayList<>(successorTransactions)) {
+                removeAsPredecessor(this, successor);
+            }
+            assert successorTransactions.isEmpty();
+        }
+
         /**
          * <p>
          * Ensure that this transaction is either {@linkplain #beginAbort() aborted} or
@@ -588,10 +596,28 @@ public class Universe {
         }
 
         private void reallyBeginAbort() {
+            final Queue<Transaction> cascadingAborts = new ArrayDeque<>();
+            cascadingAborts.add(this);
+            while (!cascadingAborts.isEmpty()) {
+                cascadingAborts.remove().reallyBeginAbort1(cascadingAborts);
+            }
+        }
+
+        private void reallyBeginAbort1(Queue<Transaction> cascadingAborts) {
+            if (openness == TransactionOpenness.ABORTED) {
+                return;
+            }
             openness = TransactionOpenness.ABORTING;
 
             noLongerAnUncommittedReader();
             rollBackWrites();
+
+            /*
+             * Optimisation: cause our dependents to also begin aborting, rather than
+             * awaiting commit or close of this transaction.
+             * 
+             */
+            cascadeEnd(cascadingAborts);
         }
 
         private void reallyBeginCommit() {
@@ -600,16 +626,15 @@ public class Universe {
             final Queue<Transaction> cascadingCommits = new ArrayDeque<>();
             cascadingCommits.add(this);
             while (!cascadingCommits.isEmpty()) {
-                final Transaction transaction = cascadingCommits.remove();
-                final boolean committed = transaction.commitIfPossible();
+                cascadingCommits.remove().reallyBeginCommit1(cascadingCommits);
+            }
+        }
 
-                if (committed) {
-                    cascadingCommits.addAll(successorTransactions);
-                    for (var successor : new ArrayList<>(transaction.successorTransactions)) {
-                        removeAsPredecessor(this, successor);
-                    }
-                    assert successorTransactions.isEmpty();
-                }
+        private void reallyBeginCommit1(Queue<Transaction> cascadingCommits) {
+            final boolean committed = commitIfPossible();
+
+            if (committed) {
+                cascadeEnd(cascadingCommits);
             }
         }
 
