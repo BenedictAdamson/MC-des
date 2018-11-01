@@ -176,7 +176,12 @@ public class Universe {
         public final void beginAbort() {
             openness.beginAbort(this);
 
-            beginAbortOfDependents();
+            if (mutualTransactionCoordinator != null) {
+                mutualTransactionCoordinator.beginAbort();
+                mutualTransactionCoordinator = null;
+            }
+
+            beginAbortOfSuccessors();
             /*
              * Optimisation: do not have our predecessors waste time trying to get us to
              * commit once they commit, and remove those hidden references to this
@@ -185,13 +190,7 @@ public class Universe {
             removeTriggersOfPredecessors();
         }
 
-        private void beginAbortOfDependents() {
-
-            if (mutualTransactionCoordinator != null) {
-                mutualTransactionCoordinator.beginAbort();
-                mutualTransactionCoordinator = null;
-            }
-
+        private void beginAbortOfSuccessors() {
             final Set<Transaction> dependents = new HashSet<>();
             dependents.addAll(successorTransactions);
             successorTransactions.clear();
