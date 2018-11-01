@@ -19,12 +19,15 @@ package uk.badamson.mc.simulation;
  */
 
 import java.time.Duration;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
@@ -64,22 +67,16 @@ public class Universe {
             }
         }
 
-        void commitIfPossible() {
+        boolean commitIfPossible() {
             for (var transaction : transactions) {
-                if (!(transaction.openness == TransactionOpenness.COMMITTING
-                        || transaction.openness == TransactionOpenness.COMMITTED)) {
-                    return;
-                }
-                if (!transaction.pastTheEndReads.isEmpty()) {
-                    return;
-                }
-                if (!transaction.predecessorTransactions.isEmpty()) {
-                    return;
+                if (!transaction.isReadyToCommit()) {
+                    return false;
                 }
             }
             for (var transaction : transactions) {
                 transaction.commit1();
             }
+            return true;
         }
     }// class
 
@@ -307,29 +304,21 @@ public class Universe {
                 // else a prehistoric dependency
             }
             listener.onCommit();
-            for (var successor : successorTransactions) {
-                successor.predecessorTransactions.remove(this);
-                if (successor.openness == TransactionOpenness.COMMITTING) {
-                    successor.commitIfPossible();
-                }
-            }
         }
 
-        private void commitIfPossible() {
-            assert openness == TransactionOpenness.COMMITTING;
-            if (!pastTheEndReads.isEmpty()) {
-                // Do not commit if awaiting appending of a state.
-                return;
-            }
-            if (!predecessorTransactions.isEmpty()) {
-                // Do not commit if have predecessors.
-                return;
-            }
-            if (mutualTransactionCoordinator == null) {
-                commit1();
+        private boolean commitIfPossible() {
+            final boolean committed;
+            if (isReadyToCommit()) {
+                if (mutualTransactionCoordinator == null) {
+                    commit1();
+                    committed = true;
+                } else {
+                    committed = mutualTransactionCoordinator.commitIfPossible();
+                }
             } else {
-                mutualTransactionCoordinator.commitIfPossible();
+                committed = false;
             }
+            return committed;
         }
 
         /**
@@ -533,6 +522,11 @@ public class Universe {
             return when;
         }
 
+        private boolean isReadyToCommit() {
+            return openness == TransactionOpenness.COMMITTING && pastTheEndReads.isEmpty()
+                    && predecessorTransactions.isEmpty();
+        }
+
         private void noLongerAnUncommittedReader() {
             for (UUID object : dependencies.keySet()) {
                 var od = objectDataMap.get(object);
@@ -602,7 +596,21 @@ public class Universe {
 
         private void reallyBeginCommit() {
             openness = TransactionOpenness.COMMITTING;
-            commitIfPossible();
+
+            final Queue<Transaction> cascadingCommits = new ArrayDeque<>();
+            cascadingCommits.add(this);
+            while (!cascadingCommits.isEmpty()) {
+                final Transaction transaction = cascadingCommits.remove();
+                final boolean committed = transaction.commitIfPossible();
+
+                if (committed) {
+                    cascadingCommits.addAll(successorTransactions);
+                    for (var successor : new ArrayList<>(transaction.successorTransactions)) {
+                        removeAsPredecessor(this, successor);
+                    }
+                    assert successorTransactions.isEmpty();
+                }
+            }
         }
 
         private void reallyBeginWrite(@NonNull Duration when) {
@@ -1073,6 +1081,11 @@ public class Universe {
         coordinator.transactions.add(t2);
         t1.mutualTransactionCoordinator = coordinator;
         t2.mutualTransactionCoordinator = coordinator;
+    }
+
+    private static void removeAsPredecessor(Transaction predecessor, Transaction successor) {
+        successor.predecessorTransactions.remove(predecessor);
+        predecessor.successorTransactions.remove(successor);
     }
 
     private static void removeAsSuccessor(Transaction predecessor, Transaction successor) {
