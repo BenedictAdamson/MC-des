@@ -51,6 +51,38 @@ import uk.badamson.mc.history.ValueHistory;
  */
 public class Universe {
 
+    private static final class MutualTransactionCoordinator {
+
+        private final Set<Transaction> transactions = new HashSet<>();
+
+        void beginAbort() {
+            for (var transaction : transactions) {
+                if (transaction.openness != TransactionOpenness.ABORTED
+                        && transaction.openness != TransactionOpenness.ABORTING) {
+                    transaction.beginAbort();
+                }
+            }
+        }
+
+        void commitIfPossible() {
+            for (var transaction : transactions) {
+                if (!(transaction.openness == TransactionOpenness.COMMITTING
+                        || transaction.openness == TransactionOpenness.COMMITTED)) {
+                    return;
+                }
+                if (!transaction.pastTheEndReads.isEmpty()) {
+                    return;
+                }
+                if (!transaction.predecessorTransactions.isEmpty()) {
+                    return;
+                }
+            }
+            for (var transaction : transactions) {
+                transaction.commit1();
+            }
+        }
+    }// class
+
     private static final class ObjectData {
         final ModifiableValueHistory<ObjectState> stateHistory = new ModifiableValueHistory<>();
         final ModifiableSetHistory<Transaction> uncommittedReaders = new ModifiableSetHistory<>();
@@ -106,14 +138,14 @@ public class Universe {
         // Must be committed before this transaction.
         private final Set<Transaction> predecessorTransactions = new HashSet<>();
 
-        // Must be committed with this transaction.
-        private final Set<Transaction> mutualTransactions = new HashSet<>();
-
         // Must be committed after this transaction.
         private final Set<Transaction> successorTransactions = new HashSet<>();
 
         @Nullable
         private Duration when;
+
+        @Nullable
+        private MutualTransactionCoordinator mutualTransactionCoordinator;
 
         @NonNull
         private TransactionOpenness openness = TransactionOpenness.READING;
@@ -154,12 +186,15 @@ public class Universe {
         }
 
         private void beginAbortOfDependents() {
+
+            if (mutualTransactionCoordinator != null) {
+                mutualTransactionCoordinator.beginAbort();
+                mutualTransactionCoordinator = null;
+            }
+
             final Set<Transaction> dependents = new HashSet<>();
-            dependents.addAll(mutualTransactions);
-            mutualTransactions.clear();
             dependents.addAll(successorTransactions);
             successorTransactions.clear();
-
             for (var dependent : dependents) {
                 dependent.beginAbort();
             }
@@ -291,24 +326,11 @@ public class Universe {
                 // Do not commit if have predecessors.
                 return;
             }
-            for (Transaction mutualTransaction : mutualTransactions) {
-                if (!(mutualTransaction.openness == TransactionOpenness.COMMITTING
-                        || mutualTransaction.openness == TransactionOpenness.COMMITTED)) {
-                    return;
-                }
-                if (!mutualTransaction.pastTheEndReads.isEmpty()) {
-                    return;
-                }
-                if (!mutualTransaction.predecessorTransactions.isEmpty()) {
-                    return;
-                }
+            if (mutualTransactionCoordinator == null) {
+                commit1();
+            } else {
+                mutualTransactionCoordinator.commitIfPossible();
             }
-            commit1();
-            for (Transaction mutualTransaction : mutualTransactions) {
-                mutualTransaction.commit1();
-                mutualTransaction.mutualTransactions.clear();
-            }
-            mutualTransactions.clear();
         }
 
         /**
@@ -708,14 +730,7 @@ public class Universe {
                      * successors or mutual transaction of this transaction.
                      */
                     pastTheEndReader.pastTheEndReads.remove(object);
-                    if (predecessorTransactions.contains(pastTheEndReader)) {
-                        predecessorTransactions.remove(pastTheEndReader);
-                        mutualTransactions.add(pastTheEndReader);
-                        pastTheEndReader.mutualTransactions.add(this);
-                    } else {
-                        successorTransactions.add(pastTheEndReader);
-                        pastTheEndReader.predecessorTransactions.add(this);
-                    }
+                    addAsPredecessor(this, pastTheEndReader);
                 }
             }
             // else creating the object
@@ -1037,15 +1052,28 @@ public class Universe {
     private static final ValueHistory<ObjectState> EMPTY_STATE_HISTORY = new ConstantValueHistory<>((ObjectState) null);
 
     private static void addAsPredecessor(Transaction predecessor, Transaction successor) {
-        if (successor.successorTransactions.contains(predecessor)) {
+        if (successor.successorTransactions.contains(predecessor)
+                || predecessor.predecessorTransactions.contains(successor)) {
             // Can not be both predecessor and successor.
-            successor.successorTransactions.remove(predecessor);
-            successor.mutualTransactions.add(predecessor);
-            predecessor.mutualTransactions.add(successor);
+            becomeMutual(predecessor, successor);
         } else {
             successor.predecessorTransactions.add(predecessor);
             predecessor.successorTransactions.add(successor);
         }
+    }
+
+    private static void becomeMutual(Transaction t1, Transaction t2) {
+        t1.successorTransactions.remove(t2);
+        t1.predecessorTransactions.remove(t2);
+        t2.successorTransactions.remove(t1);
+        t2.predecessorTransactions.remove(t2);
+        final MutualTransactionCoordinator coordinator = new MutualTransactionCoordinator();
+        // TODO handle successor.mutualTransactionCoordinator != null;
+        // TODO predecessor successor.mutualTransactionCoordinator != null;
+        coordinator.transactions.add(t1);
+        coordinator.transactions.add(t2);
+        t1.mutualTransactionCoordinator = coordinator;
+        t2.mutualTransactionCoordinator = coordinator;
     }
 
     private static void removeAsSuccessor(Transaction predecessor, Transaction successor) {
