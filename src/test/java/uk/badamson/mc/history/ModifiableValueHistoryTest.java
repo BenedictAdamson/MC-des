@@ -1,4 +1,4 @@
-package uk.badamson.mc.simulation;
+package uk.badamson.mc.history;
 /* 
  * © Copyright Benedict Adamson 2018.
  * 

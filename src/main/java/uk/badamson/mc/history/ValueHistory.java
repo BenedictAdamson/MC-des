@@ -1,4 +1,4 @@
-package uk.badamson.mc.simulation;
+package uk.badamson.mc.history;
 /* 
  * © Copyright Benedict Adamson 2018.
  * 
@@ -105,7 +105,7 @@ public interface ValueHistory<VALUE> {
      * <li>The {@linkplain SortedSet#first() first} value of the
      * {@linkplain #getTransitionTimes() set of transition times} (if it is not
      * empty) is the same as the first transition time.</li>
-     * <li>This method is more efficient than using the
+     * <li>This method is typically more efficient than using the
      * {@link #getTransitionTimes()} method.</li>
      * </ul>
      * 
@@ -122,8 +122,8 @@ public interface ValueHistory<VALUE> {
      * <li>The first value {@linkplain Object#equals(Object) equals} the
      * {@linkplain #get(Duration) value at} the {@linkplain #START_OF_TIME start of
      * time}.</li>
-     * <li>This method is more efficient than using the {@link #get(Duration)}
-     * method.</li>
+     * <li>This method is typically more efficient than using the
+     * {@link #get(Duration)} method.</li>
      * </ul>
      * 
      * @return the last value.
@@ -142,7 +142,7 @@ public interface ValueHistory<VALUE> {
      * <li>The {@linkplain SortedSet#last() last} value of the
      * {@linkplain #getTransitionTimes() set of transition times} (if it is not
      * empty) is the same as the last transition time.</li>
-     * <li>This method is more efficient than using the
+     * <li>This method is typically more efficient than using the
      * {@link #getTransitionTimes()} method.</li>
      * </ul>
      * 
@@ -165,7 +165,7 @@ public interface ValueHistory<VALUE> {
      * last value is {@linkplain Objects#equals(Object, Object) equal to (or equally
      * null as)} the value at the {@linkplain #getLastTansitionTime() last
      * transition}.</li>
-     * <li>This method is more efficient than using the
+     * <li>This method is typically more efficient than using the
      * {@link #getTransitionTimes()} and {@link #get(Duration)} methods.</li>
      * </ul>
      * 
@@ -251,6 +251,8 @@ public interface ValueHistory<VALUE> {
      * of the transition times, which will incorporate any subsequent changes to
      * this history. It might be a newly constructed object that does not
      * incorporate subsequent changes.</li>
+     * <li>This method is typically more efficient that using the
+     * {@linkplain #getTransitions() transitions map}.</li>
      * </ul>
      * 
      * @return the transition times
@@ -290,15 +292,16 @@ public interface ValueHistory<VALUE> {
 
     /**
      * <p>
-     * Create a stream of the transitions in the value of this history.
+     * Create a stream of the {@linkplain #getTransitions() transitions} in the
+     * value of this history.
      * </p>
      * <ul>
      * <li>Always creates a (non null) steam.</li>
      * <li>The stream of transitions contains elements equal to the
      * {@linkplain Set#stream() stream} of {@linkplain Map#entrySet() entries} of
      * the {@linkplain #getTransitions() transitions map}.</li>
-     * <li>Using the stream of transitions is more efficient than getting the
-     * {@linkplain #getTransitions() transitions map} and then creating a stream
+     * <li>Using the stream of transitions is typically more efficient than getting
+     * the {@linkplain #getTransitions() transitions map} and then creating a stream
      * from its entries.</li>
      * </ul>
      * 

@@ -1,4 +1,4 @@
-package uk.badamson.mc.simulation;
+package uk.badamson.mc.history;
 /* 
  * © Copyright Benedict Adamson 2018.
  * 
@@ -156,7 +156,7 @@ public class ValueHistoryTest {
 
         final Stream<Map.Entry<Duration, VALUE>> stream = history.streamOfTransitions();
 
-        assertNotNull(stream, "Always creates a (non null) steam.");// guard
+        assertNotNull(stream, "Always creates a (non null) steam of transitions.");// guard
         Map<Duration, VALUE> entries = stream.collect(HashMap::new, (m, e) -> {
             assertNotNull(e, "streamOfTransitions entry");// guard
             final Duration when = e.getKey();

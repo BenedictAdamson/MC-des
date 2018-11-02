@@ -19,13 +19,15 @@ package uk.badamson.mc.simulation;
  */
 
 import java.time.Duration;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
@@ -33,6 +35,10 @@ import java.util.UUID;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import net.jcip.annotations.NotThreadSafe;
+import uk.badamson.mc.history.ConstantValueHistory;
+import uk.badamson.mc.history.ModifiableSetHistory;
+import uk.badamson.mc.history.ModifiableValueHistory;
+import uk.badamson.mc.history.ValueHistory;
 
 /**
  * <p>
@@ -47,6 +53,32 @@ import net.jcip.annotations.NotThreadSafe;
  * </p>
  */
 public class Universe {
+
+    private static final class MutualTransactionCoordinator {
+
+        private final Set<Transaction> transactions = new HashSet<>();
+
+        void beginAbort() {
+            for (var transaction : transactions) {
+                if (transaction.openness != TransactionOpenness.ABORTED
+                        && transaction.openness != TransactionOpenness.ABORTING) {
+                    transaction.beginAbort();
+                }
+            }
+        }
+
+        boolean commitIfPossible() {
+            for (var transaction : transactions) {
+                if (!transaction.isReadyToCommit()) {
+                    return false;
+                }
+            }
+            for (var transaction : transactions) {
+                transaction.commit1();
+            }
+            return true;
+        }
+    }// class
 
     private static final class ObjectData {
         final ModifiableValueHistory<ObjectState> stateHistory = new ModifiableValueHistory<>();
@@ -103,34 +135,20 @@ public class Universe {
         // Must be committed before this transaction.
         private final Set<Transaction> predecessorTransactions = new HashSet<>();
 
-        // Must be committed with this transaction.
-        private final Set<Transaction> mutualTransactions = new HashSet<>();
-
         // Must be committed after this transaction.
         private final Set<Transaction> successorTransactions = new HashSet<>();
 
         @Nullable
         private Duration when;
 
+        @Nullable
+        private MutualTransactionCoordinator mutualTransactionCoordinator;
+
         @NonNull
         private TransactionOpenness openness = TransactionOpenness.READING;
 
         private Transaction(@NonNull TransactionListener listener) {
             this.listener = Objects.requireNonNull(listener, "listener");
-        }
-
-        private void addAsPredecessors(final Collection<Transaction> transactions) {
-            for (var transaction : transactions) {
-                if (successorTransactions.contains(transaction)) {
-                    // Can not be both predecessor and successor.
-                    successorTransactions.remove(transaction);
-                    mutualTransactions.add(transaction);
-                    transaction.mutualTransactions.add(this);
-                } else {
-                    predecessorTransactions.add(transaction);
-                    transaction.successorTransactions.add(this);
-                }
-            }
         }
 
         /**
@@ -154,6 +172,28 @@ public class Universe {
          */
         public final void beginAbort() {
             openness.beginAbort(this);
+
+            if (mutualTransactionCoordinator != null) {
+                mutualTransactionCoordinator.beginAbort();
+                mutualTransactionCoordinator = null;
+            }
+
+            beginAbortOfSuccessors();
+            /*
+             * Optimisation: do not have our predecessors waste time trying to get us to
+             * commit once they commit, and remove those hidden references to this
+             * transaction object.
+             */
+            removeTriggersOfPredecessors();
+        }
+
+        private void beginAbortOfSuccessors() {
+            final Set<Transaction> dependents = new HashSet<>();
+            dependents.addAll(successorTransactions);
+            successorTransactions.clear();
+            for (var dependent : dependents) {
+                dependent.beginAbort();
+            }
         }
 
         /**
@@ -210,6 +250,14 @@ public class Universe {
             openness.beginWrite(this, when);
         }
 
+        private void cascadeEnd(Queue<Transaction> pending) {
+            pending.addAll(successorTransactions);
+            for (var successor : new ArrayList<>(successorTransactions)) {
+                removeAsPredecessor(this, successor);
+            }
+            assert successorTransactions.isEmpty();
+        }
+
         /**
          * <p>
          * Ensure that this transaction is either {@linkplain #beginAbort() aborted} or
@@ -264,42 +312,21 @@ public class Universe {
                 // else a prehistoric dependency
             }
             listener.onCommit();
-            for (var successor : successorTransactions) {
-                successor.predecessorTransactions.remove(this);
-                if (successor.openness == TransactionOpenness.COMMITTING) {
-                    successor.commitIfPossible();
-                }
-            }
         }
 
-        private void commitIfPossible() {
-            assert openness == TransactionOpenness.COMMITTING;
-            if (!pastTheEndReads.isEmpty()) {
-                // Do not commit if awaiting appending of a state.
-                return;
-            }
-            if (!predecessorTransactions.isEmpty()) {
-                // Do not commit if have predecessors.
-                return;
-            }
-            for (Transaction mutualTransaction : mutualTransactions) {
-                if (!(mutualTransaction.openness == TransactionOpenness.COMMITTING
-                        || mutualTransaction.openness == TransactionOpenness.COMMITTED)) {
-                    return;
+        private boolean commitIfPossible() {
+            final boolean committed;
+            if (isReadyToCommit()) {
+                if (mutualTransactionCoordinator == null) {
+                    commit1();
+                    committed = true;
+                } else {
+                    committed = mutualTransactionCoordinator.commitIfPossible();
                 }
-                if (!mutualTransaction.pastTheEndReads.isEmpty()) {
-                    return;
-                }
-                if (!mutualTransaction.predecessorTransactions.isEmpty()) {
-                    return;
-                }
+            } else {
+                committed = false;
             }
-            commit1();
-            for (Transaction mutualTransaction : mutualTransactions) {
-                mutualTransaction.commit1();
-                mutualTransaction.mutualTransactions.clear();
-            }
-            mutualTransactions.clear();
+            return committed;
         }
 
         /**
@@ -398,13 +425,18 @@ public class Universe {
          */
         public final @Nullable ObjectState getObjectState(@NonNull UUID object, @NonNull Duration when) {
             final ObjectStateId id = new ObjectStateId(object, when);
+            @Nullable
             ObjectState objectState;
+            final Set<Transaction> additionalPredecessors = new HashSet<>();
             objectState = objectStatesRead.get(id);
             if (objectState == null && !objectStatesRead.containsKey(id)) {
                 // Value is not cached
-                objectState = openness.readUncachedObjectState(this, id);
+                objectState = openness.readUncachedObjectState(this, id, additionalPredecessors);
             }
             // else used cached value
+            for (var transaction : additionalPredecessors) {
+                addAsPredecessor(transaction, this);
+            }
             return objectState;
         }
 
@@ -432,7 +464,7 @@ public class Universe {
          * @see Universe#getObjectState(UUID, Duration)
          */
         public final @NonNull Map<ObjectStateId, ObjectState> getObjectStatesRead() {
-            return Collections.unmodifiableMap(objectStatesRead);
+            return new HashMap<>(objectStatesRead);
         }
 
         /**
@@ -460,7 +492,7 @@ public class Universe {
          * @see Universe#getObjectState(UUID, Duration)
          */
         public final @NonNull Map<UUID, ObjectState> getObjectStatesWritten() {
-            return Collections.unmodifiableMap(objectStatesWritten);
+            return new HashMap<>(objectStatesWritten);
         }
 
         /**
@@ -496,6 +528,21 @@ public class Universe {
          */
         public final @Nullable Duration getWhen() {
             return when;
+        }
+
+        private boolean isReadyToCommit() {
+            return openness == TransactionOpenness.COMMITTING && pastTheEndReads.isEmpty()
+                    && predecessorTransactions.isEmpty();
+        }
+
+        private void noLongerAnUncommittedReader() {
+            for (UUID object : dependencies.keySet()) {
+                var od = objectDataMap.get(object);
+                if (od != null) {
+                    od.uncommittedReaders.remove(this);
+                }
+                // else a non existent object
+            }
         }
 
         /**
@@ -549,20 +596,59 @@ public class Universe {
         }
 
         private void reallyBeginAbort() {
-            openness = TransactionOpenness.ABORTING;
-
-            removeCommitTriggers();
-            rollBackWrites();
-
-            for (var mutualTransaction : mutualTransactions) {
-                mutualTransaction.beginAbort();
-            }
-            for (var successor : successorTransactions) {
-                successor.beginAbort();
+            final Queue<Transaction> cascadingAborts = new ArrayDeque<>();
+            cascadingAborts.add(this);
+            while (!cascadingAborts.isEmpty()) {
+                cascadingAborts.remove().reallyBeginAbort1(cascadingAborts);
             }
         }
 
-        private @Nullable ObjectState reallyReadUncachedObjectState(@NonNull ObjectStateId id, boolean addTriggers) {
+        private void reallyBeginAbort1(Queue<Transaction> cascadingAborts) {
+            if (openness == TransactionOpenness.ABORTED) {
+                return;
+            }
+            openness = TransactionOpenness.ABORTING;
+
+            noLongerAnUncommittedReader();
+            rollBackWrites();
+
+            /*
+             * Optimisation: cause our dependents to also begin aborting, rather than
+             * awaiting commit or close of this transaction.
+             * 
+             */
+            cascadeEnd(cascadingAborts);
+        }
+
+        private void reallyBeginCommit() {
+            openness = TransactionOpenness.COMMITTING;
+
+            final Queue<Transaction> cascadingCommits = new ArrayDeque<>();
+            cascadingCommits.add(this);
+            while (!cascadingCommits.isEmpty()) {
+                cascadingCommits.remove().reallyBeginCommit1(cascadingCommits);
+            }
+        }
+
+        private void reallyBeginCommit1(Queue<Transaction> cascadingCommits) {
+            final boolean committed = commitIfPossible();
+
+            if (committed) {
+                cascadeEnd(cascadingCommits);
+            }
+        }
+
+        private void reallyBeginWrite(@NonNull Duration when) {
+            if (objectStatesRead.keySet().stream().map(id -> id.getWhen()).filter(t -> 0 <= t.compareTo(when)).findAny()
+                    .orElse(null) != null) {
+                throw new IllegalStateException("Time-stamp of read state at or after the given time.");
+            }
+            this.when = when;
+            openness = TransactionOpenness.WRITING;
+        }
+
+        private @Nullable ObjectState reallyReadUncachedObjectState(@NonNull ObjectStateId id, boolean addTriggers,
+                Set<Transaction> additionalPredecessors) {
             final UUID object = id.getObject();
             final Duration when = id.getWhen();
 
@@ -572,6 +658,7 @@ public class Universe {
 
             @Nullable
             final ObjectState objectState;
+            boolean isPastTheEndRead = false;
             final var od = objectDataMap.get(object);
             if (od == null) {// unknown object
                 objectState = null;
@@ -579,17 +666,22 @@ public class Universe {
                 objectState = od.stateHistory.get(when);
                 if (addTriggers) {
                     if (od.stateHistory.getLastTansitionTime().compareTo(when) < 0) {
-                        pastTheEndReads.add(object);
+                        isPastTheEndRead = true;
                     } else if (od.lastCommit.compareTo(when) < 0) {
                         @NonNull
                         final Duration nextWrite = od.stateHistory.getTansitionTimeAtOrAfter(when);
-                        addAsPredecessors(od.uncommittedWriters.get(nextWrite));
+                        additionalPredecessors.addAll(od.uncommittedWriters.get(nextWrite));
                     }
                     od.uncommittedReaders.addUntil(when, this);
-                    addAsPredecessors(od.uncommittedWriters.get(when));
+                    additionalPredecessors.addAll(od.uncommittedWriters.get(when));
                 }
             }
+
             objectStatesRead.put(id, objectState);
+            if (isPastTheEndRead) {
+                pastTheEndReads.add(object);
+            }
+
             final ObjectStateId dependency0 = dependencies.get(object);
             if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
                 dependencies.put(object, id);
@@ -603,22 +695,9 @@ public class Universe {
             objectStatesWritten.put(object, state);
         }
 
-        private void removeCommitTriggers() {
-            /*
-             * Optimisation: do not have our predecessors waste time trying to get us to
-             * commit once they commit, and remove those hidden references to this
-             * transaction object.
-             */
+        private void removeTriggersOfPredecessors() {
             for (Transaction predecessorTransaction : predecessorTransactions) {
-                predecessorTransaction.successorTransactions.remove(this);
-            }
-
-            for (UUID object : dependencies.keySet()) {
-                var od = objectDataMap.get(object);
-                if (od != null) {
-                    od.uncommittedReaders.remove(this);
-                }
-                // else a non existent object
+                removeAsSuccessor(predecessorTransaction, this);
             }
         }
 
@@ -683,14 +762,7 @@ public class Universe {
                      * successors or mutual transaction of this transaction.
                      */
                     pastTheEndReader.pastTheEndReads.remove(object);
-                    if (predecessorTransactions.contains(pastTheEndReader)) {
-                        predecessorTransactions.remove(pastTheEndReader);
-                        mutualTransactions.add(pastTheEndReader);
-                        pastTheEndReader.mutualTransactions.add(this);
-                    } else {
-                        successorTransactions.add(pastTheEndReader);
-                        pastTheEndReader.predecessorTransactions.add(this);
-                    }
+                    addAsPredecessor(this, pastTheEndReader);
                 }
             }
             // else creating the object
@@ -749,18 +821,12 @@ public class Universe {
 
             @Override
             void beginCommit(Transaction transaction) {
-                transaction.openness = TransactionOpenness.COMMITTING;
-                transaction.commitIfPossible();
+                transaction.reallyBeginCommit();
             }
 
             @Override
             void beginWrite(Transaction transaction, @NonNull Duration when) {
-                if (transaction.objectStatesRead.keySet().stream().map(id -> id.getWhen())
-                        .filter(t -> 0 <= t.compareTo(when)).findAny().orElse(null) != null) {
-                    throw new IllegalStateException("Time-stamp of read state at or after the given time.");
-                }
-                transaction.when = when;
-                transaction.openness = TransactionOpenness.WRITING;
+                transaction.reallyBeginWrite(when);
             }
 
             @Override
@@ -775,8 +841,9 @@ public class Universe {
 
             @Override
             @Nullable
-            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
-                return transaction.reallyReadUncachedObjectState(id, true);
+            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id,
+                    Set<Transaction> additionalPredecessors) {
+                return transaction.reallyReadUncachedObjectState(id, true, additionalPredecessors);
             }
         },
 
@@ -800,8 +867,7 @@ public class Universe {
 
             @Override
             void beginCommit(Transaction transaction) {
-                transaction.openness = TransactionOpenness.COMMITTING;
-                transaction.commitIfPossible();
+                transaction.reallyBeginCommit();
             }
 
             @Override
@@ -822,7 +888,8 @@ public class Universe {
 
             @Override
             @Nullable
-            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
+            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id,
+                    Set<Transaction> additionalPredecessors) {
                 throw new IllegalStateException("Already writing");
             }
         },
@@ -860,7 +927,8 @@ public class Universe {
 
             @Override
             @Nullable
-            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
+            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id,
+                    Set<Transaction> additionalPredecessors) {
                 throw new IllegalStateException("Already committing");
             }
         },
@@ -894,13 +962,15 @@ public class Universe {
             @Override
             void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
                 transaction.recordObjectStateWritten(object, state);
+                // Do not change the object state history, however.
             }
 
             @Override
             @Nullable
-            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
+            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id,
+                    Set<Transaction> additionalPredecessors) {
                 // Refrain from adding additional read dependencies.
-                return transaction.reallyReadUncachedObjectState(id, false);
+                return transaction.reallyReadUncachedObjectState(id, false, additionalPredecessors);
             }
         },
 
@@ -946,7 +1016,8 @@ public class Universe {
 
             @Override
             @Nullable
-            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
+            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id,
+                    Set<Transaction> additionalPredecessors) {
                 throw new IllegalStateException("Committed");
             }
         },
@@ -990,7 +1061,8 @@ public class Universe {
 
             @Override
             @Nullable
-            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
+            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id,
+                    Set<Transaction> additionalPredecessors) {
                 throw new IllegalStateException("Aborted");
             }
         };
@@ -1005,10 +1077,46 @@ public class Universe {
 
         abstract void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state);
 
-        abstract @Nullable ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id);
+        abstract @Nullable ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id,
+                Set<Transaction> additionalPredecessors);
     }// enum
 
-    private static final ValueHistory<ObjectState> EMPTY_STATE_HISTORY = new ModifiableValueHistory<>();
+    private static final ValueHistory<ObjectState> EMPTY_STATE_HISTORY = new ConstantValueHistory<>((ObjectState) null);
+
+    private static void addAsPredecessor(Transaction predecessor, Transaction successor) {
+        if (successor.successorTransactions.contains(predecessor)
+                || predecessor.predecessorTransactions.contains(successor)) {
+            // Can not be both predecessor and successor.
+            becomeMutual(predecessor, successor);
+        } else {
+            successor.predecessorTransactions.add(predecessor);
+            predecessor.successorTransactions.add(successor);
+        }
+    }
+
+    private static void becomeMutual(Transaction t1, Transaction t2) {
+        t1.successorTransactions.remove(t2);
+        t1.predecessorTransactions.remove(t2);
+        t2.successorTransactions.remove(t1);
+        t2.predecessorTransactions.remove(t2);
+        final MutualTransactionCoordinator coordinator = new MutualTransactionCoordinator();
+        // TODO handle successor.mutualTransactionCoordinator != null;
+        // TODO predecessor successor.mutualTransactionCoordinator != null;
+        coordinator.transactions.add(t1);
+        coordinator.transactions.add(t2);
+        t1.mutualTransactionCoordinator = coordinator;
+        t2.mutualTransactionCoordinator = coordinator;
+    }
+
+    private static void removeAsPredecessor(Transaction predecessor, Transaction successor) {
+        successor.predecessorTransactions.remove(predecessor);
+        predecessor.successorTransactions.remove(successor);
+    }
+
+    private static void removeAsSuccessor(Transaction predecessor, Transaction successor) {
+        successor.predecessorTransactions.remove(successor);
+        predecessor.successorTransactions.remove(predecessor);
+    }
 
     @NonNull
     private Duration historyStart;
@@ -1082,9 +1190,14 @@ public class Universe {
      *         null.
      */
     public final @NonNull Duration getHistoryEnd() {
-        final Duration earliestLastCommit = objectDataMap.values().stream().map(od -> od.lastCommit)
-                .max(Comparator.naturalOrder()).orElse(historyStart);
-        return historyStart.compareTo(earliestLastCommit) < 0 ? earliestLastCommit : historyStart;
+        Duration historyEnd = null;
+        for (var od : objectDataMap.values()) {
+            final Duration lastCommmit = od.lastCommit;
+            if (historyEnd == null || lastCommmit.compareTo(historyEnd) < 0) {
+                historyEnd = lastCommmit;
+            }
+        }
+        return historyEnd == null || historyEnd.compareTo(historyStart) < 0 ? historyStart : historyEnd;
     }
 
     /**

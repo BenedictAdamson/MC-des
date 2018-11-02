@@ -49,6 +49,9 @@ import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import uk.badamson.mc.ObjectTest;
+import uk.badamson.mc.history.ModifiableValueHistory;
+import uk.badamson.mc.history.ValueHistory;
+import uk.badamson.mc.history.ValueHistoryTest;
 import uk.badamson.mc.simulation.Universe.TransactionOpenness;
 
 /**
