@@ -1088,20 +1088,34 @@ public class Universe {
 
     private static void becomeMutual(Transaction t1, Transaction t2) {
         final MutualTransactionCoordinator coordinator;
-        if (t1.mutualTransactionCoordinator != null) {
+        if (t1.mutualTransactionCoordinator != null && t2.mutualTransactionCoordinator != null) {
+            // Merge
+            assert t1.mutualTransactionCoordinator != t2.mutualTransactionCoordinator;
             coordinator = t1.mutualTransactionCoordinator;
-            assert t2.mutualTransactionCoordinator == null;// TODO
+            for (var transaction : t2.mutualTransactionCoordinator.transactions) {
+                coordinator.transactions.add(transaction);
+                transaction.mutualTransactionCoordinator = coordinator;
+            }
+        } else if (t1.mutualTransactionCoordinator != null) {
+            coordinator = t1.mutualTransactionCoordinator;
+            coordinator.transactions.add(t2);
+            t2.mutualTransactionCoordinator = coordinator;
         } else if (t2.mutualTransactionCoordinator != null) {
             coordinator = t2.mutualTransactionCoordinator;
+            coordinator.transactions.add(t1);
+            t1.mutualTransactionCoordinator = coordinator;
         } else {
             coordinator = new MutualTransactionCoordinator();
+            t1.mutualTransactionCoordinator = coordinator;
+            t2.mutualTransactionCoordinator = coordinator;
+            coordinator.transactions.add(t1);
+            coordinator.transactions.add(t2);
         }
 
-        t1.mutualTransactionCoordinator = coordinator;
-        t2.mutualTransactionCoordinator = coordinator;
-
-        coordinator.transactions.add(t1);
-        coordinator.transactions.add(t2);
+        assert t1.mutualTransactionCoordinator == coordinator;
+        assert t2.mutualTransactionCoordinator == coordinator;
+        assert coordinator.transactions.contains(t1);
+        assert coordinator.transactions.contains(t2);
 
         for (var t : coordinator.transactions) {
             t.successorTransactions.removeAll(coordinator.transactions);

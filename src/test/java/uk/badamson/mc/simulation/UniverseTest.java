@@ -1610,13 +1610,33 @@ public class UniverseTest {
             public class MutualReadPastLast6MergeCycles {
 
                 @Test
-                public void a() {
+                public void abcdef() {
                     test(OBJECT_A, OBJECT_B, OBJECT_C, OBJECT_D, OBJECT_E, OBJECT_F);
                 }
 
                 @Test
-                public void b() {
-                    test(OBJECT_B, OBJECT_C, OBJECT_D, OBJECT_E, OBJECT_F, OBJECT_G);
+                public void bcdefa() {
+                    test(OBJECT_B, OBJECT_C, OBJECT_D, OBJECT_E, OBJECT_F, OBJECT_A);
+                }
+
+                @Test
+                public void cdefab() {
+                    test(OBJECT_C, OBJECT_D, OBJECT_E, OBJECT_F, OBJECT_A, OBJECT_B);
+                }
+
+                @Test
+                public void defabc() {
+                    test(OBJECT_D, OBJECT_E, OBJECT_F, OBJECT_A, OBJECT_B, OBJECT_C);
+                }
+
+                @Test
+                public void efabcd() {
+                    test(OBJECT_E, OBJECT_F, OBJECT_A, OBJECT_B, OBJECT_C, OBJECT_D);
+                }
+
+                @Test
+                public void fabcde() {
+                    test(OBJECT_F, OBJECT_A, OBJECT_B, OBJECT_C, OBJECT_D, OBJECT_E);
                 }
 
                 private void test(UUID objectA, UUID objectB, UUID objectC, UUID objectD, UUID objectE, UUID objectF) {
@@ -2938,7 +2958,6 @@ public class UniverseTest {
     private static final UUID OBJECT_D = UUID.randomUUID();
     private static final UUID OBJECT_E = UUID.randomUUID();
     private static final UUID OBJECT_F = UUID.randomUUID();
-    private static final UUID OBJECT_G = UUID.randomUUID();
     private static final Duration DURATION_1 = Duration.ofSeconds(13);
     private static final Duration DURATION_2 = Duration.ofSeconds(17);
     private static final Duration DURATION_3 = Duration.ofSeconds(23);
