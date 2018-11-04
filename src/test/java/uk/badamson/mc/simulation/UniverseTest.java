@@ -835,7 +835,7 @@ public class UniverseTest {
                     writeTransaction.beginWrite(when3);
                     writeTransaction.put(object, objectState2);
 
-                    writeTransaction.beginCommit();
+                    beginCommit(writeTransaction);
 
                     assertAll(() -> assertEquals(1, writeListener.commits, "Write committed"),
                             () -> assertEquals(0, writeListener.aborts, "Write not aborted"),
