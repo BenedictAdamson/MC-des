@@ -1088,14 +1088,19 @@ public class Universe {
              * dependence.
              */
             successionCycle.add(predecessor);
-            // TODO successionCycle has 2+ mutual transactions
-            MutualTransactionCoordinator coordinator = null;
+
+            final Set<MutualTransactionCoordinator> coordinators = new HashSet<>();
             for (Transaction transaction : successionCycle) {
-                coordinator = transaction.mutualTransactionCoordinator;
+                coordinators.add(transaction.mutualTransactionCoordinator);
             }
-            if (coordinator == null) {
-                coordinator = new MutualTransactionCoordinator();
+            coordinators.remove(null);
+            final int nCoordinators = coordinators.size();
+            if (nCoordinators == 0) {
+                coordinators.add(new MutualTransactionCoordinator());
             }
+            // TODO successionCycle has 2+ mutual transactions
+            assert coordinators.size() == 1;
+            final MutualTransactionCoordinator coordinator = coordinators.iterator().next();
 
             for (Transaction transaction : successionCycle) {
                 transaction.mutualTransactionCoordinator = coordinator;
