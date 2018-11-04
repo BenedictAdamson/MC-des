@@ -1469,6 +1469,68 @@ public class UniverseTest {
             }// class
 
             @Nested
+            public class MutualReadPastLast3Cycle {
+
+                @Test
+                public void a() {
+                    test(DURATION_1, OBJECT_A, OBJECT_B, OBJECT_C, DURATION_2, DURATION_3, DURATION_4);
+                }
+
+                @Test
+                public void b() {
+                    test(DURATION_2, OBJECT_B, OBJECT_C, OBJECT_D, DURATION_3, DURATION_4, DURATION_5);
+                }
+
+                private void test(final Duration historyStart, UUID objectA, UUID objectB, UUID objectC, Duration when1,
+                        Duration when2, Duration when3) {
+                    assert when1.compareTo(when2) < 0;
+                    assert when2.compareTo(when3) <= 0;
+                    final ObjectState objectStateA1 = new ObjectStateTest.TestObjectState(11);
+                    final ObjectState objectStateA2 = new ObjectStateTest.TestObjectState(12);
+                    final ObjectState objectStateB1 = new ObjectStateTest.TestObjectState(21);
+                    final ObjectState objectStateB2 = new ObjectStateTest.TestObjectState(22);
+                    final ObjectState objectStateC1 = new ObjectStateTest.TestObjectState(31);
+                    final ObjectState objectStateC2 = new ObjectStateTest.TestObjectState(32);
+
+                    final CountingTransactionListener listenerA = new CountingTransactionListener();
+                    final CountingTransactionListener listenerB = new CountingTransactionListener();
+                    final CountingTransactionListener listenerC = new CountingTransactionListener();
+
+                    final Universe universe = new Universe(historyStart);
+                    UniverseTest.putAndCommit(universe, objectA, when1, objectStateA1);
+                    UniverseTest.putAndCommit(universe, objectB, when1, objectStateB1);
+                    UniverseTest.putAndCommit(universe, objectC, when1, objectStateC1);
+
+                    final Universe.Transaction transactionA = universe.beginTransaction(listenerA);
+                    transactionA.getObjectState(objectA, when1);
+                    transactionA.getObjectState(objectB, when2);
+                    transactionA.beginWrite(when3);
+                    transactionA.put(objectA, objectStateA2);
+
+                    final Universe.Transaction transactionB = universe.beginTransaction(listenerB);
+                    transactionB.getObjectState(objectB, when1);
+                    transactionB.getObjectState(objectC, when2);
+                    transactionB.beginWrite(when3);
+                    transactionB.put(objectB, objectStateB2);
+
+                    final Universe.Transaction transactionC = universe.beginTransaction(listenerC);
+                    transactionC.getObjectState(objectC, when1);
+                    transactionC.getObjectState(objectA, when2);
+                    transactionC.beginWrite(when3);
+                    transactionC.put(objectC, objectStateC2);
+
+                    beginCommit(transactionA);
+                    beginCommit(transactionB);
+                    beginCommit(transactionC);
+
+                    assertAll(() -> assertEquals(1, listenerA.commits, "Committed A."),
+                            () -> assertEquals(1, listenerB.commits, "Committed B."),
+                            () -> assertEquals(1, listenerC.commits, "Committed C."));
+                }
+
+            }// class
+
+            @Nested
             public class MutualReadPastLast4Merge {
 
                 @Test

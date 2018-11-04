@@ -1080,37 +1080,44 @@ public class Universe {
     private static final ValueHistory<ObjectState> EMPTY_STATE_HISTORY = new ConstantValueHistory<>((ObjectState) null);
 
     private static void addAsPredecessor(Transaction predecessor, Transaction successor) {
-        if (successor.successorTransactions.contains(predecessor)
-                || predecessor.predecessorTransactions.contains(successor)) {
-            // Can not be both predecessor and successor.
-            becomeMutual(predecessor, successor);
+        final Set<Transaction> successionCycle = new HashSet<>();
+        buildSuccessionCycle(predecessor, successor, successionCycle);
+        if (!successionCycle.isEmpty()) {
+            /*
+             * Can not be both predecessor and successor. Instead, convert to a mutual
+             * dependence.
+             */
+            successionCycle.add(predecessor);
+            // TODO successionCycle has 2+ mutual transactions
+            MutualTransactionCoordinator coordinator = null;
+            for (Transaction transaction : successionCycle) {
+                coordinator = transaction.mutualTransactionCoordinator;
+            }
+            if (coordinator == null) {
+                coordinator = new MutualTransactionCoordinator();
+            }
+
+            for (Transaction transaction : successionCycle) {
+                transaction.mutualTransactionCoordinator = coordinator;
+            }
+
+            coordinator.transactions.addAll(successionCycle);
+            for (var t : coordinator.transactions) {
+                t.successorTransactions.removeAll(coordinator.transactions);
+                t.predecessorTransactions.removeAll(coordinator.transactions);
+            }
         } else {
             successor.predecessorTransactions.add(predecessor);
             predecessor.successorTransactions.add(successor);
         }
     }
 
-    private static void becomeMutual(Transaction t1, Transaction t2) {
-        // TODO t1 successor.mutualTransactionCoordinator != null;
-        // TODO t1 successor.mutualTransactionCoordinator != null && t2
-        // successor.mutualTransactionCoordinator != null;
-        final MutualTransactionCoordinator coordinator;
-        if (t2.mutualTransactionCoordinator != null) {
-            assert t1.mutualTransactionCoordinator == null;
-            coordinator = t2.mutualTransactionCoordinator;
-        } else {
-            assert t1.mutualTransactionCoordinator == null;
-            coordinator = new MutualTransactionCoordinator();
-        }
-
-        t1.mutualTransactionCoordinator = coordinator;
-        t2.mutualTransactionCoordinator = coordinator;
-
-        coordinator.transactions.add(t1);
-        coordinator.transactions.add(t2);
-        for (var t : coordinator.transactions) {
-            t.successorTransactions.removeAll(coordinator.transactions);
-            t.predecessorTransactions.removeAll(coordinator.transactions);
+    private static void buildSuccessionCycle(Transaction t1, Transaction t2, Set<Transaction> cycle) {
+        for (var candidate : t2.successorTransactions) {
+            if (candidate == t1) {
+                cycle.add(t2);
+            }
+            buildSuccessionCycle(t1, candidate, cycle);
         }
     }
 
