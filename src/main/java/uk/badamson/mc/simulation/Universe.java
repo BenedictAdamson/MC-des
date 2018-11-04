@@ -736,7 +736,7 @@ public class Universe {
                 for (Transaction pastTheEndReader : od.uncommittedReaders.get(justAfterPreviousTransition)) {
                     /*
                      * Escalate the other transaction from being past-the-end-readers to being
-                     * successors or mutual transaction of this transaction.
+                     * successor or mutual transaction of this transaction.
                      */
                     pastTheEndReader.pastTheEndReads.remove(object);
                     addAsPredecessor(this, pastTheEndReader);
