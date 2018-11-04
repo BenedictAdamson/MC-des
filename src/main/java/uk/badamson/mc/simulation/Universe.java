@@ -19,7 +19,6 @@ package uk.badamson.mc.simulation;
  */
 
 import java.time.Duration;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -27,7 +26,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Queue;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
@@ -58,7 +56,7 @@ public class Universe {
 
         private final Set<Transaction> transactions = new HashSet<>();
 
-        void beginAbort() {
+        private final void beginMutualAbort() {
             for (var transaction : transactions) {
                 if (transaction.openness != TransactionOpenness.ABORTED
                         && transaction.openness != TransactionOpenness.ABORTING) {
@@ -67,17 +65,27 @@ public class Universe {
             }
         }
 
-        boolean commitIfPossible() {
+        private final boolean commitIfPossible() {
             for (var transaction : transactions) {
                 if (!transaction.isReadyToCommit()) {
                     return false;
                 }
             }
+            final Set<Transaction> successors = new HashSet<>();
             for (var transaction : transactions) {
-                transaction.commit1();
+                if (transaction.isReadyToCommit()) {
+                    transaction.commit1();
+                    successors.addAll(transaction.successorTransactions);
+                    transaction.successorTransactions.clear();
+                }
+            }
+            for (var successor : successors) {
+                successor.predecessorTransactions.removeAll(transactions);
+                successor.commitIfPossible();
             }
             return true;
         }
+
     }// class
 
     private static final class ObjectData {
@@ -132,10 +140,14 @@ public class Universe {
         // Must be appended to and committed before this transaction.
         private final Set<UUID> pastTheEndReads = new HashSet<>();
 
-        // Must be committed before this transaction.
+        /*
+         * Must be committed before this transaction. Includes indirect predecessors.
+         */
         private final Set<Transaction> predecessorTransactions = new HashSet<>();
 
-        // Must be committed after this transaction.
+        /*
+         * Must be committed after this transaction. Includes indirect successors.
+         */
         private final Set<Transaction> successorTransactions = new HashSet<>();
 
         @Nullable
@@ -172,28 +184,6 @@ public class Universe {
          */
         public final void beginAbort() {
             openness.beginAbort(this);
-
-            if (mutualTransactionCoordinator != null) {
-                mutualTransactionCoordinator.beginAbort();
-                mutualTransactionCoordinator = null;
-            }
-
-            beginAbortOfSuccessors();
-            /*
-             * Optimisation: do not have our predecessors waste time trying to get us to
-             * commit once they commit, and remove those hidden references to this
-             * transaction object.
-             */
-            removeTriggersOfPredecessors();
-        }
-
-        private void beginAbortOfSuccessors() {
-            final Set<Transaction> dependents = new HashSet<>();
-            dependents.addAll(successorTransactions);
-            successorTransactions.clear();
-            for (var dependent : dependents) {
-                dependent.beginAbort();
-            }
         }
 
         /**
@@ -250,12 +240,11 @@ public class Universe {
             openness.beginWrite(this, when);
         }
 
-        private void cascadeEnd(Queue<Transaction> pending) {
-            pending.addAll(successorTransactions);
+        private void cascadeCommit() {
             for (var successor : new ArrayList<>(successorTransactions)) {
                 removeAsPredecessor(this, successor);
+                successor.commitIfPossible();
             }
-            assert successorTransactions.isEmpty();
         }
 
         /**
@@ -311,22 +300,19 @@ public class Universe {
                 }
                 // else a prehistoric dependency
             }
+
             listener.onCommit();
         }
 
-        private boolean commitIfPossible() {
-            final boolean committed;
-            if (isReadyToCommit()) {
-                if (mutualTransactionCoordinator == null) {
+        private void commitIfPossible() {
+            if (mutualTransactionCoordinator == null) {
+                if (isReadyToCommit()) {
                     commit1();
-                    committed = true;
-                } else {
-                    committed = mutualTransactionCoordinator.commitIfPossible();
+                    cascadeCommit();
                 }
             } else {
-                committed = false;
+                mutualTransactionCoordinator.commitIfPossible();
             }
-            return committed;
         }
 
         /**
@@ -588,6 +574,7 @@ public class Universe {
             openness = TransactionOpenness.ABORTED;
             listener.onAbort();
 
+            removeTriggersOfPredecessors();
             {// Help the garbage collector
                 pastTheEndReads.clear();
                 predecessorTransactions.clear();
@@ -596,14 +583,6 @@ public class Universe {
         }
 
         private void reallyBeginAbort() {
-            final Queue<Transaction> cascadingAborts = new ArrayDeque<>();
-            cascadingAborts.add(this);
-            while (!cascadingAborts.isEmpty()) {
-                cascadingAborts.remove().reallyBeginAbort1(cascadingAborts);
-            }
-        }
-
-        private void reallyBeginAbort1(Queue<Transaction> cascadingAborts) {
             if (openness == TransactionOpenness.ABORTED) {
                 return;
             }
@@ -613,29 +592,27 @@ public class Universe {
             rollBackWrites();
 
             /*
-             * Optimisation: cause our dependents to also begin aborting, rather than
-             * awaiting commit or close of this transaction.
-             * 
+             * Cause our dependents to also begin aborting, rather than awaiting commit or
+             * close of this transaction.
              */
-            cascadeEnd(cascadingAborts);
+            if (mutualTransactionCoordinator != null) {
+                mutualTransactionCoordinator.beginMutualAbort();
+                mutualTransactionCoordinator = null;
+            }
+            for (var transaction : new ArrayList<>(successorTransactions)) {
+                transaction.reallyBeginAbort();
+            }
+            successorTransactions.clear();
+            for (var transaction : new ArrayList<>(predecessorTransactions)) {
+                removeAsPredecessor(transaction, this);
+            }
+            predecessorTransactions.clear();
         }
 
         private void reallyBeginCommit() {
             openness = TransactionOpenness.COMMITTING;
 
-            final Queue<Transaction> cascadingCommits = new ArrayDeque<>();
-            cascadingCommits.add(this);
-            while (!cascadingCommits.isEmpty()) {
-                cascadingCommits.remove().reallyBeginCommit1(cascadingCommits);
-            }
-        }
-
-        private void reallyBeginCommit1(Queue<Transaction> cascadingCommits) {
-            final boolean committed = commitIfPossible();
-
-            if (committed) {
-                cascadeEnd(cascadingCommits);
-            }
+            commitIfPossible();
         }
 
         private void reallyBeginWrite(@NonNull Duration when) {
@@ -759,7 +736,7 @@ public class Universe {
                 for (Transaction pastTheEndReader : od.uncommittedReaders.get(justAfterPreviousTransition)) {
                     /*
                      * Escalate the other transaction from being past-the-end-readers to being
-                     * successors or mutual transaction of this transaction.
+                     * successor or mutual transaction of this transaction.
                      */
                     pastTheEndReader.pastTheEndReads.remove(object);
                     addAsPredecessor(this, pastTheEndReader);
@@ -1084,28 +1061,66 @@ public class Universe {
     private static final ValueHistory<ObjectState> EMPTY_STATE_HISTORY = new ConstantValueHistory<>((ObjectState) null);
 
     private static void addAsPredecessor(Transaction predecessor, Transaction successor) {
-        if (successor.successorTransactions.contains(predecessor)
+        if (predecessor.successorTransactions.contains(successor)
+                && successor.predecessorTransactions.contains(predecessor)) {
+            // Already recorded
+        } else if (successor.successorTransactions.contains(predecessor)
                 || predecessor.predecessorTransactions.contains(successor)) {
-            // Can not be both predecessor and successor.
+            /*
+             * Can not be both predecessor and successor. Instead, convert to a mutual
+             * dependence.
+             */
             becomeMutual(predecessor, successor);
         } else {
             successor.predecessorTransactions.add(predecessor);
             predecessor.successorTransactions.add(successor);
         }
+
+        // Add indirect successors
+        for (var indirectSuccessor : new ArrayList<>(successor.successorTransactions)) {
+            addAsPredecessor(predecessor, indirectSuccessor);
+        }
+        // Add indirect predecessors
+        for (var indirectPredecessor : new ArrayList<>(predecessor.predecessorTransactions)) {
+            addAsPredecessor(indirectPredecessor, successor);
+        }
     }
 
     private static void becomeMutual(Transaction t1, Transaction t2) {
-        t1.successorTransactions.remove(t2);
-        t1.predecessorTransactions.remove(t2);
-        t2.successorTransactions.remove(t1);
-        t2.predecessorTransactions.remove(t2);
-        final MutualTransactionCoordinator coordinator = new MutualTransactionCoordinator();
-        // TODO handle successor.mutualTransactionCoordinator != null;
-        // TODO predecessor successor.mutualTransactionCoordinator != null;
-        coordinator.transactions.add(t1);
-        coordinator.transactions.add(t2);
-        t1.mutualTransactionCoordinator = coordinator;
-        t2.mutualTransactionCoordinator = coordinator;
+        final MutualTransactionCoordinator coordinator;
+        if (t1.mutualTransactionCoordinator != null && t2.mutualTransactionCoordinator != null) {
+            // Merge
+            assert t1.mutualTransactionCoordinator != t2.mutualTransactionCoordinator;
+            coordinator = t1.mutualTransactionCoordinator;
+            for (var transaction : t2.mutualTransactionCoordinator.transactions) {
+                coordinator.transactions.add(transaction);
+                transaction.mutualTransactionCoordinator = coordinator;
+            }
+        } else if (t1.mutualTransactionCoordinator != null) {
+            coordinator = t1.mutualTransactionCoordinator;
+            coordinator.transactions.add(t2);
+            t2.mutualTransactionCoordinator = coordinator;
+        } else if (t2.mutualTransactionCoordinator != null) {
+            coordinator = t2.mutualTransactionCoordinator;
+            coordinator.transactions.add(t1);
+            t1.mutualTransactionCoordinator = coordinator;
+        } else {
+            coordinator = new MutualTransactionCoordinator();
+            t1.mutualTransactionCoordinator = coordinator;
+            t2.mutualTransactionCoordinator = coordinator;
+            coordinator.transactions.add(t1);
+            coordinator.transactions.add(t2);
+        }
+
+        assert t1.mutualTransactionCoordinator == coordinator;
+        assert t2.mutualTransactionCoordinator == coordinator;
+        assert coordinator.transactions.contains(t1);
+        assert coordinator.transactions.contains(t2);
+
+        for (var t : coordinator.transactions) {
+            t.successorTransactions.removeAll(coordinator.transactions);
+            t.predecessorTransactions.removeAll(coordinator.transactions);
+        }
     }
 
     private static void removeAsPredecessor(Transaction predecessor, Transaction successor) {
