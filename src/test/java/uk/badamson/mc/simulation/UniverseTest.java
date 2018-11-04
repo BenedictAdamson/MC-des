@@ -1469,6 +1469,82 @@ public class UniverseTest {
             }// class
 
             @Nested
+            public class MutualReadPastLast4Merge {
+
+                @Test
+                public void a() {
+                    test(DURATION_1, OBJECT_A, OBJECT_B, OBJECT_C, OBJECT_D, DURATION_2, DURATION_3, DURATION_4);
+                }
+
+                @Test
+                public void b() {
+                    test(DURATION_2, OBJECT_B, OBJECT_C, OBJECT_D, OBJECT_E, DURATION_3, DURATION_4, DURATION_5);
+                }
+
+                private void test(final Duration historyStart, UUID objectA, UUID objectB, UUID objectC, UUID objectD,
+                        Duration when1, Duration when2, Duration when3) {
+                    assert when1.compareTo(when2) < 0;
+                    assert when2.compareTo(when3) <= 0;
+                    final ObjectState objectStateA1 = new ObjectStateTest.TestObjectState(11);
+                    final ObjectState objectStateA2 = new ObjectStateTest.TestObjectState(12);
+                    final ObjectState objectStateB1 = new ObjectStateTest.TestObjectState(21);
+                    final ObjectState objectStateB2 = new ObjectStateTest.TestObjectState(22);
+                    final ObjectState objectStateC1 = new ObjectStateTest.TestObjectState(31);
+                    final ObjectState objectStateC2 = new ObjectStateTest.TestObjectState(32);
+                    final ObjectState objectStateD1 = new ObjectStateTest.TestObjectState(41);
+                    final ObjectState objectStateD2 = new ObjectStateTest.TestObjectState(42);
+
+                    final CountingTransactionListener listenerA = new CountingTransactionListener();
+                    final CountingTransactionListener listenerB = new CountingTransactionListener();
+                    final CountingTransactionListener listenerC = new CountingTransactionListener();
+                    final CountingTransactionListener listenerD = new CountingTransactionListener();
+
+                    final Universe universe = new Universe(historyStart);
+                    UniverseTest.putAndCommit(universe, objectA, when1, objectStateA1);
+                    UniverseTest.putAndCommit(universe, objectB, when1, objectStateB1);
+                    UniverseTest.putAndCommit(universe, objectC, when1, objectStateC1);
+                    UniverseTest.putAndCommit(universe, objectD, when1, objectStateD1);
+
+                    final Universe.Transaction transactionA = universe.beginTransaction(listenerA);
+                    transactionA.getObjectState(objectA, when1);
+                    transactionA.getObjectState(objectB, when2);
+                    transactionA.beginWrite(when3);
+                    transactionA.put(objectA, objectStateA2);
+
+                    final Universe.Transaction transactionB = universe.beginTransaction(listenerB);
+                    transactionB.getObjectState(objectB, when1);
+                    transactionB.getObjectState(objectA, when2);
+                    transactionB.beginWrite(when3);
+                    transactionB.put(objectB, objectStateB2);
+
+                    final Universe.Transaction transactionC = universe.beginTransaction(listenerC);
+                    transactionC.getObjectState(objectC, when1);
+                    transactionC.getObjectState(objectD, when2);
+                    transactionC.beginWrite(when3);
+                    transactionC.put(objectC, objectStateC2);
+
+                    final Universe.Transaction transactionD = universe.beginTransaction(listenerD);
+                    transactionD.getObjectState(objectD, when1);
+                    transactionD.getObjectState(objectC, when2);
+                    transactionD.getObjectState(objectB, when2);
+                    transactionD.getObjectState(objectA, when2);
+                    transactionD.beginWrite(when3);
+                    transactionD.put(objectD, objectStateD2);
+
+                    beginCommit(transactionA);
+                    beginCommit(transactionB);
+                    beginCommit(transactionC);
+                    beginCommit(transactionD);
+
+                    assertAll(() -> assertEquals(1, listenerA.commits, "Committed A."),
+                            () -> assertEquals(1, listenerB.commits, "Committed B."),
+                            () -> assertEquals(1, listenerC.commits, "Committed C."),
+                            () -> assertEquals(1, listenerD.commits, "Committed D."));
+                }
+
+            }// class
+
+            @Nested
             public class MutualReadPastLastCommit {
 
                 @Test
@@ -2694,6 +2770,7 @@ public class UniverseTest {
     private static final UUID OBJECT_B = ObjectStateIdTest.OBJECT_B;
     private static final UUID OBJECT_C = UUID.randomUUID();
     private static final UUID OBJECT_D = UUID.randomUUID();
+    private static final UUID OBJECT_E = UUID.randomUUID();
     private static final Duration DURATION_1 = Duration.ofSeconds(13);
     private static final Duration DURATION_2 = Duration.ofSeconds(17);
     private static final Duration DURATION_3 = Duration.ofSeconds(23);

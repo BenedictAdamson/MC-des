@@ -67,6 +67,12 @@ public class Universe {
             }
         }
 
+        private void cascadeEnd(Queue<Transaction> pending) {
+            for (var transaction : new ArrayList<>(transactions)) {
+                transaction.cascadeEnd(pending);
+            }
+        }
+
         boolean commitIfPossible() {
             for (var transaction : transactions) {
                 if (!transaction.isReadyToCommit()) {
@@ -74,7 +80,9 @@ public class Universe {
                 }
             }
             for (var transaction : transactions) {
-                transaction.commit1();
+                if (transaction.isReadyToCommit()) {
+                    transaction.commit1();
+                }
             }
             return true;
         }
@@ -172,28 +180,6 @@ public class Universe {
          */
         public final void beginAbort() {
             openness.beginAbort(this);
-
-            if (mutualTransactionCoordinator != null) {
-                mutualTransactionCoordinator.beginAbort();
-                mutualTransactionCoordinator = null;
-            }
-
-            beginAbortOfSuccessors();
-            /*
-             * Optimisation: do not have our predecessors waste time trying to get us to
-             * commit once they commit, and remove those hidden references to this
-             * transaction object.
-             */
-            removeTriggersOfPredecessors();
-        }
-
-        private void beginAbortOfSuccessors() {
-            final Set<Transaction> dependents = new HashSet<>();
-            dependents.addAll(successorTransactions);
-            successorTransactions.clear();
-            for (var dependent : dependents) {
-                dependent.beginAbort();
-            }
         }
 
         /**
@@ -255,7 +241,13 @@ public class Universe {
             for (var successor : new ArrayList<>(successorTransactions)) {
                 removeAsPredecessor(this, successor);
             }
+            if (mutualTransactionCoordinator != null) {
+                mutualTransactionCoordinator.transactions.remove(this);
+                mutualTransactionCoordinator.cascadeEnd(pending);
+                mutualTransactionCoordinator = null;
+            }
             assert successorTransactions.isEmpty();
+            assert mutualTransactionCoordinator == null;
         }
 
         /**
@@ -588,6 +580,7 @@ public class Universe {
             openness = TransactionOpenness.ABORTED;
             listener.onAbort();
 
+            removeTriggersOfPredecessors();
             {// Help the garbage collector
                 pastTheEndReads.clear();
                 predecessorTransactions.clear();
@@ -613,10 +606,13 @@ public class Universe {
             rollBackWrites();
 
             /*
-             * Optimisation: cause our dependents to also begin aborting, rather than
-             * awaiting commit or close of this transaction.
-             * 
+             * Cause our dependents to also begin aborting, rather than awaiting commit or
+             * close of this transaction.
              */
+            if (mutualTransactionCoordinator != null) {
+                mutualTransactionCoordinator.beginAbort();
+                mutualTransactionCoordinator = null;
+            }
             cascadeEnd(cascadingAborts);
         }
 
@@ -1100,6 +1096,7 @@ public class Universe {
         // successor.mutualTransactionCoordinator != null;
         final MutualTransactionCoordinator coordinator;
         if (t2.mutualTransactionCoordinator != null) {
+            assert t1.mutualTransactionCoordinator == null;
             coordinator = t2.mutualTransactionCoordinator;
         } else {
             assert t1.mutualTransactionCoordinator == null;
