@@ -1095,17 +1095,26 @@ public class Universe {
     }
 
     private static void becomeMutual(Transaction t1, Transaction t2) {
-        t1.successorTransactions.remove(t2);
-        t1.predecessorTransactions.remove(t2);
-        t2.successorTransactions.remove(t1);
-        t2.predecessorTransactions.remove(t2);
-        final MutualTransactionCoordinator coordinator = new MutualTransactionCoordinator();
-        // TODO handle successor.mutualTransactionCoordinator != null;
-        // TODO predecessor successor.mutualTransactionCoordinator != null;
-        coordinator.transactions.add(t1);
-        coordinator.transactions.add(t2);
+        // TODO t1 successor.mutualTransactionCoordinator != null;
+        // TODO t1 successor.mutualTransactionCoordinator != null && t2
+        // successor.mutualTransactionCoordinator != null;
+        final MutualTransactionCoordinator coordinator;
+        if (t2.mutualTransactionCoordinator != null) {
+            coordinator = t2.mutualTransactionCoordinator;
+        } else {
+            assert t1.mutualTransactionCoordinator == null;
+            coordinator = new MutualTransactionCoordinator();
+        }
+
         t1.mutualTransactionCoordinator = coordinator;
         t2.mutualTransactionCoordinator = coordinator;
+
+        coordinator.transactions.add(t1);
+        coordinator.transactions.add(t2);
+        for (var t : coordinator.transactions) {
+            t.successorTransactions.removeAll(coordinator.transactions);
+            t.predecessorTransactions.removeAll(coordinator.transactions);
+        }
     }
 
     private static void removeAsPredecessor(Transaction predecessor, Transaction successor) {
