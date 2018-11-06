@@ -94,7 +94,7 @@ public class Universe {
         final ModifiableSetHistory<Transaction> uncommittedWriters = new ModifiableSetHistory<>();
 
         @NonNull
-        Duration lastCommit = ValueHistory.START_OF_TIME;
+        Duration latestCommit = ValueHistory.START_OF_TIME;
     }// class
 
     /**
@@ -291,11 +291,11 @@ public class Universe {
                 assert when != null;
 
                 final var od = objectDataMap.get(object);
-                assert od.lastCommit.compareTo(when) < 0;
+                assert od.latestCommit.compareTo(when) < 0;
                 if (state != null) {
-                    od.lastCommit = when;
+                    od.latestCommit = when;
                 } else {// destruction is forever
-                    od.lastCommit = ValueHistory.END_OF_TIME;
+                    od.latestCommit = ValueHistory.END_OF_TIME;
                 }
                 od.uncommittedWriters.remove(this);
             }
@@ -654,7 +654,7 @@ public class Universe {
                 if (addTriggers) {
                     if (od.stateHistory.getLastTansitionTime().compareTo(when) < 0) {
                         isPastTheEndRead = true;
-                    } else if (od.lastCommit.compareTo(when) < 0) {
+                    } else if (od.latestCommit.compareTo(when) < 0) {
                         @NonNull
                         final Duration nextWrite = od.stateHistory.getTansitionTimeAtOrAfter(when);
                         additionalPredecessors.addAll(od.uncommittedWriters.get(nextWrite));
@@ -698,7 +698,7 @@ public class Universe {
                  * (the state we wrote), so od is guaranteed to be not null.
                  */
                 od.uncommittedWriters.remove(this);// optimisation
-                if (od.lastCommit.compareTo(when) < 0) {
+                if (od.latestCommit.compareTo(when) < 0) {
                     od.stateHistory.removeTransitionsFrom(when);
                     if (od.stateHistory.isEmpty()) {
                         objectDataMap.remove(object);
@@ -1217,7 +1217,7 @@ public class Universe {
     public final @NonNull Duration getHistoryEnd() {
         Duration historyEnd = null;
         for (var od : objectDataMap.values()) {
-            final Duration lastCommmit = od.lastCommit;
+            final Duration lastCommmit = od.latestCommit;
             if (historyEnd == null || lastCommmit.compareTo(historyEnd) < 0) {
                 historyEnd = lastCommmit;
             }
@@ -1240,6 +1240,38 @@ public class Universe {
      */
     public final @NonNull Duration getHistoryStart() {
         return historyStart;
+    }
+
+    /**
+     * <p>
+     * The time-stamp of the last committed
+     * {@linkplain ValueHistory#getTransitions() state transition}
+     * {@linkplain #getObjectStateHistory(UUID) event} of an object.
+     * </p>
+     * <ul>
+     * <li>An object has a (non null) last committed state time-stamp if, and only
+     * if, it is a {@linkplain #getObjectIds() known object}.</li>
+     * <li>If an object is known, its last committed state time-stamp is one of the
+     * {@linkplain ValueHistory#getTransitionTimes() transition times} of the
+     * {@linkplain #getObjectStateHistory(UUID) state history} of that object, or is
+     * the {@linkplain ValueHistory#START_OF_TIME start of time}, or is the
+     * {@linkplain ValueHistory#END_OF_TIME end of time}.</li>
+     * </ul>
+     * 
+     * @param object
+     *            The ID of the object of interest.
+     * @return The time-stamp of the last committed state time-stamp of the object
+     *         with {@code object} as its ID, or null if {@code object} is not a
+     *         {@linkplain #getObjectIds() known object ID}.
+     */
+    public final @Nullable Duration getLatestCommit(@NonNull UUID object) {
+        Objects.requireNonNull(object, "object");
+        final var od = objectDataMap.get(object);
+        if (od == null) {
+            return null;
+        } else {
+            return od.latestCommit;
+        }
     }
 
     /**
@@ -1344,7 +1376,7 @@ public class Universe {
 
     /**
      * <p>
-     * The time-stamp of the {@linkplain SortedMap#firstKey() first}
+     * The time-stamp of the {@linkplain ValueHistory#getFirstTansitionTime() first}
      * {@linkplain #getObjectStateHistory(UUID) event} of an object.
      * </p>
      * <ul>

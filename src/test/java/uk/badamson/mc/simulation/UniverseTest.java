@@ -41,6 +41,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.UUID;
 
@@ -48,6 +49,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.history.ModifiableValueHistory;
 import uk.badamson.mc.history.ValueHistory;
@@ -795,7 +797,8 @@ public class UniverseTest {
                             () -> assertThat("History end", universe.getHistoryEnd(), isOneOf(historyStart0, when)),
                             () -> assertTrue(
                                     when.compareTo(historyStart0) <= 0 || universe.getHistoryEnd().equals(when),
-                                    "History end advanced if not prehistoric"));
+                                    "History end advanced if not prehistoric"),
+                            () -> assertEquals(when, universe.getLatestCommit(object), "Latest commit of object"));
                 }
 
             }
@@ -841,7 +844,8 @@ public class UniverseTest {
                             () -> assertEquals(0, writeListener.aborts, "Write not aborted"),
                             () -> assertEquals(1, readListener.commits,
                                     "Read committed (subsequent write enabled commit)"),
-                            () -> assertEquals(0, readListener.aborts, "Read not aborted"));
+                            () -> assertEquals(0, readListener.aborts, "Read not aborted"),
+                            () -> assertEquals(when3, universe.getLatestCommit(object), "Latest commit of object"));
                 }
 
             }// class
@@ -881,8 +885,9 @@ public class UniverseTest {
 
                     beginCommit(transaction2);
 
-                    assertTrue(0 < listener2.getEnds(), "Ended commit");
-                    assertEquals(1, listener2.aborts, "Aborted commit");
+                    assertAll(() -> assertTrue(0 < listener2.getEnds(), "Ended commit"),
+                            () -> assertEquals(1, listener2.aborts, "Aborted commit"), () -> assertEquals(when0,
+                                    universe.getLatestCommit(object), "Latest commit of object (unchanged)"));
                 }
 
             }// class
@@ -914,9 +919,11 @@ public class UniverseTest {
 
                     assertAll(() -> assertEquals(0, listener.aborts, "Did not abort"),
                             () -> assertEquals(1, listener.commits, "Committed"),
-                            () -> assertEquals(historyStart0, universe.getHistoryStart(), "History start unchanged"),
-                            () -> assertEquals(ValueHistory.END_OF_TIME, universe.getHistoryEnd(),
-                                    "History end (destruction is forever)"));
+                            () -> assertEquals(historyStart0, universe.getHistoryStart(), "History start unchanged"));
+                    assertAll("Destruction is forever.",
+                            () -> assertEquals(ValueHistory.END_OF_TIME, universe.getHistoryEnd(), "History end"),
+                            () -> assertEquals(ValueHistory.END_OF_TIME, universe.getLatestCommit(object),
+                                    "Latest commit of object"));
                 }
 
             }
@@ -956,8 +963,9 @@ public class UniverseTest {
 
                     beginCommit(transaction2);
 
-                    assertTrue(0 < listener2.getEnds(), "Ended transaction");
-                    assertEquals(1, listener2.aborts, "Aborted transaction");
+                    assertAll(() -> assertTrue(0 < listener2.getEnds(), "Ended transaction"),
+                            () -> assertEquals(1, listener2.aborts, "Aborted transaction"), () -> assertEquals(when0,
+                                    universe.getLatestCommit(object), "Latest commit of object (unchanged)"));
                 }
 
             }// class
@@ -991,7 +999,8 @@ public class UniverseTest {
                     beginCommit(transaction);
 
                     assertAll(() -> assertTrue(0 < listener.getEnds(), "Ended transaction"),
-                            () -> assertEquals(1, listener.commits, "Committed transaction"));
+                            () -> assertEquals(1, listener.commits, "Committed transaction"), () -> assertEquals(when2,
+                                    universe.getLatestCommit(object2), "Latest commit of object (advanced)"));
                 }
 
             }// class
@@ -1140,8 +1149,10 @@ public class UniverseTest {
 
                     beginCommit(transaction);
 
-                    assertTrue(0 < listener.getEnds(), "Ended transaction");
-                    assertEquals(1, listener.aborts, "Aborted commit");
+                    assertAll(() -> assertTrue(0 < listener.getEnds(), "Ended transaction"),
+                            () -> assertEquals(1, listener.aborts, "Aborted commit"),
+                            () -> assertEquals(ValueHistory.END_OF_TIME, universe.getLatestCommit(object),
+                                    "Latest commit of object (destruction is forever)"));
                 }
 
             }// class
@@ -3030,8 +3041,30 @@ public class UniverseTest {
         ObjectTest.assertInvariants(universe1, universe2);// inherited
     }
 
+    private static void assertInvariants(Universe universe, @NonNull UUID object) {
+        assertAll(() -> assertObjectStateHistoryInvariants(universe, object),
+                () -> assertLatestCommitInvariants(universe, object));
+    }
+
     public static void assertInvariants(Universe universe, UUID object, Duration when) {
         // Do nothing
+    }
+
+    private static @Nullable Duration assertLatestCommitInvariants(@NonNull Universe universe, @NonNull UUID object) {
+        final boolean containedObject = universe.getObjectIds().contains(object);
+        final SortedSet<Duration> transitionTimes = containedObject
+                ? universe.getObjectStateHistory(object).getTransitionTimes()
+                : Collections.emptySortedSet();
+
+        final Duration latestCommit = universe.getLatestCommit(object);
+
+        assertEquals(latestCommit != null, containedObject,
+                "An object has a last committed state time-stamp if, and only if, it is a known object.");
+        assertThat(
+                "If an object is known, its last committed state time-stamp is one of the transition times of the state history of that object, or is the start of time, or is the end of time.",
+                latestCommit, anyOf(is((Duration) null), isIn(transitionTimes), is(ValueHistory.START_OF_TIME),
+                        is(ValueHistory.END_OF_TIME)));
+        return latestCommit;
     }
 
     private static void assertObjectIdsInvariants(Universe universe) {
@@ -3041,6 +3074,7 @@ public class UniverseTest {
 
         for (UUID object : objectIds) {
             assertNotNull(object, "The set of object IDs does not have a null element.");// guard
+            assertInvariants(universe, object);
             final ValueHistory<ObjectState> objectStateHistory = assertObjectStateHistoryInvariants(universe, object);
             final Duration whenFirstState = universe.getWhenFirstState(object);
 
