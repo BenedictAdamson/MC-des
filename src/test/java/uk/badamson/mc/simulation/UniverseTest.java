@@ -3078,7 +3078,7 @@ public class UniverseTest {
                         "Unknown objects have an unknown state for all points in time."));
     }
 
-    private static void putAndCommit(final Universe universe, UUID object, Duration when, ObjectState state) {
+    static void putAndCommit(final Universe universe, UUID object, Duration when, ObjectState state) {
         final Universe.TransactionListener listener = new Universe.TransactionListener() {
 
             @Override
