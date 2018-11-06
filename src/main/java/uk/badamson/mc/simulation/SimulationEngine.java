@@ -3,6 +3,8 @@ package uk.badamson.mc.simulation;
 import java.util.Objects;
 import java.util.concurrent.Executor;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 /* 
  * © Copyright Benedict Adamson 2018.
  * 
@@ -30,7 +32,9 @@ import java.util.concurrent.Executor;
  */
 public final class SimulationEngine {
 
+    @NonNull
     private final Universe universe;
+    @NonNull
     private final Executor executor;
 
     /**
@@ -56,7 +60,7 @@ public final class SimulationEngine {
      *             <li>If {@code executor} is null.</li>
      *             </ul>
      */
-    public SimulationEngine(final Universe universe, final Executor executor) {
+    public SimulationEngine(@NonNull final Universe universe, @NonNull final Executor executor) {
         this.universe = Objects.requireNonNull(universe, "universe");
         this.executor = Objects.requireNonNull(executor, "executor");
     }
@@ -71,6 +75,7 @@ public final class SimulationEngine {
      * 
      * @return the executor
      */
+    @NonNull
     public final Executor getExecutor() {
         return executor;
     }
@@ -86,6 +91,7 @@ public final class SimulationEngine {
      * 
      * @return the universe;
      */
+    @NonNull
     public final Universe getUniverse() {
         return universe;
     }
