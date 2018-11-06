@@ -888,6 +888,40 @@ public class UniverseTest {
             }// class
 
             @Nested
+            public class AfterPutNull {
+
+                @Test
+                public void a() {
+                    test(DURATION_1, OBJECT_A, DURATION_2);
+                }
+
+                @Test
+                public void b() {
+                    test(DURATION_2, OBJECT_B, DURATION_3);
+                }
+
+                private void test(final Duration historyStart0, final UUID object, final Duration when) {
+                    assert historyStart0.compareTo(when) < 0;
+                    final Universe universe = new Universe(historyStart0);
+                    final ObjectState objectState0 = new ObjectStateTest.TestObjectState(1);
+                    putAndCommit(universe, object, historyStart0, objectState0);
+                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final Universe.Transaction transaction = universe.beginTransaction(listener);
+                    transaction.beginWrite(when);
+                    transaction.put(object, null);
+
+                    beginCommit(transaction);
+
+                    assertAll(() -> assertEquals(0, listener.aborts, "Did not abort"),
+                            () -> assertEquals(1, listener.commits, "Committed"),
+                            () -> assertEquals(historyStart0, universe.getHistoryStart(), "History start unchanged"),
+                            () -> assertEquals(ValueHistory.END_OF_TIME, universe.getHistoryEnd(),
+                                    "History end (destruction is forever)"));
+                }
+
+            }
+
+            @Nested
             public class AfterPutsNotSuccessiveForSameObject2 {
 
                 @Test

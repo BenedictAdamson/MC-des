@@ -284,14 +284,22 @@ public class Universe {
             assert predecessorTransactions.isEmpty();
             assert pastTheEndReads.isEmpty();
             openness = TransactionOpenness.COMMITTED;
-            for (UUID object : objectStatesWritten.keySet()) {
+            for (var entry : objectStatesWritten.entrySet()) {
+                final UUID object = entry.getKey();
+                final ObjectState state = entry.getValue();
                 assert object != null;
                 assert when != null;
+
                 final var od = objectDataMap.get(object);
                 assert od.lastCommit.compareTo(when) < 0;
-                od.lastCommit = when;
+                if (state != null) {
+                    od.lastCommit = when;
+                } else {// destruction is forever
+                    od.lastCommit = ValueHistory.END_OF_TIME;
+                }
                 od.uncommittedWriters.remove(this);
             }
+
             for (UUID object : dependencies.keySet()) {
                 assert object != null;
                 final var od = objectDataMap.get(object);
@@ -551,7 +559,9 @@ public class Universe {
          * @param state
          *            The state of the object just after this state transition, at the
          *            given point in time. A null value indicates that the object ceases
-         *            to exist at the given time.
+         *            to exist at the given time. Destroyed objects may not be
+         *            resurrected. Therefore the object state will remain null for all
+         *            subsequent points in time.
          * @throws NullPointerException
          *             If {@code object} is null.
          * @throws IllegalStateException
