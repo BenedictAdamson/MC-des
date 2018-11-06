@@ -1,9 +1,15 @@
 package uk.badamson.mc.simulation;
 
+import java.time.Duration;
 import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import uk.badamson.mc.simulation.Universe.PrehistoryException;
 
 /* 
  * © Copyright Benedict Adamson 2018.
@@ -63,6 +69,46 @@ public final class SimulationEngine {
     public SimulationEngine(@NonNull final Universe universe, @NonNull final Executor executor) {
         this.universe = Objects.requireNonNull(universe, "universe");
         this.executor = Objects.requireNonNull(executor, "executor");
+    }
+
+    /**
+     * <p>
+     * Retrieve or, if necessary, compute the state of a given object, of the
+     * {@linkplain #getUniverse() universe} of this engine, at a given point in
+     * time.
+     * </p>
+     * <ul>
+     * <li>Always returns a (non null) {@linkplain Future asynchronous
+     * computation}.</li>
+     * <li>{@linkplain Future#get() retrieving} the result of the returned
+     * {@linkplain Future asynchronous computation} may throw an
+     * {@link ExecutionException} {@linkplain ExecutionException#getCause() caused}
+     * by a {@link PrehistoryException} if the point of time of interest is
+     * {@linkplain Duration#compareTo(Duration) before} the
+     * {@linkplain Universe#getHistoryStart() start of history} of the
+     * {@linkplain #getUniverse() universe} of this engine.</li>
+     * </ul>
+     * 
+     * @param object
+     *            The ID of the object of interest.
+     * @param when
+     *            The point in time of interest.
+     * @return The result of the asynchronous computation of the state of the given
+     *         object at the given point in time, which can be
+     *         {@linkplain Future#get() retrieved} once the computation is complete.
+     * @throws NullPointerException
+     *             <ul>
+     *             <li>If {@code object} is null.</li>
+     *             <li>If {@code when} is null.</li>
+     *             </ul>
+     */
+    public final @NonNull Future<ObjectState> computeObjectState(@NonNull UUID object, @NonNull Duration when) {
+        Objects.requireNonNull(object, "object");
+        Objects.requireNonNull(when, "when");
+
+        // TODO
+        final CompletableFuture<ObjectState> future = CompletableFuture.completedFuture(null);
+        return future;
     }
 
     /**

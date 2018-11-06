@@ -18,17 +18,26 @@ package uk.badamson.mc.simulation;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
 import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import uk.badamson.mc.ObjectTest;
 
 /**
@@ -37,6 +46,53 @@ import uk.badamson.mc.ObjectTest;
  * </p>
  */
 public class SimulationEngineTest {
+
+    @Nested
+    public class ComputeObjectState {
+
+        @Nested
+        public class Empty {
+
+            @Test
+            public void a() {
+                test(WHEN_1, WHEN_2, OBJECT_A);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_2, WHEN_3, OBJECT_B);
+            }
+
+            private void test(@NonNull Duration historyStart, @NonNull Duration when, @NonNull UUID object) {
+                assert historyStart.compareTo(when) < 0;
+                final Universe universe = new Universe(historyStart);
+                final SimulationEngine engine = new SimulationEngine(universe, executorA);
+
+                final Future<ObjectState> future = computeObjectState(engine, object, when);
+
+                assertAll("future", () -> assertFalse(future.isCancelled(), "Not cancelled"),
+                        () -> assertTrue(future.isDone(), "Done"));
+                final ObjectState state;
+                try {
+                    state = future.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    fail("Computation immediately succeeds", e);
+                    return;// never happens
+                }
+                assertNull(state, "Object does not exist");
+            }
+        }// class
+
+        private Future<ObjectState> computeObjectState(SimulationEngine engine, @NonNull UUID object,
+                @NonNull Duration when) {
+            final Future<ObjectState> future = engine.computeObjectState(object, when);
+
+            assertInvariants(engine);
+            assertNotNull(future, "Always returns a (non null) asynchronous computation.");
+            return future;
+        }
+
+    }// class
 
     @Nested
     public class Constructor {
@@ -73,9 +129,14 @@ public class SimulationEngineTest {
         }
 
     }// class
-    private static final Duration WHEN_1 = UniverseTest.DURATION_1;
 
+    private static final Duration WHEN_1 = UniverseTest.DURATION_1;
     private static final Duration WHEN_2 = UniverseTest.DURATION_2;
+    private static final Duration WHEN_3 = UniverseTest.DURATION_3;
+
+    private static final UUID OBJECT_A = UniverseTest.OBJECT_A;
+    private static final UUID OBJECT_B = UniverseTest.OBJECT_B;
+
     public static void assertInvariants(SimulationEngine engine) {
         ObjectTest.assertInvariants(engine);// inherited
 
@@ -90,7 +151,6 @@ public class SimulationEngineTest {
     }
 
     private Executor executorA;
-
     private Executor executorB;
 
     @BeforeEach
