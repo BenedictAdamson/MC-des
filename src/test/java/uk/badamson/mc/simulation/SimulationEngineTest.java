@@ -19,9 +19,13 @@ package uk.badamson.mc.simulation;
  */
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import java.time.Duration;
+import java.util.Objects;
+import java.util.concurrent.Executor;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -38,29 +42,40 @@ public class SimulationEngineTest {
     public class Constructor {
         @Test
         public void a() {
-            test(WHEN_1);
+            test(WHEN_1, executorA);
         }
 
         @Test
         public void b() {
-            test(WHEN_2);
+            test(WHEN_2, executorB);
         }
 
-        private void test(final Duration historyStart) {
+        private void test(final Duration historyStart, final Executor executor) {
             final Universe universe = new Universe(historyStart);
-            test(universe);
+            test(universe, executor);
         }
 
-        private void test(final Universe universe) {
-            final SimulationEngine engine = new SimulationEngine(universe);
+        private void test(final Universe universe, final Executor executor) {
+            final SimulationEngine engine = new SimulationEngine(universe, executor);
 
             assertInvariants(engine);
+            assertSame(universe, engine.getUniverse(), "This engine has the given universe as its universe.");
+            assertSame(executor, engine.getExecutor(), "This engine has the given executor as its executor.");
         }
     }// class
 
-    private static final Duration WHEN_1 = UniverseTest.DURATION_1;
-    private static final Duration WHEN_2 = UniverseTest.DURATION_2;
+    private static final class DirectExector implements Executor {
 
+        @Override
+        public void execute(Runnable runnable) {
+            Objects.requireNonNull(runnable, "runnable");
+            runnable.run();
+        }
+
+    }// class
+    private static final Duration WHEN_1 = UniverseTest.DURATION_1;
+
+    private static final Duration WHEN_2 = UniverseTest.DURATION_2;
     public static void assertInvariants(SimulationEngine engine) {
         ObjectTest.assertInvariants(engine);// inherited
 
@@ -72,5 +87,15 @@ public class SimulationEngineTest {
 
     public static void assertInvariants(SimulationEngine engine1, SimulationEngine engine2) {
         ObjectTest.assertInvariants(engine1, engine2);// inherited
+    }
+
+    private Executor executorA;
+
+    private Executor executorB;
+
+    @BeforeEach
+    public void setUpExectors() {
+        executorA = new DirectExector();
+        executorB = new DirectExector();
     }
 }

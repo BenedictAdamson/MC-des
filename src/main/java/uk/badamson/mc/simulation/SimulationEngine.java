@@ -1,6 +1,7 @@
 package uk.badamson.mc.simulation;
 
 import java.util.Objects;
+import java.util.concurrent.Executor;
 
 /* 
  * © Copyright Benedict Adamson 2018.
@@ -30,25 +31,48 @@ import java.util.Objects;
 public final class SimulationEngine {
 
     private final Universe universe;
+    private final Executor executor;
 
     /**
      * <p>
      * Construct a {@link SimulationEngine} with given associations.
      * </p>
      * <ul>
-     * <li>This engine has the given universe as its
-     * {@linkplain #getUniverse()}.</li>
+     * <li>This engine has the given universe as its {@linkplain #getUniverse()
+     * universe}.</li>
+     * <li>This engine has the given executor as its {@linkplain #getExecutor()
+     * executor}.</li>
      * </ul>
      * 
      * @param universe
      *            The collection of simulated objects and their
      *            {@linkplain ObjectState state} histories that this drives
      *            forwards.
+     * @param executor
+     *            The object that this uses to execute {@link Runnable} tasks.
      * @throws NullPointerException
-     *             If {@code universe} is null.
+     *             <ul>
+     *             <li>If {@code universe} is null.</li>
+     *             <li>If {@code executor} is null.</li>
+     *             </ul>
      */
-    public SimulationEngine(final Universe universe) {
+    public SimulationEngine(final Universe universe, final Executor executor) {
         this.universe = Objects.requireNonNull(universe, "universe");
+        this.executor = Objects.requireNonNull(executor, "executor");
+    }
+
+    /**
+     * <p>
+     * The object that this uses to execute {@link Runnable} tasks.
+     * </p>
+     * <ul>
+     * <li>Always have a (non null) executor.</li>
+     * </ul>
+     * 
+     * @return the executor
+     */
+    public final Executor getExecutor() {
+        return executor;
     }
 
     /**
