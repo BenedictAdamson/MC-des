@@ -1,4 +1,7 @@
 package uk.badamson.mc.simulation;
+
+import java.util.Objects;
+
 /* 
  * © Copyright Benedict Adamson 2018.
  * 
@@ -26,11 +29,41 @@ package uk.badamson.mc.simulation;
  */
 public final class SimulationEngine {
 
+    private final Universe universe;
+
     /**
+     * <p>
+     * Construct a {@link SimulationEngine} with given associations.
+     * </p>
+     * <ul>
+     * <li>This engine has the given universe as its
+     * {@linkplain #getUniverse()}.</li>
+     * </ul>
      * 
+     * @param universe
+     *            The collection of simulated objects and their
+     *            {@linkplain ObjectState state} histories that this drives
+     *            forwards.
+     * @throws NullPointerException
+     *             If {@code universe} is null.
      */
-    public SimulationEngine() {
-        // TODO Auto-generated constructor stub
+    public SimulationEngine(final Universe universe) {
+        this.universe = Objects.requireNonNull(universe, "universe");
+    }
+
+    /**
+     * <p>
+     * The collection of simulated objects and their {@linkplain ObjectState state}
+     * histories that this drives forwards.
+     * </p>
+     * <ul>
+     * <li>Always have a (non null) associated universe.</li>
+     * </ul>
+     * 
+     * @return the universe;
+     */
+    public final Universe getUniverse() {
+        return universe;
     }
 
 }

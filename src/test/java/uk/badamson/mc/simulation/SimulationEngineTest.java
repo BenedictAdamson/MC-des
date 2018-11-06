@@ -18,6 +18,10 @@ package uk.badamson.mc.simulation;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import java.time.Duration;
+
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -34,18 +38,36 @@ public class SimulationEngineTest {
     public class Constructor {
         @Test
         public void a() {
-            test();
+            test(WHEN_1);
         }
 
-        private void test() {
-            final SimulationEngine engine = new SimulationEngine();
+        @Test
+        public void b() {
+            test(WHEN_2);
+        }
+
+        private void test(final Duration historyStart) {
+            final Universe universe = new Universe(historyStart);
+            test(universe);
+        }
+
+        private void test(final Universe universe) {
+            final SimulationEngine engine = new SimulationEngine(universe);
 
             assertInvariants(engine);
         }
-    }
+    }// class
+
+    private static final Duration WHEN_1 = UniverseTest.DURATION_1;
+    private static final Duration WHEN_2 = UniverseTest.DURATION_2;
 
     public static void assertInvariants(SimulationEngine engine) {
         ObjectTest.assertInvariants(engine);// inherited
+
+        final Universe universe = engine.getUniverse();
+        assertNotNull(universe, "Always have a (non null) associated universe.");// guard
+
+        UniverseTest.assertInvariants(universe);
     }
 
     public static void assertInvariants(SimulationEngine engine1, SimulationEngine engine2) {
