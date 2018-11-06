@@ -2986,21 +2986,21 @@ public class UniverseTest {
         }
     }// class
 
-    private static final UUID OBJECT_A = ObjectStateIdTest.OBJECT_A;
-    private static final UUID OBJECT_B = ObjectStateIdTest.OBJECT_B;
-    private static final UUID OBJECT_C = UUID.randomUUID();
-    private static final UUID OBJECT_D = UUID.randomUUID();
-    private static final UUID OBJECT_E = UUID.randomUUID();
-    private static final UUID OBJECT_F = UUID.randomUUID();
-    private static final Duration DURATION_1 = Duration.ofSeconds(13);
-    private static final Duration DURATION_2 = Duration.ofSeconds(17);
-    private static final Duration DURATION_3 = Duration.ofSeconds(23);
-    private static final Duration DURATION_4 = Duration.ofSeconds(29);
-    private static final Duration DURATION_5 = Duration.ofSeconds(31);
-    private static final Duration DURATION_6 = Duration.ofSeconds(37);
-    private static final Duration DURATION_7 = Duration.ofSeconds(43);
-    private static final Duration DURATION_8 = Duration.ofSeconds(47);
-    private static final Duration DURATION_9 = Duration.ofSeconds(53);
+    static final UUID OBJECT_A = ObjectStateIdTest.OBJECT_A;
+    static final UUID OBJECT_B = ObjectStateIdTest.OBJECT_B;
+    static final UUID OBJECT_C = UUID.randomUUID();
+    static final UUID OBJECT_D = UUID.randomUUID();
+    static final UUID OBJECT_E = UUID.randomUUID();
+    static final UUID OBJECT_F = UUID.randomUUID();
+    static final Duration DURATION_1 = Duration.ofSeconds(13);
+    static final Duration DURATION_2 = Duration.ofSeconds(17);
+    static final Duration DURATION_3 = Duration.ofSeconds(23);
+    static final Duration DURATION_4 = Duration.ofSeconds(29);
+    static final Duration DURATION_5 = Duration.ofSeconds(31);
+    static final Duration DURATION_6 = Duration.ofSeconds(37);
+    static final Duration DURATION_7 = Duration.ofSeconds(43);
+    static final Duration DURATION_8 = Duration.ofSeconds(47);
+    static final Duration DURATION_9 = Duration.ofSeconds(53);
 
     private static Duration assertHistoryEndInvariants(Universe universe) {
         final Duration historyEnd = universe.getHistoryEnd();
