@@ -83,6 +83,45 @@ public class SimulationEngineTest {
             }
         }// class
 
+        @Nested
+        public class Exists {
+
+            @Test
+            public void a() {
+                test(WHEN_1, WHEN_2, WHEN_3, WHEN_4, OBJECT_A);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_2, WHEN_3, WHEN_4, WHEN_5, OBJECT_B);
+            }
+
+            private void test(@NonNull Duration historyStart, @NonNull Duration before, @NonNull Duration when,
+                    @NonNull Duration after, @NonNull UUID object) {
+                assert before.compareTo(when) <= 0;
+                assert when.compareTo(after) < 0;
+                final Universe universe = new Universe(historyStart);
+                final ObjectState state1 = new ObjectStateTest.TestObjectState(1);
+                final ObjectState state2 = new ObjectStateTest.TestObjectState(2);
+                UniverseTest.putAndCommit(universe, object, before, state1);
+                UniverseTest.putAndCommit(universe, object, after, state2);
+                final SimulationEngine engine = new SimulationEngine(universe, executorA);
+
+                final Future<ObjectState> future = computeObjectState(engine, object, when);
+
+                assertAll("future", () -> assertFalse(future.isCancelled(), "Not cancelled"),
+                        () -> assertTrue(future.isDone(), "Done"));
+                final ObjectState state;
+                try {
+                    state = future.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    fail("Computation immediately succeeds", e);
+                    return;// never happens
+                }
+                assertSame(state1, state, "Retrieved the existing object state.");
+            }
+        }// class
+
         private Future<ObjectState> computeObjectState(SimulationEngine engine, @NonNull UUID object,
                 @NonNull Duration when) {
             final Future<ObjectState> future = engine.computeObjectState(object, when);
@@ -133,6 +172,8 @@ public class SimulationEngineTest {
     private static final Duration WHEN_1 = UniverseTest.DURATION_1;
     private static final Duration WHEN_2 = UniverseTest.DURATION_2;
     private static final Duration WHEN_3 = UniverseTest.DURATION_3;
+    private static final Duration WHEN_4 = UniverseTest.DURATION_4;
+    private static final Duration WHEN_5 = UniverseTest.DURATION_5;
 
     private static final UUID OBJECT_A = UniverseTest.OBJECT_A;
     private static final UUID OBJECT_B = UniverseTest.OBJECT_B;

@@ -106,8 +106,27 @@ public final class SimulationEngine {
         Objects.requireNonNull(object, "object");
         Objects.requireNonNull(when, "when");
 
+        final Universe.TransactionListener listener = new Universe.TransactionListener() {
+
+            @Override
+            public void onAbort() {
+                // TODO Auto-generated method stub
+
+            }
+
+            @Override
+            public void onCommit() {
+                // TODO Auto-generated method stub
+
+            }
+        };
         // TODO
-        final CompletableFuture<ObjectState> future = CompletableFuture.completedFuture(null);
+        final Universe.Transaction transaction = universe.beginTransaction(listener);
+        transaction.getObjectState(object, when);
+        transaction.beginCommit();
+        final CompletableFuture<ObjectState> future = CompletableFuture
+                .completedFuture(transaction.getObjectState(object, when));
+
         return future;
     }
 
