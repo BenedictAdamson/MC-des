@@ -72,6 +72,7 @@ public class ObjectStateTest {
             }
 
             final TestObjectState nextState = new TestObjectState(i + 1);
+            transaction.beginWrite(when.plusSeconds(1));
             transaction.put(object, nextState);
         }
 
