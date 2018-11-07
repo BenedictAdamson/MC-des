@@ -38,8 +38,94 @@ import uk.badamson.mc.simulation.Universe.PrehistoryException;
  */
 public final class SimulationEngine {
 
+    private class EngineFuture<T> extends CompletableFuture<T> {
+
+        @Override
+        public final Executor defaultExecutor() {
+            return executor;
+        }
+
+        @Override
+        public final <U> CompletableFuture<U> newIncompleteFuture() {
+            return new EngineFuture<U>();
+        }
+
+    }// class
+
+    private final class FutureObjectState extends EngineFuture<ObjectState> {
+        private final UUID object;
+        private final Duration when;
+        private ObjectState state;
+        private Duration latestCommit;
+
+        private FutureObjectState(@NonNull UUID object, @NonNull Duration when) {
+            this.object = object;
+            this.when = when;
+        }
+
+        private void advance1() {
+            latestCommit = universe.getLatestCommit(object);
+            final Universe.Transaction transaction = universe.beginTransaction(new Universe.TransactionListener() {
+
+                @Override
+                public void onAbort() {
+                    // TODO retry
+                    // TODO handle dependencies
+                }
+
+                @Override
+                public void onCommit() {
+                    latestCommit = universe.getLatestCommit(object);
+                    if (latestCommit.compareTo(when) < 0) {
+                        // Further work required
+                        scheduleAdvance1();
+                    } else if (!isDone()) {
+                        beginReadTransaction();
+                    }
+                }
+            });
+
+            final ObjectState state0 = transaction.getObjectState(object, latestCommit);
+            state0.putNextStateTransition(transaction, object, latestCommit);
+            transaction.beginCommit();
+        }
+
+        private void beginReadTransaction() {
+            final Universe.Transaction transaction = universe.beginTransaction(new Universe.TransactionListener() {
+
+                @Override
+                public void onAbort() {
+                    // Do nothing; advance1() will retry
+                }
+
+                @Override
+                public void onCommit() {
+                    complete(state);
+                }
+
+            });
+            state = transaction.getObjectState(object, when);
+            // TODO handle PrehistoryException
+            transaction.beginCommit();
+        }
+
+        private void compute() {
+            // Try to fetch an already committed state:
+            beginReadTransaction();
+            if (!isDone()) {
+                scheduleAdvance1();
+            }
+        }
+
+        private void scheduleAdvance1() {
+            executor.execute(() -> advance1());
+        }
+
+    }// class
+
     @NonNull
     private final Universe universe;
+
     @NonNull
     private final Executor executor;
 
@@ -106,27 +192,8 @@ public final class SimulationEngine {
         Objects.requireNonNull(object, "object");
         Objects.requireNonNull(when, "when");
 
-        final Universe.TransactionListener listener = new Universe.TransactionListener() {
-
-            @Override
-            public void onAbort() {
-                // TODO Auto-generated method stub
-
-            }
-
-            @Override
-            public void onCommit() {
-                // TODO Auto-generated method stub
-
-            }
-        };
-        // TODO
-        final Universe.Transaction transaction = universe.beginTransaction(listener);
-        transaction.getObjectState(object, when);
-        transaction.beginCommit();
-        final CompletableFuture<ObjectState> future = CompletableFuture
-                .completedFuture(transaction.getObjectState(object, when));
-
+        final FutureObjectState future = new FutureObjectState(object, when);
+        future.compute();
         return future;
     }
 

@@ -18,6 +18,8 @@ package uk.badamson.mc.simulation;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -119,6 +121,45 @@ public class SimulationEngineTest {
                     return;// never happens
                 }
                 assertSame(state1, state, "Retrieved the existing object state.");
+            }
+        }// class
+
+        @Nested
+        public class NoDependencies {
+
+            @Test
+            public void a() {
+                test(WHEN_1, WHEN_2, WHEN_3, OBJECT_A);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_2, WHEN_3, WHEN_4, OBJECT_B);
+            }
+
+            private void test(@NonNull Duration historyStart, @NonNull Duration before, @NonNull Duration when,
+                    @NonNull UUID object) {
+                assert historyStart.compareTo(when) < 0;
+                assert before.compareTo(when) < 0;
+                final Universe universe = new Universe(historyStart);
+                final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
+                UniverseTest.putAndCommit(universe, object, before, state0);
+                final SimulationEngine engine = new SimulationEngine(universe, executorA);
+
+                final Future<ObjectState> future = computeObjectState(engine, object, when);
+
+                assertAll("future", () -> assertFalse(future.isCancelled(), "Not cancelled"),
+                        () -> assertTrue(future.isDone(), "Done"));
+                final ObjectState state;
+                try {
+                    state = future.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    fail("Computation succeeds", e);
+                    return;// never happens
+                }
+                assertNotNull(state, "Computed a state");// guard
+                ObjectStateTest.assertInvariants(state);
+                assertThat("Advanced the state history", universe.getLatestCommit(object), greaterThanOrEqualTo(when));
             }
         }// class
 
