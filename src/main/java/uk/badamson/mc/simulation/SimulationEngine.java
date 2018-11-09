@@ -85,9 +85,15 @@ public final class SimulationEngine {
                 }
             });
 
-            final ObjectState state0 = transaction.getObjectState(object, latestCommit);
-            state0.putNextStateTransition(transaction, object, latestCommit);
-            transaction.beginCommit();
+            try {
+                final ObjectState state0 = transaction.getObjectState(object, latestCommit);
+                state0.putNextStateTransition(transaction, object, latestCommit);
+                transaction.beginCommit();
+            } catch (Universe.PrehistoryException e) {
+                // Hard to test: race hazard.
+                completeExceptionally(e);
+                transaction.beginAbort();
+            }
         }
 
         private void beginReadTransaction() {
