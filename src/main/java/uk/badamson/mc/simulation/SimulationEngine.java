@@ -104,9 +104,12 @@ public final class SimulationEngine {
                 }
 
             });
-            state = transaction.getObjectState(object, when);
-            // TODO handle PrehistoryException
-            transaction.beginCommit();
+            try {
+                state = transaction.getObjectState(object, when);
+                transaction.beginCommit();
+            } catch (Universe.PrehistoryException e) {
+                completeExceptionally(e);
+            }
         }
 
         private void compute() {

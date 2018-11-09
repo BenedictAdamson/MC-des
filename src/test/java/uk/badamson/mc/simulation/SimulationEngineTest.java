@@ -19,6 +19,7 @@ package uk.badamson.mc.simulation;
  */
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -261,6 +262,51 @@ public class SimulationEngineTest {
                 assertNotNull(state, "Computed a state");// guard
                 ObjectStateTest.assertInvariants(state);
                 assertThat("Advanced the state history", universe.getLatestCommit(object), greaterThanOrEqualTo(when));
+            }
+        }// class
+
+        @Nested
+        public class PrehistoricRead {
+
+            @Test
+            public void a() {
+                test(WHEN_1, WHEN_2, WHEN_3, OBJECT_A);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_2, WHEN_3, WHEN_4, OBJECT_B);
+            }
+
+            @Test
+            public void close() {
+                test(WHEN_1, WHEN_2, WHEN_2.plusNanos(1), OBJECT_A);
+            }
+
+            private void test(@NonNull Duration before, @NonNull Duration when, @NonNull Duration historyStart,
+                    @NonNull UUID object) {
+                assert when.compareTo(historyStart) < 0;
+                assert before.compareTo(when) < 0;
+                final Universe universe = new Universe(historyStart);
+                final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
+                UniverseTest.putAndCommit(universe, object, before, state0);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+
+                final Future<ObjectState> future = computeObjectState(engine, object, when);
+
+                assertAll("future", () -> assertFalse(future.isCancelled(), "Not cancelled"),
+                        () -> assertTrue(future.isDone(), "Done"));
+                try {
+                    future.get();
+                } catch (InterruptedException e) {
+                    fail("get() not interrupted", e);
+                    return;// never happens
+                } catch (ExecutionException e) {
+                    assertThat("Threw PrehistoryException exception", e.getCause(),
+                            instanceOf(Universe.PrehistoryException.class));
+                    return;
+                }
+                fail("Did not throw exception");
             }
         }// class
 
