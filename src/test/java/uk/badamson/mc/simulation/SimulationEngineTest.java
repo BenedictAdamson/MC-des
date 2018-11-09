@@ -29,7 +29,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
+import java.util.ArrayDeque;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -68,7 +70,7 @@ public class SimulationEngineTest {
             private void test(@NonNull Duration historyStart, @NonNull Duration when, @NonNull UUID object) {
                 assert historyStart.compareTo(when) < 0;
                 final Universe universe = new Universe(historyStart);
-                final SimulationEngine engine = new SimulationEngine(universe, executorA);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
 
                 final Future<ObjectState> future = computeObjectState(engine, object, when);
 
@@ -107,7 +109,7 @@ public class SimulationEngineTest {
                 final ObjectState state2 = new ObjectStateTest.TestObjectState(2);
                 UniverseTest.putAndCommit(universe, object, before, state1);
                 UniverseTest.putAndCommit(universe, object, after, state2);
-                final SimulationEngine engine = new SimulationEngine(universe, executorA);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
 
                 final Future<ObjectState> future = computeObjectState(engine, object, when);
 
@@ -147,11 +149,61 @@ public class SimulationEngineTest {
                 final Universe universe = new Universe(historyStart);
                 final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
                 UniverseTest.putAndCommit(universe, object, before, state0);
-                final SimulationEngine engine = new SimulationEngine(universe, executorA);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
                 engine.computeObjectState(object, whenA);
 
                 final Future<ObjectState> future2 = computeObjectState(engine, object, whenB);
 
+                assertAll("future", () -> assertFalse(future2.isCancelled(), "Not cancelled"),
+                        () -> assertTrue(future2.isDone(), "Done"));
+                final ObjectState state2;
+                try {
+                    state2 = future2.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    fail("Computation succeeds", e);
+                    return;// never happens
+                }
+                assertNotNull(state2, "Computed a state");// guard
+                ObjectStateTest.assertInvariants(state2);
+                assertThat("Advanced the state history", universe.getLatestCommit(object),
+                        greaterThanOrEqualTo(whenLast));
+            }
+
+            @Test
+            public void unordered() {
+                test(WHEN_1, WHEN_2, WHEN_4, WHEN_3, OBJECT_A);
+            }
+        }// class
+
+        @Nested
+        public class Independent2Enqueued {
+
+            @Test
+            public void successiveA() {
+                test(WHEN_1, WHEN_2, WHEN_3, WHEN_4, OBJECT_A);
+            }
+
+            @Test
+            public void successiveB() {
+                test(WHEN_2, WHEN_3, WHEN_4, WHEN_5, OBJECT_B);
+            }
+
+            private void test(@NonNull Duration historyStart, @NonNull Duration before, @NonNull Duration whenA,
+                    @NonNull Duration whenB, @NonNull UUID object) {
+                assert historyStart.compareTo(whenA) < 0;
+                assert historyStart.compareTo(whenB) < 0;
+                assert before.compareTo(whenA) < 0;
+                assert before.compareTo(whenB) < 0;
+                final Duration whenLast = whenA.compareTo(whenB) <= 0 ? whenA : whenB;
+                final Universe universe = new Universe(historyStart);
+                final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
+                UniverseTest.putAndCommit(universe, object, before, state0);
+                final SimulationEngine engine = new SimulationEngine(universe, enqueingExector);
+                engine.computeObjectState(object, whenA);
+
+                final Future<ObjectState> future2 = computeObjectState(engine, object, whenB);
+
+                enqueingExector.runAll();
                 assertAll("future", () -> assertFalse(future2.isCancelled(), "Not cancelled"),
                         () -> assertTrue(future2.isDone(), "Done"));
                 final ObjectState state2;
@@ -193,7 +245,7 @@ public class SimulationEngineTest {
                 final Universe universe = new Universe(historyStart);
                 final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
                 UniverseTest.putAndCommit(universe, object, before, state0);
-                final SimulationEngine engine = new SimulationEngine(universe, executorA);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
 
                 final Future<ObjectState> future = computeObjectState(engine, object, when);
 
@@ -227,12 +279,12 @@ public class SimulationEngineTest {
     public class Constructor {
         @Test
         public void a() {
-            test(WHEN_1, executorA);
+            test(WHEN_1, directExecutor);
         }
 
         @Test
         public void b() {
-            test(WHEN_2, executorB);
+            test(WHEN_2, enqueingExector);
         }
 
         private void test(final Duration historyStart, final Executor executor) {
@@ -249,12 +301,29 @@ public class SimulationEngineTest {
         }
     }// class
 
-    private static final class DirectExector implements Executor {
+    private static final class DirectExecutor implements Executor {
 
         @Override
         public void execute(Runnable runnable) {
             Objects.requireNonNull(runnable, "runnable");
             runnable.run();
+        }
+
+    }// class
+
+    private static final class EnqueingExector implements Executor {
+        private final Queue<Runnable> queue = new ArrayDeque<>();
+
+        @Override
+        public void execute(Runnable runnable) {
+            Objects.requireNonNull(runnable, "runnable");
+            queue.add(runnable);
+        }
+
+        void runAll() {
+            while (!queue.isEmpty()) {
+                queue.remove().run();
+            }
         }
 
     }// class
@@ -281,12 +350,12 @@ public class SimulationEngineTest {
         ObjectTest.assertInvariants(engine1, engine2);// inherited
     }
 
-    private Executor executorA;
-    private Executor executorB;
+    private DirectExecutor directExecutor;
+    private EnqueingExector enqueingExector;
 
     @BeforeEach
     public void setUpExectors() {
-        executorA = new DirectExector();
-        executorB = new DirectExector();
+        directExecutor = new DirectExecutor();
+        enqueingExector = new EnqueingExector();
     }
 }
