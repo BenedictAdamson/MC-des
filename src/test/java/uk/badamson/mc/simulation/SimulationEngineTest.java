@@ -125,6 +125,55 @@ public class SimulationEngineTest {
         }// class
 
         @Nested
+        public class Independent2 {
+
+            @Test
+            public void successiveA() {
+                test(WHEN_1, WHEN_2, WHEN_3, WHEN_4, OBJECT_A);
+            }
+
+            @Test
+            public void successiveB() {
+                test(WHEN_2, WHEN_3, WHEN_4, WHEN_5, OBJECT_B);
+            }
+
+            private void test(@NonNull Duration historyStart, @NonNull Duration before, @NonNull Duration whenA,
+                    @NonNull Duration whenB, @NonNull UUID object) {
+                assert historyStart.compareTo(whenA) < 0;
+                assert historyStart.compareTo(whenB) < 0;
+                assert before.compareTo(whenA) < 0;
+                assert before.compareTo(whenB) < 0;
+                final Duration whenLast = whenA.compareTo(whenB) <= 0 ? whenA : whenB;
+                final Universe universe = new Universe(historyStart);
+                final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
+                UniverseTest.putAndCommit(universe, object, before, state0);
+                final SimulationEngine engine = new SimulationEngine(universe, executorA);
+                engine.computeObjectState(object, whenA);
+
+                final Future<ObjectState> future2 = computeObjectState(engine, object, whenB);
+
+                assertAll("future", () -> assertFalse(future2.isCancelled(), "Not cancelled"),
+                        () -> assertTrue(future2.isDone(), "Done"));
+                final ObjectState state2;
+                try {
+                    state2 = future2.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    fail("Computation succeeds", e);
+                    return;// never happens
+                }
+                assertNotNull(state2, "Computed a state");// guard
+                ObjectStateTest.assertInvariants(state2);
+                assertThat("Advanced the state history", universe.getLatestCommit(object),
+                        greaterThanOrEqualTo(whenLast));
+            }
+
+            @Test
+            public void unordered() {
+                test(WHEN_1, WHEN_2, WHEN_4, WHEN_3, OBJECT_A);
+            }
+        }// class
+
+        @Nested
         public class NoDependencies {
 
             @Test
