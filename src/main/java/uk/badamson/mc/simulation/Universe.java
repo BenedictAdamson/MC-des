@@ -196,13 +196,15 @@ public class Universe {
          * {@linkplain Universe.TransactionOpenness#WRITING writing}.</li>
          * </ul>
          * 
-         * @param[in] onCommit An action to perform when (if) this transaction
-         *            successfully completes the commit operation.
-         * @param[in] onAbort An action to perform when (if) this transaction aborts the
-         *            commit operation.
+         * @param onCommit
+         *            An action to perform when (if) this transaction successfully
+         *            completes the commit operation.
+         * @param onAbort
+         *            An action to perform when (if) this transaction aborts the commit
+         *            operation.
          * @throws IllegalStateException
-         *             If this {@linkplain #didBeginCommit() committing this transaction
-         *             has already begun}.
+         *             If {@linkplain #didBeginCommit() committing this transaction has
+         *             already begun}.
          */
         public final void beginCommit() {
             openness.beginCommit(this);
