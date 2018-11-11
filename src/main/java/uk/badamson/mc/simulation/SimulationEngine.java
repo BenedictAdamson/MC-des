@@ -1,7 +1,6 @@
 package uk.badamson.mc.simulation;
 
 import java.time.Duration;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -9,7 +8,9 @@ import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -73,7 +74,7 @@ public final class SimulationEngine {
                 assert latestCommit.compareTo(transaction.getWhen()) < 0;
                 assert transaction.getObjectStatesWritten().containsKey(object);
 
-                scheduleDependencies(transaction.getDependencies().values());
+                scheduleDependencies(new TreeSet<>(transaction.getDependencies().values()));
 
                 transaction.beginCommit();
             } catch (Universe.PrehistoryException e) {
@@ -159,8 +160,14 @@ public final class SimulationEngine {
             executor.execute(() -> advance1());
         }
 
-        private void scheduleDependencies(final Collection<ObjectStateId> dependencyIds) {
-            // TODO sort the dependencies
+        /*
+         * By having the dependencies sorted, we will schedule the dependencies in
+         * ascending time order, which will tend to result in fewer aborted
+         * transactions. The number of dependencies should be small and not proportional
+         * to the number of objects, so the performance to advance the universe to a
+         * given point in time should remain O(N).
+         */
+        private void scheduleDependencies(final SortedSet<ObjectStateId> dependencyIds) {
             for (var dependencyId : dependencyIds) {
                 final UUID objectDependency = dependencyId.getObject();
                 final Duration dependencyWhen = dependencyId.getWhen();
