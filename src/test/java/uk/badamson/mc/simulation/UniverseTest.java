@@ -2044,6 +2044,63 @@ public class UniverseTest {
             }// class
 
             @Nested
+            public class SatisfyingDependencyOfDuplicateAppends {
+
+                @Test
+                public void a() {
+                    test(OBJECT_A, OBJECT_B, DURATION_1, DURATION_2, DURATION_3);
+                }
+
+                @Test
+                public void b() {
+                    test(OBJECT_B, OBJECT_A, DURATION_2, DURATION_3, DURATION_4);
+                }
+
+                private void test(UUID objectA, UUID objectB, Duration historyStart, Duration whenA, Duration whenB) {
+                    assert historyStart.compareTo(whenA) < 0;
+                    assert whenA.compareTo(whenB) < 0;
+                    final ObjectState objectStateA0 = new ObjectStateTest.TestObjectState(11);
+                    final ObjectState objectStateA1 = new ObjectStateTest.TestObjectState(12);
+                    final ObjectState objectStateB0 = new ObjectStateTest.TestObjectState(21);
+                    final ObjectState objectStateB1 = new ObjectStateTest.TestObjectState(22);
+                    final ObjectState objectStateB2 = new ObjectStateTest.TestObjectState(22);
+
+                    final CountingTransactionListener listenerA = new CountingTransactionListener();
+                    final CountingTransactionListener listenerB1 = new CountingTransactionListener();
+                    final CountingTransactionListener listenerB2 = new CountingTransactionListener();
+
+                    final Universe universe = new Universe(historyStart);
+                    putAndCommit(universe, objectA, historyStart, objectStateA0);
+                    putAndCommit(universe, objectB, historyStart, objectStateB0);
+
+                    final Universe.Transaction transactionA = universe.beginTransaction(listenerA);
+                    transactionA.getObjectState(objectA, historyStart);
+                    transactionA.beginWrite(whenA);
+                    transactionA.put(objectA, objectStateA1);
+
+                    final Universe.Transaction transactionB1 = universe.beginTransaction(listenerB1);
+                    transactionB1.getObjectState(objectB, historyStart);
+                    transactionB1.getObjectState(objectA, historyStart);
+                    transactionB1.beginWrite(whenB);
+                    transactionB1.put(objectB, objectStateB1);
+                    transactionB1.beginCommit();
+
+                    final Universe.Transaction transactionB2 = universe.beginTransaction(listenerB2);
+                    transactionB1.getObjectState(objectB, historyStart);
+                    transactionB2.getObjectState(objectA, historyStart);
+                    transactionB2.beginWrite(whenB);
+                    transactionB2.put(objectB, objectStateB2);
+                    transactionB2.beginCommit();
+
+                    beginCommit(transactionA);
+
+                    assertAll("Independent write ended", () -> assertEquals(0, listenerA.aborts, "not aborted."),
+                            () -> assertEquals(1, listenerA.commits, "committed."));
+                }
+
+            }// class
+
+            @Nested
             public class SuccessiveStates2 {
                 @Test
                 public void a() {
