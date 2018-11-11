@@ -2080,14 +2080,14 @@ public class UniverseTest {
 
                     final Universe.Transaction transactionB1 = universe.beginTransaction(listenerB1);
                     transactionB1.getObjectState(objectB, historyStart);
-                    transactionB1.getObjectState(objectA, historyStart);
+                    transactionB1.getObjectState(objectA, whenA);
                     transactionB1.beginWrite(whenB);
                     transactionB1.put(objectB, objectStateB1);
                     transactionB1.beginCommit();
 
                     final Universe.Transaction transactionB2 = universe.beginTransaction(listenerB2);
                     transactionB1.getObjectState(objectB, historyStart);
-                    transactionB2.getObjectState(objectA, historyStart);
+                    transactionB2.getObjectState(objectA, whenA);
                     transactionB2.beginWrite(whenB);
                     transactionB2.put(objectB, objectStateB2);
                     transactionB2.beginCommit();
@@ -2096,6 +2096,10 @@ public class UniverseTest {
 
                     assertAll("Independent write ended", () -> assertEquals(0, listenerA.aborts, "not aborted."),
                             () -> assertEquals(1, listenerA.commits, "committed."));
+                    assertAll("First of duplicate writes won", () -> assertEquals(0, listenerB1.aborts, "not aborted."),
+                            () -> assertEquals(1, listenerB1.commits, "committed."));
+                    assertAll("Seconds of duplicate writes lost", () -> assertEquals(1, listenerB2.aborts, "aborted."),
+                            () -> assertEquals(0, listenerB2.commits, "not committed."));
                 }
 
             }// class

@@ -300,6 +300,7 @@ public class Universe {
                     od.latestCommit = ValueHistory.END_OF_TIME;
                 }
                 od.uncommittedWriters.remove(this);
+                assert od.stateHistory.getTransitionTimes().contains(when);
             }
 
             for (UUID object : dependencies.keySet()) {
@@ -699,14 +700,14 @@ public class Universe {
                  * As we are a writer for the object, the object has at least one recorded state
                  * (the state we wrote), so od is guaranteed to be not null.
                  */
-                od.uncommittedWriters.remove(this);// optimisation
-                if (od.latestCommit.compareTo(when) < 0) {
+                if (od.latestCommit.compareTo(when) < 0 && od.uncommittedWriters.contains(this).get(when)) {
                     od.stateHistory.removeTransitionsFrom(when);
                     if (od.stateHistory.isEmpty()) {
                         objectDataMap.remove(object);
                     }
                 }
                 // else aborting because of an out-of-order write
+                od.uncommittedWriters.remove(this);// optimisation
             }
         }
 
@@ -721,15 +722,19 @@ public class Universe {
             }
             final ModifiableValueHistory<ObjectState> stateHistory = od.stateHistory;
             if (state != null && !stateHistory.isEmpty() && stateHistory.getLastValue() == null) {
-                // Attempted resurrection of a dead object.
+                /*
+                 * Attempted resurrection of a dead object. Not added to od.uncommittedWriters.
+                 */
                 openness = TransactionOpenness.ABORTING;
                 return;
             }
             final Duration lastTransition0 = stateHistory.getLastTansitionTime();
+            assert lastTransition0 == null || od.latestCommit.compareTo(lastTransition0) <= 0;
             try {
                 stateHistory.appendTransition(when, state);
             } catch (IllegalStateException e) {
                 openness = TransactionOpenness.ABORTING;
+                // Not added to Not added to od.uncommittedWriters.
                 return;
             }
             assert lastTransition0 == null || lastTransition0.compareTo(when) < 0;
