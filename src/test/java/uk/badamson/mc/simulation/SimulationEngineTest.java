@@ -20,6 +20,7 @@ package uk.badamson.mc.simulation;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -54,6 +55,119 @@ public class SimulationEngineTest {
 
     @Nested
     public class ComputeObjectState {
+
+        @Nested
+        public class Dependency {
+            @Test
+            public void a() {
+                test(WHEN_1, WHEN_2, WHEN_3, OBJECT_A, OBJECT_B, Duration.ofMillis(7));
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_2, WHEN_3, WHEN_4, OBJECT_B, OBJECT_A, Duration.ofMillis(13));
+            }
+
+            @Test
+            public void close() {
+                final Duration historyStart = WHEN_1;
+                final Duration before = historyStart.plusNanos(1L);
+                final Duration when = before.plusNanos(2L);
+                final Duration dependencyDelay = Duration.ofNanos(1);
+                test(historyStart, before, when, OBJECT_A, OBJECT_B, dependencyDelay);
+            }
+
+            private void test(@NonNull Duration historyStart, @NonNull Duration before, @NonNull Duration when,
+                    @NonNull UUID objectA, @NonNull UUID objectB, @NonNull Duration dependencyDelay) {
+                assert historyStart.compareTo(when) < 0;
+                assert before.compareTo(when) < 0;
+                assert historyStart.compareTo(before) < 0;
+                assert historyStart.compareTo(before.minus(dependencyDelay)) <= 0;
+                final Universe universe = new Universe(historyStart);
+                final ObjectState stateA0 = new ObjectStateTest.TestObjectState(11);
+                final ObjectState stateB0 = new ObjectStateTest.TestObjectState(12);
+                UniverseTest.putAndCommit(universe, objectA, historyStart, stateA0);
+                UniverseTest.putAndCommit(universe, objectB, historyStart, stateB0);
+                final ObjectState stateB1 = new ObjectStateTest.DependentTestObjectState(22, objectA, dependencyDelay);
+                UniverseTest.putAndCommit(universe, objectB, before, stateB1);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+
+                final Future<ObjectState> future = computeObjectState(engine, objectB, when);
+
+                assertAll("future", () -> assertFalse(future.isCancelled(), "Not cancelled"),
+                        () -> assertTrue(future.isDone(), "Done"));
+                final ObjectState state;
+                try {
+                    state = future.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    fail("Computation succeeds", e);
+                    return;// never happens
+                }
+                assertNotNull(state, "Computed a state");// guard
+                ObjectStateTest.assertInvariants(state);
+                final Duration latestCommitB = universe.getLatestCommit(objectB);
+                assertAll("Advanced the state history", () -> assertThat("at all", latestCommitB, greaterThan(before)),
+                        () -> assertThat("to at least the required time", latestCommitB, greaterThanOrEqualTo(when)));
+            }
+        }// class
+
+        @Nested
+        public class DependencyProvidedInOrder {
+            @Test
+            public void a() {
+                test(WHEN_1, WHEN_2, WHEN_3, OBJECT_A, OBJECT_B, Duration.ofMillis(7));
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_2, WHEN_3, WHEN_4, OBJECT_B, OBJECT_A, Duration.ofMillis(13));
+            }
+
+            @Test
+            public void close() {
+                final Duration historyStart = WHEN_1;
+                final Duration before = historyStart.plusNanos(1L);
+                final Duration when = before.plusNanos(2L);
+                final Duration dependencyDelay = Duration.ofNanos(1);
+                test(historyStart, before, when, OBJECT_A, OBJECT_B, dependencyDelay);
+            }
+
+            private void test(@NonNull Duration historyStart, @NonNull Duration before, @NonNull Duration when,
+                    @NonNull UUID objectA, @NonNull UUID objectB, @NonNull Duration dependencyDelay) {
+                assert historyStart.compareTo(when) < 0;
+                assert before.compareTo(when) < 0;
+                assert historyStart.compareTo(before) < 0;
+                assert historyStart.compareTo(before.minus(dependencyDelay)) <= 0;
+
+                final Universe universe = new Universe(historyStart);
+                final ObjectState stateA0 = new ObjectStateTest.TestObjectState(11);
+                final ObjectState stateB0 = new ObjectStateTest.TestObjectState(12);
+                UniverseTest.putAndCommit(universe, objectA, historyStart, stateA0);
+                UniverseTest.putAndCommit(universe, objectB, historyStart, stateB0);
+                final ObjectState stateB1 = new ObjectStateTest.DependentTestObjectState(22, objectA, dependencyDelay);
+                UniverseTest.putAndCommit(universe, objectB, before, stateB1);
+
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+                computeObjectState(engine, objectA, when);
+
+                final Future<ObjectState> future = computeObjectState(engine, objectB, when);
+
+                assertAll("future", () -> assertFalse(future.isCancelled(), "Not cancelled"),
+                        () -> assertTrue(future.isDone(), "Done"));
+                final ObjectState state;
+                try {
+                    state = future.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    fail("Computation succeeds", e);
+                    return;// never happens
+                }
+                assertNotNull(state, "Computed a state");// guard
+                ObjectStateTest.assertInvariants(state);
+                final Duration latestCommitB = universe.getLatestCommit(objectB);
+                assertAll("Advanced the state history", () -> assertThat("at all", latestCommitB, greaterThan(before)),
+                        () -> assertThat("to at least the required time", latestCommitB, greaterThanOrEqualTo(when)));
+            }
+        }// class
 
         @Nested
         public class Empty {
