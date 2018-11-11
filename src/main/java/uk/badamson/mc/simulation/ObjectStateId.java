@@ -31,7 +31,7 @@ import net.jcip.annotations.Immutable;
  * </p>
  */
 @Immutable
-public final class ObjectStateId {
+public final class ObjectStateId implements Comparable<ObjectStateId> {
 
     private final UUID object;
     private final Duration when;
@@ -62,6 +62,39 @@ public final class ObjectStateId {
     public ObjectStateId(@NonNull UUID object, @NonNull Duration when) {
         this.object = Objects.requireNonNull(object, "object");
         this.when = Objects.requireNonNull(when, "when");
+    }
+
+    /**
+     * <p>
+     * The <i>natural ordering</i> relation of this ID with a given ID.
+     * </p>
+     * <ul>
+     * <li>The <i>natural ordering</i> of {@link ObjectStateId} is consistent with
+     * {@linkplain #equals(Object) equals}.</li>
+     * <li>The <i>natural ordering</i> orders by {@linkplain #getWhen() time-stamp};
+     * if two IDs have different time-stamps, their ordering is equivalent to the
+     * ordering of their time-stamps.</li>
+     * <li>The <i>natural ordering</i> orders by {@linkplain #getObject() object
+     * IDs} if {@linkplain #getWhen() time-stamps} are equivalent; if two IDs have
+     * {@linkplain Duration#equals(Object) equal} time-stamps, their ordering is
+     * equivalent to the ordering of their object IDs.</li>
+     * </ul>
+     * 
+     * @param that
+     *            The other ID to compare with this ID.
+     * @return a value that has a sign or zeroness that indicates the order of this
+     *         ID with respect to the given ID.
+     * @throws NullPointerException
+     *             If {@code that} is null.
+     */
+    @Override
+    public final int compareTo(ObjectStateId that) {
+        Objects.requireNonNull(that, "that");
+        int c = when.compareTo(that.when);
+        if (c == 0) {
+            c = object.compareTo(that.object);
+        }
+        return c;
     }
 
     /**

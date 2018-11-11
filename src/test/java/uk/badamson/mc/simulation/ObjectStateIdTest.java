@@ -31,6 +31,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
+import uk.badamson.mc.ComparableTest;
 import uk.badamson.mc.ObjectTest;
 
 /**
@@ -48,6 +49,7 @@ public class ObjectStateIdTest {
 
     public static void assertInvariants(ObjectStateId id) {
         ObjectTest.assertInvariants(id);// inherited
+        ComparableTest.assertInvariants(id);
 
         final UUID objectId = id.getObject();
         final Duration when = id.getWhen();
@@ -57,11 +59,23 @@ public class ObjectStateIdTest {
 
     public static void assertInvariants(ObjectStateId id1, ObjectStateId id2) {
         ObjectTest.assertInvariants(id1, id2);// inherited
+        ComparableTest.assertInvariants(id1, id2);
+        ComparableTest.assertComparableConsistentWithEquals(id1, id2);
+
+        final Duration when1 = id1.getWhen();
+        final Duration when2 = id2.getWhen();
+        final boolean whenEquals = when1.equals(when2);
 
         final boolean equals = id1.equals(id2);
+        final int compareTo = Integer.signum(id1.compareTo(id2));
+
         assertAll("ObjectStateId objects are equivalent only if they have equals",
                 () -> assertFalse(equals && !id1.getObject().equals(id2.getObject()), "object IDs"),
-                () -> assertFalse(equals && !id1.getWhen().equals(id2.getWhen()), "timestamps"));
+                () -> assertFalse(equals && !whenEquals, "timestamps"));
+        assertFalse(!whenEquals && compareTo != Integer.signum(when1.compareTo(when2)),
+                "The natural ordering orders by time-stamp.");
+        assertFalse(whenEquals && compareTo != Integer.signum(id1.getObject().compareTo(id2.getObject())),
+                "The natural ordering orders by object IDs if time-stamps are equivalent.");
     }
 
     private static void constructor(UUID object, Duration when) {
@@ -88,7 +102,7 @@ public class ObjectStateIdTest {
     }
 
     @Test
-    public void constructor_2DifferentObject() {
+    public void constructor_2DifferentObjectA() {
         final ObjectStateId id1 = new ObjectStateId(OBJECT_A, DURATION_A);
         final ObjectStateId id2 = new ObjectStateId(OBJECT_B, DURATION_A);
 
@@ -97,9 +111,27 @@ public class ObjectStateIdTest {
     }
 
     @Test
-    public void constructor_2DifferentWhen() {
+    public void constructor_2DifferentObjectB() {
+        final ObjectStateId id1 = new ObjectStateId(OBJECT_B, DURATION_A);
+        final ObjectStateId id2 = new ObjectStateId(OBJECT_A, DURATION_A);
+
+        assertInvariants(id1, id2);
+        assertThat("Not equal.", id1, not(id2));
+    }
+
+    @Test
+    public void constructor_2DifferentWhenA() {
         final ObjectStateId id1 = new ObjectStateId(OBJECT_A, DURATION_A);
         final ObjectStateId id2 = new ObjectStateId(OBJECT_A, DURATION_B);
+
+        assertInvariants(id1, id2);
+        assertThat("Not equal.", id1, not(id2));
+    }
+
+    @Test
+    public void constructor_2DifferentWhenB() {
+        final ObjectStateId id1 = new ObjectStateId(OBJECT_B, DURATION_B);
+        final ObjectStateId id2 = new ObjectStateId(OBJECT_B, DURATION_A);
 
         assertInvariants(id1, id2);
         assertThat("Not equal.", id1, not(id2));
