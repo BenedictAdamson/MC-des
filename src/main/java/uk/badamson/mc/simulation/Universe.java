@@ -94,7 +94,7 @@ public class Universe {
         final ModifiableSetHistory<Transaction> uncommittedWriters = new ModifiableSetHistory<>();
 
         @NonNull
-        Duration lastCommit = ValueHistory.START_OF_TIME;
+        Duration latestCommit = ValueHistory.START_OF_TIME;
     }// class
 
     /**
@@ -196,13 +196,15 @@ public class Universe {
          * {@linkplain Universe.TransactionOpenness#WRITING writing}.</li>
          * </ul>
          * 
-         * @param[in] onCommit An action to perform when (if) this transaction
-         *            successfully completes the commit operation.
-         * @param[in] onAbort An action to perform when (if) this transaction aborts the
-         *            commit operation.
+         * @param onCommit
+         *            An action to perform when (if) this transaction successfully
+         *            completes the commit operation.
+         * @param onAbort
+         *            An action to perform when (if) this transaction aborts the commit
+         *            operation.
          * @throws IllegalStateException
-         *             If this {@linkplain #didBeginCommit() committing this transaction
-         *             has already begun}.
+         *             If {@linkplain #didBeginCommit() committing this transaction has
+         *             already begun}.
          */
         public final void beginCommit() {
             openness.beginCommit(this);
@@ -284,14 +286,23 @@ public class Universe {
             assert predecessorTransactions.isEmpty();
             assert pastTheEndReads.isEmpty();
             openness = TransactionOpenness.COMMITTED;
-            for (UUID object : objectStatesWritten.keySet()) {
+            for (var entry : objectStatesWritten.entrySet()) {
+                final UUID object = entry.getKey();
+                final ObjectState state = entry.getValue();
                 assert object != null;
                 assert when != null;
+
                 final var od = objectDataMap.get(object);
-                assert od.lastCommit.compareTo(when) < 0;
-                od.lastCommit = when;
+                assert od.latestCommit.compareTo(when) < 0;
+                if (state != null) {
+                    od.latestCommit = when;
+                } else {// destruction is forever
+                    od.latestCommit = ValueHistory.END_OF_TIME;
+                }
                 od.uncommittedWriters.remove(this);
+                assert od.stateHistory.getTransitionTimes().contains(when);
             }
+
             for (UUID object : dependencies.keySet()) {
                 assert object != null;
                 final var od = objectDataMap.get(object);
@@ -551,7 +562,9 @@ public class Universe {
          * @param state
          *            The state of the object just after this state transition, at the
          *            given point in time. A null value indicates that the object ceases
-         *            to exist at the given time.
+         *            to exist at the given time. Destroyed objects may not be
+         *            resurrected. Therefore the object state will remain null for all
+         *            subsequent points in time.
          * @throws NullPointerException
          *             If {@code object} is null.
          * @throws IllegalStateException
@@ -644,7 +657,7 @@ public class Universe {
                 if (addTriggers) {
                     if (od.stateHistory.getLastTansitionTime().compareTo(when) < 0) {
                         isPastTheEndRead = true;
-                    } else if (od.lastCommit.compareTo(when) < 0) {
+                    } else if (od.latestCommit.compareTo(when) < 0) {
                         @NonNull
                         final Duration nextWrite = od.stateHistory.getTansitionTimeAtOrAfter(when);
                         additionalPredecessors.addAll(od.uncommittedWriters.get(nextWrite));
@@ -687,14 +700,14 @@ public class Universe {
                  * As we are a writer for the object, the object has at least one recorded state
                  * (the state we wrote), so od is guaranteed to be not null.
                  */
-                od.uncommittedWriters.remove(this);// optimisation
-                if (od.lastCommit.compareTo(when) < 0) {
+                if (od.latestCommit.compareTo(when) < 0 && od.uncommittedWriters.contains(this).get(when)) {
                     od.stateHistory.removeTransitionsFrom(when);
                     if (od.stateHistory.isEmpty()) {
                         objectDataMap.remove(object);
                     }
                 }
                 // else aborting because of an out-of-order write
+                od.uncommittedWriters.remove(this);// optimisation
             }
         }
 
@@ -709,15 +722,19 @@ public class Universe {
             }
             final ModifiableValueHistory<ObjectState> stateHistory = od.stateHistory;
             if (state != null && !stateHistory.isEmpty() && stateHistory.getLastValue() == null) {
-                // Attempted resurrection of a dead object.
+                /*
+                 * Attempted resurrection of a dead object. Not added to od.uncommittedWriters.
+                 */
                 openness = TransactionOpenness.ABORTING;
                 return;
             }
             final Duration lastTransition0 = stateHistory.getLastTansitionTime();
+            assert lastTransition0 == null || od.latestCommit.compareTo(lastTransition0) <= 0;
             try {
                 stateHistory.appendTransition(when, state);
             } catch (IllegalStateException e) {
                 openness = TransactionOpenness.ABORTING;
+                // Not added to Not added to od.uncommittedWriters.
                 return;
             }
             assert lastTransition0 == null || lastTransition0.compareTo(when) < 0;
@@ -1207,7 +1224,7 @@ public class Universe {
     public final @NonNull Duration getHistoryEnd() {
         Duration historyEnd = null;
         for (var od : objectDataMap.values()) {
-            final Duration lastCommmit = od.lastCommit;
+            final Duration lastCommmit = od.latestCommit;
             if (historyEnd == null || lastCommmit.compareTo(historyEnd) < 0) {
                 historyEnd = lastCommmit;
             }
@@ -1230,6 +1247,38 @@ public class Universe {
      */
     public final @NonNull Duration getHistoryStart() {
         return historyStart;
+    }
+
+    /**
+     * <p>
+     * The time-stamp of the last committed
+     * {@linkplain ValueHistory#getTransitions() state transition}
+     * {@linkplain #getObjectStateHistory(UUID) event} of an object.
+     * </p>
+     * <ul>
+     * <li>An object has a (non null) last committed state time-stamp if, and only
+     * if, it is a {@linkplain #getObjectIds() known object}.</li>
+     * <li>If an object is known, its last committed state time-stamp is one of the
+     * {@linkplain ValueHistory#getTransitionTimes() transition times} of the
+     * {@linkplain #getObjectStateHistory(UUID) state history} of that object, or is
+     * the {@linkplain ValueHistory#START_OF_TIME start of time}, or is the
+     * {@linkplain ValueHistory#END_OF_TIME end of time}.</li>
+     * </ul>
+     * 
+     * @param object
+     *            The ID of the object of interest.
+     * @return The time-stamp of the last committed state time-stamp of the object
+     *         with {@code object} as its ID, or null if {@code object} is not a
+     *         {@linkplain #getObjectIds() known object ID}.
+     */
+    public final @Nullable Duration getLatestCommit(@NonNull UUID object) {
+        Objects.requireNonNull(object, "object");
+        final var od = objectDataMap.get(object);
+        if (od == null) {
+            return null;
+        } else {
+            return od.latestCommit;
+        }
     }
 
     /**
@@ -1334,7 +1383,7 @@ public class Universe {
 
     /**
      * <p>
-     * The time-stamp of the {@linkplain SortedMap#firstKey() first}
+     * The time-stamp of the {@linkplain ValueHistory#getFirstTansitionTime() first}
      * {@linkplain #getObjectStateHistory(UUID) event} of an object.
      * </p>
      * <ul>

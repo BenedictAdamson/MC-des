@@ -37,15 +37,45 @@ import java.util.UUID;
  */
 public class ObjectStateTest {
 
-    static final class TestObjectState implements ObjectState {
-        private final int i;
+    static class DependentTestObjectState extends TestObjectState {
+        private final UUID dependent;
+        private final Duration dependencyDelay;
+
+        DependentTestObjectState(int i, UUID dependent, Duration dependencyDelay) {
+            super(i);
+            this.dependent = Objects.requireNonNull(dependent, "dependent");
+            this.dependencyDelay = Objects.requireNonNull(dependencyDelay, "dependencyDelay");
+            if (dependencyDelay.isNegative() || dependencyDelay.isZero()) {
+                throw new IllegalArgumentException("dependencyDelay" + dependencyDelay);
+            }
+        }
+
+        @Override
+        public void putNextStateTransition(Universe.Transaction transaction, UUID object, Duration when) {
+            Objects.requireNonNull(transaction, "transaction");
+            Objects.requireNonNull(object, "object");
+            Objects.requireNonNull(when, "when");
+            if (!Collections.singletonMap(new ObjectStateId(object, when), this)
+                    .equals(transaction.getObjectStatesRead())) {
+                throw new IllegalArgumentException("objectStatesRead does not consists of only this state");
+            }
+
+            final TestObjectState nextState = new TestObjectState(i + 1);
+            transaction.getObjectState(dependent, when.minus(dependencyDelay));
+            transaction.beginWrite(when.plusSeconds(1));
+            transaction.put(object, nextState);
+        }
+    }// class
+
+    static class TestObjectState implements ObjectState {
+        protected final int i;
 
         public TestObjectState(int i) {
             this.i = i;
         }
 
         @Override
-        public boolean equals(Object obj) {
+        public final boolean equals(Object obj) {
             if (this == obj)
                 return true;
             if (obj == null)
@@ -57,7 +87,7 @@ public class ObjectStateTest {
         }
 
         @Override
-        public int hashCode() {
+        public final int hashCode() {
             return i;
         }
 
@@ -72,12 +102,13 @@ public class ObjectStateTest {
             }
 
             final TestObjectState nextState = new TestObjectState(i + 1);
+            transaction.beginWrite(when.plusSeconds(1));
             transaction.put(object, nextState);
         }
 
         @Override
-        public String toString() {
-            return "TestObjectState [" + i + "]";
+        public final String toString() {
+            return getClass().getSimpleName() + " [" + i + "]";
         }
 
     }// class
