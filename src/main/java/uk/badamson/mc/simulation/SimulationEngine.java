@@ -90,7 +90,7 @@ public final class SimulationEngine {
                     : new TreeMap<>(steps.headMap(latestCommit, true));
             for (var future : commitableReads.values()) {
                 if (!future.isDone()) {
-                    future.beginReadTransaction();
+                    future.startReadTransaction();
                 }
                 assert future.isDone();
             }
@@ -211,8 +211,8 @@ public final class SimulationEngine {
             this.id = id;
         }
 
-        private void beginReadTransaction() {
-            final Universe.Transaction transaction = universe.beginTransaction(new Universe.TransactionListener() {
+        private Universe.Transaction createReadTransaction() {
+            return universe.beginTransaction(new Universe.TransactionListener() {
 
                 @Override
                 public void onAbort() {
@@ -225,11 +225,16 @@ public final class SimulationEngine {
                 }
 
             });
-            try {
-                state = transaction.getObjectState(id.getObject(), id.getWhen());
-                transaction.beginCommit();
-            } catch (Universe.PrehistoryException e) {
-                completeExceptionally(e);
+        }
+
+        private void startReadTransaction() {
+            try (final Universe.Transaction transaction = createReadTransaction();) {
+                try {
+                    state = transaction.getObjectState(id.getObject(), id.getWhen());
+                    transaction.beginCommit();
+                } catch (Universe.PrehistoryException e) {
+                    completeExceptionally(e);
+                }
             }
         }
 
