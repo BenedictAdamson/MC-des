@@ -76,7 +76,7 @@ public final class SimulationEngine {
                     scheduleDependencies(new TreeSet<>(transaction.getDependencies().values()));
 
                     transaction.beginCommit();
-                } catch (Universe.PrehistoryException e) {
+                } catch (Exception e) {
                     // Hard to test: race hazard.
                     completeExceptionally(e);
                     transaction.beginAbort();
@@ -232,7 +232,7 @@ public final class SimulationEngine {
                 try {
                     state = transaction.getObjectState(id.getObject(), id.getWhen());
                     transaction.beginCommit();
-                } catch (Universe.PrehistoryException e) {
+                } catch (Exception e) {
                     completeExceptionally(e);
                 }
             }
