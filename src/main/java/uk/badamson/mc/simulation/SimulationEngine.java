@@ -65,22 +65,22 @@ public final class SimulationEngine {
         private void advance1() {
             latestCommit = universe.getLatestCommit(object);
             assert latestCommit != null;
-            final Universe.Transaction transaction = universe.beginTransaction(this);
+            try (final Universe.Transaction transaction = universe.beginTransaction(this)) {
+                try {
+                    final ObjectState state0 = transaction.getObjectState(object, latestCommit);
+                    state0.putNextStateTransition(transaction, object, latestCommit);
+                    assert transaction.getWhen() != null;
+                    assert latestCommit.compareTo(transaction.getWhen()) < 0;
+                    assert transaction.getObjectStatesWritten().containsKey(object);
 
-            try {
-                final ObjectState state0 = transaction.getObjectState(object, latestCommit);
-                state0.putNextStateTransition(transaction, object, latestCommit);
-                assert transaction.getWhen() != null;
-                assert latestCommit.compareTo(transaction.getWhen()) < 0;
-                assert transaction.getObjectStatesWritten().containsKey(object);
+                    scheduleDependencies(new TreeSet<>(transaction.getDependencies().values()));
 
-                scheduleDependencies(new TreeSet<>(transaction.getDependencies().values()));
-
-                transaction.beginCommit();
-            } catch (Universe.PrehistoryException e) {
-                // Hard to test: race hazard.
-                completeExceptionally(e);
-                transaction.beginAbort();
+                    transaction.beginCommit();
+                } catch (Universe.PrehistoryException e) {
+                    // Hard to test: race hazard.
+                    completeExceptionally(e);
+                    transaction.beginAbort();
+                }
             }
         }
 
@@ -107,7 +107,11 @@ public final class SimulationEngine {
 
         @Override
         public void onAbort() {
-            scheduleAdvance1();
+            if (!steps.isEmpty()) {
+                // Try again
+                scheduleAdvance1();
+            }
+            // else abandoning
         }
 
         @Override
