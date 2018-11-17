@@ -584,7 +584,9 @@ public class Universe {
          */
         public final void put(@NonNull UUID object, @Nullable ObjectState state) {
             Objects.requireNonNull(object, "object");
-            openness.put(this, object, state);
+            if (openness.put(this, object, state)) {
+                listener.onCreate(object);
+            }
         }
 
         private void reallyAbort() {
@@ -718,14 +720,16 @@ public class Universe {
             }
         }
 
-        private void tryToAppendToHistory(UUID object, ObjectState state) {
+        private boolean tryToAppendToHistory(UUID object, ObjectState state) {
             assert when != null;
 
+            boolean creating = false;
             ObjectData od = objectDataMap.get(object);
             if (od == null) {
                 // We are adding the object.
                 od = new ObjectData();
                 objectDataMap.put(object, od);
+                creating = true;
             }
             final ModifiableValueHistory<ObjectState> stateHistory = od.stateHistory;
             if (state != null && !stateHistory.isEmpty() && stateHistory.getLastValue() == null) {
@@ -733,7 +737,7 @@ public class Universe {
                  * Attempted resurrection of a dead object. Not added to od.uncommittedWriters.
                  */
                 openness = TransactionOpenness.ABORTING;
-                return;
+                return false;
             }
             final Duration lastTransition0 = stateHistory.getLastTansitionTime();
             assert lastTransition0 == null || od.latestCommit.compareTo(lastTransition0) <= 0;
@@ -742,7 +746,7 @@ public class Universe {
             } catch (IllegalStateException e) {
                 openness = TransactionOpenness.ABORTING;
                 // Not added to Not added to od.uncommittedWriters.
-                return;
+                return false;
             }
             assert lastTransition0 == null || lastTransition0.compareTo(when) < 0;
             od.uncommittedWriters.addFrom(when, this);
@@ -765,8 +769,11 @@ public class Universe {
                     pastTheEndReader.pastTheEndReads.remove(object);
                     addAsPredecessor(this, pastTheEndReader);
                 }
+            } else {
+                creating = true;
             }
-            // else creating the object
+
+            return creating;
         }
 
     }// class
@@ -854,7 +861,7 @@ public class Universe {
             }
 
             @Override
-            void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
+            boolean put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
                 throw new IllegalStateException("Not in writing mode");
             }
 
@@ -900,9 +907,9 @@ public class Universe {
             }
 
             @Override
-            void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
+            boolean put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
                 transaction.recordObjectStateWritten(object, state);
-                transaction.tryToAppendToHistory(object, state);
+                return transaction.tryToAppendToHistory(object, state);
             }
 
             @Override
@@ -940,7 +947,7 @@ public class Universe {
             }
 
             @Override
-            void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
+            boolean put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
                 throw new IllegalStateException("Commiting");
             }
 
@@ -979,9 +986,10 @@ public class Universe {
             }
 
             @Override
-            void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
+            boolean put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
                 transaction.recordObjectStateWritten(object, state);
                 // Do not change the object state history, however.
+                return false;
             }
 
             @Override
@@ -1029,7 +1037,7 @@ public class Universe {
             }
 
             @Override
-            void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
+            boolean put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
                 throw new IllegalStateException("Committed");
             }
 
@@ -1074,7 +1082,7 @@ public class Universe {
             }
 
             @Override
-            void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
+            boolean put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
                 throw new IllegalStateException("Aborted");
             }
 
@@ -1094,7 +1102,10 @@ public class Universe {
 
         abstract void close(Universe.Transaction transaction);
 
-        abstract void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state);
+        /*
+         * @returns Whether object created.
+         */
+        abstract boolean put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state);
 
         abstract @Nullable ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id,
                 Set<Transaction> additionalPredecessors);

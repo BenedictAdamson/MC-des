@@ -2727,8 +2727,11 @@ public class UniverseTest {
 
                     put(transaction, object, objectState);
 
-                    assertAll(() -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
-                            "Object state history (did not add to history because aborting)"));
+                    assertAll(
+                            () -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
+                                    "Object state history (did not add to history because aborting)"),
+                            () -> assertEquals(Collections.emptySet(), listener.created,
+                                    "Did not call creation call-back"));
                 }
 
             }// class
@@ -2758,6 +2761,8 @@ public class UniverseTest {
                     transaction.beginWrite(when2);
 
                     put(transaction, object2, objectState2);
+
+                    assertEquals(Collections.singleton(object2), listener.created, "Called creation call-back");
                 }
 
             }// class
@@ -2797,8 +2802,11 @@ public class UniverseTest {
 
                     put(transaction, object, objectState2);
 
-                    assertAll(() -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
-                            "Object state history"));
+                    assertAll(
+                            () -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
+                                    "Object state history"),
+                            () -> assertEquals(Collections.emptySet(), listener.created,
+                                    "Did not call creation call-back"));
                 }
 
             }// class
@@ -2846,7 +2854,7 @@ public class UniverseTest {
             }// class
 
             @Nested
-            public class Call1 {
+            public class CreateWithoutDependencies {
 
                 @Test
                 public void a() {
@@ -2877,7 +2885,9 @@ public class UniverseTest {
 
                     assertAll(() -> assertEquals(Collections.singleton(object), universe.getObjectIds(), "Object IDs"),
                             () -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
-                                    "Object state history"));
+                                    "Object state history"),
+                            () -> assertEquals(Collections.singleton(object), listener.created,
+                                    "Called creation call-back"));
                 }
 
             }// class
