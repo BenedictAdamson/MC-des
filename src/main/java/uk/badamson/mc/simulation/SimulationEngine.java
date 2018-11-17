@@ -65,6 +65,13 @@ public final class SimulationEngine {
          * advances has advanced. dependentObjects does not contain null
          */
         private final Set<UUID> dependentObjects = new HashSet<>();
+        /*
+         * Objects that ought to have their states advanced before we try to advance the
+         * state of the object that this advances.
+         * 
+         * The dependencies are weak "ought to" rather than a strong "must" because it
+         * is impossible to compute reliable dependency information.
+         */
         private final Set<UUID> objectDependencies = new HashSet<>();
 
         private Engine1(@NonNull UUID object) {
@@ -82,6 +89,14 @@ public final class SimulationEngine {
                     final ObjectState state0 = transaction.getObjectState(object, latestCommit);
                     assert state0 != null;
                     putNextStateTransition(state0, transaction, latestCommit);
+                    /*
+                     * Before this transaction can be committed, any object states it depends on
+                     * must be committed. Ensure those object states will be (eventually) committed.
+                     * If this transaction aborts, because it depends on states that have be
+                     * overwritten, the dependency information is unreliable. However, in that case
+                     * the dependency information is probably partially or approximately correct, so
+                     * using it is a good heuristic.
+                     */
                     scheduleDependencies(new TreeSet<>(transaction.getDependencies().values()));
                     transaction.beginCommit();
                 } catch (Exception | AssertionError e) {
