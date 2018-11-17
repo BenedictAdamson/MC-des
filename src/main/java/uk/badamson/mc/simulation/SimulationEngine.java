@@ -34,6 +34,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -67,15 +68,10 @@ public final class SimulationEngine {
             try (final Universe.Transaction transaction = universe.beginTransaction(this)) {
                 try {
                     final ObjectState state0 = transaction.getObjectState(object, latestCommit);
-                    state0.putNextStateTransition(transaction, object, latestCommit);
-                    assert transaction.getWhen() != null;
-                    assert latestCommit.compareTo(transaction.getWhen()) < 0;
-                    assert transaction.getObjectStatesWritten().containsKey(object);
-
+                    putNextStateTransition(state0, transaction, latestCommit);
                     scheduleDependencies(new TreeSet<>(transaction.getDependencies().values()));
-
                     transaction.beginCommit();
-                } catch (Exception e) {
+                } catch (Exception | AssertionError e) {
                     // Hard to test: race hazard.
                     completeExceptionally(e);
                     transaction.beginAbort();
@@ -132,6 +128,38 @@ public final class SimulationEngine {
                 removeDependency(object, dependent);
             }
             dependentObjects.clear();
+        }
+
+        private void putNextStateTransition(@NonNull final ObjectState state0,
+                @NonNull final Universe.Transaction transaction, @NonNull final Duration when) {
+            try {
+                state0.putNextStateTransition(transaction, object, when);
+
+                final var objectStatesReadAtOrAfter = transaction.getObjectStatesRead().keySet().stream()
+                        .filter(id -> (when.compareTo(id.getWhen()) < 0
+                                || (when.equals(id.getWhen()) && !object.equals(id.getObject()))))
+                        .collect(Collectors.toSet());
+                final Duration whenWritten = transaction.getWhen();
+                final Map<UUID, ObjectState> objectStatesWritten = transaction.getObjectStatesWritten();
+                if (!objectStatesReadAtOrAfter.isEmpty()) {
+                    throw new IllegalStateException(
+                            "Read object states at or after the given time " + objectStatesReadAtOrAfter);
+                }
+                if (whenWritten == null) {
+                    throw new IllegalStateException("Did not put the transaction into write mode.");
+                } else if (whenWritten.compareTo(when) <= 0) {
+                    throw new IllegalStateException("when is not after the given point in time");
+                }
+                final ObjectState nextState = objectStatesWritten.get(object);
+                if (nextState == null && !objectStatesWritten.containsKey(object)) {
+                    throw new IllegalStateException("Did not put() a state for the given object");
+                } else if (Objects.equals(state0, nextState)) {
+                    throw new IllegalStateException("put() a state equal to itself");
+                }
+            } catch (RuntimeException | AssertionError e) {
+                throw new RuntimeException("Failure for putNextStateTransition " + state0 + ", " + object + ", " + when,
+                        e);
+            }
         }
 
         private void removeDependency1(final UUID dependedOnObject) {
