@@ -55,6 +55,100 @@ import uk.badamson.mc.history.ValueHistory;
 public class SimulationEngineTest {
 
     @Nested
+    public class AdvanceHistory {
+
+        @Nested
+        public class Empty {
+
+            @Test
+            public void a() {
+                test(WHEN_1, WHEN_2, OBJECT_A);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_2, WHEN_3, OBJECT_B);
+            }
+
+            private void test(@NonNull Duration historyStart, @NonNull Duration when, @NonNull UUID object) {
+                assert historyStart.compareTo(when) < 0;
+                final Universe universe = new Universe(historyStart);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+
+                advanceHistory(engine, object, when);
+            }
+        }// class
+
+        @Nested
+        public class Exists {
+
+            @Test
+            public void a() {
+                test(WHEN_1, WHEN_2, WHEN_3, WHEN_4, OBJECT_A);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_2, WHEN_3, WHEN_4, WHEN_5, OBJECT_B);
+            }
+
+            @Test
+            public void eternally() {
+                test(WHEN_1, ValueHistory.START_OF_TIME.plusNanos(1L), WHEN_3, ValueHistory.END_OF_TIME, OBJECT_A);
+            }
+
+            private void test(@NonNull Duration historyStart, @NonNull Duration before, @NonNull Duration when,
+                    @NonNull Duration after, @NonNull UUID object) {
+                assert before.compareTo(when) <= 0;
+                assert when.compareTo(after) < 0;
+                final Universe universe = new Universe(historyStart);
+                final ObjectState state1 = new ObjectStateTest.TestObjectState(1);
+                final ObjectState state2 = new ObjectStateTest.TestObjectState(2);
+                UniverseTest.putAndCommit(universe, object, before, state1);
+                UniverseTest.putAndCommit(universe, object, after, state2);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+
+                advanceHistory(engine, object, when);
+            }
+        }// class
+
+        @Nested
+        public class NoDependencies {
+
+            @Test
+            public void a() {
+                test(WHEN_1, WHEN_2, WHEN_3, OBJECT_A);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_2, WHEN_3, WHEN_4, OBJECT_B);
+            }
+
+            private void test(@NonNull Duration historyStart, @NonNull Duration before, @NonNull Duration when,
+                    @NonNull UUID object) {
+                assert historyStart.compareTo(when) < 0;
+                assert before.compareTo(when) < 0;
+                final Universe universe = new Universe(historyStart);
+                final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
+                UniverseTest.putAndCommit(universe, object, before, state0);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+
+                advanceHistory(engine, object, when);
+
+                assertThat("Advanced the state history", universe.getLatestCommit(object), greaterThanOrEqualTo(when));
+            }
+        }// class
+
+        private void advanceHistory(SimulationEngine engine, @NonNull UUID object, @NonNull Duration when) {
+            engine.advanceHistory(object, when);
+
+            assertInvariants(engine);
+        }
+
+    }// class
+
+    @Nested
     public class ComputeObjectState {
 
         @Nested

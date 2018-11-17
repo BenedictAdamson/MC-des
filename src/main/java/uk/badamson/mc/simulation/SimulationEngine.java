@@ -363,6 +363,29 @@ public final class SimulationEngine {
 
     /**
      * <p>
+     * If necessary, schedule computation of the state history of a given object, of
+     * the {@linkplain #getUniverse() universe} of this engine, to the
+     * {@linkplain Universe#getLatestCommit(UUID) committed history} of the given
+     * object extends at least to a given point in time. time.
+     * </p>
+     * 
+     * @param object
+     *            The ID of the object of interest.
+     * @param when
+     *            The point in time of interest.
+     * @throws NullPointerException
+     *             <ul>
+     *             <li>If {@code object} is null.</li>
+     *             <li>If {@code when} is null.</li>
+     *             </ul>
+     */
+    public final @NonNull void advanceHistory(@NonNull UUID object, @NonNull Duration when) {
+        final ObjectStateId id = new ObjectStateId(object, when);
+        getEngine1(object).schedule(id, null);
+    }
+
+    /**
+     * <p>
      * Retrieve or, if necessary, compute the state of a given object, of the
      * {@linkplain #getUniverse() universe} of this engine, at a given point in
      * time.
