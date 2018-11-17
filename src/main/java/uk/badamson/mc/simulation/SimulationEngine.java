@@ -55,11 +55,12 @@ public final class SimulationEngine {
     private final class Engine1 implements Universe.TransactionListener, Runnable {
         @NonNull
         private final UUID object;
-        // latestCommit is null if object is not a known object.
-        @Nullable
-        private Duration latestCommit;
+        @NonNull
+        private Duration latestCommit = ValueHistory.START_OF_TIME;
         // steps has no null values
         private final NavigableMap<Duration, FutureObjectState> steps = new TreeMap<>();
+        @NonNull
+        private Duration advanceTo = ValueHistory.START_OF_TIME;
         /*
          * Objects that can not have their state advanced until the object that this
          * advances has advanced. dependentObjects does not contain null
@@ -130,6 +131,22 @@ public final class SimulationEngine {
             }
         }
 
+        private void advanceHistory(@NonNull final Duration when, @Nullable UUID dependent) {
+            assert when != null;
+            assert !object.equals(dependent);
+
+            // TODO optimize test for existing object
+            final boolean moreWork = latestCommit != null && latestCommit.compareTo(when) < 0
+                    && advanceTo.compareTo(when) < 0 && universe.getObjectIds().contains(object);
+            advanceTo = when;
+            if (dependent != null) {
+                dependentObjects.add(dependent);
+            }
+            if (moreWork) {
+                scheduleAdvance1();
+            }
+        }
+
         private void completeCommitableReads() {
             latestCommit = universe.getLatestCommit(object);
             final boolean unknownObject = latestCommit == null;
@@ -146,16 +163,21 @@ public final class SimulationEngine {
         }
 
         private void completeExceptionally(Throwable e) {
+            advanceTo = latestCommit;
             for (var step : steps.values()) {
                 step.completeExceptionally(e);
             }
             steps.clear();
         }
 
+        private boolean hasWorkToDo() {
+            return latestCommit != null && latestCommit.compareTo(advanceTo) < 0;
+        }
+
         @Override
         public void onAbort() {
             assert latestCommit != null;
-            if (!steps.isEmpty()) {
+            if (hasWorkToDo()) {
                 // Try again
                 scheduleAdvance1();
             }
@@ -176,7 +198,7 @@ public final class SimulationEngine {
              */
             completeCommitableReads();
 
-            if (!steps.isEmpty()) {
+            if (hasWorkToDo()) {
                 // Further work required for the object this engine moves forward.
                 scheduleAdvance1();
             }
@@ -240,18 +262,9 @@ public final class SimulationEngine {
             assert object.equals(id.getObject());
             assert !object.equals(dependent);
 
-            final boolean wasEmpty = steps.isEmpty();
             final FutureObjectState future = steps.computeIfAbsent(when, t -> new FutureObjectState(id));
-            if (dependent != null) {
-                dependentObjects.add(dependent);
-            }
+            advanceHistory(when, dependent);
             completeCommitableReads();
-            final boolean empty = steps.isEmpty();
-            if (wasEmpty && !empty) {
-                // Have acquired work to do.
-                scheduleAdvance1();
-            }
-            assert !(empty && !dependentObjects.isEmpty());
             return future;
         }
 
@@ -368,6 +381,11 @@ public final class SimulationEngine {
      * {@linkplain Universe#getLatestCommit(UUID) committed history} of the given
      * object extends at least to a given point in time. time.
      * </p>
+     * <ul>
+     * <li>This method is cheaper than {@link #computeObjectState(UUID, Duration)},
+     * as it does not need to crate and maintain a {@link Future} for recording the
+     * computed state.
+     * </ul>
      * 
      * @param object
      *            The ID of the object of interest.
@@ -380,8 +398,9 @@ public final class SimulationEngine {
      *             </ul>
      */
     public final @NonNull void advanceHistory(@NonNull UUID object, @NonNull Duration when) {
-        final ObjectStateId id = new ObjectStateId(object, when);
-        getEngine1(object).schedule(id, null);
+        Objects.requireNonNull(object, "object");
+        Objects.requireNonNull(when, "when");
+        getEngine1(object).advanceHistory(when, null);
     }
 
     /**
