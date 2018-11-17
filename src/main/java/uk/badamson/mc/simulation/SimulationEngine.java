@@ -80,6 +80,29 @@ public final class SimulationEngine {
             latestCommit = universe.getLatestCommit(object);
         }
 
+        /*
+         * By having the dependencies sorted, we will schedule the dependencies in
+         * ascending time order, which will tend to result in fewer aborted
+         * transactions. The number of dependencies should be small and not proportional
+         * to the number of objects, so the performance to advance the universe to a
+         * given point in time should remain O(N).
+         */
+        private void addDependencies(@NonNull final SortedSet<ObjectStateId> dependencyIds) {
+            for (var dependencyId : dependencyIds) {
+                final UUID objectDependency = dependencyId.getObject();
+                final Duration dependencyWhen = dependencyId.getWhen();
+                final Duration dependencyLastestCommit = universe.getLatestCommit(objectDependency);
+                if (dependencyLastestCommit.compareTo(dependencyWhen) < 0) {
+                    /*
+                     * To commit we will need this dependency, but it is not yet committed, so
+                     * schedule production of the dependency so we will eventually advance.
+                     */
+                    objectDependencies.add(objectDependency);
+                    getEngine1(objectDependency).schedule(dependencyId, object);
+                }
+            }
+        }
+
         private void advance1() {
             latestCommit = universe.getLatestCommit(object);
             assert latestCommit != null;
@@ -97,7 +120,7 @@ public final class SimulationEngine {
                      * the dependency information is probably partially or approximately correct, so
                      * using it is a good heuristic.
                      */
-                    scheduleDependencies(new TreeSet<>(transaction.getDependencies().values()));
+                    addDependencies(new TreeSet<>(transaction.getDependencies().values()));
                     transaction.beginCommit();
                 } catch (Exception | AssertionError e) {
                     // Hard to test: race hazard.
@@ -223,39 +246,18 @@ public final class SimulationEngine {
                 dependentObjects.add(dependent);
             }
             completeCommitableReads();
-            if (wasEmpty && !steps.isEmpty()) {
+            final boolean empty = steps.isEmpty();
+            if (wasEmpty && !empty) {
                 // Have acquired work to do.
                 scheduleAdvance1();
             }
+            assert !(empty && !dependentObjects.isEmpty());
             return future;
         }
 
         private void scheduleAdvance1() {
             assert universe.getObjectIds().contains(object);
             executor.execute(this);
-        }
-
-        /*
-         * By having the dependencies sorted, we will schedule the dependencies in
-         * ascending time order, which will tend to result in fewer aborted
-         * transactions. The number of dependencies should be small and not proportional
-         * to the number of objects, so the performance to advance the universe to a
-         * given point in time should remain O(N).
-         */
-        private void scheduleDependencies(@NonNull final SortedSet<ObjectStateId> dependencyIds) {
-            for (var dependencyId : dependencyIds) {
-                final UUID objectDependency = dependencyId.getObject();
-                final Duration dependencyWhen = dependencyId.getWhen();
-                final Duration dependencyLastestCommit = universe.getLatestCommit(objectDependency);
-                if (dependencyLastestCommit.compareTo(dependencyWhen) < 0) {
-                    /*
-                     * To commit we will need this dependency, but it is not yet committed, so
-                     * schedule production of the dependency so we will eventually advance.
-                     */
-                    objectDependencies.add(objectDependency);
-                    getEngine1(objectDependency).schedule(dependencyId, object);
-                }
-            }
         }
 
     }

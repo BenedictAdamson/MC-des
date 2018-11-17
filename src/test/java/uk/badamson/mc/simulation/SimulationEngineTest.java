@@ -436,8 +436,14 @@ public class SimulationEngineTest {
 
                 final Future<ObjectState> future = computeObjectState(engine, objectB, when);
 
-                assertAll("future", () -> assertFalse(future.isCancelled(), "Not cancelled"),
-                        () -> assertTrue(future.isDone(), "Done"));
+                final Duration latestCommitB = universe.getLatestCommit(objectB);
+                assertAll(
+                        () -> assertAll("future", () -> assertFalse(future.isCancelled(), "Not cancelled"),
+                                () -> assertTrue(future.isDone(), "Done")),
+                        () -> assertAll("Advanced the state history",
+                                () -> assertThat("at all", latestCommitB, greaterThan(before)),
+                                () -> assertThat("to at least the required time", latestCommitB,
+                                        greaterThanOrEqualTo(when))));// guard
                 final ObjectState state;
                 try {
                     state = future.get();
@@ -447,9 +453,6 @@ public class SimulationEngineTest {
                 }
                 assertNotNull(state, "Computed a state");// guard
                 ObjectStateTest.assertInvariants(state);
-                final Duration latestCommitB = universe.getLatestCommit(objectB);
-                assertAll("Advanced the state history", () -> assertThat("at all", latestCommitB, greaterThan(before)),
-                        () -> assertThat("to at least the required time", latestCommitB, greaterThanOrEqualTo(when)));
             }
         }// class
 
