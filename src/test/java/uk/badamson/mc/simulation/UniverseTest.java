@@ -45,8 +45,11 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -110,19 +113,32 @@ public class UniverseTest {
     @Nested
     public class Constructor {
 
+        @Nested
+        public class Multithreading {
+
+            @RepeatedTest(32)
+            public void a() {
+                test(DURATION_1);
+            }
+
+            @RepeatedTest(32)
+            public void b() {
+                test(DURATION_2);
+            }
+
+            private void test(final Duration historyStart) {
+                final Universe universe = new Universe(historyStart);
+
+                runInOtherThread(() -> assertPostconditions(universe, historyStart));
+            }
+        }
+
         @Test
         public void a() {
             test(DURATION_1);
         }
 
-        @Test
-        public void b() {
-            test(DURATION_2);
-        }
-
-        private void test(final Duration historyStart) {
-            final Universe universe = new Universe(historyStart);
-
+        private void assertPostconditions(final Universe universe, final Duration historyStart) {
             assertInvariants(universe);
 
             assertSame(historyStart, universe.getHistoryStart(),
@@ -133,6 +149,17 @@ public class UniverseTest {
 
             assertUnknownObjectInvariants(universe, OBJECT_A);
             assertUnknownObjectInvariants(universe, OBJECT_B);
+        }
+
+        @Test
+        public void b() {
+            test(DURATION_2);
+        }
+
+        private void test(final Duration historyStart) {
+            final Universe universe = new Universe(historyStart);
+
+            assertPostconditions(universe, historyStart);
         }
     }// class
 
@@ -225,7 +252,7 @@ public class UniverseTest {
                 setHistoryStart(universe, historyStart);
             }
 
-        }
+        }// class
 
         private void setHistoryStart(final Universe universe, @NonNull Duration historyStart) {
             universe.setHistoryStart(historyStart);
@@ -3117,6 +3144,7 @@ public class UniverseTest {
     }// class
 
     static final UUID OBJECT_A = ObjectStateIdTest.OBJECT_A;
+
     static final UUID OBJECT_B = ObjectStateIdTest.OBJECT_B;
     static final UUID OBJECT_C = UUID.randomUUID();
     static final UUID OBJECT_D = UUID.randomUUID();
@@ -3258,6 +3286,26 @@ public class UniverseTest {
         transaction.beginWrite(when);
         transaction.put(object, state);
         transaction.beginCommit();
+    }
+
+    private void runInOtherThread(final Runnable operation) {
+        final CompletableFuture<Void> future = new CompletableFuture<Void>();
+        final Thread thread = new Thread(() -> {
+            try {
+                operation.run();
+            } catch (Throwable e) {
+                future.completeExceptionally(e);
+                return;
+            }
+            future.complete(null);
+        });
+        thread.start();
+        try {
+            thread.join();
+            future.get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new AssertionError(e);
+        }
     }
 
 }

@@ -32,7 +32,9 @@ import java.util.UUID;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
+import net.jcip.annotations.GuardedBy;
 import net.jcip.annotations.NotThreadSafe;
+import net.jcip.annotations.ThreadSafe;
 import uk.badamson.mc.history.ConstantValueHistory;
 import uk.badamson.mc.history.ModifiableSetHistory;
 import uk.badamson.mc.history.ModifiableValueHistory;
@@ -50,6 +52,7 @@ import uk.badamson.mc.history.ValueHistory;
  * that state, unless those states are {@linkplain #getHistoryStart() too old}.
  * </p>
  */
+@ThreadSafe
 public class Universe {
 
     private static final class MutualTransactionCoordinator {
@@ -650,6 +653,7 @@ public class Universe {
             final UUID object = id.getObject();
             final Duration when = id.getWhen();
 
+            // TODO historyStart GuardedBy("lock")
             if (when.compareTo(historyStart) < 0) {
                 throw new Universe.PrehistoryException();
             }
@@ -1186,8 +1190,11 @@ public class Universe {
         predecessor.successorTransactions.remove(predecessor);
     }
 
+    private final Object lock = new Object();
     @NonNull
+    @GuardedBy("lock")
     private Duration historyStart;
+
     private final Map<UUID, ObjectData> objectDataMap = new HashMap<>();
 
     /**
@@ -1211,6 +1218,7 @@ public class Universe {
      *             If {@code historyStart} is null
      */
     public Universe(final @NonNull Duration historyStart) {
+        // TODO historyStart GuardedBy("lock")
         this.historyStart = Objects.requireNonNull(historyStart, "earliestTimeOfCompleteState");
     }
 
@@ -1268,6 +1276,7 @@ public class Universe {
                 historyEnd = lastCommmit;
             }
         }
+        // TODO historyStart GuardedBy("lock")
         return historyEnd.compareTo(historyStart) < 0 ? historyStart : historyEnd;
     }
 
@@ -1285,6 +1294,7 @@ public class Universe {
      *         null.
      */
     public final @NonNull Duration getHistoryStart() {
+        // TODO historyStart GuardedBy("lock")
         return historyStart;
     }
 
@@ -1478,6 +1488,7 @@ public class Universe {
      */
     public final void setHistoryStart(@NonNull Duration historyStart) {
         Objects.requireNonNull(historyStart, "historyStart");
+        // TODO this.historyStart GuardedBy("lock")
         if (historyStart.compareTo(this.historyStart) < 0) {
             throw new IllegalArgumentException("Before current history start");
         }
