@@ -3195,8 +3195,10 @@ public class UniverseTest {
         assertNotNull(history, "A universe always has an object state history for a given object.");// guard
         ValueHistoryTest.assertInvariants(history);
 
+        assertNull(history.getFirstValue(),
+                "An object state history indicates that the object does not exist at the start of time.");
         assertFalse(!history.isEmpty() && !universe.getObjectIds().contains(object),
-                "The object state history for a given object is not empty only if the object is one of the {@linkplain #getObjectIds() known objects} in this universe.");
+                "The object state history for a given object is not empty only if the object is one of the known objects in this universe.");
 
         return history;
     }

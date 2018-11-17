@@ -226,6 +226,9 @@ public class Universe {
          * 
          * @throws NullPointerException
          *             If {@code when} is null.
+         * @throws IllegalArgumentException
+         *             If {@code when} is the {@linkplain ValueHistory#START_OF_TIME
+         *             start of time}.
          * @throws IllegalStateException
          *             <ul>
          *             <li>If the any of the {@linkplain #getObjectStatesRead() reads}
@@ -239,6 +242,9 @@ public class Universe {
          */
         public final void beginWrite(@NonNull Duration when) {
             Objects.requireNonNull(when, "when");
+            if (ValueHistory.START_OF_TIME.equals(when)) {
+                throw new IllegalArgumentException("May not write at the start of time");
+            }
             openness.beginWrite(this, when);
         }
 
@@ -1311,11 +1317,11 @@ public class Universe {
      * for all points before the {@linkplain SortedMap#firstKey() first} known state
      * of the {@linkplain #getObjectStateHistory(UUID) state history} of that
      * object.</li>
-     * <li>Returns a (non null) state if the object has a known state at the given
-     * point in time.</li>
+     * <li>Returns a (non null) state if the object exists and has a known state at
+     * the given point in time.</li>
      * <li>The (non null) state of an object at a given point in time is one of the
-     * states ({@linkplain SortedMap#values() values}) in the
-     * {@linkplain #getObjectStateHistory(UUID) state history} of the object.</li>
+     * states (values) in the {@linkplain #getObjectStateHistory(UUID) state
+     * history} of the object.</li>
      * <li>The (non null) state of an object at a given point in time is the state
      * it had at the latest state transition at or before that point in time.</li>
      * </ul>
@@ -1361,6 +1367,14 @@ public class Universe {
      * transitions {@linkplain Transaction#put(UUID, ObjectState) written} by
      * transactions that have not yet been {@linkplain TransactionOpenness#COMMITTED
      * committed}, and so could be rolled-back.</li>
+     * <li>An object state history may record null values
+     * {@linkplain ValueHistory#get(Duration) for} points in time, which indicates
+     * that the object does not exist (or is not known to exist, for points in time
+     * before the {@linkplain #getHistoryStart() start of history}) at that point in
+     * time.</li>
+     * <li>An object state history indicates that the object does not exist (has a
+     * null state) {@linkplain ValueHistory#getFirstValue() at the start of
+     * time}.</li>
      * </ul>
      * 
      * @param object
