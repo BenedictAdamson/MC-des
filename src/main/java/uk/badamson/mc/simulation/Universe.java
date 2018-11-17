@@ -654,10 +654,11 @@ public class Universe {
                 objectState = null;
             } else {
                 objectState = od.stateHistory.get(when);
-                if (addTriggers) {
+                if (addTriggers && od.latestCommit.compareTo(when) < 0) {
+                    // Is reading an uncommitted state.
                     if (od.stateHistory.getLastTansitionTime().compareTo(when) < 0) {
                         isPastTheEndRead = true;
-                    } else if (od.latestCommit.compareTo(when) < 0) {
+                    } else {
                         @NonNull
                         final Duration nextWrite = od.stateHistory.getTansitionTimeAtOrAfter(when);
                         additionalPredecessors.addAll(od.uncommittedWriters.get(nextWrite));

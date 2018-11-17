@@ -1006,6 +1006,46 @@ public class UniverseTest {
             }// class
 
             @Nested
+            public class AfterReadOfDestruction {
+
+                @Test
+                public void a() {
+                    test(OBJECT_A, DURATION_1, DURATION_2, DURATION_3, DURATION_4);
+                }
+
+                @Test
+                public void at() {
+                    test(OBJECT_A, DURATION_1, DURATION_2, DURATION_3, DURATION_3);
+                }
+
+                @Test
+                public void b() {
+                    test(OBJECT_B, DURATION_2, DURATION_3, DURATION_4, DURATION_5);
+                }
+
+                private void test(UUID object, Duration historyStart, Duration whenExist, Duration whenDestroy,
+                        Duration whenRead) {
+                    assert whenExist.compareTo(whenDestroy) < 0;
+                    assert whenDestroy.compareTo(whenRead) <= 0;
+                    final ObjectState objectState0 = new ObjectStateTest.TestObjectState(1);
+
+                    final CountingTransactionListener listener = new CountingTransactionListener();
+
+                    final Universe universe = new Universe(historyStart);
+                    UniverseTest.putAndCommit(universe, object, whenExist, objectState0);
+                    UniverseTest.putAndCommit(universe, object, whenDestroy, null);
+                    final Universe.Transaction transaction = universe.beginTransaction(listener);
+                    transaction.getObjectState(object, whenRead);
+
+                    beginCommit(transaction);
+
+                    assertAll("Transaction", () -> assertEquals(1, listener.commits, "committed"),
+                            () -> assertEquals(0, listener.aborts, "not aborted"));
+                }
+
+            }// class
+
+            @Nested
             public class AfterReadPastLastCommit {
 
                 @Test
