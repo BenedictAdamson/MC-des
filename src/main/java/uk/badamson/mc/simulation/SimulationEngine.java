@@ -376,14 +376,32 @@ public final class SimulationEngine {
 
     /**
      * <p>
+     * If necessary, schedule computations, so the
+     * {@linkplain Universe#getHistoryEnd() history end time} of the
+     * {@linkplain #getUniverse() universe} of this engine extends at least to a
+     * given point in time. time.
+     * </p>
+     * 
+     * @param when
+     *            The point in time of interest.
+     * @throws NullPointerException
+     *             If {@code when} is null.
+     */
+    public final @NonNull void advanceHistory(@NonNull Duration when) {
+        Objects.requireNonNull(when, "when");
+        // TODO
+    }
+
+    /**
+     * <p>
      * If necessary, schedule computation of the state history of a given object, of
-     * the {@linkplain #getUniverse() universe} of this engine, to the
+     * the {@linkplain #getUniverse() universe} of this engine, so the
      * {@linkplain Universe#getLatestCommit(UUID) committed history} of the given
      * object extends at least to a given point in time. time.
      * </p>
      * <ul>
      * <li>This method is cheaper than {@link #computeObjectState(UUID, Duration)},
-     * as it does not need to crate and maintain a {@link Future} for recording the
+     * as it does not need to create and maintain a {@link Future} for recording the
      * computed state.
      * </ul>
      * 

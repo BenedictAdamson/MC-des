@@ -23,6 +23,7 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -55,7 +56,7 @@ import uk.badamson.mc.history.ValueHistory;
 public class SimulationEngineTest {
 
     @Nested
-    public class AdvanceHistory {
+    public class AdvanceHistory1 {
 
         @Nested
         public class Empty {
@@ -142,6 +143,41 @@ public class SimulationEngineTest {
 
         private void advanceHistory(SimulationEngine engine, @NonNull UUID object, @NonNull Duration when) {
             engine.advanceHistory(object, when);
+
+            assertInvariants(engine);
+        }
+
+    }// class
+
+    @Nested
+    public class AdvanceHistoryAll {
+
+        @Nested
+        public class Empty {
+
+            @Test
+            public void a() {
+                test(WHEN_1, WHEN_2, OBJECT_A);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_2, WHEN_3, OBJECT_B);
+            }
+
+            private void test(@NonNull Duration historyStart, @NonNull Duration when, @NonNull UUID object) {
+                assert historyStart.compareTo(when) < 0;
+                final Universe universe = new Universe(historyStart);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+
+                advanceHistory(engine, when);
+
+                assertEquals(ValueHistory.END_OF_TIME, universe.getHistoryEnd(), "History end (still)");
+            }
+        }// class
+
+        private void advanceHistory(SimulationEngine engine, @NonNull Duration when) {
+            engine.advanceHistory(when);
 
             assertInvariants(engine);
         }
