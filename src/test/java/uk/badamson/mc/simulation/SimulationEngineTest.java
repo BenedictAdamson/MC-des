@@ -211,6 +211,36 @@ public class SimulationEngineTest {
             }
         }// class
 
+        @Nested
+        public class NoDependencies {
+
+            @Test
+            public void a() {
+                test(WHEN_1, WHEN_2, WHEN_3, OBJECT_A);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_2, WHEN_3, WHEN_4, OBJECT_B);
+            }
+
+            private void test(@NonNull Duration historyStart, @NonNull Duration before, @NonNull Duration when,
+                    @NonNull UUID object) {
+                assert historyStart.compareTo(when) < 0;
+                assert before.compareTo(when) < 0;
+                final Universe universe = new Universe(historyStart);
+                final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
+                UniverseTest.putAndCommit(universe, object, before, state0);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+
+                advanceHistory(engine, when);
+
+                assertThat("Advanced the state history of the sole object.", universe.getLatestCommit(object),
+                        greaterThanOrEqualTo(when));
+                assertThat("Advanced the history end.", universe.getHistoryEnd(), greaterThanOrEqualTo(when));
+            }
+        }// class
+
         private void advanceHistory(SimulationEngine engine, @NonNull Duration when) {
             engine.advanceHistory(when);
 

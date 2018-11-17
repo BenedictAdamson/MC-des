@@ -389,7 +389,10 @@ public final class SimulationEngine {
      */
     public final @NonNull void advanceHistory(@NonNull Duration when) {
         Objects.requireNonNull(when, "when");
-        // TODO
+        // TODO handle object spawning
+        for (UUID object : universe.getObjectIds()) {
+            getEngine1(object).advanceHistory(when, null);
+        }
     }
 
     /**
