@@ -1223,20 +1223,23 @@ public class Universe {
      * <li>Always have a (non null) history end.</li>
      * <li>The history end is {@linkplain Duration#compareTo(Duration) at or after}
      * the {@linkplain #getHistoryStart() history start}.</li>
+     * <li>The end of the history of an empty universe (which has no
+     * {@linkplain #getObjectIds() objects}) is the
+     * {@linkplain ValueHistory#END_OF_TIME end of time}.</li>
      * </ul>
      * 
      * @return the point in time, expressed as the duration since an epoch; not
      *         null.
      */
     public final @NonNull Duration getHistoryEnd() {
-        Duration historyEnd = null;
+        Duration historyEnd = ValueHistory.END_OF_TIME;
         for (var od : objectDataMap.values()) {
             final Duration lastCommmit = od.latestCommit;
-            if (historyEnd == null || lastCommmit.compareTo(historyEnd) < 0) {
+            if (lastCommmit.compareTo(historyEnd) < 0) {
                 historyEnd = lastCommmit;
             }
         }
-        return historyEnd == null || historyEnd.compareTo(historyStart) < 0 ? historyStart : historyEnd;
+        return historyEnd.compareTo(historyStart) < 0 ? historyStart : historyEnd;
     }
 
     /**

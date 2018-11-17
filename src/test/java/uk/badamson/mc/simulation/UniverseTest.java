@@ -3120,6 +3120,8 @@ public class UniverseTest {
         assertNotNull(historyEnd, "Always have a history end time-stamp.");// guard
         assertThat("The history end is at or after the history start.", historyEnd,
                 greaterThanOrEqualTo(universe.getHistoryStart()));
+        assertFalse(universe.getObjectIds().isEmpty() && !ValueHistory.END_OF_TIME.equals(historyEnd),
+                "The end of the history of an empty universe is the end of time.");
 
         return historyEnd;
     }
