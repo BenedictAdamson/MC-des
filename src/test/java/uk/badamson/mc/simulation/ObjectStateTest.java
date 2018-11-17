@@ -52,18 +52,50 @@ public class ObjectStateTest {
 
         @Override
         public void putNextStateTransition(Universe.Transaction transaction, UUID object, Duration when) {
-            Objects.requireNonNull(transaction, "transaction");
-            Objects.requireNonNull(object, "object");
-            Objects.requireNonNull(when, "when");
-            if (!Collections.singletonMap(new ObjectStateId(object, when), this)
-                    .equals(transaction.getObjectStatesRead())) {
-                throw new IllegalArgumentException("objectStatesRead does not consists of only this state");
-            }
+            requirePutNextStateTransitionPreconditions(this, transaction, object, when);
 
             final TestObjectState nextState = new TestObjectState(i + 1);
             transaction.getObjectState(dependent, when.minus(dependencyDelay));
             transaction.beginWrite(when.plusSeconds(1));
             transaction.put(object, nextState);
+        }
+    }// class
+
+    static final class SelfDestructingObjectState extends TestObjectState {
+
+        SelfDestructingObjectState(int i) {
+            super(i);
+        }
+
+        @Override
+        public void putNextStateTransition(Universe.Transaction transaction, UUID object, Duration when) {
+            requirePutNextStateTransitionPreconditions(this, transaction, object, when);
+
+            final ObjectState nextState = null;
+            transaction.beginWrite(when.plusSeconds(1));
+            transaction.put(object, nextState);
+        }
+    }
+
+    static class SpawningTestObjectState extends TestObjectState {
+        private final UUID child;
+        private final int childId;
+
+        SpawningTestObjectState(int i, int childId, UUID child) {
+            super(i);
+            this.child = Objects.requireNonNull(child, "child");
+            this.childId = childId;
+        }
+
+        @Override
+        public void putNextStateTransition(Universe.Transaction transaction, UUID object, Duration when) {
+            requirePutNextStateTransitionPreconditions(this, transaction, object, when);
+
+            final TestObjectState nextState = new TestObjectState(i + 1);
+            final TestObjectState childState = new TestObjectState(childId);
+            transaction.beginWrite(when.plusSeconds(1));
+            transaction.put(object, nextState);
+            transaction.put(child, childState);
         }
     }// class
 
@@ -93,13 +125,7 @@ public class ObjectStateTest {
 
         @Override
         public void putNextStateTransition(Universe.Transaction transaction, UUID object, Duration when) {
-            Objects.requireNonNull(transaction, "transaction");
-            Objects.requireNonNull(object, "object");
-            Objects.requireNonNull(when, "when");
-            if (!Collections.singletonMap(new ObjectStateId(object, when), this)
-                    .equals(transaction.getObjectStatesRead())) {
-                throw new IllegalArgumentException("objectStatesRead does not consists of only this state");
-            }
+            requirePutNextStateTransitionPreconditions(this, transaction, object, when);
 
             final TestObjectState nextState = new TestObjectState(i + 1);
             transaction.beginWrite(when.plusSeconds(1));
@@ -144,6 +170,17 @@ public class ObjectStateTest {
                     "The points in time for which the method fetches state information must be before the given point in time.",
                     () -> assertThat(dependencyWhen, lessThanOrEqualTo(when)),
                     () -> assertTrue(dependencyObject.equals(object) || dependencyWhen.compareTo(when) < 0));
+        }
+    }
+
+    private static void requirePutNextStateTransitionPreconditions(ObjectState state, Universe.Transaction transaction,
+            UUID object, Duration when) {
+        Objects.requireNonNull(transaction, "transaction");
+        Objects.requireNonNull(object, "object");
+        Objects.requireNonNull(when, "when");
+        if (!Collections.singletonMap(new ObjectStateId(object, when), state)
+                .equals(transaction.getObjectStatesRead())) {
+            throw new IllegalArgumentException("objectStatesRead does not consists of only this state");
         }
     }
 }

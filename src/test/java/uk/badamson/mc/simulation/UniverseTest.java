@@ -38,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
@@ -139,6 +140,7 @@ public class UniverseTest {
 
         int aborts;
         int commits;
+        final Set<UUID> created = new HashSet<>();
 
         final int getEnds() {
             return aborts + commits;
@@ -154,6 +156,12 @@ public class UniverseTest {
         public void onCommit() {
             assertEquals(0, commits, "Commits at most once");
             ++commits;
+        }
+
+        @Override
+        public void onCreate(@NonNull UUID object) {
+            assertNotNull(object, "object");
+            created.add(object);
         }
 
     }// class
@@ -1001,6 +1009,46 @@ public class UniverseTest {
                     assertAll(() -> assertTrue(0 < listener.getEnds(), "Ended transaction"),
                             () -> assertEquals(1, listener.commits, "Committed transaction"), () -> assertEquals(when2,
                                     universe.getLatestCommit(object2), "Latest commit of object (advanced)"));
+                }
+
+            }// class
+
+            @Nested
+            public class AfterReadOfDestruction {
+
+                @Test
+                public void a() {
+                    test(OBJECT_A, DURATION_1, DURATION_2, DURATION_3, DURATION_4);
+                }
+
+                @Test
+                public void at() {
+                    test(OBJECT_A, DURATION_1, DURATION_2, DURATION_3, DURATION_3);
+                }
+
+                @Test
+                public void b() {
+                    test(OBJECT_B, DURATION_2, DURATION_3, DURATION_4, DURATION_5);
+                }
+
+                private void test(UUID object, Duration historyStart, Duration whenExist, Duration whenDestroy,
+                        Duration whenRead) {
+                    assert whenExist.compareTo(whenDestroy) < 0;
+                    assert whenDestroy.compareTo(whenRead) <= 0;
+                    final ObjectState objectState0 = new ObjectStateTest.TestObjectState(1);
+
+                    final CountingTransactionListener listener = new CountingTransactionListener();
+
+                    final Universe universe = new Universe(historyStart);
+                    UniverseTest.putAndCommit(universe, object, whenExist, objectState0);
+                    UniverseTest.putAndCommit(universe, object, whenDestroy, null);
+                    final Universe.Transaction transaction = universe.beginTransaction(listener);
+                    transaction.getObjectState(object, whenRead);
+
+                    beginCommit(transaction);
+
+                    assertAll("Transaction", () -> assertEquals(1, listener.commits, "committed"),
+                            () -> assertEquals(0, listener.aborts, "not aborted"));
                 }
 
             }// class
@@ -2679,8 +2727,11 @@ public class UniverseTest {
 
                     put(transaction, object, objectState);
 
-                    assertAll(() -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
-                            "Object state history (did not add to history because aborting)"));
+                    assertAll(
+                            () -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
+                                    "Object state history (did not add to history because aborting)"),
+                            () -> assertEquals(Collections.emptySet(), listener.created,
+                                    "Did not call creation call-back"));
                 }
 
             }// class
@@ -2710,6 +2761,8 @@ public class UniverseTest {
                     transaction.beginWrite(when2);
 
                     put(transaction, object2, objectState2);
+
+                    assertEquals(Collections.singleton(object2), listener.created, "Called creation call-back");
                 }
 
             }// class
@@ -2749,8 +2802,11 @@ public class UniverseTest {
 
                     put(transaction, object, objectState2);
 
-                    assertAll(() -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
-                            "Object state history"));
+                    assertAll(
+                            () -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
+                                    "Object state history"),
+                            () -> assertEquals(Collections.emptySet(), listener.created,
+                                    "Did not call creation call-back"));
                 }
 
             }// class
@@ -2798,7 +2854,7 @@ public class UniverseTest {
             }// class
 
             @Nested
-            public class Call1 {
+            public class CreateWithoutDependencies {
 
                 @Test
                 public void a() {
@@ -2829,7 +2885,9 @@ public class UniverseTest {
 
                     assertAll(() -> assertEquals(Collections.singleton(object), universe.getObjectIds(), "Object IDs"),
                             () -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
-                                    "Object state history"));
+                                    "Object state history"),
+                            () -> assertEquals(Collections.singleton(object), listener.created,
+                                    "Called creation call-back"));
                 }
 
             }// class
@@ -3080,6 +3138,8 @@ public class UniverseTest {
         assertNotNull(historyEnd, "Always have a history end time-stamp.");// guard
         assertThat("The history end is at or after the history start.", historyEnd,
                 greaterThanOrEqualTo(universe.getHistoryStart()));
+        assertFalse(universe.getObjectIds().isEmpty() && !ValueHistory.END_OF_TIME.equals(historyEnd),
+                "The end of the history of an empty universe is the end of time.");
 
         return historyEnd;
     }
@@ -3155,8 +3215,10 @@ public class UniverseTest {
         assertNotNull(history, "A universe always has an object state history for a given object.");// guard
         ValueHistoryTest.assertInvariants(history);
 
+        assertNull(history.getFirstValue(),
+                "An object state history indicates that the object does not exist at the start of time.");
         assertFalse(!history.isEmpty() && !universe.getObjectIds().contains(object),
-                "The object state history for a given object is not empty only if the object is one of the {@linkplain #getObjectIds() known objects} in this universe.");
+                "The object state history for a given object is not empty only if the object is one of the known objects in this universe.");
 
         return history;
     }
@@ -3183,6 +3245,11 @@ public class UniverseTest {
 
             @Override
             public void onCommit() {
+                // Do nothing
+            }
+
+            @Override
+            public void onCreate(@NonNull UUID object) {
                 // Do nothing
             }
 

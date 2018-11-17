@@ -226,6 +226,9 @@ public class Universe {
          * 
          * @throws NullPointerException
          *             If {@code when} is null.
+         * @throws IllegalArgumentException
+         *             If {@code when} is the {@linkplain ValueHistory#START_OF_TIME
+         *             start of time}.
          * @throws IllegalStateException
          *             <ul>
          *             <li>If the any of the {@linkplain #getObjectStatesRead() reads}
@@ -239,6 +242,9 @@ public class Universe {
          */
         public final void beginWrite(@NonNull Duration when) {
             Objects.requireNonNull(when, "when");
+            if (ValueHistory.START_OF_TIME.equals(when)) {
+                throw new IllegalArgumentException("May not write at the start of time");
+            }
             openness.beginWrite(this, when);
         }
 
@@ -578,7 +584,9 @@ public class Universe {
          */
         public final void put(@NonNull UUID object, @Nullable ObjectState state) {
             Objects.requireNonNull(object, "object");
-            openness.put(this, object, state);
+            if (openness.put(this, object, state)) {
+                listener.onCreate(object);
+            }
         }
 
         private void reallyAbort() {
@@ -654,10 +662,11 @@ public class Universe {
                 objectState = null;
             } else {
                 objectState = od.stateHistory.get(when);
-                if (addTriggers) {
+                if (addTriggers && od.latestCommit.compareTo(when) < 0) {
+                    // Is reading an uncommitted state.
                     if (od.stateHistory.getLastTansitionTime().compareTo(when) < 0) {
                         isPastTheEndRead = true;
-                    } else if (od.latestCommit.compareTo(when) < 0) {
+                    } else {
                         @NonNull
                         final Duration nextWrite = od.stateHistory.getTansitionTimeAtOrAfter(when);
                         additionalPredecessors.addAll(od.uncommittedWriters.get(nextWrite));
@@ -711,14 +720,16 @@ public class Universe {
             }
         }
 
-        private void tryToAppendToHistory(UUID object, ObjectState state) {
+        private boolean tryToAppendToHistory(UUID object, ObjectState state) {
             assert when != null;
 
+            boolean creating = false;
             ObjectData od = objectDataMap.get(object);
             if (od == null) {
                 // We are adding the object.
                 od = new ObjectData();
                 objectDataMap.put(object, od);
+                creating = true;
             }
             final ModifiableValueHistory<ObjectState> stateHistory = od.stateHistory;
             if (state != null && !stateHistory.isEmpty() && stateHistory.getLastValue() == null) {
@@ -726,7 +737,7 @@ public class Universe {
                  * Attempted resurrection of a dead object. Not added to od.uncommittedWriters.
                  */
                 openness = TransactionOpenness.ABORTING;
-                return;
+                return false;
             }
             final Duration lastTransition0 = stateHistory.getLastTansitionTime();
             assert lastTransition0 == null || od.latestCommit.compareTo(lastTransition0) <= 0;
@@ -735,7 +746,7 @@ public class Universe {
             } catch (IllegalStateException e) {
                 openness = TransactionOpenness.ABORTING;
                 // Not added to Not added to od.uncommittedWriters.
-                return;
+                return false;
             }
             assert lastTransition0 == null || lastTransition0.compareTo(when) < 0;
             od.uncommittedWriters.addFrom(when, this);
@@ -758,8 +769,11 @@ public class Universe {
                     pastTheEndReader.pastTheEndReads.remove(object);
                     addAsPredecessor(this, pastTheEndReader);
                 }
+            } else {
+                creating = true;
             }
-            // else creating the object
+
+            return creating;
         }
 
     }// class
@@ -784,6 +798,24 @@ public class Universe {
          * </p>
          */
         public void onCommit();
+
+        /**
+         * <p>
+         * An action to perform when (if) a transaction creates a new object.
+         * </p>
+         * <p>
+         * The method can be called before the transaction commits.
+         * </p>
+         * 
+         * @param object
+         *            The object created by the transaction.
+         * @throws NullPointerException
+         *             (Optionally) if {@code object} is null.
+         * @throws IllegalStateException
+         *             (Optionally) if this method of listener has previously been
+         *             called for the same transaction and object.
+         */
+        public void onCreate(@NonNull UUID object);
 
     }// interface
 
@@ -829,7 +861,7 @@ public class Universe {
             }
 
             @Override
-            void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
+            boolean put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
                 throw new IllegalStateException("Not in writing mode");
             }
 
@@ -875,9 +907,9 @@ public class Universe {
             }
 
             @Override
-            void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
+            boolean put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
                 transaction.recordObjectStateWritten(object, state);
-                transaction.tryToAppendToHistory(object, state);
+                return transaction.tryToAppendToHistory(object, state);
             }
 
             @Override
@@ -915,7 +947,7 @@ public class Universe {
             }
 
             @Override
-            void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
+            boolean put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
                 throw new IllegalStateException("Commiting");
             }
 
@@ -954,9 +986,10 @@ public class Universe {
             }
 
             @Override
-            void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
+            boolean put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
                 transaction.recordObjectStateWritten(object, state);
                 // Do not change the object state history, however.
+                return false;
             }
 
             @Override
@@ -1004,7 +1037,7 @@ public class Universe {
             }
 
             @Override
-            void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
+            boolean put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
                 throw new IllegalStateException("Committed");
             }
 
@@ -1049,7 +1082,7 @@ public class Universe {
             }
 
             @Override
-            void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
+            boolean put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state) {
                 throw new IllegalStateException("Aborted");
             }
 
@@ -1069,7 +1102,10 @@ public class Universe {
 
         abstract void close(Universe.Transaction transaction);
 
-        abstract void put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state);
+        /*
+         * @returns Whether object created.
+         */
+        abstract boolean put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state);
 
         abstract @Nullable ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id,
                 Set<Transaction> additionalPredecessors);
@@ -1216,20 +1252,23 @@ public class Universe {
      * <li>Always have a (non null) history end.</li>
      * <li>The history end is {@linkplain Duration#compareTo(Duration) at or after}
      * the {@linkplain #getHistoryStart() history start}.</li>
+     * <li>The end of the history of an empty universe (which has no
+     * {@linkplain #getObjectIds() objects}) is the
+     * {@linkplain ValueHistory#END_OF_TIME end of time}.</li>
      * </ul>
      * 
      * @return the point in time, expressed as the duration since an epoch; not
      *         null.
      */
     public final @NonNull Duration getHistoryEnd() {
-        Duration historyEnd = null;
+        Duration historyEnd = ValueHistory.END_OF_TIME;
         for (var od : objectDataMap.values()) {
             final Duration lastCommmit = od.latestCommit;
-            if (historyEnd == null || lastCommmit.compareTo(historyEnd) < 0) {
+            if (lastCommmit.compareTo(historyEnd) < 0) {
                 historyEnd = lastCommmit;
             }
         }
-        return historyEnd == null || historyEnd.compareTo(historyStart) < 0 ? historyStart : historyEnd;
+        return historyEnd.compareTo(historyStart) < 0 ? historyStart : historyEnd;
     }
 
     /**
@@ -1310,11 +1349,11 @@ public class Universe {
      * for all points before the {@linkplain SortedMap#firstKey() first} known state
      * of the {@linkplain #getObjectStateHistory(UUID) state history} of that
      * object.</li>
-     * <li>Returns a (non null) state if the object has a known state at the given
-     * point in time.</li>
+     * <li>Returns a (non null) state if the object exists and has a known state at
+     * the given point in time.</li>
      * <li>The (non null) state of an object at a given point in time is one of the
-     * states ({@linkplain SortedMap#values() values}) in the
-     * {@linkplain #getObjectStateHistory(UUID) state history} of the object.</li>
+     * states (values) in the {@linkplain #getObjectStateHistory(UUID) state
+     * history} of the object.</li>
      * <li>The (non null) state of an object at a given point in time is the state
      * it had at the latest state transition at or before that point in time.</li>
      * </ul>
@@ -1360,6 +1399,14 @@ public class Universe {
      * transitions {@linkplain Transaction#put(UUID, ObjectState) written} by
      * transactions that have not yet been {@linkplain TransactionOpenness#COMMITTED
      * committed}, and so could be rolled-back.</li>
+     * <li>An object state history may record null values
+     * {@linkplain ValueHistory#get(Duration) for} points in time, which indicates
+     * that the object does not exist (or is not known to exist, for points in time
+     * before the {@linkplain #getHistoryStart() start of history}) at that point in
+     * time.</li>
+     * <li>An object state history indicates that the object does not exist (has a
+     * null state) {@linkplain ValueHistory#getFirstValue() at the start of
+     * time}.</li>
      * </ul>
      * 
      * @param object
