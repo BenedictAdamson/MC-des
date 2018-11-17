@@ -99,7 +99,7 @@ public final class SimulationEngine {
                      * schedule production of the dependency so we will eventually advance.
                      */
                     objectDependencies.add(objectDependency);
-                    getEngine1(objectDependency).schedule(dependencyId, object);
+                    getEngine1(objectDependency).advanceHistory(dependencyWhen, object);
                 }
             }
         }
