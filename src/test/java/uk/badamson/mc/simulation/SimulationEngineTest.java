@@ -57,6 +57,49 @@ public class SimulationEngineTest {
     public class ComputeObjectState {
 
         @Nested
+        public class AtOrAfterDestruction {
+
+            @Test
+            public void a() {
+                test(WHEN_1, WHEN_2, WHEN_3, WHEN_4, OBJECT_A);
+            }
+
+            @Test
+            public void at() {
+                test(WHEN_1, WHEN_2, WHEN_3, WHEN_3, OBJECT_A);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_2, WHEN_3, WHEN_4, WHEN_5, OBJECT_B);
+            }
+
+            private void test(@NonNull Duration historyStart, @NonNull Duration whenExist,
+                    @NonNull Duration whenDestroyed, @NonNull Duration when, @NonNull UUID object) {
+                assert whenExist.compareTo(whenDestroyed) < 0;
+                assert whenDestroyed.compareTo(when) <= 0;
+                final Universe universe = new Universe(historyStart);
+                final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
+                UniverseTest.putAndCommit(universe, object, whenExist, state0);
+                UniverseTest.putAndCommit(universe, object, whenDestroyed, null);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+
+                final Future<ObjectState> future = computeObjectState(engine, object, when);
+
+                assertAll("future", () -> assertFalse(future.isCancelled(), "Not cancelled"),
+                        () -> assertTrue(future.isDone(), "Done"));
+                final ObjectState state;
+                try {
+                    state = future.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    fail("Computation immediately succeeds", e);
+                    return;// never happens
+                }
+                assertNull(state, "Indicates that object does not exist (anymore).");
+            }
+        }// class
+
+        @Nested
         public class Empty {
 
             @Test
