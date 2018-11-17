@@ -45,6 +45,7 @@ import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import uk.badamson.mc.ObjectTest;
+import uk.badamson.mc.history.ValueHistory;
 
 /**
  * <p>
@@ -143,6 +144,11 @@ public class SimulationEngineTest {
             @Test
             public void b() {
                 test(WHEN_2, WHEN_3, WHEN_4, WHEN_5, OBJECT_B);
+            }
+
+            @Test
+            public void eternally() {
+                test(WHEN_1, ValueHistory.START_OF_TIME.plusNanos(1L), WHEN_3, ValueHistory.END_OF_TIME, OBJECT_A);
             }
 
             private void test(@NonNull Duration historyStart, @NonNull Duration before, @NonNull Duration when,
