@@ -89,7 +89,7 @@ public final class SimulationEngine {
          * given point in time should remain O(N).
          */
         private void addDependencies(@NonNull final SortedSet<ObjectStateId> dependencyIds) {
-            for (var dependencyId : dependencyIds) {
+            for (ObjectStateId dependencyId : dependencyIds) {
                 final UUID objectDependency = dependencyId.getObject();
                 final Duration dependencyWhen = dependencyId.getWhen();
                 final Duration dependencyLastestCommit = universe.getLatestCommit(objectDependency);
@@ -98,10 +98,14 @@ public final class SimulationEngine {
                      * To commit we will need this dependency, but it is not yet committed, so
                      * schedule production of the dependency so we will eventually advance.
                      */
-                    objectDependencies.add(objectDependency);
+                    addDependency(objectDependency);
                     getEngine1(objectDependency).advanceHistory(dependencyWhen, object);
                 }
             }
+        }
+
+        private void addDependency(final UUID objectDependency) {
+            objectDependencies.add(objectDependency);
         }
 
         private void advance1() {
@@ -136,13 +140,14 @@ public final class SimulationEngine {
             assert !object.equals(dependent);
 
             // TODO optimize test for existing object
-            final boolean moreWork = latestCommit != null && latestCommit.compareTo(when) < 0
-                    && advanceTo.compareTo(when) < 0 && universe.getObjectIds().contains(object);
+            final boolean work = latestCommit != null && ValueHistory.START_OF_TIME.compareTo(latestCommit) < 0
+                    && latestCommit.compareTo(when) < 0 && advanceTo.compareTo(when) < 0
+                    && universe.getObjectIds().contains(object);
             advanceTo = when;
             if (dependent != null) {
                 dependentObjects.add(dependent);
             }
-            if (moreWork) {
+            if (work) {
                 scheduleAdvance1();
             }
         }
@@ -211,9 +216,11 @@ public final class SimulationEngine {
         }
 
         @Override
-        public void onCreate(@NonNull UUID object) {
-            assert object != null;
-            // TODO
+        public void onCreate(@NonNull UUID createdObject) {
+            dependentObjects.add(createdObject);
+            final Engine1 engine = getEngine1(createdObject);
+            engine.addDependency(object);
+            engine.advanceHistory(universalAdvanceTo, null);
         }
 
         private void putNextStateTransition(@NonNull final ObjectState state0,
@@ -357,6 +364,9 @@ public final class SimulationEngine {
 
     private final Map<UUID, Engine1> engines = new HashMap<>();
 
+    @NonNull
+    private Duration universalAdvanceTo = ValueHistory.START_OF_TIME;
+
     /**
      * <p>
      * Construct a {@link SimulationEngine} with given associations.
@@ -400,7 +410,8 @@ public final class SimulationEngine {
      */
     public final @NonNull void advanceHistory(@NonNull Duration when) {
         Objects.requireNonNull(when, "when");
-        // TODO handle object spawning
+        // TODO handle already advancing to state.
+        universalAdvanceTo = when;
         for (UUID object : universe.getObjectIds()) {
             getEngine1(object).advanceHistory(when, null);
         }

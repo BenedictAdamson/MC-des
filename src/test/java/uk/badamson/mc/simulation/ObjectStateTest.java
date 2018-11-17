@@ -77,6 +77,28 @@ public class ObjectStateTest {
         }
     }
 
+    static class SpawningTestObjectState extends TestObjectState {
+        private final UUID child;
+        private final int childId;
+
+        SpawningTestObjectState(int i, int childId, UUID child) {
+            super(i);
+            this.child = Objects.requireNonNull(child, "child");
+            this.childId = childId;
+        }
+
+        @Override
+        public void putNextStateTransition(Universe.Transaction transaction, UUID object, Duration when) {
+            requirePutNextStateTransitionPreconditions(this, transaction, object, when);
+
+            final TestObjectState nextState = new TestObjectState(i + 1);
+            final TestObjectState childState = new TestObjectState(childId);
+            transaction.beginWrite(when.plusSeconds(1));
+            transaction.put(object, nextState);
+            transaction.put(child, childState);
+        }
+    }// class
+
     static class TestObjectState implements ObjectState {
         protected final int i;
 
