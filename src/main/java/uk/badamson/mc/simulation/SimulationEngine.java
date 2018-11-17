@@ -49,6 +49,9 @@ import uk.badamson.mc.simulation.Universe.PrehistoryException;
  */
 public final class SimulationEngine {
 
+    /*
+     * Drives the simulation forward for one simulation object.
+     */
     private final class Engine1 implements Universe.TransactionListener, Runnable {
         @NonNull
         private final UUID object;
@@ -57,7 +60,10 @@ public final class SimulationEngine {
         private Duration latestCommit;
         // steps has no null values
         private final NavigableMap<Duration, FutureObjectState> steps = new TreeMap<>();
-        // dependentObjects does not contain null
+        /*
+         * Objects that can not have their state advanced until the object that this
+         * advances has advanced. dependentObjects does not contain null
+         */
         private final Set<UUID> dependentObjects = new HashSet<>();
         private final Set<UUID> objectDependencies = new HashSet<>();
 
@@ -121,6 +127,10 @@ public final class SimulationEngine {
         @Override
         public void onCommit() {
             assert latestCommit != null;
+            /*
+             * As we have committed, we evidently are not awaiting the advance of any other
+             * objects before committing.
+             */
             objectDependencies.clear();
             /*
              * Now that we have advanced the simulation, some waiting reads might be able to
