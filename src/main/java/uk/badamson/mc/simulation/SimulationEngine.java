@@ -47,7 +47,7 @@ import uk.badamson.mc.simulation.Universe.PrehistoryException;
  */
 public final class SimulationEngine {
 
-    private final class Engine1 implements Universe.TransactionListener {
+    private final class Engine1 implements Universe.TransactionListener, Runnable {
         @NonNull
         private final UUID object;
         @Nullable
@@ -142,6 +142,11 @@ public final class SimulationEngine {
             }
         }
 
+        @Override
+        public void run() {
+            advance1();
+        }
+
         private FutureObjectState schedule(final ObjectStateId id, UUID dependent) {
             final Duration when = id.getWhen();
             assert object.equals(id.getObject());
@@ -160,7 +165,7 @@ public final class SimulationEngine {
         }
 
         private void scheduleAdvance1() {
-            executor.execute(() -> advance1());
+            executor.execute(this);
         }
 
         /*
