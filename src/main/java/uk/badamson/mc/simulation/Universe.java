@@ -792,6 +792,24 @@ public class Universe {
          */
         public void onCommit();
 
+        /**
+         * <p>
+         * An action to perform when (if) a transaction creates a new object.
+         * </p>
+         * <p>
+         * The method can be called before the transaction commits.
+         * </p>
+         * 
+         * @param object
+         *            The object created by the transaction.
+         * @throws NullPointerException
+         *             (Optionally) if {@code object} is null.
+         * @throws IllegalStateException
+         *             (Optionally) if this method of listener has previously been
+         *             called for the same transaction and object.
+         */
+        public void onCreate(@NonNull UUID object);
+
     }// interface
 
     /**

@@ -38,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
@@ -139,6 +140,7 @@ public class UniverseTest {
 
         int aborts;
         int commits;
+        final Set<UUID> created = new HashSet<>();
 
         final int getEnds() {
             return aborts + commits;
@@ -154,6 +156,12 @@ public class UniverseTest {
         public void onCommit() {
             assertEquals(0, commits, "Commits at most once");
             ++commits;
+        }
+
+        @Override
+        public void onCreate(@NonNull UUID object) {
+            assertNotNull(object, "object");
+            created.add(object);
         }
 
     }// class
@@ -3227,6 +3235,11 @@ public class UniverseTest {
 
             @Override
             public void onCommit() {
+                // Do nothing
+            }
+
+            @Override
+            public void onCreate(@NonNull UUID object) {
                 // Do nothing
             }
 

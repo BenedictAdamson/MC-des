@@ -210,6 +210,12 @@ public final class SimulationEngine {
             dependentObjects.clear();
         }
 
+        @Override
+        public void onCreate(@NonNull UUID object) {
+            assert object != null;
+            // TODO
+        }
+
         private void putNextStateTransition(@NonNull final ObjectState state0,
                 @NonNull final Universe.Transaction transaction, @NonNull final Duration when) {
             try {
@@ -311,6 +317,11 @@ public final class SimulationEngine {
                 @Override
                 public void onCommit() {
                     complete(state);
+                }
+
+                @Override
+                public void onCreate(UUID object) {
+                    throw new AssertionError("Read transactions do not create objects");
                 }
 
             });
