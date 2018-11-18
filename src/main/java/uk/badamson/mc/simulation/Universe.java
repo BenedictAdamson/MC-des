@@ -653,8 +653,7 @@ public class Universe {
             final UUID object = id.getObject();
             final Duration when = id.getWhen();
 
-            // TODO historyStart GuardedBy("lock")
-            if (when.compareTo(historyStart) < 0) {
+            if (when.compareTo(getHistoryStart()) < 0) {
                 throw new Universe.PrehistoryException();
             }
 
@@ -1190,9 +1189,9 @@ public class Universe {
         predecessor.successorTransactions.remove(predecessor);
     }
 
-    private final Object lock = new Object();
+    private final Object historyLock = new Object();
     @NonNull
-    @GuardedBy("lock")
+    @GuardedBy("historyLock")
     private Duration historyStart;
 
     private final Map<UUID, ObjectData> objectDataMap = new HashMap<>();
@@ -1219,8 +1218,9 @@ public class Universe {
      */
     public Universe(final @NonNull Duration historyStart) {
         Objects.requireNonNull(historyStart, "historyStart");
-        // TODO historyStart GuardedBy("lock")
-        this.historyStart = historyStart;
+        synchronized (historyLock) {
+            this.historyStart = historyStart;
+        }
     }
 
     /**
@@ -1277,8 +1277,8 @@ public class Universe {
                 historyEnd = lastCommmit;
             }
         }
-        // TODO historyStart GuardedBy("lock")
-        return historyEnd.compareTo(historyStart) < 0 ? historyStart : historyEnd;
+        final Duration start = getHistoryStart();
+        return historyEnd.compareTo(start) < 0 ? start : historyEnd;
     }
 
     /**
@@ -1295,8 +1295,9 @@ public class Universe {
      *         null.
      */
     public final @NonNull Duration getHistoryStart() {
-        // TODO historyStart GuardedBy("lock")
-        return historyStart;
+        synchronized (historyLock) {
+            return historyStart;
+        }
     }
 
     /**
@@ -1489,17 +1490,18 @@ public class Universe {
      */
     public final void setHistoryStart(@NonNull Duration historyStart) {
         Objects.requireNonNull(historyStart, "historyStart");
-        // TODO this.historyStart GuardedBy("lock")
-        if (historyStart.compareTo(this.historyStart) < 0) {
-            throw new IllegalArgumentException("Before current history start");
+        synchronized (historyLock) {
+            if (historyStart.compareTo(this.historyStart) < 0) {
+                throw new IllegalArgumentException("Before current history start");
+            }
+            if (getHistoryEnd().compareTo(historyStart) < 0) {
+                throw new IllegalStateException("After current history end");
+            }
+            if (this.historyStart.equals(historyStart)) {
+                // Optimisation
+                return;
+            }
+            this.historyStart = historyStart;
         }
-        if (getHistoryEnd().compareTo(historyStart) < 0) {
-            throw new IllegalStateException("After current history end");
-        }
-        if (this.historyStart.equals(historyStart)) {
-            // Optimisation
-            return;
-        }
-        this.historyStart = historyStart;
     }
 }
