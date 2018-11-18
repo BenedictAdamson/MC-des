@@ -2598,6 +2598,31 @@ public class UniverseTest {
                     test(DURATION_2, DURATION_3);
                 }
 
+                private void doTransaction(final Duration when1, final Universe universe) {
+                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final Universe.Transaction transaction = universe.beginTransaction(listener);
+
+                    assertThrows(Universe.PrehistoryException.class,
+                            () -> getObjectState(transaction, OBJECT_A, when1));
+                }
+
+                @RepeatedTest(32)
+                public void multiThreaded() {
+                    final Duration when1 = DURATION_1;
+                    final Duration historyStart = DURATION_2;
+
+                    final CountDownLatch ready = new CountDownLatch(1);
+                    final AtomicReference<Universe> universeAR = new AtomicReference<>();
+                    /*
+                     * Start the other thread while the universe object is not constructed, so the
+                     * safe publication at Thread.start() does not publish the constructed state.
+                     */
+                    final var future = runInOtherThread(ready, () -> doTransaction(when1, universeAR.get()));
+                    universeAR.set(new Universe(historyStart));
+                    ready.countDown();
+                    get(future);
+                }
+
                 @Test
                 public void near() {
                     test(DURATION_2.minusNanos(1L), DURATION_2);
@@ -2606,13 +2631,8 @@ public class UniverseTest {
                 private void test(final Duration when1, final Duration historyStart) {
                     assert when1.compareTo(historyStart) < 0;
 
-                    final CountingTransactionListener listener = new CountingTransactionListener();
-
                     final Universe universe = new Universe(historyStart);
-                    final Universe.Transaction transaction = universe.beginTransaction(listener);
-
-                    assertThrows(Universe.PrehistoryException.class,
-                            () -> getObjectState(transaction, OBJECT_A, when1));
+                    doTransaction(when1, universe);
                 }
 
             }// class
