@@ -46,7 +46,10 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.RepeatedTest;
@@ -116,26 +119,39 @@ public class UniverseTest {
         @Nested
         public class Multithreading {
 
-            @RepeatedTest(32)
+            @RepeatedTest(64)
             public void a() {
                 test(DURATION_1);
             }
 
-            @RepeatedTest(32)
+            @RepeatedTest(64)
             public void b() {
                 test(DURATION_2);
             }
 
             private void test(final Duration historyStart) {
-                final Universe universe = new Universe(historyStart);
+                final CountDownLatch ready = new CountDownLatch(1);
+                final AtomicReference<Universe> universe = new AtomicReference<>();
+                /*
+                 * Start the other thread while the universe object is not constructed, so the
+                 * safe publication at Thread.start() does not publish the constructed state.
+                 */
+                final var future = runInOtherThread(ready, () -> assertPostconditions(universe, historyStart));
 
-                runInOtherThread(() -> assertPostconditions(universe, historyStart));
+                universe.set(new Universe(historyStart));
+
+                ready.countDown();
+                get(future);
             }
         }
 
         @Test
         public void a() {
             test(DURATION_1);
+        }
+
+        private void assertPostconditions(final AtomicReference<Universe> universe, final Duration historyStart) {
+            assertPostconditions(universe.get(), historyStart);
         }
 
         private void assertPostconditions(final Universe universe, final Duration historyStart) {
@@ -3263,6 +3279,23 @@ public class UniverseTest {
                         "Unknown objects have an unknown state for all points in time."));
     }
 
+    private static void get(final Future<Void> future) {
+        try {
+            future.get();
+        } catch (InterruptedException e) {
+            throw new AssertionError(e);
+        } catch (ExecutionException e) {
+            final Throwable cause = e.getCause();
+            if (cause instanceof AssertionError) {
+                throw (AssertionError) cause;
+            } else if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            } else {
+                throw new AssertionError(e);
+            }
+        }
+    }
+
     static void putAndCommit(final Universe universe, UUID object, Duration when, ObjectState state) {
         final Universe.TransactionListener listener = new Universe.TransactionListener() {
 
@@ -3288,10 +3321,11 @@ public class UniverseTest {
         transaction.beginCommit();
     }
 
-    private void runInOtherThread(final Runnable operation) {
+    private static Future<Void> runInOtherThread(final CountDownLatch ready, final Runnable operation) {
         final CompletableFuture<Void> future = new CompletableFuture<Void>();
         final Thread thread = new Thread(() -> {
             try {
+                ready.await();
                 operation.run();
             } catch (Throwable e) {
                 future.completeExceptionally(e);
@@ -3300,12 +3334,7 @@ public class UniverseTest {
             future.complete(null);
         });
         thread.start();
-        try {
-            thread.join();
-            future.get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new AssertionError(e);
-        }
+        return future;
     }
 
 }

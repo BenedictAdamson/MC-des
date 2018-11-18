@@ -1218,8 +1218,9 @@ public class Universe {
      *             If {@code historyStart} is null
      */
     public Universe(final @NonNull Duration historyStart) {
+        Objects.requireNonNull(historyStart, "historyStart");
         // TODO historyStart GuardedBy("lock")
-        this.historyStart = Objects.requireNonNull(historyStart, "earliestTimeOfCompleteState");
+        this.historyStart = historyStart;
     }
 
     /**
