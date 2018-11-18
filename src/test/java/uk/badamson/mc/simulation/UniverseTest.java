@@ -116,35 +116,6 @@ public class UniverseTest {
     @Nested
     public class Constructor {
 
-        @Nested
-        public class Multithreading {
-
-            @RepeatedTest(64)
-            public void a() {
-                test(DURATION_1);
-            }
-
-            @RepeatedTest(64)
-            public void b() {
-                test(DURATION_2);
-            }
-
-            private void test(final Duration historyStart) {
-                final CountDownLatch ready = new CountDownLatch(1);
-                final AtomicReference<Universe> universe = new AtomicReference<>();
-                /*
-                 * Start the other thread while the universe object is not constructed, so the
-                 * safe publication at Thread.start() does not publish the constructed state.
-                 */
-                final var future = runInOtherThread(ready, () -> assertPostconditions(universe, historyStart));
-
-                universe.set(new Universe(historyStart));
-
-                ready.countDown();
-                get(future);
-            }
-        }
-
         @Test
         public void a() {
             test(DURATION_1);
@@ -170,6 +141,23 @@ public class UniverseTest {
         @Test
         public void b() {
             test(DURATION_2);
+        }
+
+        @RepeatedTest(64)
+        public void multiThreaded() {
+            final Duration historyStart = DURATION_1;
+            final CountDownLatch ready = new CountDownLatch(1);
+            final AtomicReference<Universe> universe = new AtomicReference<>();
+            /*
+             * Start the other thread while the universe object is not constructed, so the
+             * safe publication at Thread.start() does not publish the constructed state.
+             */
+            final var future = runInOtherThread(ready, () -> assertPostconditions(universe, historyStart));
+
+            universe.set(new Universe(historyStart));
+
+            ready.countDown();
+            get(future);
         }
 
         private void test(final Duration historyStart) {
