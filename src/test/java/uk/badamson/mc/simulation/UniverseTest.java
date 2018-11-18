@@ -239,6 +239,32 @@ public class UniverseTest {
                 test(OBJECT_A, DURATION_1, end, end);
             }
 
+            @RepeatedTest(32)
+            public void multiThreaded() {
+                final UUID object = OBJECT_A;
+                final Duration historyStart0 = DURATION_1;
+                final Duration historyStart = DURATION_2;
+                final Duration whenLastCommit = DURATION_3;
+
+                final CountDownLatch ready = new CountDownLatch(1);
+                final AtomicReference<Universe> universeAR = new AtomicReference<>();
+                /*
+                 * Start the other thread while the universe object is not constructed, so the
+                 * safe publication at Thread.start() does not publish the constructed state.
+                 */
+                final var future = runInOtherThread(ready, () -> assertPostconditions(universeAR, historyStart));
+
+                final Universe universe = new Universe(historyStart0);
+                final ObjectState objectState = new ObjectStateTest.TestObjectState(1);
+                putAndCommit(universe, object, whenLastCommit, objectState);
+
+                setHistoryStart(universe, historyStart);
+
+                universeAR.set(universe);
+                ready.countDown();
+                get(future);
+            }
+
             @Test
             public void noOp() {
                 final Duration when = DURATION_1;
@@ -253,18 +279,27 @@ public class UniverseTest {
                 final ObjectState objectState = new ObjectStateTest.TestObjectState(1);
                 putAndCommit(universe, object, whenLastCommit, objectState);
 
-                setHistoryStart(universe, historyStart);
+                universe.setHistoryStart(historyStart);
+
+                assertPostconditions(universe, historyStart);
             }
 
         }// class
 
+        private void assertPostconditions(final AtomicReference<Universe> universe, final Duration historyStart) {
+            assertPostconditions(universe.get(), historyStart);
+        }
+
+        private void assertPostconditions(final Universe universe, Duration historyStart) {
+            assertInvariants(universe);
+            assertEquals(historyStart, universe.getHistoryStart(),
+                    "The history start time of this universe is equal to the given history start time.");
+        }
+
         private void setHistoryStart(final Universe universe, @NonNull Duration historyStart) {
             universe.setHistoryStart(historyStart);
 
-            assertInvariants(universe);
-
-            assertEquals(historyStart, universe.getHistoryStart(),
-                    "The history start time of this universe is equal to the given history start time.");
+            assertPostconditions(universe, historyStart);
         }
 
     }// class
