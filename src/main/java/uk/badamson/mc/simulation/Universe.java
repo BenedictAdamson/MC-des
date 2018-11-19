@@ -95,21 +95,29 @@ public class Universe {
     static final class ObjectData {
 
         @GuardedBy("this")
-        private final ModifiableValueHistory<ObjectState> stateHistory = new ModifiableValueHistory<>();
-        private final ModifiableSetHistory<Transaction> uncommittedReaders = new ModifiableSetHistory<>();
-        private final ModifiableSetHistory<Transaction> uncommittedWriters = new ModifiableSetHistory<>();
+        private final ModifiableValueHistory<ObjectState> stateHistory;
+
+        @GuardedBy("this")
+        private final ModifiableSetHistory<Transaction> uncommittedReaders;
+
+        @GuardedBy("this")
+        private final ModifiableSetHistory<Transaction> uncommittedWriters;
+
         @NonNull
         private Duration latestCommit;
 
         ObjectData(Duration whenCreated, ObjectState createdState, Transaction creator) {
             synchronized (this) {
-                latestCommit = ValueHistory.START_OF_TIME;
+                stateHistory = new ModifiableValueHistory<>();
                 stateHistory.appendTransition(whenCreated, createdState);
+                uncommittedReaders = new ModifiableSetHistory<>();
+                uncommittedWriters = new ModifiableSetHistory<>();
                 uncommittedWriters.addFrom(whenCreated, creator);
+                latestCommit = ValueHistory.START_OF_TIME;
             }
         }
 
-        private synchronized void commit1Reader(Transaction transaction) {
+        private synchronized void removeUncommittedReader(Transaction transaction) {
             uncommittedReaders.remove(transaction);
         }
 
@@ -383,7 +391,7 @@ public class Universe {
                 assert object != null;
                 final var od = objectDataMap.get(object);
                 if (od != null) {
-                    od.commit1Reader(this);
+                    od.removeUncommittedReader(this);
                 }
                 // else a prehistoric dependency
             }
@@ -612,7 +620,7 @@ public class Universe {
             for (UUID object : dependencies.keySet()) {
                 var od = objectDataMap.get(object);
                 if (od != null) {
-                    od.uncommittedReaders.remove(this);
+                    od.removeUncommittedReader(this);
                 }
                 // else a non existent object
             }
