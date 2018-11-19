@@ -37,8 +37,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
@@ -169,28 +171,40 @@ public class UniverseTest {
 
     static class CountingTransactionListener implements Universe.TransactionListener {
 
-        int aborts;
-        int commits;
-        final Set<UUID> created = new HashSet<>();
+        private int aborts = 0;
+        private int commits = 0;
+        private final Set<UUID> created = new HashSet<>();
 
-        final int getEnds() {
+        final synchronized int getAborts() {
+            return aborts;
+        }
+
+        final synchronized int getCommits() {
+            return commits;
+        }
+
+        final synchronized Set<UUID> getCreated() {
+            return new HashSet<>(created);
+        }
+
+        final synchronized int getEnds() {
             return aborts + commits;
         }
 
         @Override
-        public void onAbort() {
+        public synchronized void onAbort() {
             assertEquals(0, aborts, "Aborts at most once");
             ++aborts;
         }
 
         @Override
-        public void onCommit() {
+        public synchronized void onCommit() {
             assertEquals(0, commits, "Commits at most once");
             ++commits;
         }
 
         @Override
-        public void onCreate(@NonNull UUID object) {
+        public synchronized void onCreate(@NonNull UUID object) {
             assertNotNull(object, "object");
             created.add(object);
         }
@@ -2957,6 +2971,45 @@ public class UniverseTest {
                     test(DURATION_1, OBJECT_A, ValueHistory.END_OF_TIME);
                 }
 
+                @RepeatedTest(8)
+                public void multiThreaded() {
+                    final Duration historyStart = DURATION_1;
+                    final Duration when = DURATION_2;
+
+                    final CountDownLatch ready = new CountDownLatch(1);
+                    final AtomicReference<Universe> universeAR = new AtomicReference<>();
+                    final int nThreads = Runtime.getRuntime().availableProcessors() * 4;
+                    /*
+                     * Start the other threads while the universe object is not constructed, so the
+                     * safe publication at Thread.start() does not publish the constructed state.
+                     */
+                    final List<Future<Void>> futures = new ArrayList<>(nThreads);
+                    for (int i = 0; i < nThreads; ++i) {
+                        futures.add(runInOtherThread(ready, () -> {
+                            final Universe universe = universeAR.get();
+                            final CountingTransactionListener listener = new CountingTransactionListener();
+                            final ObjectState objectState = new ObjectStateTest.TestObjectState(1);
+                            final UUID object = UUID.randomUUID();
+                            final Universe.Transaction transaction = universe.beginTransaction(listener);
+                            transaction.beginWrite(when);
+
+                            put(transaction, object, objectState);
+
+                            final ModifiableValueHistory<ObjectState> expectedHistory = new ModifiableValueHistory<>();
+                            expectedHistory.appendTransition(when, objectState);
+                            assertAll(() -> assertThat("Added the object", object, isIn(universe.getObjectIds())),
+                                    () -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
+                                            "Object state history"),
+                                    () -> assertEquals(Collections.singleton(object), listener.getCreated(),
+                                            "Called creation call-back"));
+                        }));
+                    }
+
+                    universeAR.set(new Universe(historyStart));
+                    ready.countDown();
+                    get(futures);
+                }
+
                 private void test(final Duration historyStart, UUID object, Duration when) {
                     final ObjectState objectState = new ObjectStateTest.TestObjectState(1);
                     final ModifiableValueHistory<ObjectState> expectedHistory = new ModifiableValueHistory<>();
@@ -3333,6 +3386,31 @@ public class UniverseTest {
                 throw (AssertionError) cause;
             } else if (cause instanceof RuntimeException) {
                 throw (RuntimeException) cause;
+            } else {
+                throw new AssertionError(e);
+            }
+        }
+    }
+
+    private static void get(final List<Future<Void>> futures) {
+        final List<Throwable> exceptions = new ArrayList<>(futures.size());
+        for (var future : futures) {
+            try {
+                get(future);
+            } catch (Exception | AssertionError e) {
+                exceptions.add(e);
+            }
+        }
+        final int nExceptions = exceptions.size();
+        if (0 < nExceptions) {
+            final Throwable e = exceptions.get(0);
+            for (int i = 1; i < nExceptions; ++i) {
+                e.addSuppressed(exceptions.get(i));
+            }
+            if (e instanceof AssertionError) {
+                throw (AssertionError) e;
+            } else if (e instanceof RuntimeException) {
+                throw (RuntimeException) e;
             } else {
                 throw new AssertionError(e);
             }

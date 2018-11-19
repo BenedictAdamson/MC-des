@@ -29,6 +29,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -91,13 +92,87 @@ public class Universe {
 
     }// class
 
-    private static final class ObjectData {
-        final ModifiableValueHistory<ObjectState> stateHistory = new ModifiableValueHistory<>();
-        final ModifiableSetHistory<Transaction> uncommittedReaders = new ModifiableSetHistory<>();
-        final ModifiableSetHistory<Transaction> uncommittedWriters = new ModifiableSetHistory<>();
+    static final class ObjectData {
 
+        @GuardedBy("this")
+        private final ModifiableValueHistory<ObjectState> stateHistory = new ModifiableValueHistory<>();
+        private final ModifiableSetHistory<Transaction> uncommittedReaders = new ModifiableSetHistory<>();
+        private final ModifiableSetHistory<Transaction> uncommittedWriters = new ModifiableSetHistory<>();
         @NonNull
-        Duration latestCommit = ValueHistory.START_OF_TIME;
+        private Duration latestCommit;
+
+        ObjectData(Duration whenCreated, ObjectState createdState, Transaction creator) {
+            synchronized (this) {
+                latestCommit = ValueHistory.START_OF_TIME;
+                stateHistory.appendTransition(whenCreated, createdState);
+                uncommittedWriters.addFrom(whenCreated, creator);
+            }
+        }
+
+        private synchronized void commit1Reader(Transaction transaction) {
+            uncommittedReaders.remove(transaction);
+        }
+
+        private synchronized void commit1Writer(Transaction transaction, Duration when, ObjectState state) {
+            assert latestCommit.compareTo(when) < 0;
+            if (state != null) {
+                latestCommit = when;
+            } else {// destruction is forever
+                latestCommit = ValueHistory.END_OF_TIME;
+            }
+            uncommittedWriters.remove(transaction);
+            assert stateHistory.getTransitionTimes().contains(when);
+        }
+
+        private synchronized ValueHistory<ObjectState> getStateHistory() {
+            return new ModifiableValueHistory<>(stateHistory);
+        }
+
+        private synchronized boolean rollBackWrite(Transaction transaction, Duration when) {
+            if (latestCommit.compareTo(when) < 0 && uncommittedWriters.contains(transaction).get(when)) {
+                stateHistory.removeTransitionsFrom(when);
+            }
+            // else aborting because of an out-of-order write
+            uncommittedWriters.remove(transaction);// optimisation
+            return stateHistory.isEmpty();
+        }
+
+        private synchronized boolean tryToAppendToHistory(Transaction transaction, UUID object, Duration when,
+                ObjectState state, Set<Transaction> transactionsToAbort,
+                Set<Transaction> pastTheEndReadersToEscalateToPredecessors) throws IllegalStateException {
+            assert when != null;
+            if (state != null && !stateHistory.isEmpty() && stateHistory.getLastValue() == null) {
+                // Not added to uncommittedWriters.
+                throw new IllegalStateException("Attempted resurrection of a dead object");
+            }
+
+            final Duration lastTransition0 = stateHistory.getLastTansitionTime();
+            assert lastTransition0 == null || latestCommit.compareTo(lastTransition0) <= 0;
+
+            if (state != null && stateHistory.getFirstTansitionTime().equals(when)
+                    && Boolean.TRUE.equals(uncommittedWriters.contains(transaction).get(when))
+                    && state.equals(stateHistory.get(when))) {
+                // The given transaction is the creator of the object
+                return true;
+            } else {// appending
+                assert lastTransition0 != null;
+                stateHistory.appendTransition(when, state);// throws IllegalStateException
+                assert lastTransition0.compareTo(when) < 0;
+
+                uncommittedWriters.addFrom(when, transaction);
+                // We have replaced the value written by these other transactions.
+                transactionsToAbort.addAll(uncommittedReaders.get(when));
+
+                /*
+                 * Because when must be after lastTransition0, we know that lastTransition0 is
+                 * not at the end of time, so we can compute a point in time just after
+                 * lastTransition0 without danger of overflow.
+                 */
+                final Duration justAfterPreviousTransition = lastTransition0.plusNanos(1);
+                pastTheEndReadersToEscalateToPredecessors.addAll(uncommittedReaders.get(justAfterPreviousTransition));
+            }
+            return false;
+        }
     }// class
 
     /**
@@ -301,22 +376,14 @@ public class Universe {
                 assert object != null;
                 assert when != null;
 
-                final var od = objectDataMap.get(object);
-                assert od.latestCommit.compareTo(when) < 0;
-                if (state != null) {
-                    od.latestCommit = when;
-                } else {// destruction is forever
-                    od.latestCommit = ValueHistory.END_OF_TIME;
-                }
-                od.uncommittedWriters.remove(this);
-                assert od.stateHistory.getTransitionTimes().contains(when);
+                objectDataMap.get(object).commit1Writer(this, when, state);
             }
 
             for (UUID object : dependencies.keySet()) {
                 assert object != null;
                 final var od = objectDataMap.get(object);
                 if (od != null) {
-                    od.uncommittedReaders.remove(this);
+                    od.commit1Reader(this);
                 }
                 // else a prehistoric dependency
             }
@@ -664,18 +731,20 @@ public class Universe {
             if (od == null) {// unknown object
                 objectState = null;
             } else {
-                objectState = od.stateHistory.get(when);
-                if (addTriggers && od.latestCommit.compareTo(when) < 0) {
-                    // Is reading an uncommitted state.
-                    if (od.stateHistory.getLastTansitionTime().compareTo(when) < 0) {
-                        isPastTheEndRead = true;
-                    } else {
-                        @NonNull
-                        final Duration nextWrite = od.stateHistory.getTansitionTimeAtOrAfter(when);
-                        additionalPredecessors.addAll(od.uncommittedWriters.get(nextWrite));
+                synchronized (od) {
+                    objectState = od.stateHistory.get(when);
+                    if (addTriggers && od.latestCommit.compareTo(when) < 0) {
+                        // Is reading an uncommitted state.
+                        if (od.stateHistory.getLastTansitionTime().compareTo(when) < 0) {
+                            isPastTheEndRead = true;
+                        } else {
+                            @NonNull
+                            final Duration nextWrite = od.stateHistory.getTansitionTimeAtOrAfter(when);
+                            additionalPredecessors.addAll(od.uncommittedWriters.get(nextWrite));
+                        }
+                        od.uncommittedReaders.addUntil(when, this);
+                        additionalPredecessors.addAll(od.uncommittedWriters.get(when));
                     }
-                    od.uncommittedReaders.addUntil(when, this);
-                    additionalPredecessors.addAll(od.uncommittedWriters.get(when));
                 }
             }
 
@@ -707,76 +776,43 @@ public class Universe {
             for (UUID object : objectStatesWritten.keySet()) {
                 assert object != null;
                 assert when != null;
-                var od = objectDataMap.get(object);
                 /*
                  * As we are a writer for the object, the object has at least one recorded state
-                 * (the state we wrote), so od is guaranteed to be not null.
+                 * (the state we wrote), so objectDataMap.get(object) is guaranteed to be not
+                 * null.
                  */
-                if (od.latestCommit.compareTo(when) < 0 && od.uncommittedWriters.contains(this).get(when)) {
-                    od.stateHistory.removeTransitionsFrom(when);
-                    if (od.stateHistory.isEmpty()) {
-                        objectDataMap.remove(object);
-                    }
+                if (objectDataMap.get(object).rollBackWrite(this, when)) {
+                    objectDataMap.remove(object);
                 }
-                // else aborting because of an out-of-order write
-                od.uncommittedWriters.remove(this);// optimisation
             }
         }
 
         private boolean tryToAppendToHistory(UUID object, ObjectState state) {
             assert when != null;
 
-            boolean creating = false;
-            ObjectData od = objectDataMap.get(object);
-            if (od == null) {
-                // We are adding the object.
-                od = new ObjectData();
-                objectDataMap.put(object, od);
-                creating = true;
-            }
-            final ModifiableValueHistory<ObjectState> stateHistory = od.stateHistory;
-            if (state != null && !stateHistory.isEmpty() && stateHistory.getLastValue() == null) {
-                /*
-                 * Attempted resurrection of a dead object. Not added to od.uncommittedWriters.
-                 */
-                openness = TransactionOpenness.ABORTING;
-                return false;
-            }
-            final Duration lastTransition0 = stateHistory.getLastTansitionTime();
-            assert lastTransition0 == null || od.latestCommit.compareTo(lastTransition0) <= 0;
+            final Set<Transaction> transactionsToAbort = new HashSet<>();
+            final Set<Transaction> pastTheEndReadersToEscalateToPredecessors = new HashSet<>();
+            final ObjectData od = objectDataMap.computeIfAbsent(object, (o) -> new ObjectData(when, state, this));
+            final boolean created;
             try {
-                stateHistory.appendTransition(when, state);
+                created = od.tryToAppendToHistory(this, object, when, state, transactionsToAbort,
+                        pastTheEndReadersToEscalateToPredecessors);
             } catch (IllegalStateException e) {
                 openness = TransactionOpenness.ABORTING;
-                // Not added to Not added to od.uncommittedWriters.
+                // Not added od.uncommittedWriters.
                 return false;
             }
-            assert lastTransition0 == null || lastTransition0.compareTo(when) < 0;
-            od.uncommittedWriters.addFrom(when, this);
-            for (Transaction uncommittedReader : od.uncommittedReaders.get(when)) {
+
+            // TODO fix race hazards
+            for (Transaction uncommittedReader : transactionsToAbort) {
                 // We have replaced the value written by this other transaction.
                 uncommittedReader.beginAbort();
             }
-            if (lastTransition0 != null) {
-                /*
-                 * Because when must be after lastTransition0, we know that lastTransition0 is
-                 * not at the end of time, so we can compute a point in time just after
-                 * lastTransition0 without danger of overflow.
-                 */
-                final Duration justAfterPreviousTransition = lastTransition0.plusNanos(1);
-                for (Transaction pastTheEndReader : od.uncommittedReaders.get(justAfterPreviousTransition)) {
-                    /*
-                     * Escalate the other transaction from being past-the-end-readers to being
-                     * successor or mutual transaction of this transaction.
-                     */
-                    pastTheEndReader.pastTheEndReads.remove(object);
-                    addAsPredecessor(this, pastTheEndReader);
-                }
-            } else {
-                creating = true;
+            for (Transaction pastTheEndReader : pastTheEndReadersToEscalateToPredecessors) {
+                pastTheEndReader.pastTheEndReads.remove(object);
+                addAsPredecessor(this, pastTheEndReader);
             }
-
-            return creating;
+            return created;
         }
 
     }// class
@@ -786,6 +822,7 @@ public class Universe {
      * An object that can respond to {@link Universe.Transaction} events.
      * </p>
      */
+    @ThreadSafe
     public interface TransactionListener {
         /**
          * <p>
@@ -1194,7 +1231,7 @@ public class Universe {
     @GuardedBy("historyLock")
     private Duration historyStart;
 
-    private final Map<UUID, ObjectData> objectDataMap = new HashMap<>();
+    private final Map<UUID, ObjectData> objectDataMap = new ConcurrentHashMap<>();
 
     /**
      * <p>
@@ -1419,6 +1456,8 @@ public class Universe {
      * <li>An object state history indicates that the object does not exist (has a
      * null state) {@linkplain ValueHistory#getFirstValue() at the start of
      * time}.</li>
+     * <li>The method may a return a copy of the object state history, rather than a
+     * reference to the true object state history.</li>
      * </ul>
      * 
      * @param object
@@ -1436,7 +1475,7 @@ public class Universe {
         if (od == null) {
             return EMPTY_STATE_HISTORY;
         } else {
-            return od.stateHistory;
+            return od.getStateHistory();
         }
     }
 
