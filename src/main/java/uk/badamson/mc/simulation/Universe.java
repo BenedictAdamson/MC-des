@@ -1175,11 +1175,11 @@ public class Universe {
     private static final ValueHistory<ObjectState> EMPTY_STATE_HISTORY = new ConstantValueHistory<>((ObjectState) null);
 
     private static void addAsPredecessor(Transaction predecessor, Transaction successor) {
-        if (predecessor.isDirectOrIndirectPredecessorOf(successor)
-                && successor.isDirectOrIndirectSuccessorOf(predecessor)) {
+        if (predecessor.isDirectOrIndirectPredecessorOf(successor)) {
+            assert successor.isDirectOrIndirectSuccessorOf(predecessor);
             // Already recorded
-        } else if (successor.isDirectOrIndirectPredecessorOf(predecessor)
-                || predecessor.isDirectOrIndirectSuccessorOf(successor)) {
+        } else if (successor.isDirectOrIndirectPredecessorOf(predecessor)) {
+            assert predecessor.isDirectOrIndirectSuccessorOf(successor);
             /*
              * Can not be both predecessor and successor. Instead, convert to a mutual
              * dependence.
