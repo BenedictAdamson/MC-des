@@ -1170,6 +1170,7 @@ public class Universe {
         if (predecessor.successorTransactions.contains(successor)) {
             assert successor.predecessorTransactions.contains(predecessor);
             // Already recorded
+            return;
         } else if (successor.successorTransactions.contains(predecessor)) {
             assert predecessor.predecessorTransactions.contains(successor);
             /*
