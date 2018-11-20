@@ -104,7 +104,7 @@ public class Universe {
         private final ModifiableSetHistory<Transaction> uncommittedWriters;
 
         @NonNull
-        // TODO @GuardedBy("this")
+        @GuardedBy("this")
         private Duration latestCommit;
 
         ObjectData(Duration whenCreated, ObjectState createdState, Transaction creator) {
@@ -127,6 +127,10 @@ public class Universe {
             }
             uncommittedWriters.remove(transaction);
             assert stateHistory.getTransitionTimes().contains(when);
+        }
+
+        private synchronized Duration getLastCommit() {
+            return latestCommit;
         }
 
         private synchronized ValueHistory<ObjectState> getStateHistory() {
@@ -1317,9 +1321,8 @@ public class Universe {
      */
     public final @NonNull Duration getHistoryEnd() {
         Duration historyEnd = ValueHistory.END_OF_TIME;
-        // TODO thread safety
         for (var od : objectDataMap.values()) {
-            final Duration lastCommmit = od.latestCommit;
+            final Duration lastCommmit = od.getLastCommit();
             if (lastCommmit.compareTo(historyEnd) < 0) {
                 historyEnd = lastCommmit;
             }
@@ -1375,8 +1378,7 @@ public class Universe {
         if (od == null) {
             return null;
         } else {
-            // TODO thread safety
-            return od.latestCommit;
+            return od.getLastCommit();
         }
     }
 
