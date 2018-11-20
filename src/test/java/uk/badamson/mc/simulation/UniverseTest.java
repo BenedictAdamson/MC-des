@@ -54,6 +54,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
@@ -970,11 +971,11 @@ public class UniverseTest {
 
                     beginCommit(writeTransaction);
 
-                    assertAll(() -> assertEquals(1, writeListener.commits, "Write committed"),
-                            () -> assertEquals(0, writeListener.aborts, "Write not aborted"),
-                            () -> assertEquals(1, readListener.commits,
+                    assertAll(() -> assertEquals(1, writeListener.getCommits(), "Write committed"),
+                            () -> assertEquals(0, writeListener.getAborts(), "Write not aborted"),
+                            () -> assertEquals(1, readListener.getCommits(),
                                     "Read committed (subsequent write enabled commit)"),
-                            () -> assertEquals(0, readListener.aborts, "Read not aborted"),
+                            () -> assertEquals(0, readListener.getAborts(), "Read not aborted"),
                             () -> assertEquals(when3, universe.getLatestCommit(object), "Latest commit of object"));
                 }
 
@@ -2382,6 +2383,53 @@ public class UniverseTest {
 
                 assertEquals(0, listener.aborts, "Did not abort");
                 assertEquals(1, listener.commits, "Committed");
+            }
+
+            @RepeatedTest(4)
+            @Disabled("TODO") // TODO
+            public void mutualReadPastLastMultiThreaded() {
+                final Duration historyStart = DURATION_1;
+                final Duration when1 = DURATION_2;
+                final Duration when2 = DURATION_3;
+                final Duration when3 = DURATION_4;
+
+                final CountDownLatch ready = new CountDownLatch(1);
+                final int nThreads = Runtime.getRuntime().availableProcessors() * 4;
+
+                final UUID[] objects = new UUID[nThreads];
+                final Universe universe = new Universe(historyStart);
+                for (int i = 0; i < nThreads; i++) {
+                    objects[i] = UUID.randomUUID();
+                    final ObjectState objectStateI1 = new ObjectStateTest.TestObjectState(i);
+                    UniverseTest.putAndCommit(universe, objects[i], when1, objectStateI1);
+                }
+                final List<Future<Void>> futures = new ArrayList<>(nThreads);
+                for (int i = 0; i < nThreads; ++i) {
+                    final int iObject = i;
+                    futures.add(runInOtherThread(ready, () -> {
+                        final CountingTransactionListener listener = new CountingTransactionListener();
+                        final Universe.Transaction transaction = universe.beginTransaction(listener);
+                        for (int j = 0; j < nThreads; ++j) {
+                            final UUID object = objects[j];
+                            if (iObject == j) {
+                                transaction.getObjectState(object, when1);
+                            } else {
+                                transaction.getObjectState(object, when2);
+                            }
+                        }
+                        transaction.beginWrite(when3);
+                        transaction.put(objects[iObject], new ObjectStateTest.TestObjectState(1000 + iObject));
+
+                        beginCommit(transaction);
+                    }));
+                }
+
+                ready.countDown();
+                get(futures);
+                UniverseTest.assertInvariants(universe);
+                for (int i = 0; i < nThreads; ++i) {
+                    assertEquals(when3, universe.getLatestCommit(objects[i]), "Committed write for object [" + i + "]");
+                }
             }
         }// class
 
