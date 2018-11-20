@@ -104,6 +104,7 @@ public class Universe {
         private final ModifiableSetHistory<Transaction> uncommittedWriters;
 
         @NonNull
+        // TODO @GuardedBy("this")
         private Duration latestCommit;
 
         ObjectData(Duration whenCreated, ObjectState createdState, Transaction creator) {
@@ -1373,6 +1374,7 @@ public class Universe {
         if (od == null) {
             return null;
         } else {
+            // TODO thread safety
             return od.latestCommit;
         }
     }
