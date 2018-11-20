@@ -879,8 +879,8 @@ public class UniverseTest {
 
                     beginCommit(transaction);
 
-                    assertAll(() -> assertEquals(0, listener.aborts, "Did not abort"),
-                            () -> assertEquals(1, listener.commits, "Committed"),
+                    assertAll(() -> assertEquals(0, listener.getAborts(), "Did not abort"),
+                            () -> assertEquals(1, listener.getCommits(), "Committed"),
                             () -> assertEquals(historyStart0, universe.getHistoryStart(), "History start unchanged"),
                             () -> assertThat("History end", universe.getHistoryEnd(), isOneOf(historyStart0, when)),
                             () -> assertTrue(
