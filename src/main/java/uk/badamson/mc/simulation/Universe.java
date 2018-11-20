@@ -118,10 +118,6 @@ public class Universe {
             }
         }
 
-        private synchronized void removeUncommittedReader(Transaction transaction) {
-            uncommittedReaders.remove(transaction);
-        }
-
         private synchronized void commit1Writer(Transaction transaction, Duration when, ObjectState state) {
             assert latestCommit.compareTo(when) < 0;
             if (state != null) {
@@ -135,6 +131,10 @@ public class Universe {
 
         private synchronized ValueHistory<ObjectState> getStateHistory() {
             return new ModifiableValueHistory<>(stateHistory);
+        }
+
+        private synchronized void removeUncommittedReader(Transaction transaction) {
+            uncommittedReaders.remove(transaction);
         }
 
         private synchronized boolean rollBackWrite(Transaction transaction, Duration when) {
@@ -1317,6 +1317,7 @@ public class Universe {
      */
     public final @NonNull Duration getHistoryEnd() {
         Duration historyEnd = ValueHistory.END_OF_TIME;
+        // TODO thread safety
         for (var od : objectDataMap.values()) {
             final Duration lastCommmit = od.latestCommit;
             if (lastCommmit.compareTo(historyEnd) < 0) {
