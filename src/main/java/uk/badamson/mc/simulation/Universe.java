@@ -616,14 +616,6 @@ public class Universe {
             return when;
         }
 
-        private boolean isDirectOrIndirectPredecessorOf(Transaction t) {
-            return successorTransactions.contains(t);
-        }
-
-        private boolean isDirectOrIndirectSuccessorOf(Transaction t) {
-            return predecessorTransactions.contains(t);
-        }
-
         private boolean isReadyToCommit() {
             return openness == TransactionOpenness.COMMITTING && pastTheEndReads.isEmpty()
                     && predecessorTransactions.isEmpty();
@@ -1175,11 +1167,11 @@ public class Universe {
     private static final ValueHistory<ObjectState> EMPTY_STATE_HISTORY = new ConstantValueHistory<>((ObjectState) null);
 
     private static void addAsPredecessor(Transaction predecessor, Transaction successor) {
-        if (predecessor.isDirectOrIndirectPredecessorOf(successor)) {
-            assert successor.isDirectOrIndirectSuccessorOf(predecessor);
+        if (predecessor.successorTransactions.contains(successor)) {
+            assert successor.predecessorTransactions.contains(predecessor);
             // Already recorded
-        } else if (successor.isDirectOrIndirectPredecessorOf(predecessor)) {
-            assert predecessor.isDirectOrIndirectSuccessorOf(successor);
+        } else if (successor.successorTransactions.contains(predecessor)) {
+            assert predecessor.predecessorTransactions.contains(successor);
             /*
              * Can not be both predecessor and successor. Instead, convert to a mutual
              * dependence.
