@@ -51,6 +51,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Nested;
@@ -859,9 +860,53 @@ public class UniverseTest {
                     test(DURATION_1, OBJECT_A, DURATION_2);
                 }
 
+                private void assertCommonPostconditions(final Duration historyStart0, final UUID object,
+                        final Duration when, final Universe universe, final CountingTransactionListener listener) {
+                    assertAll(() -> assertEquals(0, listener.getAborts(), "Did not abort"),
+                            () -> assertEquals(1, listener.getCommits(), "Committed"),
+                            () -> assertEquals(historyStart0, universe.getHistoryStart(), "History start unchanged"),
+                            () -> assertEquals(when, universe.getLatestCommit(object), "Latest commit of object"));
+                }
+
                 @Test
                 public void b() {
                     test(DURATION_2, OBJECT_B, DURATION_3);
+                }
+
+                @RepeatedTest(8)
+                public void multiThreaded() {
+                    final Duration historyStart0 = DURATION_1;
+                    final CountDownLatch ready = new CountDownLatch(1);
+                    final AtomicReference<Universe> universeAR = new AtomicReference<>();
+                    final int nThreads = Runtime.getRuntime().availableProcessors() * 4;
+                    /*
+                     * Start the other threads while the universe object is not constructed, so the
+                     * safe publication at Thread.start() does not publish the constructed state.
+                     */
+                    final List<Future<Void>> futures = new ArrayList<>(nThreads);
+                    for (int i = 0; i < nThreads; ++i) {
+                        futures.add(runInOtherThread(ready, () -> {
+                            final Universe universe = universeAR.get();
+                            final ThreadLocalRandom random = ThreadLocalRandom.current();
+                            final UUID object = UUID.randomUUID();
+                            final Duration when = historyStart0.plusSeconds(random.nextInt(1, nThreads * 7));
+                            final ObjectState objectState = new ObjectStateTest.TestObjectState(random.nextInt());
+
+                            final CountingTransactionListener listener = new CountingTransactionListener();
+                            final Universe.Transaction transaction = universe.beginTransaction(listener);
+                            transaction.beginWrite(when);
+                            transaction.put(object, objectState);
+
+                            beginCommit(transaction);
+
+                            assertCommonPostconditions(historyStart0, object, when, universe, listener);
+                        }));
+                    }
+
+                    universeAR.set(new Universe(historyStart0));
+                    ready.countDown();
+                    get(futures);
+                    UniverseTest.assertInvariants(universeAR.get());
                 }
 
                 @Test
@@ -879,14 +924,11 @@ public class UniverseTest {
 
                     beginCommit(transaction);
 
-                    assertAll(() -> assertEquals(0, listener.getAborts(), "Did not abort"),
-                            () -> assertEquals(1, listener.getCommits(), "Committed"),
-                            () -> assertEquals(historyStart0, universe.getHistoryStart(), "History start unchanged"),
-                            () -> assertThat("History end", universe.getHistoryEnd(), isOneOf(historyStart0, when)),
+                    assertCommonPostconditions(historyStart0, object, when, universe, listener);
+                    assertAll(() -> assertThat("History end", universe.getHistoryEnd(), isOneOf(historyStart0, when)),
                             () -> assertTrue(
                                     when.compareTo(historyStart0) <= 0 || universe.getHistoryEnd().equals(when),
-                                    "History end advanced if not prehistoric"),
-                            () -> assertEquals(when, universe.getLatestCommit(object), "Latest commit of object"));
+                                    "History end advanced if not prehistoric"));
                 }
 
             }
