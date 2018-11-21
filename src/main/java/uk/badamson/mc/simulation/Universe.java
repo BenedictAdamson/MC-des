@@ -409,13 +409,14 @@ public class Universe {
         }
 
         private void commitIfPossible() {
-            if (mutualTransactionCoordinator == null) {
+            final MutualTransactionCoordinator coordinator = getMutualTransactionCoordinator();
+            if (coordinator == null) {
                 if (isReadyToCommit()) {
                     commit1();
                     cascadeCommit();
                 }
             } else {
-                mutualTransactionCoordinator.commitIfPossible();
+                coordinator.commitIfPossible();
             }
         }
 
@@ -452,6 +453,11 @@ public class Universe {
          */
         public final @NonNull Map<UUID, ObjectStateId> getDependencies() {
             return new HashMap<>(dependencies);
+        }
+
+        @Nullable
+        private MutualTransactionCoordinator getMutualTransactionCoordinator() {
+            return mutualTransactionCoordinator;
         }
 
         /**
@@ -703,9 +709,10 @@ public class Universe {
              * Cause our dependents to also begin aborting, rather than awaiting commit or
              * close of this transaction.
              */
-            if (mutualTransactionCoordinator != null) {
-                mutualTransactionCoordinator.beginMutualAbort();
-                mutualTransactionCoordinator = null;
+            final MutualTransactionCoordinator coordinator = getMutualTransactionCoordinator();
+            if (coordinator != null) {
+                coordinator.beginMutualAbort();
+                setMutualTransactionCoordinator(null);
             }
             for (var transaction : new ArrayList<>(successorTransactions)) {
                 transaction.reallyBeginAbort();
@@ -802,6 +809,10 @@ public class Universe {
                     objectDataMap.remove(object);
                 }
             }
+        }
+
+        private void setMutualTransactionCoordinator(@Nullable MutualTransactionCoordinator coordinator) {
+            mutualTransactionCoordinator = coordinator;
         }
 
         private boolean tryToAppendToHistory(UUID object, ObjectState state) {
@@ -1213,8 +1224,9 @@ public class Universe {
         }
 
         /*
-         * One or both of t1 can not be committed, so by adding the transactions to the
-         * coordinator(s) first we ensure that the coordinators can not commit either.
+         * One or both of t1 and t2 can not be committed, so by adding the transactions
+         * to the coordinator(s) first we ensure that the coordinators can not commit
+         * either.
          */
         coordinator.add(t1);
         coordinator.add(t2);
@@ -1222,8 +1234,8 @@ public class Universe {
             mergingCoordinator.add(t1);
             mergingCoordinator.add(t2);
         }
-        t1.mutualTransactionCoordinator = coordinator;
-        t2.mutualTransactionCoordinator = coordinator;
+        t1.setMutualTransactionCoordinator(coordinator);
+        t2.setMutualTransactionCoordinator(coordinator);
 
         if (mergingCoordinator != null) {
             for (var transaction : mergingCoordinator.transactions) {
@@ -1232,8 +1244,8 @@ public class Universe {
             coordinator.transactions.addAll(mergingCoordinator.transactions);
         }
 
-        assert t1.mutualTransactionCoordinator == coordinator;
-        assert t2.mutualTransactionCoordinator == coordinator;
+        assert t1.getMutualTransactionCoordinator() == coordinator;
+        assert t2.getMutualTransactionCoordinator() == coordinator;
         assert coordinator.transactions.contains(t1);
         assert coordinator.transactions.contains(t2);
 
