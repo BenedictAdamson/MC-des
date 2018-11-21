@@ -60,6 +60,10 @@ public class Universe {
 
         private final Set<Transaction> transactions = new HashSet<>();
 
+        private final void add(Transaction transaction) {
+            transactions.add(transaction);
+        }
+
         private final void beginMutualAbort() {
             for (var transaction : transactions) {
                 if (transaction.openness != TransactionOpenness.ABORTED
@@ -1212,11 +1216,11 @@ public class Universe {
          * One or both of t1 can not be committed, so by adding the transactions to the
          * coordinator(s) first we ensure that the coordinators can not commit either.
          */
-        coordinator.transactions.add(t1);
-        coordinator.transactions.add(t2);
+        coordinator.add(t1);
+        coordinator.add(t2);
         if (mergingCoordinator != null) {
-            mergingCoordinator.transactions.add(t1);
-            mergingCoordinator.transactions.add(t2);
+            mergingCoordinator.add(t1);
+            mergingCoordinator.add(t2);
         }
         t1.mutualTransactionCoordinator = coordinator;
         t2.mutualTransactionCoordinator = coordinator;
