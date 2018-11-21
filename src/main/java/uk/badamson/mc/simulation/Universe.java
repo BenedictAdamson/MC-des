@@ -1239,7 +1239,7 @@ public class Universe {
 
         if (mergingCoordinator != null) {
             for (var transaction : mergingCoordinator.transactions) {
-                transaction.mutualTransactionCoordinator = coordinator;
+                transaction.setMutualTransactionCoordinator(coordinator);
             }
             coordinator.transactions.addAll(mergingCoordinator.transactions);
         }
