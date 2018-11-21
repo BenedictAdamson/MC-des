@@ -1208,17 +1208,25 @@ public class Universe {
             coordinator = new MutualTransactionCoordinator();
         }
 
+        /*
+         * One or both of t1 can not be committed, so by adding the transactions to the
+         * coordinator(s) first we ensure that the coordinators can not commit either.
+         */
+        coordinator.transactions.add(t1);
+        coordinator.transactions.add(t2);
+        if (mergingCoordinator != null) {
+            mergingCoordinator.transactions.add(t1);
+            mergingCoordinator.transactions.add(t2);
+        }
+        t1.mutualTransactionCoordinator = coordinator;
+        t2.mutualTransactionCoordinator = coordinator;
+
         if (mergingCoordinator != null) {
             for (var transaction : mergingCoordinator.transactions) {
-                coordinator.transactions.add(transaction);
                 transaction.mutualTransactionCoordinator = coordinator;
             }
+            coordinator.transactions.addAll(mergingCoordinator.transactions);
         }
-
-        t1.mutualTransactionCoordinator = coordinator;
-        coordinator.transactions.add(t1);
-        t2.mutualTransactionCoordinator = coordinator;
-        coordinator.transactions.add(t2);
 
         assert t1.mutualTransactionCoordinator == coordinator;
         assert t2.mutualTransactionCoordinator == coordinator;
