@@ -346,8 +346,6 @@ public class Universe {
                 }
                 // else a prehistoric dependency
             }
-
-            listener.onCommit();
         }
 
         private void commitIfPossible() {
@@ -820,17 +818,10 @@ public class Universe {
             }
         }
 
-        private final boolean commitIfPossible() {
-            if (!predecessors.isEmpty()) {
-                return false;
-            }
-            for (var transaction : mutualTransactions) {
-                if (!transaction.isReadyToCommit()) {
-                    return false;
-                }
-            }
+        private void commit() {
             for (var transaction : mutualTransactions) {
                 transaction.commit1();
+                transaction.listener.onCommit();
             }
             mutualTransactions.clear();
             for (var successor : successors) {
@@ -840,6 +831,18 @@ public class Universe {
                 assert successor != this;
                 successor.commitIfPossible();
             }
+        }
+
+        private final boolean commitIfPossible() {
+            if (!predecessors.isEmpty()) {
+                return false;
+            }
+            for (var transaction : mutualTransactions) {
+                if (!transaction.isReadyToCommit()) {
+                    return false;
+                }
+            }
+            commit();
             return true;
         }
 
