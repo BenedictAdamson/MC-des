@@ -624,9 +624,7 @@ public class Universe {
         }
 
         private void reallyBeginAbort() {
-            if (openness == TransactionOpenness.ABORTED) {
-                return;
-            }
+            assert openness != TransactionOpenness.ABORTED;
             openness = TransactionOpenness.ABORTING;
 
             noLongerAnUncommittedReader();
