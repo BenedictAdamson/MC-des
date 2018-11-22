@@ -216,6 +216,7 @@ public class Universe {
 
         private Transaction(@NonNull TransactionListener listener) {
             this.listener = Objects.requireNonNull(listener, "listener");
+            transactionCoordinator = new TransactionCoordinator(this);
         }
 
         /**
@@ -303,13 +304,6 @@ public class Universe {
             openness.beginWrite(this, when);
         }
 
-        private void cascadeCommit() {
-            for (var successor : new ArrayList<>(successorTransactions)) {
-                removeAsPredecessor(this, successor);
-                successor.commitIfPossible();
-            }
-        }
-
         /**
          * <p>
          * Ensure that this transaction is either {@linkplain #beginAbort() aborted} or
@@ -370,12 +364,7 @@ public class Universe {
 
         private void commitIfPossible() {
             final TransactionCoordinator coordinator = getTransactionCoordinator();
-            if (coordinator == null) {
-                if (isReadyToCommit()) {
-                    commit1();
-                    cascadeCommit();
-                }
-            } else {
+            if (coordinator != null) {
                 coordinator.commitIfPossible();
             }
         }
@@ -809,6 +798,11 @@ public class Universe {
 
         private final Set<Transaction> mutualTransactions = new HashSet<>();
 
+        TransactionCoordinator(Transaction transaction) {
+            assert transaction != null;
+            mutualTransactions.add(transaction);
+        }
+
         private final void add(Transaction transaction) {
             mutualTransactions.add(transaction);
         }
@@ -1209,49 +1203,29 @@ public class Universe {
     }
 
     private static void becomeMutual(Transaction t1, Transaction t2) {
-        final TransactionCoordinator coordinator;
-        TransactionCoordinator mergingCoordinator = null;
-        if (t1.transactionCoordinator != null && t2.transactionCoordinator != null) {
-            assert t1.transactionCoordinator != t2.transactionCoordinator;
-            coordinator = t1.transactionCoordinator;
-            mergingCoordinator = t2.transactionCoordinator;
-        } else if (t1.transactionCoordinator != null) {
-            coordinator = t1.transactionCoordinator;
-        } else if (t2.transactionCoordinator != null) {
-            coordinator = t2.transactionCoordinator;
-        } else {
-            coordinator = new TransactionCoordinator();
-        }
-
+        // TODO merge from the smaller coordinator into the larger
         /*
          * One or both of t1 and t2 can not be committed, so by adding the transactions
          * to the coordinator(s) first we ensure that the coordinators can not commit
          * either.
          */
-        coordinator.add(t1);
-        coordinator.add(t2);
-        if (mergingCoordinator != null) {
-            mergingCoordinator.add(t1);
-            mergingCoordinator.add(t2);
-        }
-        t1.setTransactionCoordinator(coordinator);
-        t2.setTransactionCoordinator(coordinator);
+        final TransactionCoordinator coordinator1 = t1.getTransactionCoordinator();
+        final TransactionCoordinator coordinator2 = t2.getTransactionCoordinator();
+        assert coordinator1 != coordinator2;
+        coordinator2.add(t1);
+        coordinator1.add(t2);
+        t2.setTransactionCoordinator(coordinator1);
 
-        if (mergingCoordinator != null) {
-            for (var transaction : mergingCoordinator.mutualTransactions) {
-                transaction.setTransactionCoordinator(coordinator);
+        {// Merge coordinators
+            for (var transaction : coordinator2.mutualTransactions) {
+                transaction.setTransactionCoordinator(coordinator1);
             }
-            coordinator.mutualTransactions.addAll(mergingCoordinator.mutualTransactions);
+            coordinator1.mutualTransactions.addAll(coordinator2.mutualTransactions);
         }
 
-        assert t1.getTransactionCoordinator() == coordinator;
-        assert t2.getTransactionCoordinator() == coordinator;
-        assert coordinator.mutualTransactions.contains(t1);
-        assert coordinator.mutualTransactions.contains(t2);
-
-        for (var t : coordinator.mutualTransactions) {
-            t.successorTransactions.removeAll(coordinator.mutualTransactions);
-            t.predecessorTransactions.removeAll(coordinator.mutualTransactions);
+        for (var t : coordinator1.mutualTransactions) {
+            t.successorTransactions.removeAll(coordinator1.mutualTransactions);
+            t.predecessorTransactions.removeAll(coordinator1.mutualTransactions);
         }
     }
 
