@@ -338,14 +338,7 @@ public class Universe {
                 objectDataMap.get(object).commit1Writer(this, when, state);
             }
 
-            for (UUID object : dependencies.keySet()) {
-                assert object != null;
-                final var od = objectDataMap.get(object);
-                if (od != null) {
-                    od.removeUncommittedReader(this);
-                }
-                // else a prehistoric dependency
-            }
+            noLongerAnUncommittedReader();
         }
 
         private void commitIfPossible() {
@@ -572,7 +565,7 @@ public class Universe {
                 if (od != null) {
                     od.removeUncommittedReader(this);
                 }
-                // else a non existent object
+                // else a non existent object or a prehistoric dependency
             }
         }
 
