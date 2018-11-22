@@ -19,7 +19,6 @@ package uk.badamson.mc.simulation;
  */
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -195,20 +194,10 @@ public class Universe {
         // Must be appended to and committed before this transaction.
         private final Set<UUID> pastTheEndReads = new HashSet<>();
 
-        /*
-         * Must be committed before this transaction. Includes indirect predecessors.
-         */
-        private final Set<Transaction> predecessorTransactions = new HashSet<>();
-
-        /*
-         * Must be committed after this transaction. Includes indirect successors.
-         */
-        private final Set<Transaction> successorTransactions = new HashSet<>();
-
         @Nullable
         private Duration when;
 
-        @Nullable
+        @NonNull
         private TransactionCoordinator transactionCoordinator;
 
         @NonNull
@@ -338,7 +327,6 @@ public class Universe {
         }
 
         private void commit1() {
-            assert predecessorTransactions.isEmpty();
             assert pastTheEndReads.isEmpty();
             openness = TransactionOpenness.COMMITTED;
             for (var entry : objectStatesWritten.entrySet()) {
@@ -547,7 +535,7 @@ public class Universe {
             return openness;
         }
 
-        @Nullable
+        @NonNull
         private TransactionCoordinator getTransactionCoordinator() {
             return transactionCoordinator;
         }
@@ -577,7 +565,7 @@ public class Universe {
 
         private boolean isReadyToCommit() {
             return openness == TransactionOpenness.COMMITTING && pastTheEndReads.isEmpty()
-                    && predecessorTransactions.isEmpty();
+                    && getTransactionCoordinator().isReadyToCommit();
         }
 
         private void noLongerAnUncommittedReader() {
@@ -635,14 +623,11 @@ public class Universe {
             reallyBeginAbort();
 
             openness = TransactionOpenness.ABORTED;
+            // Help the garbage collector:
+            pastTheEndReads.clear();
+
             listener.onAbort();
 
-            removeTriggersOfPredecessors();
-            {// Help the garbage collector
-                pastTheEndReads.clear();
-                predecessorTransactions.clear();
-                successorTransactions.clear();
-            }
         }
 
         private void reallyBeginAbort() {
@@ -658,19 +643,7 @@ public class Universe {
              * Cause our dependents to also begin aborting, rather than awaiting commit or
              * close of this transaction.
              */
-            final TransactionCoordinator coordinator = getTransactionCoordinator();
-            if (coordinator != null) {
-                coordinator.beginAbort();
-                setTransactionCoordinator(null);
-            }
-            for (var transaction : new ArrayList<>(successorTransactions)) {
-                transaction.reallyBeginAbort();
-            }
-            successorTransactions.clear();
-            for (var transaction : new ArrayList<>(predecessorTransactions)) {
-                removeAsPredecessor(transaction, this);
-            }
-            predecessorTransactions.clear();
+            getTransactionCoordinator().beginAbort();
         }
 
         private void reallyBeginCommit() {
@@ -739,12 +712,6 @@ public class Universe {
             objectStatesWritten.put(object, state);
         }
 
-        private void removeTriggersOfPredecessors() {
-            for (Transaction predecessorTransaction : predecessorTransactions) {
-                removeAsSuccessor(predecessorTransaction, this);
-            }
-        }
-
         private void rollBackWrites() {
             for (UUID object : objectStatesWritten.keySet()) {
                 assert object != null;
@@ -760,7 +727,8 @@ public class Universe {
             }
         }
 
-        private void setTransactionCoordinator(@Nullable TransactionCoordinator coordinator) {
+        private void setTransactionCoordinator(@NonNull TransactionCoordinator coordinator) {
+            assert coordinator != null;
             transactionCoordinator = coordinator;
         }
 
@@ -796,45 +764,125 @@ public class Universe {
 
     private static final class TransactionCoordinator {
 
+        /*
+         * Must be committed before the mutualTransactions. Includes indirect
+         * predecessors.
+         */
+        private final Set<TransactionCoordinator> predecessors = new HashSet<>();
+
         private final Set<Transaction> mutualTransactions = new HashSet<>();
+
+        /*
+         * Must be committed after the mutualTransactions. Includes indirect successors.
+         */
+        private final Set<TransactionCoordinator> successors = new HashSet<>();
 
         TransactionCoordinator(Transaction transaction) {
             assert transaction != null;
             mutualTransactions.add(transaction);
         }
 
-        private final void add(Transaction transaction) {
-            mutualTransactions.add(transaction);
+        private void addPredecessor(@NonNull Transaction transaction) {
+            assert transaction != null;
+            final TransactionCoordinator coordinator = transaction.getTransactionCoordinator();
+            if (coordinator == this) {
+                // May not be both predecessor and successor; already recorded as mutual
+            } else if (predecessors.contains(coordinator)) {
+                // Already done
+            } else if (successors.contains(coordinator) || coordinator.predecessors.contains(this)) {
+                // May not be both predecessor and successor; must merge
+                mutualTransactions.add(transaction);
+                merge(coordinator);
+            } else {
+                predecessors.add(coordinator);
+                predecessors.addAll(coordinator.predecessors);
+                coordinator.successors.add(this);
+                coordinator.successors.addAll(this.successors);
+            }
+            assert !predecessors.contains(this);
+            assert !successors.contains(this);
+            assert Collections.disjoint(predecessors, successors);
         }
 
         private final void beginAbort() {
+            for (var predecessor : predecessors) {
+                predecessor.successors.remove(this);
+            }
+            predecessors.clear();
             for (var transaction : mutualTransactions) {
                 if (transaction.openness != TransactionOpenness.ABORTED
                         && transaction.openness != TransactionOpenness.ABORTING) {
                     transaction.beginAbort();
                 }
             }
+            for (var successor : successors) {
+                successor.beginAbort();
+            }
         }
 
         private final boolean commitIfPossible() {
+            if (!predecessors.isEmpty()) {
+                return false;
+            }
             for (var transaction : mutualTransactions) {
                 if (!transaction.isReadyToCommit()) {
                     return false;
                 }
             }
-            final Set<Transaction> successors = new HashSet<>();
             for (var transaction : mutualTransactions) {
-                if (transaction.isReadyToCommit()) {
-                    transaction.commit1();
-                    successors.addAll(transaction.successorTransactions);
-                    transaction.successorTransactions.clear();
-                }
+                transaction.commit1();
+            }
+            mutualTransactions.clear();
+            for (var successor : successors) {
+                successor.predecessors.remove(this);
             }
             for (var successor : successors) {
-                successor.predecessorTransactions.removeAll(mutualTransactions);
+                assert successor != this;
                 successor.commitIfPossible();
             }
             return true;
+        }
+
+        private boolean isReadyToCommit() {
+            return predecessors.isEmpty();
+        }
+
+        private void merge(final TransactionCoordinator coordinator) {
+            predecessors.addAll(coordinator.predecessors);
+            predecessors.remove(this);
+            predecessors.remove(coordinator);
+            successors.addAll(coordinator.successors);
+            successors.remove(this);
+            successors.remove(coordinator);
+            coordinator.successors.remove(this);
+            coordinator.predecessors.remove(this);
+            mutualTransactions.addAll(coordinator.mutualTransactions);
+            replace(coordinator);
+            boolean done = false;
+            do {
+                final Set<TransactionCoordinator> loops = new HashSet<>(predecessors);
+                loops.retainAll(successors);
+                done = loops.isEmpty();
+                loops.forEach(this::merge);
+            } while (!done);
+            assert !predecessors.contains(this);
+            assert !successors.contains(this);
+            assert Collections.disjoint(predecessors, successors);
+        }
+
+        private void replace(TransactionCoordinator that) {
+            for (TransactionCoordinator p : that.predecessors) {
+                p.successors.remove(that);
+                p.successors.add(this);
+
+            }
+            for (TransactionCoordinator s : that.successors) {
+                s.predecessors.remove(that);
+                s.predecessors.add(this);
+            }
+            for (Transaction t : that.mutualTransactions) {
+                t.setTransactionCoordinator(this);
+            }
         }
 
     }// class
@@ -1176,67 +1224,7 @@ public class Universe {
     private static final ValueHistory<ObjectState> EMPTY_STATE_HISTORY = new ConstantValueHistory<>((ObjectState) null);
 
     private static void addAsPredecessor(Transaction predecessor, Transaction successor) {
-        if (predecessor.successorTransactions.contains(successor)) {
-            assert successor.predecessorTransactions.contains(predecessor);
-            // Already recorded
-            return;
-        } else if (successor.successorTransactions.contains(predecessor)) {
-            assert predecessor.predecessorTransactions.contains(successor);
-            /*
-             * Can not be both predecessor and successor. Instead, convert to a mutual
-             * dependence.
-             */
-            becomeMutual(predecessor, successor);
-        } else {
-            successor.predecessorTransactions.add(predecessor);
-            predecessor.successorTransactions.add(successor);
-        }
-
-        // Add indirect successors
-        for (var indirectSuccessor : new ArrayList<>(successor.successorTransactions)) {
-            addAsPredecessor(predecessor, indirectSuccessor);
-        }
-        // Add indirect predecessors
-        for (var indirectPredecessor : new ArrayList<>(predecessor.predecessorTransactions)) {
-            addAsPredecessor(indirectPredecessor, successor);
-        }
-    }
-
-    private static void becomeMutual(Transaction t1, Transaction t2) {
-        // TODO merge from the smaller coordinator into the larger
-        /*
-         * One or both of t1 and t2 can not be committed, so by adding the transactions
-         * to the coordinator(s) first we ensure that the coordinators can not commit
-         * either.
-         */
-        final TransactionCoordinator coordinator1 = t1.getTransactionCoordinator();
-        final TransactionCoordinator coordinator2 = t2.getTransactionCoordinator();
-        assert coordinator1 != coordinator2;
-        coordinator2.add(t1);
-        coordinator1.add(t2);
-        t2.setTransactionCoordinator(coordinator1);
-
-        {// Merge coordinators
-            for (var transaction : coordinator2.mutualTransactions) {
-                transaction.setTransactionCoordinator(coordinator1);
-            }
-            coordinator1.mutualTransactions.addAll(coordinator2.mutualTransactions);
-        }
-
-        for (var t : coordinator1.mutualTransactions) {
-            t.successorTransactions.removeAll(coordinator1.mutualTransactions);
-            t.predecessorTransactions.removeAll(coordinator1.mutualTransactions);
-        }
-    }
-
-    private static void removeAsPredecessor(Transaction predecessor, Transaction successor) {
-        successor.predecessorTransactions.remove(predecessor);
-        predecessor.successorTransactions.remove(successor);
-    }
-
-    private static void removeAsSuccessor(Transaction predecessor, Transaction successor) {
-        successor.predecessorTransactions.remove(successor);
-        predecessor.successorTransactions.remove(predecessor);
+        successor.getTransactionCoordinator().addPredecessor(predecessor);
     }
 
     private final Object historyLock = new Object();
