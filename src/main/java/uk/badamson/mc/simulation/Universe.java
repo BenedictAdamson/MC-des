@@ -56,46 +56,6 @@ import uk.badamson.mc.history.ValueHistory;
 @ThreadSafe
 public class Universe {
 
-    private static final class MutualTransactionCoordinator {
-
-        private final Set<Transaction> transactions = new HashSet<>();
-
-        private final void add(Transaction transaction) {
-            transactions.add(transaction);
-        }
-
-        private final void beginMutualAbort() {
-            for (var transaction : transactions) {
-                if (transaction.openness != TransactionOpenness.ABORTED
-                        && transaction.openness != TransactionOpenness.ABORTING) {
-                    transaction.beginAbort();
-                }
-            }
-        }
-
-        private final boolean commitIfPossible() {
-            for (var transaction : transactions) {
-                if (!transaction.isReadyToCommit()) {
-                    return false;
-                }
-            }
-            final Set<Transaction> successors = new HashSet<>();
-            for (var transaction : transactions) {
-                if (transaction.isReadyToCommit()) {
-                    transaction.commit1();
-                    successors.addAll(transaction.successorTransactions);
-                    transaction.successorTransactions.clear();
-                }
-            }
-            for (var successor : successors) {
-                successor.predecessorTransactions.removeAll(transactions);
-                successor.commitIfPossible();
-            }
-            return true;
-        }
-
-    }// class
-
     static final class ObjectData {
 
         @GuardedBy("this")
@@ -249,7 +209,7 @@ public class Universe {
         private Duration when;
 
         @Nullable
-        private MutualTransactionCoordinator mutualTransactionCoordinator;
+        private TransactionCoordinator transactionCoordinator;
 
         @NonNull
         private TransactionOpenness openness = TransactionOpenness.READING;
@@ -409,7 +369,7 @@ public class Universe {
         }
 
         private void commitIfPossible() {
-            final MutualTransactionCoordinator coordinator = getMutualTransactionCoordinator();
+            final TransactionCoordinator coordinator = getTransactionCoordinator();
             if (coordinator == null) {
                 if (isReadyToCommit()) {
                     commit1();
@@ -453,11 +413,6 @@ public class Universe {
          */
         public final @NonNull Map<UUID, ObjectStateId> getDependencies() {
             return new HashMap<>(dependencies);
-        }
-
-        @Nullable
-        private MutualTransactionCoordinator getMutualTransactionCoordinator() {
-            return mutualTransactionCoordinator;
         }
 
         /**
@@ -603,6 +558,11 @@ public class Universe {
             return openness;
         }
 
+        @Nullable
+        private TransactionCoordinator getTransactionCoordinator() {
+            return transactionCoordinator;
+        }
+
         /**
          * <p>
          * The {@link Universe} for which this transaction changes the state.
@@ -709,10 +669,10 @@ public class Universe {
              * Cause our dependents to also begin aborting, rather than awaiting commit or
              * close of this transaction.
              */
-            final MutualTransactionCoordinator coordinator = getMutualTransactionCoordinator();
+            final TransactionCoordinator coordinator = getTransactionCoordinator();
             if (coordinator != null) {
-                coordinator.beginMutualAbort();
-                setMutualTransactionCoordinator(null);
+                coordinator.beginAbort();
+                setTransactionCoordinator(null);
             }
             for (var transaction : new ArrayList<>(successorTransactions)) {
                 transaction.reallyBeginAbort();
@@ -811,8 +771,8 @@ public class Universe {
             }
         }
 
-        private void setMutualTransactionCoordinator(@Nullable MutualTransactionCoordinator coordinator) {
-            mutualTransactionCoordinator = coordinator;
+        private void setTransactionCoordinator(@Nullable TransactionCoordinator coordinator) {
+            transactionCoordinator = coordinator;
         }
 
         private boolean tryToAppendToHistory(UUID object, ObjectState state) {
@@ -841,6 +801,46 @@ public class Universe {
                 addAsPredecessor(this, pastTheEndReader);
             }
             return created;
+        }
+
+    }// class
+
+    private static final class TransactionCoordinator {
+
+        private final Set<Transaction> mutualTransactions = new HashSet<>();
+
+        private final void add(Transaction transaction) {
+            mutualTransactions.add(transaction);
+        }
+
+        private final void beginAbort() {
+            for (var transaction : mutualTransactions) {
+                if (transaction.openness != TransactionOpenness.ABORTED
+                        && transaction.openness != TransactionOpenness.ABORTING) {
+                    transaction.beginAbort();
+                }
+            }
+        }
+
+        private final boolean commitIfPossible() {
+            for (var transaction : mutualTransactions) {
+                if (!transaction.isReadyToCommit()) {
+                    return false;
+                }
+            }
+            final Set<Transaction> successors = new HashSet<>();
+            for (var transaction : mutualTransactions) {
+                if (transaction.isReadyToCommit()) {
+                    transaction.commit1();
+                    successors.addAll(transaction.successorTransactions);
+                    transaction.successorTransactions.clear();
+                }
+            }
+            for (var successor : successors) {
+                successor.predecessorTransactions.removeAll(mutualTransactions);
+                successor.commitIfPossible();
+            }
+            return true;
         }
 
     }// class
@@ -1209,18 +1209,18 @@ public class Universe {
     }
 
     private static void becomeMutual(Transaction t1, Transaction t2) {
-        final MutualTransactionCoordinator coordinator;
-        MutualTransactionCoordinator mergingCoordinator = null;
-        if (t1.mutualTransactionCoordinator != null && t2.mutualTransactionCoordinator != null) {
-            assert t1.mutualTransactionCoordinator != t2.mutualTransactionCoordinator;
-            coordinator = t1.mutualTransactionCoordinator;
-            mergingCoordinator = t2.mutualTransactionCoordinator;
-        } else if (t1.mutualTransactionCoordinator != null) {
-            coordinator = t1.mutualTransactionCoordinator;
-        } else if (t2.mutualTransactionCoordinator != null) {
-            coordinator = t2.mutualTransactionCoordinator;
+        final TransactionCoordinator coordinator;
+        TransactionCoordinator mergingCoordinator = null;
+        if (t1.transactionCoordinator != null && t2.transactionCoordinator != null) {
+            assert t1.transactionCoordinator != t2.transactionCoordinator;
+            coordinator = t1.transactionCoordinator;
+            mergingCoordinator = t2.transactionCoordinator;
+        } else if (t1.transactionCoordinator != null) {
+            coordinator = t1.transactionCoordinator;
+        } else if (t2.transactionCoordinator != null) {
+            coordinator = t2.transactionCoordinator;
         } else {
-            coordinator = new MutualTransactionCoordinator();
+            coordinator = new TransactionCoordinator();
         }
 
         /*
@@ -1234,24 +1234,24 @@ public class Universe {
             mergingCoordinator.add(t1);
             mergingCoordinator.add(t2);
         }
-        t1.setMutualTransactionCoordinator(coordinator);
-        t2.setMutualTransactionCoordinator(coordinator);
+        t1.setTransactionCoordinator(coordinator);
+        t2.setTransactionCoordinator(coordinator);
 
         if (mergingCoordinator != null) {
-            for (var transaction : mergingCoordinator.transactions) {
-                transaction.setMutualTransactionCoordinator(coordinator);
+            for (var transaction : mergingCoordinator.mutualTransactions) {
+                transaction.setTransactionCoordinator(coordinator);
             }
-            coordinator.transactions.addAll(mergingCoordinator.transactions);
+            coordinator.mutualTransactions.addAll(mergingCoordinator.mutualTransactions);
         }
 
-        assert t1.getMutualTransactionCoordinator() == coordinator;
-        assert t2.getMutualTransactionCoordinator() == coordinator;
-        assert coordinator.transactions.contains(t1);
-        assert coordinator.transactions.contains(t2);
+        assert t1.getTransactionCoordinator() == coordinator;
+        assert t2.getTransactionCoordinator() == coordinator;
+        assert coordinator.mutualTransactions.contains(t1);
+        assert coordinator.mutualTransactions.contains(t2);
 
-        for (var t : coordinator.transactions) {
-            t.successorTransactions.removeAll(coordinator.transactions);
-            t.predecessorTransactions.removeAll(coordinator.transactions);
+        for (var t : coordinator.mutualTransactions) {
+            t.successorTransactions.removeAll(coordinator.mutualTransactions);
+            t.predecessorTransactions.removeAll(coordinator.mutualTransactions);
         }
     }
 
