@@ -739,14 +739,13 @@ public class Universe {
                 return false;
             }
 
-            // TODO fix race hazards
-            for (Transaction uncommittedReader : transactionsToAbort) {
+            for (Transaction transaction : transactionsToAbort) {
                 // We have replaced the value written by this other transaction.
-                uncommittedReader.beginAbort();
+                transaction.beginAbort();
             }
             for (Transaction pastTheEndReader : pastTheEndReadersToEscalateToPredecessors) {
-                pastTheEndReader.pastTheEndReads.remove(object);
                 addAsPredecessor(this, pastTheEndReader);
+                pastTheEndReader.pastTheEndReads.remove(object);
             }
             return created;
         }
