@@ -555,8 +555,10 @@ public class Universe {
         }
 
         private boolean isReadyToCommit() {
-            return openness == TransactionOpenness.COMMITTING && pastTheEndReads.isEmpty()
-                    && getTransactionCoordinator().isReadyToCommit();
+            if (openness != TransactionOpenness.COMMITTING || !pastTheEndReads.isEmpty()) {
+                return false;
+            }
+            return getTransactionCoordinator().isReadyToCommit();
         }
 
         private void noLongerAnUncommittedReader() {
