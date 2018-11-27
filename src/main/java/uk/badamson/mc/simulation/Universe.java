@@ -1284,6 +1284,37 @@ public class Universe {
         successor.getTransactionCoordinator().addPredecessor(predecessor);
     }
 
+    private static void merge(final TransactionCoordinator coordinator1, final TransactionCoordinator coordinator2) {
+        if (coordinator1.compareTo(coordinator2) < 0) {
+            merge1(coordinator1, coordinator2);
+        } else {
+            merge1(coordinator2, coordinator1);
+        }
+    }
+
+    private static void merge1(final TransactionCoordinator destination, final TransactionCoordinator source) {
+        destination.predecessors.addAll(source.predecessors);
+        destination.predecessors.remove(destination);
+        destination.predecessors.remove(source);
+        destination.successors.addAll(source.successors);
+        destination.successors.remove(destination);
+        destination.successors.remove(source);
+        source.successors.remove(destination);
+        source.predecessors.remove(destination);
+        destination.mutualTransactions.addAll(source.mutualTransactions);
+        destination.replace(source);
+        boolean done = false;
+        do {
+            final Set<TransactionCoordinator> loops = new HashSet<>(destination.predecessors);
+            loops.retainAll(destination.successors);
+            done = loops.isEmpty();
+            loops.forEach(tc -> Universe.merge(destination, tc));
+        } while (!done);
+        assert !destination.predecessors.contains(destination);
+        assert !destination.successors.contains(destination);
+        assert Collections.disjoint(destination.predecessors, destination.successors);
+    }
+
     private final Object historyLock = new Object();
     @NonNull
     @GuardedBy("historyLock")
