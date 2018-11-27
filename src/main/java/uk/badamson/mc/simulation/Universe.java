@@ -183,10 +183,13 @@ public class Universe {
      * </p>
      */
     @NotThreadSafe
-    public final class Transaction implements AutoCloseable {
+    public final class Transaction implements AutoCloseable, Comparable<Transaction> {
 
         @NonNull
         private final TransactionListener listener;
+
+        @NonNull
+        private final Long id;
 
         private final Map<ObjectStateId, ObjectState> objectStatesRead = new HashMap<>();
         private final Map<UUID, ObjectState> objectStatesWritten = new HashMap<>();
@@ -204,9 +207,11 @@ public class Universe {
         @NonNull
         private TransactionOpenness openness = TransactionOpenness.READING;
 
-        private Transaction(@NonNull TransactionListener listener) {
+        private Transaction(@NonNull TransactionListener listener, @NonNull Long id) {
             this.listener = Objects.requireNonNull(listener, "listener");
-            transactionCoordinator = createTransactionCoordinator(this);
+            assert id != null;
+            this.id = id;
+            transactionCoordinator = new TransactionCoordinator(this);
         }
 
         /**
@@ -347,6 +352,23 @@ public class Universe {
             if (coordinator != null) {
                 coordinator.commitIfPossible();
             }
+        }
+
+        @Override
+        public final int compareTo(Transaction that) {
+            return id.compareTo(that.id);
+        }
+
+        @Override
+        public final boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (!(obj instanceof Transaction))
+                return false;
+            Transaction other = (Transaction) obj;
+            return getUniverse().equals(other.getUniverse()) && id.equals(other.id);
         }
 
         /**
@@ -555,6 +577,11 @@ public class Universe {
             return when;
         }
 
+        @Override
+        public final int hashCode() {
+            return id.hashCode();
+        }
+
         private boolean isReadyToCommit() {
             if (openness != TransactionOpenness.COMMITTING || !pastTheEndReads.isEmpty()) {
                 return false;
@@ -750,7 +777,6 @@ public class Universe {
             }
             return created;
         }
-
     }// class
 
     private final class TransactionCoordinator implements Comparable<TransactionCoordinator> {
@@ -771,11 +797,10 @@ public class Universe {
         @NonNull
         private final Long id;
 
-        TransactionCoordinator(@NonNull Transaction transaction, @NonNull Long id) {
+        TransactionCoordinator(@NonNull Transaction transaction) {
             assert transaction != null;
-            assert id != null;
             mutualTransactions.add(transaction);
-            this.id = id;
+            this.id = transaction.id;
         }
 
         private void addPredecessor(@NonNull Transaction transaction) {
@@ -821,11 +846,13 @@ public class Universe {
                 transaction.commit1();
                 transaction.listener.onCommit();
             }
+            for (var transaction : mutualTransactions) {
+                transactions.remove(transaction.id);
+            }
             mutualTransactions.clear();
             for (var successor : successors) {
                 successor.predecessors.remove(this);
             }
-            transactionCoordinators.remove(id);
             for (var successor : successors) {
                 assert successor != this;
                 successor.commitIfPossible();
@@ -1263,8 +1290,8 @@ public class Universe {
     private Duration historyStart;
 
     private final Map<UUID, ObjectData> objectDataMap = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<Long, TransactionCoordinator> transactionCoordinators = new ConcurrentHashMap<>();
-    private final AtomicLong nextTransactionCoordinatorId = new AtomicLong(Long.MIN_VALUE);
+    private final ConcurrentHashMap<Long, Transaction> transactions = new ConcurrentHashMap<>();
+    private final AtomicLong nextTransactionId = new AtomicLong(Long.MIN_VALUE);
 
     /**
      * <p>
@@ -1318,17 +1345,12 @@ public class Universe {
      *             If {@code listener} is null
      */
     public final @NonNull Transaction beginTransaction(@NonNull TransactionListener listener) {
-        return new Transaction(listener);
-    }
-
-    @NonNull
-    private TransactionCoordinator createTransactionCoordinator(@NonNull Transaction transaction) {
-        assert transaction != null;
+        Objects.requireNonNull(listener, "listener");
         Long id;
         do {
-            id = nextTransactionCoordinatorId.getAndIncrement();
-        } while (transactionCoordinators.putIfAbsent(id, new TransactionCoordinator(transaction, id)) != null);
-        return transactionCoordinators.get(id);
+            id = nextTransactionId.getAndIncrement();
+        } while (transactions.putIfAbsent(id, new Transaction(listener, id)) != null);
+        return transactions.get(id);
     }
 
     /**
