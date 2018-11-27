@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -205,7 +206,7 @@ public class Universe {
 
         private Transaction(@NonNull TransactionListener listener) {
             this.listener = Objects.requireNonNull(listener, "listener");
-            transactionCoordinator = new TransactionCoordinator(this);
+            transactionCoordinator = createTransactionCoordinator(this);
         }
 
         /**
@@ -752,7 +753,7 @@ public class Universe {
 
     }// class
 
-    private static final class TransactionCoordinator {
+    private final class TransactionCoordinator implements Comparable<TransactionCoordinator> {
 
         /*
          * Must be committed before the mutualTransactions. Includes indirect
@@ -767,9 +768,14 @@ public class Universe {
          */
         private final Set<TransactionCoordinator> successors = new HashSet<>();
 
-        TransactionCoordinator(Transaction transaction) {
+        @NonNull
+        private final Long id;
+
+        TransactionCoordinator(@NonNull Transaction transaction, @NonNull Long id) {
             assert transaction != null;
+            assert id != null;
             mutualTransactions.add(transaction);
+            this.id = id;
         }
 
         private void addPredecessor(@NonNull Transaction transaction) {
@@ -819,6 +825,7 @@ public class Universe {
             for (var successor : successors) {
                 successor.predecessors.remove(this);
             }
+            transactionCoordinators.remove(id);
             for (var successor : successors) {
                 assert successor != this;
                 successor.commitIfPossible();
@@ -836,6 +843,34 @@ public class Universe {
             }
             commit();
             return true;
+        }
+
+        @Override
+        public final int compareTo(TransactionCoordinator that) {
+            return id.compareTo(that.id);
+        }
+
+        @Override
+        public final boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (!(obj instanceof TransactionCoordinator))
+                return false;
+            TransactionCoordinator other = (TransactionCoordinator) obj;
+            if (!getOuterType().equals(other.getOuterType()))
+                return false;
+            return id.equals(other.id);
+        }
+
+        private Universe getOuterType() {
+            return Universe.this;
+        }
+
+        @Override
+        public final int hashCode() {
+            return id.hashCode();
         }
 
         private boolean isReadyToCommit() {
@@ -1228,6 +1263,8 @@ public class Universe {
     private Duration historyStart;
 
     private final Map<UUID, ObjectData> objectDataMap = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Long, TransactionCoordinator> transactionCoordinators = new ConcurrentHashMap<>();
+    private final AtomicLong nextTransactionCoordinatorId = new AtomicLong(Long.MIN_VALUE);
 
     /**
      * <p>
@@ -1282,6 +1319,16 @@ public class Universe {
      */
     public final @NonNull Transaction beginTransaction(@NonNull TransactionListener listener) {
         return new Transaction(listener);
+    }
+
+    @NonNull
+    private TransactionCoordinator createTransactionCoordinator(@NonNull Transaction transaction) {
+        assert transaction != null;
+        Long id;
+        do {
+            id = nextTransactionCoordinatorId.getAndIncrement();
+        } while (transactionCoordinators.putIfAbsent(id, new TransactionCoordinator(transaction, id)) != null);
+        return transactionCoordinators.get(id);
     }
 
     /**
