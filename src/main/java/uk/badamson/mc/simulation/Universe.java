@@ -813,7 +813,7 @@ public class Universe {
             } else if (successors.contains(coordinator) || coordinator.predecessors.contains(this)) {
                 // May not be both predecessor and successor; must merge
                 mutualTransactions.add(transaction);
-                merge(coordinator);
+                Universe.merge(this, coordinator);
             } else {
                 predecessors.add(coordinator);
                 predecessors.addAll(coordinator.predecessors);
@@ -902,29 +902,6 @@ public class Universe {
 
         private boolean isReadyToCommit() {
             return predecessors.isEmpty();
-        }
-
-        private void merge(final TransactionCoordinator coordinator) {
-            predecessors.addAll(coordinator.predecessors);
-            predecessors.remove(this);
-            predecessors.remove(coordinator);
-            successors.addAll(coordinator.successors);
-            successors.remove(this);
-            successors.remove(coordinator);
-            coordinator.successors.remove(this);
-            coordinator.predecessors.remove(this);
-            mutualTransactions.addAll(coordinator.mutualTransactions);
-            replace(coordinator);
-            boolean done = false;
-            do {
-                final Set<TransactionCoordinator> loops = new HashSet<>(predecessors);
-                loops.retainAll(successors);
-                done = loops.isEmpty();
-                loops.forEach(this::merge);
-            } while (!done);
-            assert !predecessors.contains(this);
-            assert !successors.contains(this);
-            assert Collections.disjoint(predecessors, successors);
         }
 
         private void replace(TransactionCoordinator that) {
