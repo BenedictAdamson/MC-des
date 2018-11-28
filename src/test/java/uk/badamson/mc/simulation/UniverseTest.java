@@ -48,13 +48,13 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
@@ -65,7 +65,6 @@ import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.history.ModifiableValueHistory;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.history.ValueHistoryTest;
-import uk.badamson.mc.simulation.Universe.TransactionOpenness;
 
 /**
  * <p>
@@ -760,8 +759,8 @@ public class UniverseTest {
             }// class
 
             private void beginAbort(Universe.Transaction transaction) {
-                final boolean aborted0 = transaction.getOpenness() == TransactionOpenness.ABORTED;
-                final boolean committed0 = transaction.getOpenness() == TransactionOpenness.COMMITTED;
+                final boolean aborted0 = transaction.getOpenness() == Universe.TransactionOpenness.ABORTED;
+                final boolean committed0 = transaction.getOpenness() == Universe.TransactionOpenness.COMMITTED;
 
                 transaction.beginAbort();
 
@@ -770,11 +769,11 @@ public class UniverseTest {
                 final Universe.TransactionOpenness openness = transaction.getOpenness();
                 assertAll(
                         () -> assertThat("The transaction is aborting, aborted or committed.", openness,
-                                isOneOf(TransactionOpenness.COMMITTED, TransactionOpenness.ABORTED,
-                                        TransactionOpenness.ABORTING)),
-                        () -> assertTrue(!committed0 || openness == TransactionOpenness.COMMITTED,
+                                isOneOf(Universe.TransactionOpenness.COMMITTED, Universe.TransactionOpenness.ABORTED,
+                                        Universe.TransactionOpenness.ABORTING)),
+                        () -> assertTrue(!committed0 || openness == Universe.TransactionOpenness.COMMITTED,
                                 "If this transaction was committed, it remains committed."),
-                        () -> assertTrue(!aborted0 || openness == TransactionOpenness.ABORTED,
+                        () -> assertTrue(!aborted0 || openness == Universe.TransactionOpenness.ABORTED,
                                 "If this transaction was aborted, it remains aborted."));
             }
 
@@ -2386,7 +2385,6 @@ public class UniverseTest {
             }
 
             @RepeatedTest(4)
-            @Disabled("TODO") // TODO
             public void mutualReadPastLastMultiThreaded() {
                 final Duration historyStart = DURATION_1;
                 final Duration when1 = DURATION_2;
@@ -2397,6 +2395,7 @@ public class UniverseTest {
                 final int nThreads = Runtime.getRuntime().availableProcessors() * 4;
 
                 final UUID[] objects = new UUID[nThreads];
+                final Map<UUID, AtomicReference<Universe.Transaction>> transactions = new ConcurrentHashMap<>(nThreads);
                 final Universe universe = new Universe(historyStart);
                 for (int i = 0; i < nThreads; i++) {
                     objects[i] = UUID.randomUUID();
@@ -2409,6 +2408,7 @@ public class UniverseTest {
                     futures.add(runInOtherThread(ready, () -> {
                         final CountingTransactionListener listener = new CountingTransactionListener();
                         final Universe.Transaction transaction = universe.beginTransaction(listener);
+                        transactions.put(objects[iObject], new AtomicReference<Universe.Transaction>(transaction));
                         for (int j = 0; j < nThreads; ++j) {
                             final UUID object = objects[j];
                             if (iObject == j) {
@@ -2428,7 +2428,11 @@ public class UniverseTest {
                 get(futures);
                 UniverseTest.assertInvariants(universe);
                 for (int i = 0; i < nThreads; ++i) {
-                    assertEquals(when3, universe.getLatestCommit(objects[i]), "Committed write for object [" + i + "]");
+                    final UUID object = objects[i];
+                    final Universe.Transaction transaction = transactions.get(object).get();
+                    assertEquals(Universe.TransactionOpenness.COMMITTED, transaction.getOpenness(),
+                            "Committed write for object [" + i + "]");
+                    assertEquals(when3, universe.getLatestCommit(object), "Committed write for object [" + i + "]");
                 }
             }
         }// class
