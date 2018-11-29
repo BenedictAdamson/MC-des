@@ -24,9 +24,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -116,7 +119,7 @@ public class Universe {
 
         private synchronized boolean tryToAppendToHistory(Transaction transaction, UUID object, Duration when,
                 ObjectState state, Set<Transaction> transactionsToAbort,
-                Set<Transaction> pastTheEndReadersToEscalateToPredecessors) throws IllegalStateException {
+                Set<Transaction> pastTheEndReadersToEscalateToSuccessors) throws IllegalStateException {
             assert when != null;
             if (state != null && !stateHistory.isEmpty() && stateHistory.getLastValue() == null) {
                 // Not added to uncommittedWriters.
@@ -146,7 +149,7 @@ public class Universe {
                  * lastTransition0 without danger of overflow.
                  */
                 final Duration justAfterPreviousTransition = lastTransition0.plusNanos(1);
-                pastTheEndReadersToEscalateToPredecessors.addAll(uncommittedReaders.get(justAfterPreviousTransition));
+                pastTheEndReadersToEscalateToSuccessors.addAll(uncommittedReaders.get(justAfterPreviousTransition));
             }
             return false;
         }
@@ -191,27 +194,38 @@ public class Universe {
         @NonNull
         private final Long id;
 
+        private final Object lock = new Object();
+
         private final Map<ObjectStateId, ObjectState> objectStatesRead = new HashMap<>();
+
+        @GuardedBy("lock")
         private final Map<UUID, ObjectState> objectStatesWritten = new HashMap<>();
+        @GuardedBy("lock")
         private final Map<UUID, ObjectStateId> dependencies = new HashMap<>();
 
         // Must be appended to and committed before this transaction.
+        @GuardedBy("lock")
         private final Set<UUID> pastTheEndReads = new HashSet<>();
 
         @Nullable
+        @GuardedBy("lock")
         private Duration when;
 
         @NonNull
+        @GuardedBy("lock")
         private TransactionCoordinator transactionCoordinator;
 
         @NonNull
+        @GuardedBy("lock")
         private TransactionOpenness openness = TransactionOpenness.READING;
 
         private Transaction(@NonNull TransactionListener listener, @NonNull Long id) {
             this.listener = Objects.requireNonNull(listener, "listener");
             assert id != null;
             this.id = id;
-            transactionCoordinator = new TransactionCoordinator(this);
+            synchronized (lock) {
+                transactionCoordinator = new TransactionCoordinator(this);
+            }
         }
 
         /**
@@ -234,7 +248,7 @@ public class Universe {
          * </ul>
          */
         public final void beginAbort() {
-            openness.beginAbort(this);
+            getOpenness().beginAbort(this);
         }
 
         /**
@@ -258,7 +272,7 @@ public class Universe {
          *             already begun}.
          */
         public final void beginCommit() {
-            openness.beginCommit(this);
+            getOpenness().beginCommit(this);
         }
 
         /**
@@ -296,7 +310,7 @@ public class Universe {
             if (ValueHistory.START_OF_TIME.equals(when)) {
                 throw new IllegalArgumentException("May not write at the start of time");
             }
-            openness.beginWrite(this, when);
+            getOpenness().beginWrite(this, when);
         }
 
         /**
@@ -329,19 +343,25 @@ public class Universe {
          */
         @Override
         public final void close() {
-            openness.close(this);
+            getOpenness().close(this);
         }
 
         private void commit1() {
-            assert pastTheEndReads.isEmpty();
-            openness = TransactionOpenness.COMMITTED;
-            for (var entry : objectStatesWritten.entrySet()) {
+            final Set<Entry<UUID, ObjectState>> entries;
+            final Duration whenWrote;
+            synchronized (lock) {
+                assert pastTheEndReads.isEmpty();
+                openness = TransactionOpenness.COMMITTED;
+                entries = objectStatesWritten.entrySet();
+                whenWrote = when;
+            }
+            for (var entry : entries) {
                 final UUID object = entry.getKey();
                 final ObjectState state = entry.getValue();
                 assert object != null;
-                assert when != null;
+                assert whenWrote != null;
 
-                objectDataMap.get(object).commit1Writer(this, when, state);
+                objectDataMap.get(object).commit1Writer(this, whenWrote, state);
             }
 
             noLongerAnUncommittedReader();
@@ -403,7 +423,9 @@ public class Universe {
          * @return The dependency information
          */
         public final @NonNull Map<UUID, ObjectStateId> getDependencies() {
-            return new HashMap<>(dependencies);
+            synchronized (lock) {
+                return new HashMap<>(dependencies);
+            }
         }
 
         /**
@@ -473,11 +495,11 @@ public class Universe {
             objectState = objectStatesRead.get(id);
             if (objectState == null && !objectStatesRead.containsKey(id)) {
                 // Value is not cached
-                objectState = openness.readUncachedObjectState(this, id, additionalPredecessors);
+                objectState = getOpenness().readUncachedObjectState(this, id, additionalPredecessors);
             }
             // else used cached value
             for (var transaction : additionalPredecessors) {
-                addAsPredecessor(transaction, this);
+                Universe.addPredecessor(transaction, getTransactionCoordinator());
             }
             return objectState;
         }
@@ -534,7 +556,9 @@ public class Universe {
          * @see Universe#getObjectState(UUID, Duration)
          */
         public final @NonNull Map<UUID, ObjectState> getObjectStatesWritten() {
-            return new HashMap<>(objectStatesWritten);
+            synchronized (lock) {
+                return new HashMap<>(objectStatesWritten);
+            }
         }
 
         /**
@@ -546,12 +570,16 @@ public class Universe {
          */
         @NonNull
         public final TransactionOpenness getOpenness() {
-            return openness;
+            synchronized (lock) {
+                return openness;
+            }
         }
 
         @NonNull
         private TransactionCoordinator getTransactionCoordinator() {
-            return transactionCoordinator;
+            synchronized (lock) {
+                return transactionCoordinator;
+            }
         }
 
         /**
@@ -574,7 +602,9 @@ public class Universe {
          * @return the time-stamp, or null if this transaction is (still) in read mode.
          */
         public final @Nullable Duration getWhen() {
-            return when;
+            synchronized (lock) {
+                return when;
+            }
         }
 
         @Override
@@ -583,14 +613,20 @@ public class Universe {
         }
 
         private boolean isReadyToCommit() {
-            if (openness != TransactionOpenness.COMMITTING || !pastTheEndReads.isEmpty()) {
-                return false;
+            synchronized (lock) {
+                if (openness != TransactionOpenness.COMMITTING || !pastTheEndReads.isEmpty()) {
+                    return false;
+                }
             }
             return getTransactionCoordinator().isReadyToCommit();
         }
 
         private void noLongerAnUncommittedReader() {
-            for (UUID object : dependencies.keySet()) {
+            final Set<UUID> objects;
+            synchronized (lock) {
+                objects = dependencies.keySet();
+            }
+            for (UUID object : objects) {
                 var od = objectDataMap.get(object);
                 if (od != null) {
                     od.removeUncommittedReader(this);
@@ -635,7 +671,7 @@ public class Universe {
          */
         public final void put(@NonNull UUID object, @Nullable ObjectState state) {
             Objects.requireNonNull(object, "object");
-            if (openness.put(this, object, state)) {
+            if (getOpenness().put(this, object, state)) {
                 listener.onCreate(object);
             }
         }
@@ -643,17 +679,21 @@ public class Universe {
         private void reallyAbort() {
             reallyBeginAbort();
 
-            openness = TransactionOpenness.ABORTED;
-            // Help the garbage collector:
-            pastTheEndReads.clear();
+            synchronized (lock) {
+                openness = TransactionOpenness.ABORTED;
+                // Help the garbage collector:
+                pastTheEndReads.clear();
+            }
 
             listener.onAbort();
 
         }
 
         private void reallyBeginAbort() {
-            assert openness != TransactionOpenness.ABORTED;
-            openness = TransactionOpenness.ABORTING;
+            synchronized (lock) {
+                assert openness != TransactionOpenness.ABORTED;
+                openness = TransactionOpenness.ABORTING;
+            }
 
             noLongerAnUncommittedReader();
             rollBackWrites();
@@ -666,7 +706,9 @@ public class Universe {
         }
 
         private void reallyBeginCommit() {
-            openness = TransactionOpenness.COMMITTING;
+            synchronized (lock) {
+                openness = TransactionOpenness.COMMITTING;
+            }
 
             commitIfPossible();
         }
@@ -676,8 +718,10 @@ public class Universe {
                     .orElse(null) != null) {
                 throw new IllegalStateException("Time-stamp of read state at or after the given time.");
             }
-            this.when = when;
-            openness = TransactionOpenness.WRITING;
+            synchronized (lock) {
+                this.when = when;
+                openness = TransactionOpenness.WRITING;
+            }
         }
 
         private @Nullable ObjectState reallyReadUncachedObjectState(@NonNull ObjectStateId id, boolean addTriggers,
@@ -714,55 +758,63 @@ public class Universe {
             }
 
             objectStatesRead.put(id, objectState);
-            if (isPastTheEndRead) {
-                pastTheEndReads.add(object);
-            }
 
-            final ObjectStateId dependency0 = dependencies.get(object);
-            if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
-                dependencies.put(object, id);
+            synchronized (lock) {
+                if (isPastTheEndRead) {
+                    pastTheEndReads.add(object);
+                }
+
+                final ObjectStateId dependency0 = dependencies.get(object);
+                if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
+                    dependencies.put(object, id);
+                }
+                assert dependencies.containsKey(object);
             }
-            assert dependencies.containsKey(object);
             return objectState;
         }
 
         private void recordObjectStateWritten(UUID object, ObjectState state) {
-            assert when != null;
-            objectStatesWritten.put(object, state);
+            synchronized (lock) {
+                assert when != null;
+                objectStatesWritten.put(object, state);
+            }
         }
 
         private void rollBackWrites() {
-            for (UUID object : objectStatesWritten.keySet()) {
+            final Set<UUID> objects;
+            final Duration whenWrote;
+            synchronized (lock) {
+                objects = objectStatesWritten.keySet();
+                whenWrote = when;
+            }
+            for (UUID object : objects) {
                 assert object != null;
-                assert when != null;
+                assert whenWrote != null;
                 /*
                  * As we are a writer for the object, the object has at least one recorded state
                  * (the state we wrote), so objectDataMap.get(object) is guaranteed to be not
                  * null.
                  */
-                if (objectDataMap.get(object).rollBackWrite(this, when)) {
+                if (objectDataMap.get(object).rollBackWrite(this, whenWrote)) {
                     objectDataMap.remove(object);
                 }
             }
-        }
-
-        private void setTransactionCoordinator(@NonNull TransactionCoordinator coordinator) {
-            assert coordinator != null;
-            transactionCoordinator = coordinator;
         }
 
         private boolean tryToAppendToHistory(UUID object, ObjectState state) {
             assert when != null;
 
             final Set<Transaction> transactionsToAbort = new HashSet<>();
-            final Set<Transaction> pastTheEndReadersToEscalateToPredecessors = new HashSet<>();
+            final Set<Transaction> pastTheEndReadersToEscalateToSuccessors = new HashSet<>();
             final ObjectData od = objectDataMap.computeIfAbsent(object, (o) -> new ObjectData(when, state, this));
             final boolean created;
             try {
                 created = od.tryToAppendToHistory(this, object, when, state, transactionsToAbort,
-                        pastTheEndReadersToEscalateToPredecessors);
+                        pastTheEndReadersToEscalateToSuccessors);
             } catch (IllegalStateException e) {
-                openness = TransactionOpenness.ABORTING;
+                synchronized (lock) {
+                    openness = TransactionOpenness.ABORTING;
+                }
                 // Not added od.uncommittedWriters.
                 return false;
             }
@@ -771,9 +823,11 @@ public class Universe {
                 // We have replaced the value written by this other transaction.
                 transaction.beginAbort();
             }
-            for (Transaction pastTheEndReader : pastTheEndReadersToEscalateToPredecessors) {
-                addAsPredecessor(this, pastTheEndReader);
-                pastTheEndReader.pastTheEndReads.remove(object);
+            for (Transaction pastTheEndReader : pastTheEndReadersToEscalateToSuccessors) {
+                Universe.addPredecessor(this, pastTheEndReader.getTransactionCoordinator());
+                synchronized (pastTheEndReader.lock) {
+                    pastTheEndReader.pastTheEndReads.remove(object);
+                }
             }
             return created;
         }
@@ -785,85 +839,103 @@ public class Universe {
          * Must be committed before the mutualTransactions. Includes indirect
          * predecessors.
          */
-        private final Set<TransactionCoordinator> predecessors = new HashSet<>();
+        @NonNull
+        @GuardedBy("this")
+        private final Set<TransactionCoordinator> predecessors;
 
-        private final Set<Transaction> mutualTransactions = new HashSet<>();
+        @NonNull
+        @GuardedBy("this")
+        private final Set<Transaction> mutualTransactions;
 
         /*
          * Must be committed after the mutualTransactions. Includes indirect successors.
          */
-        private final Set<TransactionCoordinator> successors = new HashSet<>();
+        @NonNull
+        @GuardedBy("this")
+        private final Set<TransactionCoordinator> successors;
 
         @NonNull
         private final Long id;
 
         TransactionCoordinator(@NonNull Transaction transaction) {
             assert transaction != null;
-            mutualTransactions.add(transaction);
+            synchronized (this) {
+                predecessors = new HashSet<>();
+                mutualTransactions = new HashSet<>();
+                mutualTransactions.add(transaction);
+                successors = new HashSet<>();
+            }
             this.id = transaction.id;
         }
 
-        private void addPredecessor(@NonNull Transaction transaction) {
-            assert transaction != null;
-            final TransactionCoordinator coordinator = transaction.getTransactionCoordinator();
-            if (coordinator == this) {
-                // May not be both predecessor and successor; already recorded as mutual
-            } else if (predecessors.contains(coordinator)) {
-                // Already done
-            } else if (successors.contains(coordinator) || coordinator.predecessors.contains(this)) {
-                // May not be both predecessor and successor; must merge
-                mutualTransactions.add(transaction);
-                Universe.merge(this, coordinator);
-            } else {
-                predecessors.add(coordinator);
-                predecessors.addAll(coordinator.predecessors);
-                coordinator.successors.add(this);
-                coordinator.successors.addAll(this.successors);
-            }
-            assert !predecessors.contains(this);
-            assert !successors.contains(this);
-            assert Collections.disjoint(predecessors, successors);
-        }
-
         private final void beginAbort() {
-            for (var predecessor : predecessors) {
-                predecessor.successors.remove(this);
+            for (var predecessor : getPredecessors()) {
+                synchronized (predecessor) {
+                    predecessor.successors.remove(this);
+                }
             }
-            predecessors.clear();
-            for (var transaction : mutualTransactions) {
+            synchronized (this) {
+                predecessors.clear();
+            }
+            for (var transaction : getMutualTransactions()) {
                 if (transaction.openness != TransactionOpenness.ABORTED
                         && transaction.openness != TransactionOpenness.ABORTING) {
                     transaction.beginAbort();
                 }
             }
-            for (var successor : successors) {
+            for (var successor : getSuccesors()) {
                 successor.beginAbort();
             }
         }
 
+        private synchronized Collection<Transaction> getMutualTransactions() {
+            return new HashSet<>(mutualTransactions);
+        }
+
+        private synchronized Collection<TransactionCoordinator> getSuccesors() {
+            return new HashSet<>(successors);
+        }
+
+        private synchronized Collection<TransactionCoordinator> getPredecessors() {
+            return new HashSet<>(predecessors);
+        }
+
         private void commit() {
-            for (var transaction : mutualTransactions) {
-                transaction.commit1();
-                transaction.listener.onCommit();
+            var mt = getMutualTransactions();
+            while (!mt.isEmpty()) {
+                for (var transaction : mt) {
+                    transaction.commit1();
+                    transaction.listener.onCommit();
+                }
+                for (var transaction : mt) {
+                    transactions.remove(transaction.id);
+                }
+                synchronized (this) {
+                    mutualTransactions.removeAll(mt);
+                }
+                mt = getMutualTransactions();
             }
-            for (var transaction : mutualTransactions) {
-                transactions.remove(transaction.id);
+            final var s = getSuccesors();
+            for (var successor : s) {
+                synchronized (successor) {
+                    successor.predecessors.remove(this);
+                }
             }
-            mutualTransactions.clear();
-            for (var successor : successors) {
-                successor.predecessors.remove(this);
-            }
-            for (var successor : successors) {
+            for (var successor : s) {
                 assert successor != this;
                 successor.commitIfPossible();
             }
         }
 
+        private synchronized boolean canCommit() {
+            return predecessors.isEmpty();
+        }
+
         private final boolean commitIfPossible() {
-            if (!predecessors.isEmpty()) {
+            if (!canCommit()) {
                 return false;
             }
-            for (var transaction : mutualTransactions) {
+            for (var transaction : getMutualTransactions()) {
                 if (!transaction.isReadyToCommit()) {
                     return false;
                 }
@@ -902,21 +974,6 @@ public class Universe {
 
         private boolean isReadyToCommit() {
             return predecessors.isEmpty();
-        }
-
-        private void replace(TransactionCoordinator that) {
-            for (TransactionCoordinator p : that.predecessors) {
-                p.successors.remove(that);
-                p.successors.add(this);
-
-            }
-            for (TransactionCoordinator s : that.successors) {
-                s.predecessors.remove(that);
-                s.predecessors.add(this);
-            }
-            for (Transaction t : that.mutualTransactions) {
-                t.setTransactionCoordinator(this);
-            }
         }
 
     }// class
@@ -1257,39 +1314,92 @@ public class Universe {
 
     private static final ValueHistory<ObjectState> EMPTY_STATE_HISTORY = new ConstantValueHistory<>((ObjectState) null);
 
-    private static void addAsPredecessor(Transaction predecessor, Transaction successor) {
-        successor.getTransactionCoordinator().addPredecessor(predecessor);
+    private static void addPredecessor(@NonNull Transaction transaction,
+            @NonNull final TransactionCoordinator successor) {
+        final SortedSet<TransactionCoordinator> mergingCordinators = new TreeSet<>();
+        final TransactionCoordinator predecessor = transaction.getTransactionCoordinator();
+        if (successor.compareTo(predecessor) < 0) {
+            synchronized (successor) {
+                synchronized (predecessor) {
+                    addPredecessor1(predecessor, successor, transaction, mergingCordinators);
+                }
+            }
+        } else {
+            synchronized (predecessor) {
+                synchronized (successor) {
+                    addPredecessor1(predecessor, successor, transaction, mergingCordinators);
+                }
+            }
+        }
+        merge(mergingCordinators);
     }
 
-    private static void merge(final TransactionCoordinator coordinator1, final TransactionCoordinator coordinator2) {
-        if (coordinator1.compareTo(coordinator2) < 0) {
-            merge1(coordinator1, coordinator2);
+    @GuardedBy("predecessor, successor")
+    private static void addPredecessor1(@NonNull final TransactionCoordinator predecessor,
+            @NonNull final TransactionCoordinator successor, @NonNull Transaction transaction,
+            final SortedSet<TransactionCoordinator> mergingCordinators) {
+        if (predecessor == successor) {
+            // May not be both predecessor and successor; already recorded as mutual
+        } else if (successor.predecessors.contains(predecessor)) {
+            // Already done
+        } else if (successor.successors.contains(predecessor) || predecessor.predecessors.contains(successor)) {
+            successor.predecessors.add(predecessor);
+            successor.successors.add(predecessor);
+            predecessor.predecessors.add(successor);
+            predecessor.successors.add(successor);
+            predecessor.mutualTransactions.add(transaction);
+            successor.mutualTransactions.add(transaction);
+            copyOrdering(predecessor, successor);
+            copyOrdering(successor, predecessor);
+            // A TransactionCoordinator not be both predecessor and successor; must merge
+            mergingCordinators.add(predecessor);
+            mergingCordinators.add(successor);
         } else {
-            merge1(coordinator2, coordinator1);
+            successor.predecessors.add(predecessor);
+            successor.predecessors.addAll(predecessor.predecessors);
+            predecessor.successors.add(successor);
+            predecessor.successors.addAll(successor.successors);
         }
     }
 
-    private static void merge1(final TransactionCoordinator destination, final TransactionCoordinator source) {
+    @GuardedBy("destination, source")
+    private static void copyOrdering(final TransactionCoordinator destination, final TransactionCoordinator source) {
         destination.predecessors.addAll(source.predecessors);
-        destination.predecessors.remove(destination);
-        destination.predecessors.remove(source);
         destination.successors.addAll(source.successors);
-        destination.successors.remove(destination);
-        destination.successors.remove(source);
-        source.successors.remove(destination);
-        source.predecessors.remove(destination);
         destination.mutualTransactions.addAll(source.mutualTransactions);
-        destination.replace(source);
-        boolean done = false;
-        do {
-            final Set<TransactionCoordinator> loops = new HashSet<>(destination.predecessors);
-            loops.retainAll(destination.successors);
-            done = loops.isEmpty();
-            loops.forEach(tc -> Universe.merge(destination, tc));
-        } while (!done);
-        assert !destination.predecessors.contains(destination);
-        assert !destination.successors.contains(destination);
-        assert Collections.disjoint(destination.predecessors, destination.successors);
+    }
+
+    private static void merge(SortedSet<TransactionCoordinator> coordinators) {
+        while (2 <= coordinators.size()) {
+            final TransactionCoordinator destination = coordinators.first();
+            coordinators.remove(destination);
+            synchronized (destination) {
+                for (var mergingFrom : coordinators) {
+                    synchronized (mergingFrom) {
+                        copyOrdering(destination, mergingFrom);
+                        destination.successors.remove(destination);
+                        destination.successors.remove(mergingFrom);
+                        destination.predecessors.remove(destination);
+                        destination.predecessors.remove(mergingFrom);
+                        for (Transaction transaction : destination.mutualTransactions) {
+                            synchronized (transaction) {
+                                if (transaction.transactionCoordinator == mergingFrom) {
+                                    transaction.transactionCoordinator = destination;
+                                }
+                                assert transaction.transactionCoordinator == destination
+                                        || transaction.transactionCoordinator.compareTo(destination) < 0;
+                            } // synchronized
+                        } // for
+                    } // synchronized
+                } // for
+                coordinators.clear();
+                coordinators.addAll(destination.predecessors);
+                coordinators.retainAll(destination.successors);
+                if (!coordinators.isEmpty()) {
+                    coordinators.add(destination);
+                }
+            } // synchronized
+        } // while
     }
 
     private final Object historyLock = new Object();
