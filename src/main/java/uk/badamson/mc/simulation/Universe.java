@@ -121,6 +121,10 @@ public class Universe {
                 ObjectState state, Set<Transaction> transactionsToAbort,
                 Set<Transaction> pastTheEndReadersToEscalateToSuccessors) throws IllegalStateException {
             assert when != null;
+            if (when.compareTo(latestCommit) <= 0) {
+                // Another transaction has committed a write that invalidates this transaction.
+                throw new IllegalStateException("when before last commit");
+            }
             if (state != null && !stateHistory.isEmpty() && stateHistory.getLastValue() == null) {
                 // Not added to uncommittedWriters.
                 throw new IllegalStateException("Attempted resurrection of a dead object");
