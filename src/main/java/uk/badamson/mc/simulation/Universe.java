@@ -986,9 +986,7 @@ public class Universe {
         private Set<TransactionCoordinator> mergeToWhileLocked(TransactionCoordinator destination) {
             synchronized (this) {// redundant
                 predecessors.remove(this);
-                predecessors.remove(destination);
                 successors.remove(this);
-                successors.remove(destination);
                 for (TransactionCoordinator t : predecessors) {
                     Universe.translate(t.predecessors, this, destination);
                     Universe.translate(t.successors, this, destination);
@@ -997,6 +995,8 @@ public class Universe {
                     Universe.translate(t.predecessors, this, destination);
                     Universe.translate(t.successors, this, destination);
                 }
+                // Prevent commit of this once we return:
+                predecessors.add(destination);
             } // synchronized
             synchronized (destination) {
                 copyOrdering(this, destination);
@@ -1004,6 +1004,10 @@ public class Universe {
                 destination.successors.remove(this);
                 destination.predecessors.remove(destination);
                 destination.predecessors.remove(this);
+                /*
+                 * Because merging can remove predecessors, it is possible that the destination
+                 * can now be committed.
+                 */
                 for (Transaction transaction : destination.mutualTransactions) {
                     synchronized (transaction) {
                         if (transaction.transactionCoordinator == this) {
@@ -1011,27 +1015,14 @@ public class Universe {
                         }
                     } // synchronized
                 } // for
+                /*
+                 * If the destination has loops, committing it will be impossible until the
+                 * loops are broken.
+                 */
                 final Set<TransactionCoordinator> loops = new HashSet<>(destination.predecessors);
                 loops.retainAll(destination.successors);
-                if (!loops.isEmpty()) {
-                    loops.add(destination);
-                }
                 return loops;
             } // synchronized
-        }
-
-        @GuardedBy("this")
-        private void translate1(@NonNull TransactionCoordinator src, final TransactionCoordinator dst) {
-            if (src != dst) {
-                if (predecessors.contains(src)) {
-                    predecessors.remove(src);
-                    predecessors.add(dst);
-                }
-                if (successors.contains(src)) {
-                    successors.remove(src);
-                    successors.add(dst);
-                }
-            }
         }
 
         private boolean withLockedTransactionChain(NavigableSet<TransactionCoordinator> unlocked,
@@ -1460,13 +1451,28 @@ public class Universe {
     }
 
     private static void merge(SortedSet<TransactionCoordinator> coordinators) {
+        TransactionCoordinator destination = null;
         while (2 <= coordinators.size()) {
-            final TransactionCoordinator destination = coordinators.first();
+            destination = coordinators.first();
             coordinators.remove(destination);
             final TransactionCoordinator mergingFrom = coordinators.last();
             coordinators.remove(mergingFrom);
-            coordinators.addAll(mergingFrom.mergeTo(destination));
+            final Set<TransactionCoordinator> loops = mergingFrom.mergeTo(destination);
+            if (!loops.isEmpty()) {
+                coordinators.addAll(loops);
+            }
+            if (!coordinators.isEmpty()) {
+                coordinators.add(destination);
+            }
+            assert coordinators.isEmpty() || 2 <= coordinators.size();
         } // while
+        if (destination != null) {
+            /*
+             * Because merging can remove predecessors, it is possible that the destination
+             * can be committed.
+             */
+            destination.commitIfPossible();
+        }
     }
 
     private static void translate(Collection<TransactionCoordinator> coordinators, TransactionCoordinator src,
