@@ -19,6 +19,7 @@ package uk.badamson.mc.simulation;
  */
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -888,16 +889,8 @@ public class Universe {
             }
         }
 
-        private synchronized Collection<Transaction> getMutualTransactions() {
-            return new HashSet<>(mutualTransactions);
-        }
-
-        private synchronized Collection<TransactionCoordinator> getSuccesors() {
-            return new HashSet<>(successors);
-        }
-
-        private synchronized Collection<TransactionCoordinator> getPredecessors() {
-            return new HashSet<>(predecessors);
+        private synchronized boolean canCommit() {
+            return predecessors.isEmpty();
         }
 
         private void commit() {
@@ -925,10 +918,6 @@ public class Universe {
                 assert successor != this;
                 successor.commitIfPossible();
             }
-        }
-
-        private synchronized boolean canCommit() {
-            return predecessors.isEmpty();
         }
 
         private final boolean commitIfPossible() {
@@ -963,8 +952,20 @@ public class Universe {
             return id.equals(other.id);
         }
 
+        private synchronized Collection<Transaction> getMutualTransactions() {
+            return new HashSet<>(mutualTransactions);
+        }
+
         private Universe getOuterType() {
             return Universe.this;
+        }
+
+        private synchronized Collection<TransactionCoordinator> getPredecessors() {
+            return new HashSet<>(predecessors);
+        }
+
+        private synchronized Collection<TransactionCoordinator> getSuccesors() {
+            return new HashSet<>(successors);
         }
 
         @Override
@@ -974,6 +975,11 @@ public class Universe {
 
         private boolean isReadyToCommit() {
             return predecessors.isEmpty();
+        }
+
+        private synchronized void translate(Map<TransactionCoordinator, TransactionCoordinator> translation) {
+            Universe.translate(predecessors, translation);
+            Universe.translate(successors, translation);
         }
 
     }// class
@@ -1370,6 +1376,8 @@ public class Universe {
     }
 
     private static void merge(SortedSet<TransactionCoordinator> coordinators) {
+        final Map<TransactionCoordinator, TransactionCoordinator> translation = new HashMap<>();
+        final Set<TransactionCoordinator> awaitingTranslation = new HashSet<>();
         while (2 <= coordinators.size()) {
             final TransactionCoordinator destination = coordinators.first();
             coordinators.remove(destination);
@@ -1381,6 +1389,9 @@ public class Universe {
                         destination.successors.remove(mergingFrom);
                         destination.predecessors.remove(destination);
                         destination.predecessors.remove(mergingFrom);
+                        translation.put(mergingFrom, destination);
+                        awaitingTranslation.addAll(mergingFrom.predecessors);
+                        awaitingTranslation.addAll(mergingFrom.successors);
                         for (Transaction transaction : destination.mutualTransactions) {
                             synchronized (transaction) {
                                 if (transaction.transactionCoordinator == mergingFrom) {
@@ -1400,6 +1411,29 @@ public class Universe {
                 }
             } // synchronized
         } // while
+
+        for (var entry : translation.entrySet()) {
+            TransactionCoordinator dst = entry.getValue();
+            while (dst != null) {
+                entry.setValue(dst);
+                dst = translation.get(dst);
+            }
+        }
+
+        for (TransactionCoordinator t : awaitingTranslation) {
+            t.translate(translation);
+        }
+    }
+
+    private static void translate(Set<TransactionCoordinator> transactions,
+            Map<TransactionCoordinator, TransactionCoordinator> translation) {
+        for (TransactionCoordinator transaction : new ArrayList<>(transactions)) {
+            final TransactionCoordinator translated = translation.get(transaction);
+            if (translated != null) {
+                transactions.remove(transaction);
+                transactions.add(translated);
+            }
+        }
     }
 
     private final Object historyLock = new Object();
