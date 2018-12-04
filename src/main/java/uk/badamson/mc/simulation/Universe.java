@@ -350,11 +350,16 @@ public class Universe {
             getOpenness().close(this);
         }
 
-        private void commit1() {
+        private void commitIfNecessary() {
             final Set<Entry<UUID, ObjectState>> entries;
             final Duration whenWrote;
             synchronized (lock) {
                 assert pastTheEndReads.isEmpty();
+                assert openness == TransactionOpenness.COMMITTED || openness == TransactionOpenness.COMMITTING;
+                if (openness == TransactionOpenness.COMMITTED) {
+                    // Another thread is doing the commit.
+                    return;
+                }
                 openness = TransactionOpenness.COMMITTED;
                 entries = objectStatesWritten.entrySet();
                 whenWrote = when;
@@ -369,6 +374,7 @@ public class Universe {
             }
 
             noLongerAnUncommittedReader();
+            listener.onCommit();
         }
 
         private void commitIfPossible() {
@@ -907,8 +913,7 @@ public class Universe {
             var mt = getMutualTransactions();
             while (!mt.isEmpty()) {
                 for (var transaction : mt) {
-                    transaction.commit1();
-                    transaction.listener.onCommit();
+                    transaction.commitIfNecessary();
                 }
                 for (var transaction : mt) {
                     transactions.remove(transaction.id);
