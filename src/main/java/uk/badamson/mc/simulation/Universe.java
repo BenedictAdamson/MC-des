@@ -979,7 +979,9 @@ public class Universe {
 
         private synchronized void translate(Map<TransactionCoordinator, TransactionCoordinator> translation) {
             Universe.translate(predecessors, translation);
+            predecessors.remove(this);
             Universe.translate(successors, translation);
+            successors.remove(this);
         }
 
     }// class
