@@ -1012,13 +1012,15 @@ public class Universe {
                     if (compareTo(other) < 0) {
                         synchronized (this) {
                             synchronized (other) {
-                                again = translate1(other) || again;
+                                translate1(other, other.mergingTo);
+                                again = again || other.mergingTo != other;
                             }
                         }
                     } else {
                         synchronized (other) {
                             synchronized (this) {
-                                again = translate1(other) || again;
+                                translate1(other, other.mergingTo);
+                                again = again || other.mergingTo != other;
                             }
                         }
                     }
@@ -1030,10 +1032,8 @@ public class Universe {
             } while (again);
         }
 
-        @GuardedBy("this, src")
-        private boolean translate1(@NonNull TransactionCoordinator src) {
-            assert src != null;
-            final TransactionCoordinator dst = src.mergingTo;
+        @GuardedBy("this")
+        private void translate1(@NonNull TransactionCoordinator src, final TransactionCoordinator dst) {
             if (src != dst) {
                 if (predecessors.contains(src)) {
                     predecessors.remove(src);
@@ -1043,9 +1043,6 @@ public class Universe {
                     successors.remove(src);
                     successors.add(dst);
                 }
-                return dst.mergingTo != dst;
-            } else {
-                return false;
             }
         }
 
