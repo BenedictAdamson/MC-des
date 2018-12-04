@@ -381,17 +381,6 @@ public class Universe {
             listener.onCommit();
         }
 
-        private void commitIfPossible() {
-            /*
-             * Note the potential race hazard here: we might get a reference to a
-             * TransactionCoordinator that is being merged (by another thread), in which
-             * case the commit will not occur even if we have no predecessors to wait for.
-             * In that case we rely on the other tread performing the merge when it is
-             * finished the merge.
-             */
-            getTransactionCoordinator().commitIfPossible();
-        }
-
         @Override
         public final int compareTo(Transaction that) {
             return id.compareTo(that.id);
@@ -715,11 +704,20 @@ public class Universe {
         }
 
         private void reallyBeginCommit() {
+            final TransactionCoordinator tc;
             synchronized (lock) {
                 openness = TransactionOpenness.COMMITTING;
+                tc = transactionCoordinator;
             }
 
-            commitIfPossible();
+            /*
+             * Note the potential race hazard here: we might get a reference to a
+             * TransactionCoordinator that is being merged (by another thread), in which
+             * case the commit will not occur even if we have no predecessors to wait for.
+             * In that case we rely on the other tread performing the merge when it is
+             * finished the merge.
+             */
+            tc.commitIfPossible();
         }
 
         private void reallyBeginWrite(@NonNull Duration when) {
