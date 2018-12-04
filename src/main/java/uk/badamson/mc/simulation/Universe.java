@@ -198,6 +198,10 @@ public class Universe {
         @NonNull
         private final Long id;
 
+        /*
+         * May acquire a lock on this.lock while have a lock on a
+         * TransactionCoordinator, but not vice versa.
+         */
         private final Object lock = new Object();
 
         private final Map<ObjectStateId, ObjectState> objectStatesRead = new HashMap<>();
@@ -378,6 +382,13 @@ public class Universe {
         }
 
         private void commitIfPossible() {
+            /*
+             * Note the potential race hazard here: we might get a reference to a
+             * TransactionCoordinator that is being merged (by another thread), in which
+             * case the commit will not occur even if we have no predecessors to wait for.
+             * In that case we rely on the other tread performing the merge when it is
+             * finished the merge.
+             */
             getTransactionCoordinator().commitIfPossible();
         }
 
@@ -619,15 +630,6 @@ public class Universe {
             return id.hashCode();
         }
 
-        private boolean isReadyToCommit() {
-            synchronized (lock) {
-                if (openness != TransactionOpenness.COMMITTING || !pastTheEndReads.isEmpty()) {
-                    return false;
-                }
-            }
-            return getTransactionCoordinator().isReadyToCommit();
-        }
-
         private void noLongerAnUncommittedReader() {
             final Set<UUID> objects;
             synchronized (lock) {
@@ -865,7 +867,8 @@ public class Universe {
         private final Long id;
 
         /*
-         * mergingTo == this || this.compareTo(mergingTo) < 0
+         * mergingTo == this || this.compareTo(mergingTo) < 0; Use this as the condition
+         * variable to notify waiting threads of changes to this value.
          */
         @GuardedBy("this")
         private TransactionCoordinator mergingTo;
@@ -902,10 +905,6 @@ public class Universe {
             }
         }
 
-        private synchronized boolean canCommit() {
-            return predecessors.isEmpty();
-        }
-
         private void commit() {
             var mt = getMutualTransactions();
             while (!mt.isEmpty()) {
@@ -933,15 +932,31 @@ public class Universe {
         }
 
         private void commitIfPossible() {
-            if (!canCommit()) {
-                return;
-            }
-            for (var transaction : getMutualTransactions()) {
-                if (!transaction.isReadyToCommit()) {
-                    return;
+            final TransactionCoordinator mergeTarget;
+            synchronized (this) {
+                mergeTarget = mergingTo;
+                if (mergingTo == this) {
+                    if (!predecessors.isEmpty()) {
+                        return;
+                    }
+                    for (var transaction : mutualTransactions) {
+                        synchronized (transaction.lock) {
+                            if ((transaction.openness != TransactionOpenness.COMMITTING
+                                    && transaction.openness != TransactionOpenness.COMMITTED)
+                                    || !transaction.pastTheEndReads.isEmpty()) {
+                                return;
+                            }
+                        }
+                    } // for
                 }
+                // else has been merged to another
             }
-            commit();
+            if (mergeTarget == this) {
+                commit();
+            } else {
+                mergeTarget.translate();
+                mergeTarget.commitIfPossible();
+            }
         }
 
         @Override
@@ -984,10 +999,6 @@ public class Universe {
             return id.hashCode();
         }
 
-        private boolean isReadyToCommit() {
-            return predecessors.isEmpty();
-        }
-
         private void translate() {
             boolean again = false;
             do {
@@ -1011,7 +1022,7 @@ public class Universe {
                             }
                         }
                     }
-                }
+                } // for
                 synchronized (this) {
                     predecessors.remove(this);
                     successors.remove(this);
