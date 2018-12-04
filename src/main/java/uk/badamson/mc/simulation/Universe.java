@@ -19,7 +19,6 @@ package uk.badamson.mc.simulation;
  */
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -858,6 +857,12 @@ public class Universe {
         @NonNull
         private final Long id;
 
+        /*
+         * mergingTo == this || this.compareTo(mergingTo) < 0
+         */
+        @GuardedBy("this")
+        private TransactionCoordinator mergingTo;
+
         TransactionCoordinator(@NonNull Transaction transaction) {
             assert transaction != null;
             synchronized (this) {
@@ -865,6 +870,7 @@ public class Universe {
                 mutualTransactions = new HashSet<>();
                 mutualTransactions.add(transaction);
                 successors = new HashSet<>();
+                mergingTo = this;
             }
             this.id = transaction.id;
         }
@@ -977,11 +983,54 @@ public class Universe {
             return predecessors.isEmpty();
         }
 
-        private synchronized void translate(Map<TransactionCoordinator, TransactionCoordinator> translation) {
-            Universe.translate(predecessors, translation);
-            predecessors.remove(this);
-            Universe.translate(successors, translation);
-            successors.remove(this);
+        private void translate() {
+            boolean again = false;
+            do {
+                again = false;
+                final Set<TransactionCoordinator> others;
+                synchronized (this) {
+                    others = new HashSet<>(predecessors);
+                    others.addAll(successors);
+                }
+                for (TransactionCoordinator other : others) {
+                    if (compareTo(other) < 0) {
+                        synchronized (this) {
+                            synchronized (other) {
+                                again = translate1(other) || again;
+                            }
+                        }
+                    } else {
+                        synchronized (other) {
+                            synchronized (this) {
+                                again = translate1(other) || again;
+                            }
+                        }
+                    }
+                }
+                synchronized (this) {
+                    predecessors.remove(this);
+                    successors.remove(this);
+                }
+            } while (again);
+        }
+
+        @GuardedBy("this, src")
+        private boolean translate1(@NonNull TransactionCoordinator src) {
+            assert src != null;
+            final TransactionCoordinator dst = src.mergingTo;
+            if (src != dst) {
+                if (predecessors.contains(src)) {
+                    predecessors.remove(src);
+                    predecessors.add(dst);
+                }
+                if (successors.contains(src)) {
+                    successors.remove(src);
+                    successors.add(dst);
+                }
+                return dst.mergingTo != dst;
+            } else {
+                return false;
+            }
         }
 
     }// class
@@ -1378,12 +1427,12 @@ public class Universe {
     }
 
     private static void merge(SortedSet<TransactionCoordinator> coordinators) {
-        final Map<TransactionCoordinator, TransactionCoordinator> translation = new HashMap<>();
         final Set<TransactionCoordinator> awaitingTranslation = new HashSet<>();
         while (2 <= coordinators.size()) {
             final TransactionCoordinator destination = coordinators.first();
             coordinators.remove(destination);
             synchronized (destination) {
+                awaitingTranslation.add(destination);
                 for (var mergingFrom : coordinators) {
                     synchronized (mergingFrom) {
                         copyOrdering(destination, mergingFrom);
@@ -1391,7 +1440,10 @@ public class Universe {
                         destination.successors.remove(mergingFrom);
                         destination.predecessors.remove(destination);
                         destination.predecessors.remove(mergingFrom);
-                        translation.put(mergingFrom, destination);
+                        if (destination.compareTo(mergingFrom.mergingTo) < 0) {
+                            mergingFrom.mergingTo = destination;
+                        }
+                        awaitingTranslation.add(mergingFrom);
                         awaitingTranslation.addAll(mergingFrom.predecessors);
                         awaitingTranslation.addAll(mergingFrom.successors);
                         for (Transaction transaction : destination.mutualTransactions) {
@@ -1399,8 +1451,6 @@ public class Universe {
                                 if (transaction.transactionCoordinator == mergingFrom) {
                                     transaction.transactionCoordinator = destination;
                                 }
-                                assert transaction.transactionCoordinator == destination
-                                        || transaction.transactionCoordinator.compareTo(destination) < 0;
                             } // synchronized
                         } // for
                     } // synchronized
@@ -1414,27 +1464,8 @@ public class Universe {
             } // synchronized
         } // while
 
-        for (var entry : translation.entrySet()) {
-            TransactionCoordinator dst = entry.getValue();
-            while (dst != null) {
-                entry.setValue(dst);
-                dst = translation.get(dst);
-            }
-        }
-
         for (TransactionCoordinator t : awaitingTranslation) {
-            t.translate(translation);
-        }
-    }
-
-    private static void translate(Set<TransactionCoordinator> transactions,
-            Map<TransactionCoordinator, TransactionCoordinator> translation) {
-        for (TransactionCoordinator transaction : new ArrayList<>(transactions)) {
-            final TransactionCoordinator translated = translation.get(transaction);
-            if (translated != null) {
-                transactions.remove(transaction);
-                transactions.add(translated);
-            }
+            t.translate();
         }
     }
 
