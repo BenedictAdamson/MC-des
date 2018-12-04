@@ -378,10 +378,7 @@ public class Universe {
         }
 
         private void commitIfPossible() {
-            final TransactionCoordinator coordinator = getTransactionCoordinator();
-            if (coordinator != null) {
-                coordinator.commitIfPossible();
-            }
+            getTransactionCoordinator().commitIfPossible();
         }
 
         @Override
@@ -935,17 +932,16 @@ public class Universe {
             }
         }
 
-        private final boolean commitIfPossible() {
+        private void commitIfPossible() {
             if (!canCommit()) {
-                return false;
+                return;
             }
             for (var transaction : getMutualTransactions()) {
                 if (!transaction.isReadyToCommit()) {
-                    return false;
+                    return;
                 }
             }
             commit();
-            return true;
         }
 
         @Override
