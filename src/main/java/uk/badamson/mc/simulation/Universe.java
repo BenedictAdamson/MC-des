@@ -976,26 +976,20 @@ public class Universe {
         private Set<TransactionCoordinator> mergeToWhileLocked(TransactionCoordinator destination) {
             assert this != destination;
             assert destination.compareTo(this) < 0;
-            synchronized (this) {// redundant
-                predecessors.remove(this);
-                successors.remove(this);
-                for (TransactionCoordinator t : predecessors) {
-                    Universe.translate(t.predecessors, this, destination);
-                    Universe.translate(t.successors, this, destination);
-                }
-                for (TransactionCoordinator t : successors) {
-                    Universe.translate(t.predecessors, this, destination);
-                    Universe.translate(t.successors, this, destination);
-                }
-                // Prevent commit of this once we return:
-                predecessors.add(destination);
-            } // synchronized
             synchronized (destination) {
                 copyOrdering(this, destination);
                 destination.successors.remove(destination);
                 destination.successors.remove(this);
                 destination.predecessors.remove(destination);
                 destination.predecessors.remove(this);
+                for (TransactionCoordinator t : destination.predecessors) {
+                    Universe.translate(t.predecessors, this, destination);
+                    Universe.translate(t.successors, this, destination);
+                }
+                for (TransactionCoordinator t : destination.successors) {
+                    Universe.translate(t.predecessors, this, destination);
+                    Universe.translate(t.successors, this, destination);
+                }
                 /*
                  * Because merging can remove predecessors, it is possible that the destination
                  * can now be committed.
@@ -1416,6 +1410,10 @@ public class Universe {
         } else if (successor.predecessors.contains(predecessor)) {
             // Already done
         } else if (successor.successors.contains(predecessor) || predecessor.predecessors.contains(successor)) {
+            /*
+             * Copy the ordering information both ways, so neither TransactinoCoordinator
+             * can commit until we have completed the merge.
+             */
             successor.predecessors.add(predecessor);
             successor.successors.add(predecessor);
             predecessor.predecessors.add(successor);
@@ -1443,20 +1441,26 @@ public class Universe {
     }
 
     private static void merge(SortedSet<TransactionCoordinator> coordinators) {
-        TransactionCoordinator destination = null;
-        while (2 <= coordinators.size()) {
-            destination = coordinators.first();
-            coordinators.remove(destination);
-            final TransactionCoordinator mergingFrom = coordinators.last();
-            coordinators.remove(mergingFrom);
+        if (coordinators.size() < 2) {
+            return;
+        }
+        TransactionCoordinator destination = coordinators.first();
+        coordinators.remove(destination);
+        while (!coordinators.isEmpty()) {
+            final TransactionCoordinator first = coordinators.first();
+            final TransactionCoordinator mergingFrom;
+            if (first.compareTo(destination) < 0) {
+                mergingFrom = destination;
+                destination = first;
+                coordinators.remove(destination);
+            } else {
+                mergingFrom = coordinators.last();
+                coordinators.remove(mergingFrom);
+            }
             final Set<TransactionCoordinator> loops = mergingFrom.mergeTo(destination);
             if (!loops.isEmpty()) {
                 coordinators.addAll(loops);
             }
-            if (!coordinators.isEmpty()) {
-                coordinators.add(destination);
-            }
-            assert coordinators.isEmpty() || 2 <= coordinators.size();
         } // while
         if (destination != null) {
             /*
