@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Set;
@@ -355,31 +354,23 @@ public class Universe {
             getOpenness().close(this);
         }
 
-        private void commitIfNecessary() {
-            final Set<Entry<UUID, ObjectState>> entries;
-            final Duration whenWrote;
+        private void commit() {
             synchronized (lock) {
                 assert pastTheEndReads.isEmpty();
-                assert openness == TransactionOpenness.COMMITTED || openness == TransactionOpenness.COMMITTING;
-                if (openness == TransactionOpenness.COMMITTED) {
-                    // Another thread is doing the commit.
-                    return;
-                }
+                assert openness == TransactionOpenness.COMMITTING;
                 openness = TransactionOpenness.COMMITTED;
-                entries = objectStatesWritten.entrySet();
-                whenWrote = when;
-            }
-            for (var entry : entries) {
-                final UUID object = entry.getKey();
-                final ObjectState state = entry.getValue();
-                assert object != null;
-                assert whenWrote != null;
+                for (var entry : objectStatesWritten.entrySet()) {
+                    final UUID object = entry.getKey();
+                    final ObjectState state = entry.getValue();
+                    assert object != null;
+                    assert when != null;
 
-                objectDataMap.get(object).commit1Writer(this, whenWrote, state);
-            }
+                    objectDataMap.get(object).commit1Writer(this, when, state);
+                }
 
-            noLongerAnUncommittedReader();
-            listener.onCommit();
+                noLongerAnUncommittedReader();
+                listener.onCommit();
+            }
         }
 
         @Override
@@ -620,11 +611,17 @@ public class Universe {
             return id.hashCode();
         }
 
+        private boolean mayCommit() {
+            synchronized (lock) {
+                return (openness == TransactionOpenness.COMMITTING || openness == TransactionOpenness.COMMITTED)
+                        && pastTheEndReads.isEmpty();
+            }
+        }
+
+        @GuardedBy("lock")
         private void noLongerAnUncommittedReader() {
             final Set<UUID> objects;
-            synchronized (lock) {
-                objects = dependencies.keySet();
-            }
+            objects = dependencies.keySet();
             for (UUID object : objects) {
                 var od = objectDataMap.get(object);
                 if (od != null) {
@@ -692,10 +689,9 @@ public class Universe {
             synchronized (lock) {
                 assert openness != TransactionOpenness.ABORTED;
                 openness = TransactionOpenness.ABORTING;
+                noLongerAnUncommittedReader();
+                rollBackWrites();
             }
-
-            noLongerAnUncommittedReader();
-            rollBackWrites();
 
             /*
              * Cause our dependents to also begin aborting, rather than awaiting commit or
@@ -780,13 +776,12 @@ public class Universe {
             }
         }
 
+        @GuardedBy("lock")
         private void rollBackWrites() {
             final Set<UUID> objects;
             final Duration whenWrote;
-            synchronized (lock) {
-                objects = objectStatesWritten.keySet();
-                whenWrote = when;
-            }
+            objects = objectStatesWritten.keySet();
+            whenWrote = when;
             for (UUID object : objects) {
                 assert object != null;
                 assert whenWrote != null;
@@ -831,6 +826,7 @@ public class Universe {
             }
             return created;
         }
+
     }// class
 
     private final class TransactionCoordinator implements Comparable<TransactionCoordinator> {
@@ -891,26 +887,19 @@ public class Universe {
         }
 
         private void commit() {
-            var mt = getMutualTransactions();
-            while (!mt.isEmpty()) {
-                for (var transaction : mt) {
-                    transaction.commitIfNecessary();
-                }
-                for (var transaction : mt) {
+            withLockedTransactionChain(() -> {
+                assert predecessors.isEmpty();
+                assert !successors.contains(this);
+                for (Transaction transaction : mutualTransactions) {
+                    transaction.commit();
                     transactions.remove(transaction.id);
                 }
-                synchronized (this) {
-                    mutualTransactions.removeAll(mt);
-                }
-                mt = getMutualTransactions();
-            }
-            final var s = getSuccesors();
-            for (var successor : s) {
-                synchronized (successor) {
+                mutualTransactions.clear();
+                for (var successor : successors) {
                     successor.predecessors.remove(this);
                 }
-            }
-            for (var successor : s) {
+            });
+            for (var successor : getSuccesors()) {
                 assert successor != this;
                 successor.commitIfPossible();
             }
@@ -921,13 +910,13 @@ public class Universe {
                 if (!predecessors.isEmpty()) {
                     return;
                 }
+                if (successors.contains(this)) {
+                    // Another thread is merging this transaction
+                    return;
+                }
                 for (var transaction : mutualTransactions) {
-                    synchronized (transaction.lock) {
-                        if ((transaction.openness != TransactionOpenness.COMMITTING
-                                && transaction.openness != TransactionOpenness.COMMITTED)
-                                || !transaction.pastTheEndReads.isEmpty()) {
-                            return;
-                        }
+                    if (!transaction.mayCommit()) {
+                        return;
                     }
                 } // for
             } // synchronized
@@ -966,6 +955,7 @@ public class Universe {
         }
 
         private synchronized Collection<TransactionCoordinator> getSuccesors() {
+            assert !successors.contains(this);
             return new HashSet<>(successors);
         }
 
@@ -984,6 +974,8 @@ public class Universe {
         }
 
         private Set<TransactionCoordinator> mergeToWhileLocked(TransactionCoordinator destination) {
+            assert this != destination;
+            assert destination.compareTo(this) < 0;
             synchronized (this) {// redundant
                 predecessors.remove(this);
                 successors.remove(this);
