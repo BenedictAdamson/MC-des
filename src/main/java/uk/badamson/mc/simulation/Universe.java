@@ -402,7 +402,7 @@ public class Universe {
          */
         @Override
         public final void close() {
-            getOpenness().close(this);
+            withLockedTransactionChain(() -> openness.close(this));
         }
 
         @GuardedBy("lock")
@@ -691,14 +691,13 @@ public class Universe {
             }
         }
 
+        @GuardedBy("transaction chain")
         private void reallyAbort() {
             reallyBeginAbort();
 
-            synchronized (lock) {
-                openness = TransactionOpenness.ABORTED;
-                // Help the garbage collector:
-                pastTheEndReads.clear();
-            }
+            openness = TransactionOpenness.ABORTED;
+            // Help the garbage collector:
+            pastTheEndReads.clear();
 
             listener.onAbort();
 
@@ -1111,6 +1110,7 @@ public class Universe {
                 transaction.reallyBeginWrite(when);
             }
 
+            @GuardedBy("transaction chain")
             @Override
             void close(Universe.Transaction transaction) {
                 transaction.reallyAbort();
@@ -1159,6 +1159,7 @@ public class Universe {
                 throw new IllegalStateException("Already writing");
             }
 
+            @GuardedBy("transaction chain")
             @Override
             void close(Universe.Transaction transaction) {
                 transaction.reallyAbort();
@@ -1229,6 +1230,7 @@ public class Universe {
                 // Do nothing
             }
 
+            @GuardedBy("transaction chain")
             @Override
             void beginCommit(Transaction transaction) {
                 transaction.reallyAbort();
@@ -1239,6 +1241,7 @@ public class Universe {
                 // Do nothing
             }
 
+            @GuardedBy("transaction chain")
             @Override
             void close(Universe.Transaction transaction) {
                 transaction.reallyAbort();
@@ -1361,6 +1364,7 @@ public class Universe {
 
         abstract void beginWrite(Transaction transaction, @NonNull Duration when);
 
+        @GuardedBy("transaction chain of transaction")
         abstract void close(Universe.Transaction transaction);
 
         /*
