@@ -922,6 +922,7 @@ public class Universe {
                         successor.commit1();
                     }
                 }
+                lockables.remove(id);
             }
         }
 
