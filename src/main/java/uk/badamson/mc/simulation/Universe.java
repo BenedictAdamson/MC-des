@@ -278,11 +278,11 @@ public class Universe {
         @GuardedBy("lock")
         private TransactionOpenness openness = TransactionOpenness.READING;
 
-        private Transaction(@NonNull TransactionListener listener, @NonNull Long id) {
+        private Transaction(@NonNull Long id, @NonNull TransactionListener listener) {
             super(id);
             this.listener = Objects.requireNonNull(listener, "listener");
             synchronized (lock) {
-                transactionCoordinator = new TransactionCoordinator(this);
+                transactionCoordinator = createTransactionCoordinator(this);
             }
         }
 
@@ -869,8 +869,8 @@ public class Universe {
         @GuardedBy("this")
         private final Set<TransactionCoordinator> successors;
 
-        TransactionCoordinator(@NonNull Transaction transaction) {
-            super(transaction.id);
+        TransactionCoordinator(@NonNull Long id, @NonNull Transaction transaction) {
+            super(id);
             synchronized (this) {
                 predecessors = new HashSet<>();
                 mutualTransactions = new HashSet<>();
@@ -899,7 +899,7 @@ public class Universe {
         private void commit1() {
             for (Transaction transaction : mutualTransactions) {
                 transaction.commit();
-                transactions.remove(transaction.id);
+                lockables.remove(transaction.id);
             }
             mutualTransactions.clear();
             for (var successor : successors) {
@@ -1475,7 +1475,7 @@ public class Universe {
     private Duration historyStart;
 
     private final Map<UUID, ObjectData> objectDataMap = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<Long, Transaction> transactions = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Long, Lockable> lockables = new ConcurrentHashMap<>();
     private final AtomicLong nextTransactionId = new AtomicLong(Long.MIN_VALUE);
 
     /**
@@ -1534,8 +1534,17 @@ public class Universe {
         Long id;
         do {
             id = nextTransactionId.getAndIncrement();
-        } while (transactions.putIfAbsent(id, new Transaction(listener, id)) != null);
-        return transactions.get(id);
+        } while (lockables.putIfAbsent(id, new Transaction(id, listener)) != null);
+        return (Transaction) lockables.get(id);
+    }
+
+    private @NonNull TransactionCoordinator createTransactionCoordinator(@NonNull final Transaction transaction) {
+        assert transaction != null;
+        Long id;
+        do {
+            id = nextTransactionId.getAndIncrement();
+        } while (lockables.putIfAbsent(id, new TransactionCoordinator(id, transaction)) != null);
+        return (TransactionCoordinator) lockables.get(id);
     }
 
     /**
