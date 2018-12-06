@@ -356,6 +356,9 @@ public class Universe {
 
         private void commit() {
             synchronized (lock) {
+                if (openness == TransactionOpenness.COMMITTED) {
+                    return;
+                }
                 assert pastTheEndReads.isEmpty();
                 assert openness == TransactionOpenness.COMMITTING;
                 openness = TransactionOpenness.COMMITTED;
@@ -886,41 +889,33 @@ public class Universe {
             }
         }
 
-        private void commit() {
-            withLockedTransactionChain(() -> {
-                assert predecessors.isEmpty();
-                assert !successors.contains(this);
-                for (Transaction transaction : mutualTransactions) {
-                    transaction.commit();
-                    transactions.remove(transaction.id);
-                }
-                mutualTransactions.clear();
-                for (var successor : successors) {
-                    successor.predecessors.remove(this);
-                }
-            });
-            for (var successor : getSuccesors()) {
-                assert successor != this;
-                successor.commitIfPossible();
+        private void commit1() {
+            for (Transaction transaction : mutualTransactions) {
+                transaction.commit();
+                transactions.remove(transaction.id);
+            }
+            mutualTransactions.clear();
+            for (var successor : successors) {
+                successor.predecessors.remove(this);
             }
         }
 
         private void commitIfPossible() {
-            synchronized (this) {
-                if (!predecessors.isEmpty()) {
-                    return;
-                }
-                if (successors.contains(this)) {
-                    // Another thread is merging this transaction
-                    return;
-                }
-                for (var transaction : mutualTransactions) {
-                    if (!transaction.mayCommit()) {
-                        return;
+            withLockedTransactionChain(() -> {
+                commitIfPossibleWhileLocked();
+            });
+        }
+
+        private void commitIfPossibleWhileLocked() {
+            if (mayCommit()) {
+                commit1();
+                for (var successor : successors) {
+                    assert successor != this;
+                    if (successor.mayCommit()) {
+                        successor.commit1();
                     }
-                } // for
-            } // synchronized
-            commit();
+                }
+            }
         }
 
         @Override
@@ -964,6 +959,22 @@ public class Universe {
             return id.hashCode();
         }
 
+        private boolean mayCommit() {
+            if (!predecessors.isEmpty()) {
+                return false;
+            }
+            if (successors.contains(this)) {
+                // Another thread is merging this transaction
+                return false;
+            }
+            for (var transaction : mutualTransactions) {
+                if (!transaction.mayCommit()) {
+                    return false;
+                }
+            } // for
+            return true;
+        }
+
         private Set<TransactionCoordinator> mergeTo(TransactionCoordinator destination) {
             assert destination.compareTo(this) < 0;
             final Set<TransactionCoordinator> loops = new HashSet<>();
@@ -983,10 +994,12 @@ public class Universe {
                 destination.predecessors.remove(destination);
                 destination.predecessors.remove(this);
                 for (TransactionCoordinator t : destination.predecessors) {
+                    assert t != this;
                     Universe.translate(t.predecessors, this, destination);
                     Universe.translate(t.successors, this, destination);
                 }
                 for (TransactionCoordinator t : destination.successors) {
+                    assert t != this;
                     Universe.translate(t.predecessors, this, destination);
                     Universe.translate(t.successors, this, destination);
                 }
@@ -1462,13 +1475,11 @@ public class Universe {
                 coordinators.addAll(loops);
             }
         } // while
-        if (destination != null) {
-            /*
-             * Because merging can remove predecessors, it is possible that the destination
-             * can be committed.
-             */
-            destination.commitIfPossible();
-        }
+        /*
+         * Because merging can remove predecessors, it is possible that the destination
+         * can be committed.
+         */
+        destination.commitIfPossible();
     }
 
     private static void translate(Collection<TransactionCoordinator> coordinators, TransactionCoordinator src,
