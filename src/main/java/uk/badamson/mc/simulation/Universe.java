@@ -1011,10 +1011,10 @@ public class Universe {
             } // synchronized
         }
 
-        private boolean withLockedTransactionChain(NavigableSet<TransactionCoordinator> unlocked,
-                Set<TransactionCoordinator> chain, Runnable runnable) {
+        private boolean withLockedTransactionChain(NavigableSet<Lockable> unlocked, Set<Lockable> chain,
+                Runnable runnable) {
             return Universe.withLockedChain(unlocked, chain, () -> {
-                final Set<TransactionCoordinator> more = new HashSet<>(successors);
+                final Set<Lockable> more = new HashSet<>(successors);
                 more.add(this);
                 more.addAll(predecessors);
                 more.removeAll(chain);
@@ -1023,7 +1023,7 @@ public class Universe {
         }
 
         private void withLockedTransactionChain(Runnable runnable) {
-            final NavigableSet<TransactionCoordinator> chain = new TreeSet<>(Collections.reverseOrder());
+            final NavigableSet<Lockable> chain = new TreeSet<>(Collections.reverseOrder());
             chain.add(this);
             while (!withLockedTransactionChain(chain, chain, runnable)) {
                 // try again
@@ -1464,11 +1464,11 @@ public class Universe {
         }
     }
 
-    private static <L extends Lockable> boolean withLockedChain(NavigableSet<L> unlocked, Set<L> chain,
-            Callable<Set<L>> moreComputor, Runnable runnable) {
+    private static boolean withLockedChain(NavigableSet<Lockable> unlocked, Set<Lockable> chain,
+            Callable<Set<Lockable>> moreComputor, Runnable runnable) {
         assert chain.containsAll(unlocked);
         if (unlocked.isEmpty()) {
-            final Set<L> more;
+            final Set<Lockable> more;
             try {
                 more = moreComputor.call();
             } catch (Exception e) {
@@ -1482,8 +1482,8 @@ public class Universe {
                 return false;
             }
         } else {
-            final L first = unlocked.first();
-            final NavigableSet<L> remaining = unlocked.tailSet(first, false);
+            final Lockable first = unlocked.first();
+            final NavigableSet<Lockable> remaining = unlocked.tailSet(first, false);
             synchronized (first.lock) {
                 return withLockedChain(remaining, chain, moreComputor, runnable);
             }
