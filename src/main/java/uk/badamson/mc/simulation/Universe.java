@@ -856,23 +856,23 @@ public class Universe {
          * predecessors.
          */
         @NonNull
-        @GuardedBy("this")
+        @GuardedBy("lock")
         private final Set<TransactionCoordinator> predecessors;
 
         @NonNull
-        @GuardedBy("this")
+        @GuardedBy("lock")
         private final Set<Transaction> mutualTransactions;
 
         /*
          * Must be committed after the mutualTransactions. Includes indirect successors.
          */
         @NonNull
-        @GuardedBy("this")
+        @GuardedBy("lock")
         private final Set<TransactionCoordinator> successors;
 
         TransactionCoordinator(@NonNull Long id, @NonNull Transaction transaction) {
             super(id);
-            synchronized (this) {
+            synchronized (lock) {
                 predecessors = new HashSet<>();
                 mutualTransactions = new HashSet<>();
                 mutualTransactions.add(transaction);
@@ -882,11 +882,11 @@ public class Universe {
 
         private final void beginAbort() {
             for (var predecessor : getPredecessors()) {
-                synchronized (predecessor) {
+                synchronized (predecessor.lock) {
                     predecessor.successors.remove(this);
                 }
             }
-            synchronized (this) {
+            synchronized (lock) {
                 predecessors.clear();
             }
             for (var transaction : getMutualTransactions()) {
@@ -927,17 +927,23 @@ public class Universe {
             }
         }
 
-        private synchronized Collection<Transaction> getMutualTransactions() {
-            return new HashSet<>(mutualTransactions);
+        private Collection<Transaction> getMutualTransactions() {
+            synchronized (lock) {
+                return new HashSet<>(mutualTransactions);
+            }
         }
 
-        private synchronized Collection<TransactionCoordinator> getPredecessors() {
-            return new HashSet<>(predecessors);
+        private Collection<TransactionCoordinator> getPredecessors() {
+            synchronized (lock) {
+                return new HashSet<>(predecessors);
+            }
         }
 
-        private synchronized Collection<TransactionCoordinator> getSuccesors() {
-            assert !successors.contains(this);
-            return new HashSet<>(successors);
+        private Collection<TransactionCoordinator> getSuccesors() {
+            synchronized (lock) {
+                assert !successors.contains(this);
+                return new HashSet<>(successors);
+            }
         }
 
         private boolean mayCommit() {
@@ -968,7 +974,7 @@ public class Universe {
         private Set<TransactionCoordinator> mergeToWhileLocked(TransactionCoordinator destination) {
             assert this != destination;
             assert destination.compareTo(this) < 0;
-            synchronized (destination) {
+            synchronized (destination.lock) {
                 copyOrdering(this, destination);
                 destination.successors.remove(destination);
                 destination.successors.remove(this);
@@ -989,7 +995,7 @@ public class Universe {
                  * can now be committed.
                  */
                 for (Transaction transaction : destination.mutualTransactions) {
-                    synchronized (transaction) {
+                    synchronized (transaction.lock) {
                         if (transaction.transactionCoordinator == this) {
                             transaction.transactionCoordinator = destination;
                         }
@@ -1367,14 +1373,14 @@ public class Universe {
         final SortedSet<TransactionCoordinator> mergingCordinators = new TreeSet<>();
         final TransactionCoordinator predecessor = transaction.getTransactionCoordinator();
         if (successor.compareTo(predecessor) < 0) {
-            synchronized (predecessor) {
-                synchronized (successor) {
+            synchronized (predecessor.lock) {
+                synchronized (successor.lock) {
                     addPredecessor1(predecessor, successor, transaction, mergingCordinators);
                 }
             }
         } else {
-            synchronized (successor) {
-                synchronized (predecessor) {
+            synchronized (successor.lock) {
+                synchronized (predecessor.lock) {
                     addPredecessor1(predecessor, successor, transaction, mergingCordinators);
                 }
             }
@@ -1382,7 +1388,7 @@ public class Universe {
         merge(mergingCordinators);
     }
 
-    @GuardedBy("predecessor, successor")
+    @GuardedBy("predecessor.lock, successor.lock")
     private static void addPredecessor1(@NonNull final TransactionCoordinator predecessor,
             @NonNull final TransactionCoordinator successor, @NonNull Transaction transaction,
             final SortedSet<TransactionCoordinator> mergingCordinators) {
@@ -1414,7 +1420,7 @@ public class Universe {
         }
     }
 
-    @GuardedBy("destination, source")
+    @GuardedBy("destination.lock, source.lock")
     private static void copyOrdering(final TransactionCoordinator source, final TransactionCoordinator destination) {
         destination.predecessors.addAll(source.predecessors);
         destination.successors.addAll(source.successors);
@@ -1478,7 +1484,7 @@ public class Universe {
         } else {
             final L first = unlocked.first();
             final NavigableSet<L> remaining = unlocked.tailSet(first, false);
-            synchronized (first) {
+            synchronized (first.lock) {
                 return withLockedChain(remaining, chain, moreComputor, runnable);
             }
         }
