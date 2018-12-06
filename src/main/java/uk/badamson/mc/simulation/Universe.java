@@ -331,7 +331,7 @@ public class Universe {
          *             already begun}.
          */
         public final void beginCommit() {
-            getOpenness().beginCommit(this);
+            withLockedTransactionChain(() -> openness.beginCommit(this));
         }
 
         /**
@@ -405,26 +405,25 @@ public class Universe {
             getOpenness().close(this);
         }
 
+        @GuardedBy("lock")
         private void commit() {
-            synchronized (lock) {
-                if (openness == TransactionOpenness.COMMITTED) {
-                    return;
-                }
-                assert pastTheEndReads.isEmpty();
-                assert openness == TransactionOpenness.COMMITTING;
-                openness = TransactionOpenness.COMMITTED;
-                for (var entry : objectStatesWritten.entrySet()) {
-                    final UUID object = entry.getKey();
-                    final ObjectState state = entry.getValue();
-                    assert object != null;
-                    assert when != null;
-
-                    objectDataMap.get(object).commit1Writer(this, when, state);
-                }
-
-                noLongerAnUncommittedReader();
-                listener.onCommit();
+            if (openness == TransactionOpenness.COMMITTED) {
+                return;
             }
+            assert pastTheEndReads.isEmpty();
+            assert openness == TransactionOpenness.COMMITTING;
+            openness = TransactionOpenness.COMMITTED;
+            for (var entry : objectStatesWritten.entrySet()) {
+                final UUID object = entry.getKey();
+                final ObjectState state = entry.getValue();
+                assert object != null;
+                assert when != null;
+
+                objectDataMap.get(object).commit1Writer(this, when, state);
+            }
+
+            noLongerAnUncommittedReader();
+            listener.onCommit();
         }
 
         /**
@@ -720,13 +719,10 @@ public class Universe {
             transactionCoordinator.beginAbort();
         }
 
+        @GuardedBy("transaction chain")
         private void reallyBeginCommit() {
-            final TransactionCoordinator tc;
-            synchronized (lock) {
-                openness = TransactionOpenness.COMMITTING;
-                tc = transactionCoordinator;
-            }
-            tc.commitIfPossible();
+            openness = TransactionOpenness.COMMITTING;
+            transactionCoordinator.commitIfPossible();
         }
 
         private void reallyBeginWrite(@NonNull Duration when) {
@@ -918,6 +914,7 @@ public class Universe {
             }
         }
 
+        @GuardedBy("transaction chain")
         private void commit1() {
             for (Transaction transaction : mutualTransactions) {
                 transaction.commit();
@@ -929,13 +926,8 @@ public class Universe {
             }
         }
 
+        @GuardedBy("transaction chain")
         private void commitIfPossible() {
-            withLockedTransactionChain(() -> {
-                commitIfPossibleWhileLocked();
-            });
-        }
-
-        private void commitIfPossibleWhileLocked() {
             if (mayCommit()) {
                 commit1();
                 for (var successor : successors) {
@@ -954,6 +946,7 @@ public class Universe {
             }
         }
 
+        @GuardedBy("transaction chain")
         private boolean mayCommit() {
             if (!predecessors.isEmpty()) {
                 return false;
@@ -1102,12 +1095,13 @@ public class Universe {
          */
         READING {
 
-            @GuardedBy("Universe.Transaction.lock")
+            @GuardedBy("transaction chain of transaction")
             @Override
             void beginAbort(Transaction transaction) {
                 transaction.reallyBeginAbort();
             }
 
+            @GuardedBy("transaction chain of transaction")
             @Override
             void beginCommit(Transaction transaction) {
                 transaction.reallyBeginCommit();
@@ -1149,12 +1143,13 @@ public class Universe {
          */
         WRITING {
 
-            @GuardedBy("Universe.Transaction.lock")
+            @GuardedBy("transaction chain of transaction")
             @Override
             void beginAbort(Transaction transaction) {
                 transaction.reallyBeginAbort();
             }
 
+            @GuardedBy("transaction chain of transaction")
             @Override
             void beginCommit(Transaction transaction) {
                 transaction.reallyBeginCommit();
@@ -1190,7 +1185,7 @@ public class Universe {
          */
         COMMITTING {
 
-            @GuardedBy("Universe.Transaction.lock")
+            @GuardedBy("transaction chain of transaction")
             @Override
             void beginAbort(Transaction transaction) {
                 transaction.reallyAbort();
@@ -1359,9 +1354,10 @@ public class Universe {
             }
         };
 
-        @GuardedBy("Universe.Transaction.lock")
+        @GuardedBy("transaction chain of transaction")
         abstract void beginAbort(Universe.Transaction transaction);
 
+        @GuardedBy("transaction chain of transaction")
         abstract void beginCommit(Universe.Transaction transaction);
 
         abstract void beginWrite(Transaction transaction, @NonNull Duration when);
