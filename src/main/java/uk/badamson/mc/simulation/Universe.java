@@ -307,7 +307,7 @@ public class Universe {
          * </ul>
          */
         public final void beginAbort() {
-            getOpenness().beginAbort(this);
+            withLockedTransactionChain(() -> openness.beginAbort(this));
         }
 
         /**
@@ -706,19 +706,18 @@ public class Universe {
 
         }
 
+        @GuardedBy("transaction chain")
         private void reallyBeginAbort() {
-            synchronized (lock) {
-                assert openness != TransactionOpenness.ABORTED;
-                openness = TransactionOpenness.ABORTING;
-                noLongerAnUncommittedReader();
-                rollBackWrites();
-            }
+            assert openness != TransactionOpenness.ABORTED;
+            openness = TransactionOpenness.ABORTING;
+            noLongerAnUncommittedReader();
+            rollBackWrites();
 
             /*
              * Cause our dependents to also begin aborting, rather than awaiting commit or
              * close of this transaction.
              */
-            getTransactionCoordinator().beginAbort();
+            transactionCoordinator.beginAbort();
         }
 
         private void reallyBeginCommit() {
@@ -848,6 +847,29 @@ public class Universe {
             return created;
         }
 
+        private boolean withLockedTransactionChain(NavigableSet<Lockable> unlocked, Set<Lockable> chain,
+                Runnable runnable) {
+            return Universe.withLockedChain(unlocked, chain, () -> {
+                final Set<Lockable> required = new HashSet<>();
+                required.add(this);
+                required.add(transactionCoordinator);
+                if (chain.contains(transactionCoordinator)) {
+                    required.addAll(transactionCoordinator.predecessors);
+                    required.addAll(transactionCoordinator.mutualTransactions);
+                    required.addAll(transactionCoordinator.successors);
+                }
+                return required;
+            }, runnable);
+        }
+
+        private void withLockedTransactionChain(Runnable runnable) {
+            final NavigableSet<Lockable> chain = new TreeSet<>(Collections.reverseOrder());
+            chain.add(this);
+            while (!withLockedTransactionChain(chain, chain, runnable)) {
+                // try again
+            }
+        }
+
     }// class
 
     private final class TransactionCoordinator extends Lockable {
@@ -880,19 +902,18 @@ public class Universe {
             }
         }
 
+        @GuardedBy("transaction chain")
         private final void beginAbort() {
             for (var predecessor : getPredecessors()) {
                 synchronized (predecessor.lock) {
                     predecessor.successors.remove(this);
                 }
             }
-            synchronized (lock) {
-                predecessors.clear();
-            }
-            for (var transaction : getMutualTransactions()) {
+            predecessors.clear();
+            for (var transaction : mutualTransactions) {
                 transaction.beginAbort();
             }
-            for (var successor : getSuccesors()) {
+            for (var successor : successors) {
                 successor.beginAbort();
             }
         }
@@ -927,22 +948,9 @@ public class Universe {
             }
         }
 
-        private Collection<Transaction> getMutualTransactions() {
-            synchronized (lock) {
-                return new HashSet<>(mutualTransactions);
-            }
-        }
-
         private Collection<TransactionCoordinator> getPredecessors() {
             synchronized (lock) {
                 return new HashSet<>(predecessors);
-            }
-        }
-
-        private Collection<TransactionCoordinator> getSuccesors() {
-            synchronized (lock) {
-                assert !successors.contains(this);
-                return new HashSet<>(successors);
             }
         }
 
@@ -1094,6 +1102,7 @@ public class Universe {
          */
         READING {
 
+            @GuardedBy("Universe.Transaction.lock")
             @Override
             void beginAbort(Transaction transaction) {
                 transaction.reallyBeginAbort();
@@ -1140,6 +1149,7 @@ public class Universe {
          */
         WRITING {
 
+            @GuardedBy("Universe.Transaction.lock")
             @Override
             void beginAbort(Transaction transaction) {
                 transaction.reallyBeginAbort();
@@ -1180,6 +1190,7 @@ public class Universe {
          */
         COMMITTING {
 
+            @GuardedBy("Universe.Transaction.lock")
             @Override
             void beginAbort(Transaction transaction) {
                 transaction.reallyAbort();
@@ -1348,6 +1359,7 @@ public class Universe {
             }
         };
 
+        @GuardedBy("Universe.Transaction.lock")
         abstract void beginAbort(Universe.Transaction transaction);
 
         abstract void beginCommit(Universe.Transaction transaction);
