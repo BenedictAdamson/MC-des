@@ -59,6 +59,56 @@ import uk.badamson.mc.history.ValueHistory;
 @ThreadSafe
 public class Universe {
 
+    private abstract class Lockable implements Comparable<Lockable> {
+
+        @NonNull
+        protected final Long id;
+
+        /*
+         * May acquire a lock on this.lock while have a lock on a
+         * TransactionCoordinator, but not vice versa.
+         */
+        protected final Object lock = new Object();
+
+        protected Lockable(@NonNull Long id) {
+            assert id != null;
+            this.id = id;
+        }
+
+        @Override
+        public final int compareTo(Lockable that) {
+            return id.compareTo(that.id);
+        }
+
+        @Override
+        public final boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (!(obj instanceof Lockable))
+                return false;
+            Lockable other = (Lockable) obj;
+            return getUniverse().equals(other.getUniverse()) && id.equals(other.id);
+        }
+
+        /**
+         * <p>
+         * The {@link Universe} for which this transaction changes the state.
+         * </p>
+         * 
+         * @return the universe; not null.
+         */
+        public final @NonNull Universe getUniverse() {
+            return Universe.this;
+        }
+
+        @Override
+        public final int hashCode() {
+            return id.hashCode();
+        }
+    }// class
+
     static final class ObjectData {
 
         @GuardedBy("this")
@@ -190,19 +240,15 @@ public class Universe {
      * </p>
      */
     @NotThreadSafe
-    public final class Transaction implements AutoCloseable, Comparable<Transaction> {
+    public final class Transaction extends Lockable implements AutoCloseable {
 
         @NonNull
         private final TransactionListener listener;
-
-        @NonNull
-        private final Long id;
 
         /*
          * May acquire a lock on this.lock while have a lock on a
          * TransactionCoordinator, but not vice versa.
          */
-        private final Object lock = new Object();
 
         private final Map<ObjectStateId, ObjectState> objectStatesRead = new HashMap<>();
 
@@ -228,9 +274,8 @@ public class Universe {
         private TransactionOpenness openness = TransactionOpenness.READING;
 
         private Transaction(@NonNull TransactionListener listener, @NonNull Long id) {
+            super(id);
             this.listener = Objects.requireNonNull(listener, "listener");
-            assert id != null;
-            this.id = id;
             synchronized (lock) {
                 transactionCoordinator = new TransactionCoordinator(this);
             }
@@ -374,23 +419,6 @@ public class Universe {
                 noLongerAnUncommittedReader();
                 listener.onCommit();
             }
-        }
-
-        @Override
-        public final int compareTo(Transaction that) {
-            return id.compareTo(that.id);
-        }
-
-        @Override
-        public final boolean equals(Object obj) {
-            if (this == obj)
-                return true;
-            if (obj == null)
-                return false;
-            if (!(obj instanceof Transaction))
-                return false;
-            Transaction other = (Transaction) obj;
-            return getUniverse().equals(other.getUniverse()) && id.equals(other.id);
         }
 
         /**
@@ -586,17 +614,6 @@ public class Universe {
 
         /**
          * <p>
-         * The {@link Universe} for which this transaction changes the state.
-         * </p>
-         * 
-         * @return the universe; not null.
-         */
-        public final @NonNull Universe getUniverse() {
-            return Universe.this;
-        }
-
-        /**
-         * <p>
          * The time-stamp of an object states (to be)
          * {@linkplain #put(UUID, ObjectState) written} by this transaction.
          * </p>
@@ -607,11 +624,6 @@ public class Universe {
             synchronized (lock) {
                 return when;
             }
-        }
-
-        @Override
-        public final int hashCode() {
-            return id.hashCode();
         }
 
         private boolean mayCommit() {
