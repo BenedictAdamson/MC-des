@@ -1014,11 +1014,10 @@ public class Universe {
         private boolean withLockedTransactionChain(NavigableSet<Lockable> unlocked, Set<Lockable> chain,
                 Runnable runnable) {
             return Universe.withLockedChain(unlocked, chain, () -> {
-                final Set<Lockable> more = new HashSet<>(successors);
-                more.add(this);
-                more.addAll(predecessors);
-                more.removeAll(chain);
-                return more;
+                final Set<Lockable> required = new HashSet<>(successors);
+                required.add(this);
+                required.addAll(predecessors);
+                return required;
             }, runnable);
         }
 
@@ -1465,15 +1464,16 @@ public class Universe {
     }
 
     private static boolean withLockedChain(NavigableSet<Lockable> unlocked, Set<Lockable> chain,
-            Callable<Set<Lockable>> moreComputor, Runnable runnable) {
+            Callable<Set<Lockable>> requiredComputor, Runnable runnable) {
         assert chain.containsAll(unlocked);
         if (unlocked.isEmpty()) {
             final Set<Lockable> more;
             try {
-                more = moreComputor.call();
+                more = requiredComputor.call();
             } catch (Exception e) {
                 throw new AssertionError(e);
             }
+            more.removeAll(chain);
             if (more.isEmpty()) {
                 runnable.run();
                 return true;
@@ -1485,7 +1485,7 @@ public class Universe {
             final Lockable first = unlocked.first();
             final NavigableSet<Lockable> remaining = unlocked.tailSet(first, false);
             synchronized (first.lock) {
-                return withLockedChain(remaining, chain, moreComputor, runnable);
+                return withLockedChain(remaining, chain, requiredComputor, runnable);
             }
         }
     }
