@@ -631,11 +631,10 @@ public class Universe {
             }
         }
 
+        @GuardedBy("lock")
         private boolean mayCommit() {
-            synchronized (lock) {
-                return (openness == TransactionOpenness.COMMITTING || openness == TransactionOpenness.COMMITTED)
-                        && pastTheEndReads.isEmpty();
-            }
+            return (openness == TransactionOpenness.COMMITTING || openness == TransactionOpenness.COMMITTED)
+                    && pastTheEndReads.isEmpty();
         }
 
         @GuardedBy("lock")
