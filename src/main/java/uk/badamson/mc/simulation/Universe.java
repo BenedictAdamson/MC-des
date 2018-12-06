@@ -61,6 +61,11 @@ public class Universe {
 
     private abstract class Lockable implements Comparable<Lockable> {
 
+        /*
+         * If locks are to be held on multiple Lockable objects, the locks must be
+         * acquired in the reverse of the natural ordering of the objects. That is, in
+         * descending order of their ids.
+         */
         @NonNull
         protected final Long id;
 
@@ -844,13 +849,7 @@ public class Universe {
 
     }// class
 
-    private final class TransactionCoordinator implements Comparable<TransactionCoordinator> {
-        /*
-         * If locks are to be held on multiple TransactionCoordinator objects, the locks
-         * must be acquired in the reverse of the natural ordering of the objects. That
-         * is, in descending order of their ids.
-         */
-
+    private final class TransactionCoordinator extends Lockable {
         /*
          * Must be committed before the mutualTransactions. Includes indirect
          * predecessors.
@@ -870,18 +869,14 @@ public class Universe {
         @GuardedBy("this")
         private final Set<TransactionCoordinator> successors;
 
-        @NonNull
-        private final Long id;
-
         TransactionCoordinator(@NonNull Transaction transaction) {
-            assert transaction != null;
+            super(transaction.id);
             synchronized (this) {
                 predecessors = new HashSet<>();
                 mutualTransactions = new HashSet<>();
                 mutualTransactions.add(transaction);
                 successors = new HashSet<>();
             }
-            this.id = transaction.id;
         }
 
         private final void beginAbort() {
@@ -930,31 +925,8 @@ public class Universe {
             }
         }
 
-        @Override
-        public final int compareTo(TransactionCoordinator that) {
-            return id.compareTo(that.id);
-        }
-
-        @Override
-        public final boolean equals(Object obj) {
-            if (this == obj)
-                return true;
-            if (obj == null)
-                return false;
-            if (!(obj instanceof TransactionCoordinator))
-                return false;
-            TransactionCoordinator other = (TransactionCoordinator) obj;
-            if (!getOuterType().equals(other.getOuterType()))
-                return false;
-            return id.equals(other.id);
-        }
-
         private synchronized Collection<Transaction> getMutualTransactions() {
             return new HashSet<>(mutualTransactions);
-        }
-
-        private Universe getOuterType() {
-            return Universe.this;
         }
 
         private synchronized Collection<TransactionCoordinator> getPredecessors() {
@@ -964,11 +936,6 @@ public class Universe {
         private synchronized Collection<TransactionCoordinator> getSuccesors() {
             assert !successors.contains(this);
             return new HashSet<>(successors);
-        }
-
-        @Override
-        public final int hashCode() {
-            return id.hashCode();
         }
 
         private boolean mayCommit() {
