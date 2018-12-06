@@ -31,6 +31,7 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -1006,26 +1007,13 @@ public class Universe {
 
         private boolean withLockedTransactionChain(NavigableSet<TransactionCoordinator> unlocked,
                 Set<TransactionCoordinator> chain, Runnable runnable) {
-            assert chain.containsAll(unlocked);
-            if (unlocked.isEmpty()) {
-                Set<TransactionCoordinator> more = new HashSet<>(successors);
+            return Universe.withLockedChain(unlocked, chain, () -> {
+                final Set<TransactionCoordinator> more = new HashSet<>(successors);
                 more.add(this);
                 more.addAll(predecessors);
                 more.removeAll(chain);
-                if (more.isEmpty()) {
-                    runnable.run();
-                    return true;
-                } else {
-                    chain.addAll(more);
-                    return false;
-                }
-            } else {
-                final TransactionCoordinator first = unlocked.first();
-                final NavigableSet<TransactionCoordinator> remaining = unlocked.tailSet(first, false);
-                synchronized (first) {
-                    return withLockedTransactionChain(remaining, chain, runnable);
-                }
-            }
+                return more;
+            }, runnable);
         }
 
         private void withLockedTransactionChain(Runnable runnable) {
@@ -1467,6 +1455,32 @@ public class Universe {
         if (src != dst && coordinators.contains(src)) {
             coordinators.remove(src);
             coordinators.add(dst);
+        }
+    }
+
+    private static <L extends Lockable> boolean withLockedChain(NavigableSet<L> unlocked, Set<L> chain,
+            Callable<Set<L>> moreComputor, Runnable runnable) {
+        assert chain.containsAll(unlocked);
+        if (unlocked.isEmpty()) {
+            final Set<L> more;
+            try {
+                more = moreComputor.call();
+            } catch (Exception e) {
+                throw new AssertionError(e);
+            }
+            if (more.isEmpty()) {
+                runnable.run();
+                return true;
+            } else {
+                chain.addAll(more);
+                return false;
+            }
+        } else {
+            final L first = unlocked.first();
+            final NavigableSet<L> remaining = unlocked.tailSet(first, false);
+            synchronized (first) {
+                return withLockedChain(remaining, chain, moreComputor, runnable);
+            }
         }
     }
 
