@@ -844,13 +844,7 @@ public class Universe {
                 Runnable runnable) {
             return Universe.withLockedChain(unlocked, chain, () -> {
                 final Set<Lockable> required = new HashSet<>();
-                required.add(this);
-                required.add(transactionCoordinator);
-                if (chain.contains(transactionCoordinator)) {
-                    required.addAll(transactionCoordinator.predecessors);
-                    required.addAll(transactionCoordinator.mutualTransactions);
-                    required.addAll(transactionCoordinator.successors);
-                }
+                addRequiredForLockedChain(required, this, chain);
                 return required;
             }, runnable);
         }
@@ -945,11 +939,9 @@ public class Universe {
 
         @GuardedBy("transaction chain")
         private boolean mayCommit() {
+            assert !successors.contains(this);
+            assert !predecessors.contains(this);
             if (!predecessors.isEmpty()) {
-                return false;
-            }
-            if (successors.contains(this)) {
-                // Another thread is merging this transaction
                 return false;
             }
             for (var transaction : mutualTransactions) {
