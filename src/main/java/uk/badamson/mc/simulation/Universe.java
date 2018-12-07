@@ -28,7 +28,6 @@ import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -534,7 +533,7 @@ public class Universe {
             }
             // else used cached value
             for (var transaction : additionalPredecessors) {
-                Universe.addPredecessor(transaction, getTransactionCoordinator());
+                Universe.addPredecessor(transaction, this);
             }
             return objectState;
         }
@@ -833,7 +832,7 @@ public class Universe {
                 transaction.beginAbort();
             }
             for (Transaction pastTheEndReader : pastTheEndReadersToEscalateToSuccessors) {
-                Universe.addPredecessor(this, pastTheEndReader.getTransactionCoordinator());
+                Universe.addPredecessor(this, pastTheEndReader);
                 synchronized (pastTheEndReader.lock) {
                     pastTheEndReader.pastTheEndReads.remove(object);
                 }
@@ -959,73 +958,6 @@ public class Universe {
                 }
             } // for
             return true;
-        }
-
-        private Set<TransactionCoordinator> mergeTo(TransactionCoordinator destination) {
-            assert destination.compareTo(this) < 0;
-            final Set<TransactionCoordinator> loops = new HashSet<>();
-            withLockedTransactionChain(() -> {
-                loops.addAll(mergeToWhileLocked(destination));
-            });
-            return loops;
-        }
-
-        private Set<TransactionCoordinator> mergeToWhileLocked(TransactionCoordinator destination) {
-            assert this != destination;
-            assert destination.compareTo(this) < 0;
-            synchronized (destination.lock) {
-                copyOrdering(this, destination);
-                destination.successors.remove(destination);
-                destination.successors.remove(this);
-                destination.predecessors.remove(destination);
-                destination.predecessors.remove(this);
-                for (TransactionCoordinator t : destination.predecessors) {
-                    assert t != this;
-                    Universe.translate(t.predecessors, this, destination);
-                    Universe.translate(t.successors, this, destination);
-                }
-                for (TransactionCoordinator t : destination.successors) {
-                    assert t != this;
-                    Universe.translate(t.predecessors, this, destination);
-                    Universe.translate(t.successors, this, destination);
-                }
-                /*
-                 * Because merging can remove predecessors, it is possible that the destination
-                 * can now be committed.
-                 */
-                for (Transaction transaction : destination.mutualTransactions) {
-                    synchronized (transaction.lock) {
-                        if (transaction.transactionCoordinator == this) {
-                            transaction.transactionCoordinator = destination;
-                        }
-                    } // synchronized
-                } // for
-                /*
-                 * If the destination has loops, committing it will be impossible until the
-                 * loops are broken.
-                 */
-                final Set<TransactionCoordinator> loops = new HashSet<>(destination.predecessors);
-                loops.retainAll(destination.successors);
-                return loops;
-            } // synchronized
-        }
-
-        private boolean withLockedTransactionChain(NavigableSet<Lockable> unlocked, Set<Lockable> chain,
-                Runnable runnable) {
-            return Universe.withLockedChain(unlocked, chain, () -> {
-                final Set<Lockable> required = new HashSet<>(successors);
-                required.add(this);
-                required.addAll(predecessors);
-                return required;
-            }, runnable);
-        }
-
-        private void withLockedTransactionChain(Runnable runnable) {
-            final NavigableSet<Lockable> chain = new TreeSet<>(Collections.reverseOrder());
-            chain.add(this);
-            while (!withLockedTransactionChain(chain, chain, runnable)) {
-                // try again
-            }
         }
 
     }// class
@@ -1378,50 +1310,60 @@ public class Universe {
 
     private static final ValueHistory<ObjectState> EMPTY_STATE_HISTORY = new ConstantValueHistory<>((ObjectState) null);
 
-    private static void addPredecessor(@NonNull Transaction transaction,
-            @NonNull final TransactionCoordinator successor) {
-        final SortedSet<TransactionCoordinator> mergingCordinators = new TreeSet<>();
-        final TransactionCoordinator predecessor = transaction.getTransactionCoordinator();
-        if (successor.compareTo(predecessor) < 0) {
-            synchronized (predecessor.lock) {
-                synchronized (successor.lock) {
-                    addPredecessor1(predecessor, successor, transaction, mergingCordinators);
-                }
-            }
-        } else {
-            synchronized (successor.lock) {
-                synchronized (predecessor.lock) {
-                    addPredecessor1(predecessor, successor, transaction, mergingCordinators);
-                }
-            }
-        }
-        merge(mergingCordinators);
+    private static void addPredecessor(@NonNull final Transaction predecessor, @NonNull final Transaction successor) {
+        withLockedChain2(predecessor, successor, () -> {
+            addPredecessor(predecessor.transactionCoordinator, successor.transactionCoordinator);
+        });
     }
 
     @GuardedBy("predecessor.lock, successor.lock")
-    private static void addPredecessor1(@NonNull final TransactionCoordinator predecessor,
-            @NonNull final TransactionCoordinator successor, @NonNull Transaction transaction,
-            final SortedSet<TransactionCoordinator> mergingCordinators) {
+    private static void addPredecessor(@NonNull final TransactionCoordinator predecessor,
+            @NonNull final TransactionCoordinator successor) {
         if (predecessor == successor) {
             // May not be both predecessor and successor; already recorded as mutual
         } else if (successor.predecessors.contains(predecessor)) {
             // Already done
         } else if (successor.successors.contains(predecessor) || predecessor.predecessors.contains(successor)) {
-            /*
-             * Copy the ordering information both ways, so neither TransactinoCoordinator
-             * can commit until we have completed the merge.
-             */
-            successor.predecessors.add(predecessor);
-            successor.successors.add(predecessor);
-            predecessor.predecessors.add(successor);
-            predecessor.successors.add(successor);
-            predecessor.mutualTransactions.add(transaction);
-            successor.mutualTransactions.add(transaction);
-            copyOrdering(successor, predecessor);
-            copyOrdering(predecessor, successor);
-            // A TransactionCoordinator not be both predecessor and successor; must merge
-            mergingCordinators.add(predecessor);
-            mergingCordinators.add(successor);
+            // Must merge
+            final TransactionCoordinator source;
+            final TransactionCoordinator destination;
+            if (predecessor.compareTo(successor) < 0) {
+                destination = predecessor;
+                source = successor;
+            } else {
+                destination = successor;
+                source = predecessor;
+            }
+            copyOrdering(source, destination);
+            destination.predecessors.remove(source);
+            destination.predecessors.remove(destination);
+            destination.successors.remove(source);
+            destination.successors.remove(destination);
+            final Set<TransactionCoordinator> cycles = new HashSet<>(destination.predecessors);
+            cycles.retainAll(destination.successors);
+            if (!cycles.isEmpty()) {
+                destination.predecessors.removeAll(cycles);
+                destination.successors.removeAll(cycles);
+                for (TransactionCoordinator cycler : cycles) {
+                    destination.mutualTransactions.addAll(cycler.mutualTransactions);
+                }
+            }
+            for (TransactionCoordinator p : destination.predecessors) {
+                p.predecessors.remove(source);
+                p.predecessors.remove(destination);
+                p.successors.remove(source);
+                p.successors.add(destination);
+            }
+            for (TransactionCoordinator s : destination.successors) {
+                s.predecessors.remove(source);
+                s.predecessors.add(destination);
+                s.successors.remove(source);
+                s.successors.remove(destination);
+            }
+            for (Transaction transaction : destination.mutualTransactions) {
+                transaction.transactionCoordinator = destination;
+            }
+            assert Collections.disjoint(destination.predecessors, destination.successors);
         } else {
             successor.predecessors.add(predecessor);
             successor.predecessors.addAll(predecessor.predecessors);
@@ -1430,48 +1372,32 @@ public class Universe {
         }
     }
 
+    private static void addRequiredForLockedChain(final Set<Lockable> required, Transaction transaction,
+            Set<Lockable> chain) {
+        required.add(transaction);
+        required.add(transaction.transactionCoordinator);
+        if (chain.contains(transaction.transactionCoordinator)) {
+            required.addAll(transaction.transactionCoordinator.predecessors);
+            required.addAll(transaction.transactionCoordinator.mutualTransactions);
+            required.addAll(transaction.transactionCoordinator.successors);
+            for (var p : transaction.transactionCoordinator.predecessors) {
+                if (chain.contains(p)) {
+                    required.addAll(p.mutualTransactions);
+                }
+            }
+            for (var s : transaction.transactionCoordinator.successors) {
+                if (chain.contains(s)) {
+                    required.addAll(s.mutualTransactions);
+                }
+            }
+        }
+    }
+
     @GuardedBy("destination.lock, source.lock")
     private static void copyOrdering(final TransactionCoordinator source, final TransactionCoordinator destination) {
         destination.predecessors.addAll(source.predecessors);
         destination.successors.addAll(source.successors);
         destination.mutualTransactions.addAll(source.mutualTransactions);
-    }
-
-    private static void merge(SortedSet<TransactionCoordinator> coordinators) {
-        if (coordinators.size() < 2) {
-            return;
-        }
-        TransactionCoordinator destination = coordinators.first();
-        coordinators.remove(destination);
-        while (!coordinators.isEmpty()) {
-            final TransactionCoordinator first = coordinators.first();
-            final TransactionCoordinator mergingFrom;
-            if (first.compareTo(destination) < 0) {
-                mergingFrom = destination;
-                destination = first;
-                coordinators.remove(destination);
-            } else {
-                mergingFrom = coordinators.last();
-                coordinators.remove(mergingFrom);
-            }
-            final Set<TransactionCoordinator> loops = mergingFrom.mergeTo(destination);
-            if (!loops.isEmpty()) {
-                coordinators.addAll(loops);
-            }
-        } // while
-        /*
-         * Because merging can remove predecessors, it is possible that the destination
-         * can be committed.
-         */
-        destination.commitIfPossible();
-    }
-
-    private static void translate(Collection<TransactionCoordinator> coordinators, TransactionCoordinator src,
-            TransactionCoordinator dst) {
-        if (src != dst && coordinators.contains(src)) {
-            coordinators.remove(src);
-            coordinators.add(dst);
-        }
     }
 
     private static boolean withLockedChain(NavigableSet<Lockable> unlocked, Set<Lockable> chain,
@@ -1498,6 +1424,25 @@ public class Universe {
             synchronized (first.lock) {
                 return withLockedChain(remaining, chain, requiredComputor, runnable);
             }
+        }
+    }
+
+    private static boolean withLockedChain2(Transaction transaction1, Transaction transaction2,
+            NavigableSet<Lockable> unlocked, Set<Lockable> chain, Runnable runnable) {
+        return withLockedChain(unlocked, chain, () -> {
+            final Set<Lockable> required = new HashSet<>();
+            addRequiredForLockedChain(required, transaction1, chain);
+            addRequiredForLockedChain(required, transaction2, chain);
+            return required;
+        }, runnable);
+    }
+
+    private static void withLockedChain2(Transaction transaction1, Transaction transaction2, Runnable runnable) {
+        final NavigableSet<Lockable> chain = new TreeSet<>(Collections.reverseOrder());
+        chain.add(transaction1);
+        chain.add(transaction2);
+        while (!withLockedChain2(transaction1, transaction2, chain, chain, runnable)) {
+            // try again
         }
     }
 
