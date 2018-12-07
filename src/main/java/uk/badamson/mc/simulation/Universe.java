@@ -406,9 +406,6 @@ public class Universe {
 
         @GuardedBy("lock")
         private void commit() {
-            if (openness == TransactionOpenness.COMMITTED) {
-                return;
-            }
             assert pastTheEndReads.isEmpty();
             assert openness == TransactionOpenness.COMMITTING;
             openness = TransactionOpenness.COMMITTED;
@@ -609,13 +606,6 @@ public class Universe {
             }
         }
 
-        @NonNull
-        private TransactionCoordinator getTransactionCoordinator() {
-            synchronized (lock) {
-                return transactionCoordinator;
-            }
-        }
-
         /**
          * <p>
          * The time-stamp of an object states (to be)
@@ -632,8 +622,7 @@ public class Universe {
 
         @GuardedBy("lock")
         private boolean mayCommit() {
-            return (openness == TransactionOpenness.COMMITTING || openness == TransactionOpenness.COMMITTED)
-                    && pastTheEndReads.isEmpty();
+            return openness == TransactionOpenness.COMMITTING && pastTheEndReads.isEmpty();
         }
 
         @GuardedBy("lock")
@@ -791,19 +780,15 @@ public class Universe {
 
         @GuardedBy("lock")
         private void rollBackWrites() {
-            final Set<UUID> objects;
-            final Duration whenWrote;
-            objects = objectStatesWritten.keySet();
-            whenWrote = when;
-            for (UUID object : objects) {
+            for (UUID object : objectStatesWritten.keySet()) {
                 assert object != null;
-                assert whenWrote != null;
+                assert when != null;
                 /*
                  * As we are a writer for the object, the object has at least one recorded state
                  * (the state we wrote), so objectDataMap.get(object) is guaranteed to be not
                  * null.
                  */
-                if (objectDataMap.get(object).rollBackWrite(this, whenWrote)) {
+                if (objectDataMap.get(object).rollBackWrite(this, when)) {
                     objectDataMap.remove(object);
                 }
             }
@@ -891,12 +876,9 @@ public class Universe {
 
         @GuardedBy("transaction chain")
         private final void beginAbort() {
-            for (var predecessor : getPredecessors()) {
-                synchronized (predecessor.lock) {
-                    predecessor.successors.remove(this);
-                }
+            for (var predecessor : predecessors) {
+                predecessor.successors.remove(this);
             }
-            predecessors.clear();
             for (var transaction : mutualTransactions) {
                 transaction.beginAbort();
             }
@@ -928,12 +910,6 @@ public class Universe {
                     }
                 }
                 lockables.remove(id);
-            }
-        }
-
-        private Collection<TransactionCoordinator> getPredecessors() {
-            synchronized (lock) {
-                return new HashSet<>(predecessors);
             }
         }
 
