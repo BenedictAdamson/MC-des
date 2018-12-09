@@ -853,12 +853,16 @@ public class Universe {
         @GuardedBy("lock")
         private final Set<TransactionCoordinator> predecessors;
 
+        /*
+         * mutualTransactions.isEmpty() for committed TransactionCoordinators.
+         */
         @NonNull
         @GuardedBy("lock")
         private final Set<Transaction> mutualTransactions;
 
         /*
          * Must be committed after the mutualTransactions. Includes indirect successors.
+         * successors.isEmpty() for committed TransactionCoordinators.
          */
         @NonNull
         @GuardedBy("lock")
@@ -1313,6 +1317,11 @@ public class Universe {
             sources.add(source);
 
             merge(destination, sources);
+            /* Merging can remove predecessors, and thus make committing possible. */
+            for (var p : destination.predecessors) {
+                p.commitIfPossible();
+            }
+            destination.commitIfPossible();
         } else {
             successor.predecessors.add(predecessor);
             successor.predecessors.addAll(predecessor.predecessors);
@@ -1349,6 +1358,9 @@ public class Universe {
         destination.mutualTransactions.addAll(source.mutualTransactions);
     }
 
+    /*
+     * Merging can remove predecessors, so merging can make committing possible.
+     */
     @GuardedBy("destination transaction chain, sources transaction chains")
     private static void merge(final TransactionCoordinator destination, Set<TransactionCoordinator> sources) {
         while (!sources.isEmpty()) {
