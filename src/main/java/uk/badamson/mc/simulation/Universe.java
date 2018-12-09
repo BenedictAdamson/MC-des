@@ -270,6 +270,10 @@ public class Universe {
         @GuardedBy("lock")
         private Duration when;
 
+        /*
+         * openness == ABORTED || openness == COMMITTED ||
+         * transactionCoordinator.mutualTransactions.contains(this)
+         */
         @NonNull
         @GuardedBy("lock")
         private TransactionCoordinator transactionCoordinator;
@@ -419,6 +423,7 @@ public class Universe {
             }
 
             noLongerAnUncommittedReader();
+            lockables.remove(id);
             listener.onCommit();
         }
 
@@ -620,8 +625,10 @@ public class Universe {
             }
         }
 
-        @GuardedBy("lock")
+        @GuardedBy("transaction chain")
         private boolean mayCommit() {
+            assert Thread.holdsLock(this);
+            assert transactionCoordinator.mutualTransactions.contains(this);
             return openness == TransactionOpenness.COMMITTING && pastTheEndReads.isEmpty();
         }
 
@@ -707,6 +714,7 @@ public class Universe {
 
         @GuardedBy("transaction chain")
         private void reallyBeginCommit() {
+            assert transactionCoordinator.mutualTransactions.contains(this);
             openness = TransactionOpenness.COMMITTING;
             transactionCoordinator.commitIfPossible();
         }
@@ -893,14 +901,17 @@ public class Universe {
 
         @GuardedBy("transaction chain")
         private void commitIfPossible() {
+            assert Thread.holdsLock(this);
             if (mayCommit()) {
                 assert predecessors.isEmpty();
                 for (Transaction transaction : mutualTransactions) {
+                    assert transaction.transactionCoordinator == this;
+                    assert Thread.holdsLock(transaction);
                     transaction.commit();
-                    lockables.remove(transaction.id);
                 }
                 mutualTransactions.clear();
                 for (var successor : successors) {
+                    assert Thread.holdsLock(successor);
                     // This is no longer blocking the successor.
                     successor.predecessors.remove(this);
                 }
@@ -915,6 +926,7 @@ public class Universe {
 
         @GuardedBy("lock")
         private Set<TransactionCoordinator> getCycles() {
+            assert Thread.holdsLock(this);
             final Set<TransactionCoordinator> cycles = new HashSet<>(predecessors);
             cycles.retainAll(successors);
             return cycles;
@@ -922,6 +934,7 @@ public class Universe {
 
         @GuardedBy("transaction chain")
         private boolean mayCommit() {
+            assert Thread.holdsLock(this);
             assert !successors.contains(this);
             assert !predecessors.contains(this);
             if (!predecessors.isEmpty()) {
@@ -1294,6 +1307,8 @@ public class Universe {
     @GuardedBy("predecessor transaction chain, successor transaction chain")
     private static void addPredecessor(@NonNull final TransactionCoordinator predecessor,
             @NonNull final TransactionCoordinator successor) {
+        assert Thread.holdsLock(predecessor);
+        assert Thread.holdsLock(successor);
         if (predecessor == successor) {
             // May not be both predecessor and successor; already recorded as mutual
         } else if (successor.predecessors.contains(predecessor)) {
@@ -1359,9 +1374,11 @@ public class Universe {
      */
     @GuardedBy("destination transaction chain, sources transaction chains")
     private static void merge(final TransactionCoordinator destination, Set<TransactionCoordinator> sources) {
+        assert Thread.holdsLock(destination);
         while (!sources.isEmpty()) {
             assert !sources.contains(destination);
             for (var s : sources) {
+                assert Thread.holdsLock(s);
                 copyOrdering(s, destination);
             }
             destination.predecessors.removeAll(sources);
@@ -1369,11 +1386,13 @@ public class Universe {
             destination.successors.remove(destination);
             destination.predecessors.remove(destination);
             for (TransactionCoordinator p : destination.predecessors) {
+                assert Thread.holdsLock(p);
                 p.predecessors.removeAll(sources);
                 p.successors.removeAll(sources);
                 p.successors.add(destination);
             }
             for (TransactionCoordinator s : destination.successors) {
+                assert Thread.holdsLock(s);
                 s.predecessors.removeAll(sources);
                 s.successors.removeAll(sources);
                 s.predecessors.add(destination);
@@ -1383,12 +1402,14 @@ public class Universe {
 
             final Set<TransactionCoordinator> cycles = new HashSet<>(destination.getCycles());
             for (TransactionCoordinator p : destination.predecessors) {
+                assert Thread.holdsLock(p);
                 cycles.addAll(p.getCycles());
                 if (p.predecessors.contains(destination) && p.successors.contains(destination)) {
                     cycles.add(p);
                 }
             }
             for (TransactionCoordinator s : destination.successors) {
+                assert Thread.holdsLock(s);
                 cycles.addAll(s.getCycles());
                 if (s.predecessors.contains(destination) && s.successors.contains(destination)) {
                     cycles.add(s);
@@ -1398,6 +1419,7 @@ public class Universe {
             sources = cycles;
         }
         for (Transaction transaction : destination.mutualTransactions) {
+            assert Thread.holdsLock(transaction);
             transaction.transactionCoordinator = destination;
         }
         assert Collections.disjoint(destination.predecessors, destination.successors);
