@@ -626,7 +626,7 @@ public class Universe {
             }
         }
 
-        @GuardedBy("transaction chain")
+        @GuardedBy("lock")
         private boolean mayCommit() {
             assert Thread.holdsLock(lock);
             return openness == TransactionOpenness.COMMITTING && pastTheEndReads.isEmpty();
@@ -910,8 +910,8 @@ public class Universe {
             if (mayCommit()) {
                 assert predecessors.isEmpty();
                 for (Transaction transaction : mutualTransactions) {
-                    assert transaction.transactionCoordinator == this;
                     assert Thread.holdsLock(transaction.lock);
+                    assert transaction.transactionCoordinator == this;
                     transaction.commit();
                 }
                 mutualTransactions.clear();
@@ -924,7 +924,6 @@ public class Universe {
                     assert successor != this;
                     successor.commitIfPossible();
                 }
-                successors.clear();
                 lockables.remove(id);
             }
         }
@@ -1340,6 +1339,9 @@ public class Universe {
                 p.commitIfPossible();
             }
             destination.commitIfPossible();
+            for (var s : destination.successors) {
+                s.commitIfPossible();
+            }
         } else {
             successor.predecessors.add(predecessor);
             successor.predecessors.addAll(predecessor.predecessors);
