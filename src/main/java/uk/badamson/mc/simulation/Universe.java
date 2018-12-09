@@ -963,6 +963,7 @@ public class Universe {
                 return false;
             }
             for (var transaction : mutualTransactions) {
+                assert transaction.transactionCoordinator == this;
                 if (!transaction.mayCommit()) {
                     return false;
                 }
@@ -1403,15 +1404,6 @@ public class Universe {
         }
     }
 
-    @GuardedBy("destination.lock, source.lock")
-    private static void copyOrdering(final TransactionCoordinator source, final TransactionCoordinator destination) {
-        assert Thread.holdsLock(source.lock);
-        assert Thread.holdsLock(destination.lock);
-        destination.predecessors.addAll(source.predecessors);
-        destination.successors.addAll(source.successors);
-        destination.mutualTransactions.addAll(source.mutualTransactions);
-    }
-
     /*
      * Merging can remove predecessors, so merging can make committing possible.
      */
@@ -1420,9 +1412,11 @@ public class Universe {
         assert Thread.holdsLock(destination.lock);
         while (!sources.isEmpty()) {
             assert !sources.contains(destination);
-            for (var s : sources) {
-                assert Thread.holdsLock(s.lock);
-                copyOrdering(s, destination);
+            for (var source : sources) {
+                assert Thread.holdsLock(source.lock);
+                destination.predecessors.addAll(source.predecessors);
+                destination.successors.addAll(source.successors);
+                destination.mutualTransactions.addAll(source.mutualTransactions);
             }
             destination.predecessors.removeAll(sources);
             destination.successors.removeAll(sources);
