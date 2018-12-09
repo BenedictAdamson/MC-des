@@ -280,7 +280,7 @@ public class Universe {
 
         @NonNull
         @GuardedBy("lock")
-        private TransactionOpenness openness = TransactionOpenness.READING;
+        private TransactionOpenness openness;
 
         private Transaction(@NonNull Long id, @NonNull TransactionListener listener) {
             super(id);
@@ -291,6 +291,7 @@ public class Universe {
                 pastTheEndReads = new HashSet<>();
                 when = null;
                 transactionCoordinator = createTransactionCoordinator(this);
+                openness = TransactionOpenness.READING;
             }
         }
 
