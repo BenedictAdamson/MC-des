@@ -3530,10 +3530,11 @@ public class UniverseTest {
             }
 
         };
-        final Universe.Transaction transaction = universe.beginTransaction(listener);
-        transaction.beginWrite(when);
-        transaction.put(object, state);
-        transaction.beginCommit();
+        try (final Universe.Transaction transaction = universe.beginTransaction(listener);) {
+            transaction.beginWrite(when);
+            transaction.put(object, state);
+            transaction.beginCommit();
+        }
     }
 
     private static Future<Void> runInOtherThread(final CountDownLatch ready, final Runnable operation) {
