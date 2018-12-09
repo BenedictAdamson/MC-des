@@ -410,6 +410,7 @@ public class Universe {
 
         @GuardedBy("lock")
         private void commit() {
+            assert Thread.holdsLock(lock);
             assert pastTheEndReads.isEmpty();
             assert openness == TransactionOpenness.COMMITTING;
             openness = TransactionOpenness.COMMITTED;
@@ -628,7 +629,6 @@ public class Universe {
         @GuardedBy("transaction chain")
         private boolean mayCommit() {
             assert Thread.holdsLock(lock);
-            assert transactionCoordinator.mutualTransactions.contains(this);
             return openness == TransactionOpenness.COMMITTING && pastTheEndReads.isEmpty();
         }
 
@@ -688,6 +688,7 @@ public class Universe {
 
         @GuardedBy("transaction chain")
         private void reallyAbort() {
+            assert Thread.holdsLock(lock);
             reallyBeginAbort();
 
             openness = TransactionOpenness.ABORTED;
@@ -700,6 +701,7 @@ public class Universe {
 
         @GuardedBy("transaction chain")
         private void reallyBeginAbort() {
+            assert Thread.holdsLock(lock);
             assert openness != TransactionOpenness.ABORTED;
             openness = TransactionOpenness.ABORTING;
             noLongerAnUncommittedReader();
@@ -714,6 +716,7 @@ public class Universe {
 
         @GuardedBy("transaction chain")
         private void reallyBeginCommit() {
+            assert Thread.holdsLock(lock);
             assert transactionCoordinator.mutualTransactions.contains(this);
             openness = TransactionOpenness.COMMITTING;
             transactionCoordinator.commitIfPossible();
@@ -888,7 +891,9 @@ public class Universe {
 
         @GuardedBy("transaction chain")
         private final void beginAbort() {
+            assert Thread.holdsLock(lock);
             for (var predecessor : predecessors) {
+                assert Thread.holdsLock(predecessor.lock);
                 predecessor.successors.remove(this);
             }
             for (var transaction : mutualTransactions) {
@@ -1300,6 +1305,8 @@ public class Universe {
 
     private static void addPredecessor(@NonNull final Transaction predecessor, @NonNull final Transaction successor) {
         withLockedChain2(predecessor, successor, () -> {
+            assert Thread.holdsLock(predecessor.lock);
+            assert Thread.holdsLock(successor.lock);
             addPredecessor(predecessor.transactionCoordinator, successor.transactionCoordinator);
         });
     }
@@ -1371,6 +1378,8 @@ public class Universe {
 
     @GuardedBy("destination.lock, source.lock")
     private static void copyOrdering(final TransactionCoordinator source, final TransactionCoordinator destination) {
+        assert Thread.holdsLock(source.lock);
+        assert Thread.holdsLock(destination.lock);
         destination.predecessors.addAll(source.predecessors);
         destination.successors.addAll(source.successors);
         destination.mutualTransactions.addAll(source.mutualTransactions);
