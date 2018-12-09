@@ -258,13 +258,13 @@ public class Universe {
         private final Map<ObjectStateId, ObjectState> objectStatesRead = new HashMap<>();
 
         @GuardedBy("lock")
-        private final Map<UUID, ObjectState> objectStatesWritten = new HashMap<>();
+        private final Map<UUID, ObjectState> objectStatesWritten;
         @GuardedBy("lock")
-        private final Map<UUID, ObjectStateId> dependencies = new HashMap<>();
+        private final Map<UUID, ObjectStateId> dependencies;
 
         // Must be appended to and committed before this transaction.
         @GuardedBy("lock")
-        private final Set<UUID> pastTheEndReads = new HashSet<>();
+        private final Set<UUID> pastTheEndReads;
 
         @Nullable
         @GuardedBy("lock")
@@ -286,6 +286,10 @@ public class Universe {
             super(id);
             this.listener = Objects.requireNonNull(listener, "listener");
             synchronized (lock) {
+                objectStatesWritten = new HashMap<>();
+                dependencies = new HashMap<>();
+                pastTheEndReads = new HashSet<>();
+                when = null;
                 transactionCoordinator = createTransactionCoordinator(this);
             }
         }
