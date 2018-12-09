@@ -1344,31 +1344,29 @@ public class Universe {
     private static void addRequiredForLockedChain(final Set<Lockable> required, Transaction transaction,
             Set<Lockable> chain) {
         required.add(transaction);
-        required.add(transaction.transactionCoordinator);
-        if (chain.contains(transaction.transactionCoordinator)) {
-            required.addAll(transaction.transactionCoordinator.predecessors);
-            required.addAll(transaction.transactionCoordinator.mutualTransactions);
-            required.addAll(transaction.transactionCoordinator.successors);
-            for (var p : transaction.transactionCoordinator.predecessors) {
+        if (chain.contains(transaction)) {
+            required.add(transaction.transactionCoordinator);
+            if (chain.contains(transaction.transactionCoordinator)) {
+                addRequiredForLockedChain(required, transaction.transactionCoordinator, chain);
+            }
+        }
+    }
+
+    private static void addRequiredForLockedChain(final Set<Lockable> required,
+            TransactionCoordinator transactionCoordinator, Set<Lockable> chain) {
+        required.add(transactionCoordinator);
+        if (chain.contains(transactionCoordinator)) {
+            required.addAll(transactionCoordinator.predecessors);
+            required.addAll(transactionCoordinator.mutualTransactions);
+            required.addAll(transactionCoordinator.successors);
+            for (var p : transactionCoordinator.predecessors) {
                 if (chain.contains(p)) {
-                    required.addAll(p.mutualTransactions);
-                    /*
-                     * The latter is redundant if the successor and predecessor data is consistent,
-                     * but can be needed during merging.
-                     */
-                    required.addAll(p.predecessors);
-                    required.addAll(p.successors);
+                    addRequiredForLockedChain(required, p, chain);
                 }
             }
-            for (var s : transaction.transactionCoordinator.successors) {
+            for (var s : transactionCoordinator.successors) {
                 if (chain.contains(s)) {
-                    required.addAll(s.mutualTransactions);
-                    /*
-                     * The latter is redundant if the successor and predecessor data is consistent,
-                     * but can be needed during merging.
-                     */
-                    required.addAll(s.predecessors);
-                    required.addAll(s.successors);
+                    addRequiredForLockedChain(required, s, chain);
                 }
             }
         }
