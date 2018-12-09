@@ -892,27 +892,23 @@ public class Universe {
         }
 
         @GuardedBy("transaction chain")
-        private void commit1() {
-            for (Transaction transaction : mutualTransactions) {
-                transaction.commit();
-                lockables.remove(transaction.id);
-            }
-            mutualTransactions.clear();
-            for (var successor : successors) {
-                successor.predecessors.remove(this);
-            }
-        }
-
-        @GuardedBy("transaction chain")
         private void commitIfPossible() {
             if (mayCommit()) {
-                commit1();
+                assert predecessors.isEmpty();
+                for (Transaction transaction : mutualTransactions) {
+                    transaction.commit();
+                    lockables.remove(transaction.id);
+                }
+                mutualTransactions.clear();
+                for (var successor : successors) {
+                    // This is no longer blocking the successor.
+                    successor.predecessors.remove(this);
+                }
                 for (var successor : successors) {
                     assert successor != this;
-                    if (successor.mayCommit()) {
-                        successor.commit1();
-                    }
+                    successor.commitIfPossible();
                 }
+                successors.clear();
                 lockables.remove(id);
             }
         }
