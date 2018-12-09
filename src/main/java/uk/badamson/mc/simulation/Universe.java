@@ -1345,27 +1345,24 @@ public class Universe {
             Set<Lockable> chain) {
         required.add(transaction);
         if (chain.contains(transaction)) {
-            required.add(transaction.transactionCoordinator);
-            if (chain.contains(transaction.transactionCoordinator)) {
-                addRequiredForLockedChain(required, transaction.transactionCoordinator, chain);
-            }
+            assert Thread.holdsLock(transaction.lock);
+            addRequiredForLockedChain(required, transaction.transactionCoordinator, chain);
         }
     }
 
     private static void addRequiredForLockedChain(final Set<Lockable> required,
             TransactionCoordinator transactionCoordinator, Set<Lockable> chain) {
-        required.add(transactionCoordinator);
-        if (chain.contains(transactionCoordinator)) {
-            required.addAll(transactionCoordinator.predecessors);
-            required.addAll(transactionCoordinator.mutualTransactions);
-            required.addAll(transactionCoordinator.successors);
-            for (var p : transactionCoordinator.predecessors) {
-                if (chain.contains(p)) {
+        if (!required.contains(transactionCoordinator)) {
+            required.add(transactionCoordinator);
+            if (chain.contains(transactionCoordinator)) {
+                assert Thread.holdsLock(transactionCoordinator.lock);
+                for (var p : transactionCoordinator.predecessors) {
                     addRequiredForLockedChain(required, p, chain);
                 }
-            }
-            for (var s : transactionCoordinator.successors) {
-                if (chain.contains(s)) {
+                for (var t : transactionCoordinator.mutualTransactions) {
+                    addRequiredForLockedChain(required, t, chain);
+                }
+                for (var s : transactionCoordinator.successors) {
                     addRequiredForLockedChain(required, s, chain);
                 }
             }
