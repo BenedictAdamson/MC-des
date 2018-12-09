@@ -1352,11 +1352,23 @@ public class Universe {
             for (var p : transaction.transactionCoordinator.predecessors) {
                 if (chain.contains(p)) {
                     required.addAll(p.mutualTransactions);
+                    /*
+                     * The latter is redundant if the successor and predecessor data is consistent,
+                     * but can be needed during merging.
+                     */
+                    required.addAll(p.predecessors);
+                    required.addAll(p.successors);
                 }
             }
             for (var s : transaction.transactionCoordinator.successors) {
                 if (chain.contains(s)) {
                     required.addAll(s.mutualTransactions);
+                    /*
+                     * The latter is redundant if the successor and predecessor data is consistent,
+                     * but can be needed during merging.
+                     */
+                    required.addAll(s.predecessors);
+                    required.addAll(s.successors);
                 }
             }
         }
