@@ -840,8 +840,12 @@ public class Universe {
             for (Transaction pastTheEndReader : pastTheEndReadersToEscalateToSuccessors) {
                 Universe.addPredecessor(this, pastTheEndReader);
                 pastTheEndReader.withLockedTransactionChain(() -> {
+                    assert Thread.holdsLock(pastTheEndReader.lock);
+
                     pastTheEndReader.pastTheEndReads.remove(object);
-                    if (pastTheEndReader.pastTheEndReads.isEmpty()) {
+                    if (pastTheEndReader.openness == TransactionOpenness.COMMITTING
+                            && pastTheEndReader.pastTheEndReads.isEmpty()) {
+                        assert Thread.holdsLock(pastTheEndReader.transactionCoordinator.lock);
                         // might now be able to commit.
                         pastTheEndReader.transactionCoordinator.commitIfPossible();
                     }
@@ -1325,6 +1329,8 @@ public class Universe {
         withLockedChain2(predecessor, successor, () -> {
             assert Thread.holdsLock(predecessor.lock);
             assert Thread.holdsLock(successor.lock);
+            assert predecessor.transactionCoordinator.mutualTransactions.contains(predecessor);
+            assert successor.transactionCoordinator.mutualTransactions.contains(successor);
             addPredecessor(predecessor.transactionCoordinator, successor.transactionCoordinator);
         });
     }
