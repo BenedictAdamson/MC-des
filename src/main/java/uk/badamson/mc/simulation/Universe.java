@@ -913,6 +913,13 @@ public class Universe {
             }
         }
 
+        @GuardedBy("lock")
+        private Set<TransactionCoordinator> getCycles() {
+            final Set<TransactionCoordinator> cycles = new HashSet<>(predecessors);
+            cycles.retainAll(successors);
+            return cycles;
+        }
+
         @GuardedBy("transaction chain")
         private boolean mayCommit() {
             assert !successors.contains(this);
@@ -1284,7 +1291,7 @@ public class Universe {
         });
     }
 
-    @GuardedBy("predecessor.lock, successor.lock")
+    @GuardedBy("predecessor transaction chain, successor transaction chain")
     private static void addPredecessor(@NonNull final TransactionCoordinator predecessor,
             @NonNull final TransactionCoordinator successor) {
         if (predecessor == successor) {
@@ -1302,36 +1309,10 @@ public class Universe {
                 destination = successor;
                 source = predecessor;
             }
-            copyOrdering(source, destination);
-            destination.predecessors.remove(source);
-            destination.predecessors.remove(destination);
-            destination.successors.remove(source);
-            destination.successors.remove(destination);
-            final Set<TransactionCoordinator> cycles = new HashSet<>(destination.predecessors);
-            cycles.retainAll(destination.successors);
-            if (!cycles.isEmpty()) {
-                destination.predecessors.removeAll(cycles);
-                destination.successors.removeAll(cycles);
-                for (TransactionCoordinator cycler : cycles) {
-                    destination.mutualTransactions.addAll(cycler.mutualTransactions);
-                }
-            }
-            for (TransactionCoordinator p : destination.predecessors) {
-                p.predecessors.remove(source);
-                p.predecessors.remove(destination);
-                p.successors.remove(source);
-                p.successors.add(destination);
-            }
-            for (TransactionCoordinator s : destination.successors) {
-                s.predecessors.remove(source);
-                s.predecessors.add(destination);
-                s.successors.remove(source);
-                s.successors.remove(destination);
-            }
-            for (Transaction transaction : destination.mutualTransactions) {
-                transaction.transactionCoordinator = destination;
-            }
-            assert Collections.disjoint(destination.predecessors, destination.successors);
+            Set<TransactionCoordinator> sources = new HashSet<>();
+            sources.add(source);
+
+            merge(destination, sources);
         } else {
             successor.predecessors.add(predecessor);
             successor.predecessors.addAll(predecessor.predecessors);
@@ -1366,6 +1347,52 @@ public class Universe {
         destination.predecessors.addAll(source.predecessors);
         destination.successors.addAll(source.successors);
         destination.mutualTransactions.addAll(source.mutualTransactions);
+    }
+
+    @GuardedBy("destination transaction chain, sources transaction chains")
+    private static void merge(final TransactionCoordinator destination, Set<TransactionCoordinator> sources) {
+        while (!sources.isEmpty()) {
+            assert !sources.contains(destination);
+            for (var s : sources) {
+                copyOrdering(s, destination);
+            }
+            destination.predecessors.removeAll(sources);
+            destination.successors.removeAll(sources);
+            destination.successors.remove(destination);
+            destination.predecessors.remove(destination);
+            for (TransactionCoordinator p : destination.predecessors) {
+                p.predecessors.removeAll(sources);
+                p.successors.removeAll(sources);
+                p.successors.add(destination);
+            }
+            for (TransactionCoordinator s : destination.successors) {
+                s.predecessors.removeAll(sources);
+                s.successors.removeAll(sources);
+                s.predecessors.add(destination);
+            }
+            destination.successors.remove(destination);
+            destination.predecessors.remove(destination);
+
+            final Set<TransactionCoordinator> cycles = new HashSet<>(destination.getCycles());
+            for (TransactionCoordinator p : destination.predecessors) {
+                cycles.addAll(p.getCycles());
+                if (p.predecessors.contains(destination) && p.successors.contains(destination)) {
+                    cycles.add(p);
+                }
+            }
+            for (TransactionCoordinator s : destination.successors) {
+                cycles.addAll(s.getCycles());
+                if (s.predecessors.contains(destination) && s.successors.contains(destination)) {
+                    cycles.add(s);
+                }
+            }
+            cycles.remove(destination);
+            sources = cycles;
+        }
+        for (Transaction transaction : destination.mutualTransactions) {
+            transaction.transactionCoordinator = destination;
+        }
+        assert Collections.disjoint(destination.predecessors, destination.successors);
     }
 
     private static boolean withLockedChain(NavigableSet<Lockable> unlocked, Set<Lockable> chain,
