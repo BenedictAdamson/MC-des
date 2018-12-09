@@ -829,9 +829,14 @@ public class Universe {
             }
             for (Transaction pastTheEndReader : pastTheEndReadersToEscalateToSuccessors) {
                 Universe.addPredecessor(this, pastTheEndReader);
-                synchronized (pastTheEndReader.lock) {
+                pastTheEndReader.withLockedTransactionChain(() -> {
                     pastTheEndReader.pastTheEndReads.remove(object);
-                }
+                    /*
+                     * If pastTheEndReader.pastTheEndReads.isEmpty(), pastTheEndReader may now be
+                     * able to commit.
+                     */
+                    pastTheEndReader.transactionCoordinator.commitIfPossible();
+                });
             }
             return created;
         }
