@@ -882,9 +882,6 @@ public class Universe {
         @GuardedBy("lock")
         private final Set<TransactionCoordinator> predecessors;
 
-        /*
-         * mutualTransactions.isEmpty() for committed TransactionCoordinators.
-         */
         @NonNull
         @GuardedBy("lock")
         private final Set<Transaction> mutualTransactions;
@@ -915,6 +912,7 @@ public class Universe {
                 predecessor.successors.remove(this);
             }
             for (var transaction : mutualTransactions) {
+                assert transaction.transactionCoordinator == this;
                 transaction.beginAbort();
             }
             for (var successor : successors) {
@@ -932,7 +930,6 @@ public class Universe {
                     assert transaction.transactionCoordinator == this;
                     transaction.commit();
                 }
-                mutualTransactions.clear();
                 for (var successor : successors) {
                     assert Thread.holdsLock(successor.lock);
                     // This is no longer blocking the successor.
