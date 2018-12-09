@@ -831,11 +831,10 @@ public class Universe {
                 Universe.addPredecessor(this, pastTheEndReader);
                 pastTheEndReader.withLockedTransactionChain(() -> {
                     pastTheEndReader.pastTheEndReads.remove(object);
-                    /*
-                     * If pastTheEndReader.pastTheEndReads.isEmpty(), pastTheEndReader may now be
-                     * able to commit.
-                     */
-                    pastTheEndReader.transactionCoordinator.commitIfPossible();
+                    if (pastTheEndReader.pastTheEndReads.isEmpty()) {
+                        // might now be able to commit.
+                        pastTheEndReader.transactionCoordinator.commitIfPossible();
+                    }
                 });
             }
             return created;
