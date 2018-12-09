@@ -2384,7 +2384,7 @@ public class UniverseTest {
                 assertEquals(1, listener.commits, "Committed");
             }
 
-            @RepeatedTest(4)
+            @RepeatedTest(32)
             public void mutualReadPastLastMultiThreaded() {
                 final Duration historyStart = DURATION_1;
                 final Duration when1 = DURATION_2;
