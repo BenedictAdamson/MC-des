@@ -805,6 +805,11 @@ public class Universe {
             }
         }
 
+        @Override
+        public final String toString() {
+            return "Transaction [" + id + "," + openness + "]";
+        }
+
         private boolean tryToAppendToHistory(UUID object, ObjectState state) {
             assert when != null;
 
@@ -954,6 +959,11 @@ public class Universe {
                 }
             } // for
             return true;
+        }
+
+        @Override
+        public final String toString() {
+            return "TransactionCoordinator [" + id + "]";
         }
 
     }// class
