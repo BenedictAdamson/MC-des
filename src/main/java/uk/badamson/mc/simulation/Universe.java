@@ -1421,14 +1421,22 @@ public class Universe {
             destination.predecessors.remove(destination);
             for (TransactionCoordinator p : destination.predecessors) {
                 assert Thread.holdsLock(p.lock);
-                p.predecessors.removeAll(sources);
+                if (!Collections.disjoint(sources, p.predecessors)) {
+                    p.predecessors.removeAll(sources);
+                    p.predecessors.add(destination);
+                    // Will later remove p as a cycle.
+                }
                 p.successors.removeAll(sources);
                 p.successors.add(destination);
             }
             for (TransactionCoordinator s : destination.successors) {
                 assert Thread.holdsLock(s.lock);
+                if (!Collections.disjoint(sources, s.successors)) {
+                    s.successors.removeAll(sources);
+                    s.successors.add(destination);
+                    // Will later remove s as a cycle.
+                }
                 s.predecessors.removeAll(sources);
-                s.successors.removeAll(sources);
                 s.predecessors.add(destination);
             }
             destination.successors.remove(destination);
