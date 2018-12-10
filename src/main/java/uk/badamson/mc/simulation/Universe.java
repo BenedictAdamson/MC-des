@@ -960,6 +960,7 @@ public class Universe {
                 return false;
             }
             for (var transaction : mutualTransactions) {
+                assert Thread.holdsLock(transaction.lock);
                 assert transaction.transactionCoordinator == this;
                 if (!transaction.mayCommit()) {
                     return false;
@@ -1357,14 +1358,6 @@ public class Universe {
             sources.add(source);
 
             merge(destination, sources);
-            /* Merging can remove predecessors, and thus make committing possible. */
-            for (var p : destination.predecessors) {
-                p.commitIfPossible();
-            }
-            destination.commitIfPossible();
-            for (var s : destination.successors) {
-                s.commitIfPossible();
-            }
         } else {
             successor.predecessors.add(predecessor);
             successor.predecessors.addAll(predecessor.predecessors);
