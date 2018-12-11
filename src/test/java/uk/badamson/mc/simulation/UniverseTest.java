@@ -2407,20 +2407,21 @@ public class UniverseTest {
                     final int iObject = i;
                     futures.add(runInOtherThread(ready, () -> {
                         final CountingTransactionListener listener = new CountingTransactionListener();
-                        final Universe.Transaction transaction = universe.beginTransaction(listener);
-                        transactions.put(objects[iObject], new AtomicReference<Universe.Transaction>(transaction));
-                        for (int j = 0; j < nThreads; ++j) {
-                            final UUID object = objects[j];
-                            if (iObject == j) {
-                                transaction.getObjectState(object, when1);
-                            } else {
-                                transaction.getObjectState(object, when2);
+                        try (final Universe.Transaction transaction = universe.beginTransaction(listener);) {
+                            transactions.put(objects[iObject], new AtomicReference<Universe.Transaction>(transaction));
+                            for (int j = 0; j < nThreads; ++j) {
+                                final UUID object = objects[j];
+                                if (iObject == j) {
+                                    transaction.getObjectState(object, when1);
+                                } else {
+                                    transaction.getObjectState(object, when2);
+                                }
                             }
-                        }
-                        transaction.beginWrite(when3);
-                        transaction.put(objects[iObject], new ObjectStateTest.TestObjectState(1000 + iObject));
+                            transaction.beginWrite(when3);
+                            transaction.put(objects[iObject], new ObjectStateTest.TestObjectState(1000 + iObject));
 
-                        beginCommit(transaction);
+                            beginCommit(transaction);
+                        }
                     }));
                 }
 
