@@ -271,7 +271,6 @@ public class Universe {
         private Duration when;
 
         /*
-         * openness == ABORTED || openness == COMMITTED ||
          * transactionCoordinator.mutualTransactions.contains(this)
          */
         @NonNull
@@ -897,11 +896,17 @@ public class Universe {
         /*
          * Must be committed before the mutualTransactions. Includes indirect
          * predecessors.
+         * 
+         * assert !(predecesors.contains(p1) && p1.predecessors.contains(p2) &&
+         * !predecessors.contains(p2));
          */
         @NonNull
         @GuardedBy("lock")
         private final Set<TransactionCoordinator> predecessors;
 
+        /*
+         * assert !(mutualTransactions.contains(t) && t.transactionCoordiantor != this);
+         */
         @NonNull
         @GuardedBy("lock")
         private final Set<Transaction> mutualTransactions;
@@ -909,6 +914,9 @@ public class Universe {
         /*
          * Must be committed after the mutualTransactions. Includes indirect successors.
          * successors.isEmpty() for committed TransactionCoordinators.
+         * 
+         * assert !(successors.contains(s1) && s1.successors.contains(sp2) &&
+         * !successors.contains(s2));
          */
         @NonNull
         @GuardedBy("lock")
@@ -941,25 +949,30 @@ public class Universe {
         }
 
         @GuardedBy("transaction chain")
+        private void commit() {
+            assert predecessors.isEmpty();
+            for (Transaction transaction : mutualTransactions) {
+                assert Thread.holdsLock(transaction.lock);
+                assert transaction.transactionCoordinator == this;
+                transaction.commit();
+            }
+            for (var successor : successors) {
+                assert Thread.holdsLock(successor.lock);
+                // This is no longer blocking the successor.
+                successor.predecessors.remove(this);
+            }
+            for (var successor : successors) {
+                assert successor != this;
+                successor.commitIfPossible();
+            }
+            lockables.remove(id);
+        }
+
+        @GuardedBy("transaction chain")
         private void commitIfPossible() {
             assert Thread.holdsLock(lock);
             if (mayCommit()) {
-                assert predecessors.isEmpty();
-                for (Transaction transaction : mutualTransactions) {
-                    assert Thread.holdsLock(transaction.lock);
-                    assert transaction.transactionCoordinator == this;
-                    transaction.commit();
-                }
-                for (var successor : successors) {
-                    assert Thread.holdsLock(successor.lock);
-                    // This is no longer blocking the successor.
-                    successor.predecessors.remove(this);
-                }
-                for (var successor : successors) {
-                    assert successor != this;
-                    successor.commitIfPossible();
-                }
-                lockables.remove(id);
+                commit();
             }
         }
 
@@ -1440,6 +1453,7 @@ public class Universe {
                 p.successors.removeAll(sources);
                 p.successors.add(destination);
                 // p.predecessors.isEmpty() is possible
+                assert !p.mayCommit();
             }
             for (TransactionCoordinator s : destination.successors) {
                 assert Thread.holdsLock(s.lock);
