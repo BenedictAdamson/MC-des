@@ -540,8 +540,21 @@ public class Universe {
                 objectState = getOpenness().readUncachedObjectState(this, id, additionalPredecessors);
             }
             // else used cached value
-            for (var transaction : additionalPredecessors) {
-                Universe.addPredecessor(transaction, this);
+            for (var predecessor : additionalPredecessors) {
+                Universe.withLockedChain2(predecessor, this, () -> {
+                    assert Thread.holdsLock(predecessor.lock);
+                    assert Thread.holdsLock(lock);
+                    assert predecessor.transactionCoordinator.mutualTransactions.contains(predecessor);
+                    assert transactionCoordinator.mutualTransactions.contains(this);
+                    assert openness == TransactionOpenness.READING;
+
+                    Universe.addPredecessor(predecessor.transactionCoordinator, transactionCoordinator);
+                    /*
+                     * this is still READING, and has acquired an additional predecessor or mutual
+                     * transaction, so committing it should be impossible.
+                     */
+                    assert !mayCommit();
+                });
             }
             return objectState;
         }
@@ -843,15 +856,18 @@ public class Universe {
                     assert Thread.holdsLock(pastTheEndReader.lock);
                     assert transactionCoordinator.mutualTransactions.contains(this);
                     assert pastTheEndReader.transactionCoordinator.mutualTransactions.contains(pastTheEndReader);
+                    assert openness == TransactionOpenness.WRITING;
 
                     Universe.addPredecessor(transactionCoordinator, pastTheEndReader.transactionCoordinator);
                     pastTheEndReader.pastTheEndReads.remove(object);
-                    if (pastTheEndReader.openness == TransactionOpenness.COMMITTING
-                            && pastTheEndReader.pastTheEndReads.isEmpty()) {
-                        assert Thread.holdsLock(pastTheEndReader.transactionCoordinator.lock);
-                        // might now be able to commit.
-                        pastTheEndReader.transactionCoordinator.commitIfPossible();
-                    }
+
+                    /*
+                     * this transaction is WRITING, so committing it should be impossible. this is
+                     * now a predecessor or a mutualTransaction with the pastTheEndReader, so
+                     * committing it should be impossible too.
+                     */
+                    assert !mayCommit();
+                    assert !(pastTheEndReader.mayCommit() && pastTheEndReader.transactionCoordinator.mayCommit());
                 });
             }
             return created;
@@ -1326,16 +1342,6 @@ public class Universe {
     }// enum
 
     private static final ValueHistory<ObjectState> EMPTY_STATE_HISTORY = new ConstantValueHistory<>((ObjectState) null);
-
-    private static void addPredecessor(@NonNull final Transaction predecessor, @NonNull final Transaction successor) {
-        withLockedChain2(predecessor, successor, () -> {
-            assert Thread.holdsLock(predecessor.lock);
-            assert Thread.holdsLock(successor.lock);
-            assert predecessor.transactionCoordinator.mutualTransactions.contains(predecessor);
-            assert successor.transactionCoordinator.mutualTransactions.contains(successor);
-            addPredecessor(predecessor.transactionCoordinator, successor.transactionCoordinator);
-        });
-    }
 
     @GuardedBy("predecessor transaction chain, successor transaction chain")
     private static void addPredecessor(@NonNull final TransactionCoordinator predecessor,
