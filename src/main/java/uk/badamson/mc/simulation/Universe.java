@@ -843,15 +843,8 @@ public class Universe {
                     assert Thread.holdsLock(pastTheEndReader.lock);
                     assert transactionCoordinator.mutualTransactions.contains(this);
                     assert pastTheEndReader.transactionCoordinator.mutualTransactions.contains(pastTheEndReader);
-                    /*
-                     * Since we computed the set of pastTheEndReadersToEscalateToSuccessors, those
-                     * Transactions might have been changed by another thread, so we must re-check
-                     * whether a change is necessary.
-                     */
-                    if (transactionCoordinator != pastTheEndReader.transactionCoordinator
-                            && !transactionCoordinator.successors.contains(pastTheEndReader.transactionCoordinator)) {
-                        Universe.addPredecessor(transactionCoordinator, pastTheEndReader.transactionCoordinator);
-                    }
+
+                    Universe.addPredecessor(transactionCoordinator, pastTheEndReader.transactionCoordinator);
                     pastTheEndReader.pastTheEndReads.remove(object);
                     if (pastTheEndReader.openness == TransactionOpenness.COMMITTING
                             && pastTheEndReader.pastTheEndReads.isEmpty()) {
