@@ -787,7 +787,7 @@ public class Universe {
             objectStatesRead.put(id, objectState);
 
             synchronized (lock) {
-                assert openness == TransactionOpenness.READING;
+                assert openness == TransactionOpenness.READING || openness == TransactionOpenness.ABORTING;
                 if (isPastTheEndRead) {
                     pastTheEndReads.add(object);
                 }
@@ -949,6 +949,13 @@ public class Universe {
             }
         }
 
+        private void clear() {
+            predecessors.clear();
+            mutualTransactions.clear();
+            successors.clear();
+            lockables.remove(id);
+        }
+
         @GuardedBy("transaction chain")
         private void commit() {
             assert predecessors.isEmpty();
@@ -966,7 +973,7 @@ public class Universe {
                 assert successor != this;
                 successor.commitIfPossible();
             }
-            lockables.remove(id);
+            clear();
         }
 
         @GuardedBy("transaction chain")
@@ -990,6 +997,8 @@ public class Universe {
             assert Thread.holdsLock(lock);
             assert !successors.contains(this);
             assert !predecessors.contains(this);
+            assert !mutualTransactions.isEmpty();// else dangling reference
+
             if (!predecessors.isEmpty()) {
                 return false;
             }
@@ -1416,6 +1425,7 @@ public class Universe {
                 for (var p : transactionCoordinator.predecessors) {
                     addRequiredForLockedChain(required, p, chain);
                 }
+                // transactionCoordinator.mutualTransactions.isEmpty() permitted
                 for (var t : transactionCoordinator.mutualTransactions) {
                     addRequiredForLockedChain(required, t, chain);
                 }
@@ -1432,10 +1442,12 @@ public class Universe {
     @GuardedBy("destination transaction chain, sources transaction chains")
     private static void merge(final TransactionCoordinator destination, Set<TransactionCoordinator> sources) {
         assert Thread.holdsLock(destination.lock);
+        assert !destination.mutualTransactions.isEmpty();// else dangling reference
         while (!sources.isEmpty()) {
             assert !sources.contains(destination);
             for (var source : sources) {
                 assert Thread.holdsLock(source.lock);
+                assert !source.mutualTransactions.isEmpty();// else dangling reference
                 destination.predecessors.addAll(source.predecessors);
                 destination.successors.addAll(source.successors);
                 destination.mutualTransactions.addAll(source.mutualTransactions);
@@ -1469,6 +1481,9 @@ public class Universe {
             }
             destination.successors.remove(destination);
             destination.predecessors.remove(destination);
+            for (var source : sources) {
+                source.clear();
+            }
             /*
              * destination.predecessors.isEmpty() is possible, but in that case committing
              * it will still not be possible
