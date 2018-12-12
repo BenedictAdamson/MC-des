@@ -554,6 +554,7 @@ public class Universe {
                      * transaction, so committing it should be impossible.
                      */
                     assert !mayCommit();
+                    assert !(predecessor.mayCommit() && predecessor.transactionCoordinator.mayCommit());
                 });
             }
             return objectState;
@@ -1438,6 +1439,7 @@ public class Universe {
                 }
                 p.successors.removeAll(sources);
                 p.successors.add(destination);
+                // p.predecessors.isEmpty() is possible
             }
             for (TransactionCoordinator s : destination.successors) {
                 assert Thread.holdsLock(s.lock);
@@ -1448,9 +1450,14 @@ public class Universe {
                 }
                 s.predecessors.removeAll(sources);
                 s.predecessors.add(destination);
+                assert !s.predecessors.isEmpty();// hence can not commit
             }
             destination.successors.remove(destination);
             destination.predecessors.remove(destination);
+            /*
+             * destination.predecessors.isEmpty() is possible, but in that case committing
+             * it will still not be possible
+             */
 
             final Set<TransactionCoordinator> cycles = new HashSet<>(destination.getCycles());
             for (TransactionCoordinator p : destination.predecessors) {
