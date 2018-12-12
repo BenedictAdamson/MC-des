@@ -1370,8 +1370,16 @@ public class Universe {
         } else {
             successor.predecessors.add(predecessor);
             successor.predecessors.addAll(predecessor.predecessors);
+            for (var s : successor.successors) {
+                s.predecessors.add(predecessor);
+                assert Collections.disjoint(s.predecessors, s.successors);
+            }
             predecessor.successors.add(successor);
             predecessor.successors.addAll(successor.successors);
+            for (var p : predecessor.predecessors) {
+                p.successors.add(successor);
+                assert Collections.disjoint(p.predecessors, p.successors);
+            }
         }
     }
 
