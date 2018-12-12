@@ -787,6 +787,7 @@ public class Universe {
             objectStatesRead.put(id, objectState);
 
             synchronized (lock) {
+                assert openness == TransactionOpenness.READING;
                 if (isPastTheEndRead) {
                     pastTheEndReads.add(object);
                 }
@@ -1496,6 +1497,7 @@ public class Universe {
             transaction.transactionCoordinator = destination;
         }
         assert Collections.disjoint(destination.predecessors, destination.successors);
+        assert !destination.mayCommit();
     }
 
     private static boolean withLockedChain(NavigableSet<Lockable> unlocked, Set<Lockable> chain,
