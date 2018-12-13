@@ -2431,9 +2431,30 @@ public class UniverseTest {
                 ready.countDown();
                 get(futures);
                 UniverseTest.assertInvariants(universe);
+                final Universe.TransactionCoordinator coordinator0 = transactions.get(objects[0])
+                        .get().transactionCoordinator;
+                UniverseTest.assertInvariants(coordinator0);
+
                 for (int i = 0; i < nThreads; ++i) {
                     final UUID object = objects[i];
                     final Universe.Transaction transaction = transactions.get(object).get();
+                    assertInvariants(transaction);
+                    final Universe.TransactionCoordinator coordinator;
+                    synchronized (transaction.lock) {
+                        coordinator = transaction.transactionCoordinator;
+                    }
+                    assertSame(coordinator0, coordinator, "All the transactions have merged");
+                }
+
+                for (int i = 0; i < nThreads; ++i) {
+                    final UUID object = objects[i];
+                    final Universe.Transaction transaction = transactions.get(object).get();
+                    assertInvariants(transaction);
+                    final Universe.TransactionCoordinator coordinator;
+                    synchronized (transaction.lock) {
+                        coordinator = transaction.transactionCoordinator;
+                    }
+                    assertSame(coordinator0, coordinator, "All the transactions have merged");
                     assertEquals(Universe.TransactionOpenness.COMMITTED, transaction.getOpenness(),
                             "Committed write for object [" + i + "]");
                     assertEquals(when3, universe.getLatestCommit(object), "Committed write for object [" + i + "]");

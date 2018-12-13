@@ -275,7 +275,7 @@ public class Universe {
          */
         @NonNull
         @GuardedBy("lock")
-        private TransactionCoordinator transactionCoordinator;
+        TransactionCoordinator transactionCoordinator;
 
         @NonNull
         @GuardedBy("lock")
@@ -893,7 +893,7 @@ public class Universe {
 
     }// class
 
-    private final class TransactionCoordinator extends Lockable {
+    final class TransactionCoordinator extends Lockable {
         /*
          * Must be committed before the mutualTransactions. Includes indirect
          * predecessors.
