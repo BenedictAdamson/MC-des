@@ -59,7 +59,7 @@ import uk.badamson.mc.history.ValueHistory;
 @ThreadSafe
 public class Universe {
 
-    private abstract class Lockable implements Comparable<Lockable> {
+    abstract class Lockable implements Comparable<Lockable> {
 
         /*
          * If locks are to be held on multiple Lockable objects, the locks must be

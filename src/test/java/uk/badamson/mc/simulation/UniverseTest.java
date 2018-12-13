@@ -61,6 +61,7 @@ import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
+import uk.badamson.mc.ComparableTest;
 import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.history.ModifiableValueHistory;
 import uk.badamson.mc.history.ValueHistory;
@@ -3289,20 +3290,15 @@ public class UniverseTest {
         }
 
         public static void assertInvariants(Universe.Transaction transaction) {
-            ObjectTest.assertInvariants(transaction);// inherited
+            UniverseTest.assertInvariants(transaction);// inherited
 
-            final Universe universe = transaction.getUniverse();
-
-            assertNotNull(universe, "universe");// guard
-
-            assertAll(() -> UniverseTest.assertInvariants(universe),
-                    () -> assertObjectStatesReadInvariants(transaction),
+            assertAll(() -> assertObjectStatesReadInvariants(transaction),
                     () -> assertObjectStatesWrittenInvariants(transaction),
                     () -> assertDependenciesInvariants(transaction), () -> assertOpennessInvariants(transaction));
         }
 
         public static void assertInvariants(Universe.Transaction transaction1, Universe.Transaction transaction2) {
-            ObjectTest.assertInvariants(transaction1, transaction2);// inherited
+            UniverseTest.assertInvariants(transaction1, transaction2);// inherited
         }
 
         private static Map<ObjectStateId, ObjectState> assertObjectStatesReadInvariants(
@@ -3404,6 +3400,23 @@ public class UniverseTest {
 
     public static void assertInvariants(Universe universe, UUID object, Duration when) {
         // Do nothing
+    }
+
+    private static void assertInvariants(Universe.Lockable lockable) {
+        ObjectTest.assertInvariants(lockable);// inherited
+        ComparableTest.assertInvariants(lockable);// inherited
+
+        final Universe universe = lockable.getUniverse();
+
+        assertNotNull(universe, "universe");// guard
+
+        UniverseTest.assertInvariants(universe);
+    }
+
+    private static void assertInvariants(Universe.Lockable lockable1, Universe.Lockable lockable2) {
+        ObjectTest.assertInvariants(lockable1, lockable2);// inherited
+        ComparableTest.assertInvariants(lockable1, lockable2);// inherited
+        ComparableTest.assertComparableConsistentWithEquals(lockable1, lockable2);
     }
 
     private static @Nullable Duration assertLatestCommitInvariants(@NonNull Universe universe, @NonNull UUID object) {
