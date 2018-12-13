@@ -264,7 +264,7 @@ public class Universe {
 
         // Must be appended to and committed before this transaction.
         @GuardedBy("lock")
-        private final Set<UUID> pastTheEndReads;
+        final Set<UUID> pastTheEndReads;
 
         @Nullable
         @GuardedBy("lock")

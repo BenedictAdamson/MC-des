@@ -2455,10 +2455,13 @@ public class UniverseTest {
                     final Universe.Transaction transaction = transactions.get(object).get();
                     assertInvariants(transaction);
                     final Universe.TransactionCoordinator coordinator;
+                    final Set<UUID> pastTheEndReads;
                     synchronized (transaction.lock) {
                         coordinator = transaction.transactionCoordinator;
+                        pastTheEndReads = transaction.pastTheEndReads;
                     }
                     assertSame(coordinator0, coordinator, "All the transactions have merged");
+                    assertTrue(pastTheEndReads.isEmpty(), "All past-the-end-reads converted to mutual dependency");
                     assertEquals(Universe.TransactionOpenness.COMMITTED, transaction.getOpenness(),
                             "Committed write for object [" + i + "]");
                     assertEquals(when3, universe.getLatestCommit(object), "Committed write for object [" + i + "]");
