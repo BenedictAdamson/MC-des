@@ -903,14 +903,14 @@ public class Universe {
          */
         @NonNull
         @GuardedBy("lock")
-        private final Set<TransactionCoordinator> predecessors;
+        final Set<TransactionCoordinator> predecessors;
 
         /*
          * assert !(mutualTransactions.contains(t) && t.transactionCoordiantor != this);
          */
         @NonNull
         @GuardedBy("lock")
-        private final Set<Transaction> mutualTransactions;
+        final Set<Transaction> mutualTransactions;
 
         /*
          * Must be committed after the mutualTransactions. Includes indirect successors.
@@ -921,9 +921,9 @@ public class Universe {
          */
         @NonNull
         @GuardedBy("lock")
-        private final Set<TransactionCoordinator> successors;
+        final Set<TransactionCoordinator> successors;
 
-        TransactionCoordinator(@NonNull Long id, @NonNull Transaction transaction) {
+        private TransactionCoordinator(@NonNull Long id, @NonNull Transaction transaction) {
             super(id);
             synchronized (lock) {
                 predecessors = new HashSet<>();

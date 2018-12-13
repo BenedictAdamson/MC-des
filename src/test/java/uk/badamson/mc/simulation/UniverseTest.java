@@ -2434,6 +2434,10 @@ public class UniverseTest {
                 final Universe.TransactionCoordinator coordinator0 = transactions.get(objects[0])
                         .get().transactionCoordinator;
                 UniverseTest.assertInvariants(coordinator0);
+                synchronized (coordinator0.lock) {
+                    assertTrue(coordinator0.predecessors.isEmpty(), "TransactionCoordinator has no predecessors");
+                    assertTrue(coordinator0.successors.isEmpty(), "TransactionCoordinator has no succesors");
+                }
 
                 for (int i = 0; i < nThreads; ++i) {
                     final UUID object = objects[i];
