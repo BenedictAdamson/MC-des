@@ -2417,9 +2417,11 @@ public class UniverseTest {
                                 } else {
                                     transaction.getObjectState(object, when2);
                                 }
+                                assertInvariants(transaction);
                             }
                             transaction.beginWrite(when3);
                             transaction.put(objects[iObject], new ObjectStateTest.TestObjectState(1000 + iObject));
+                            assertInvariants(transaction);
 
                             beginCommit(transaction);
                         }
