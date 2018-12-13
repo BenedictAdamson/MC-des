@@ -737,6 +737,10 @@ public class Universe {
             assert Thread.holdsLock(lock);
             assert transactionCoordinator.mutualTransactions.contains(this);
             openness = TransactionOpenness.COMMITTING;
+            if (!pastTheEndReads.isEmpty()) {
+                // Optimization
+                return;
+            }
             transactionCoordinator.commitIfPossible();
         }
 
