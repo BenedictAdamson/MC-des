@@ -114,23 +114,24 @@ public class Universe {
         }
     }// class
 
-    static final class ObjectData {
+    final class ObjectData extends Lockable {
 
-        @GuardedBy("this")
+        @GuardedBy("lock")
         private final ModifiableValueHistory<ObjectState> stateHistory;
 
-        @GuardedBy("this")
+        @GuardedBy("lock")
         private final ModifiableSetHistory<Transaction> uncommittedReaders;
 
-        @GuardedBy("this")
+        @GuardedBy("lock")
         private final ModifiableSetHistory<Transaction> uncommittedWriters;
 
         @NonNull
-        @GuardedBy("this")
+        @GuardedBy("lock")
         private Duration latestCommit;
 
-        ObjectData(Duration whenCreated, ObjectState createdState, Transaction creator) {
-            synchronized (this) {
+        ObjectData(final Long id, Duration whenCreated, ObjectState createdState, Transaction creator) {
+            super(id);
+            synchronized (lock) {
                 stateHistory = new ModifiableValueHistory<>();
                 stateHistory.appendTransition(whenCreated, createdState);
                 uncommittedReaders = new ModifiableSetHistory<>();
@@ -140,77 +141,89 @@ public class Universe {
             }
         }
 
-        private synchronized void commit1Writer(Transaction transaction, Duration when, ObjectState state) {
-            assert latestCommit.compareTo(when) < 0;
-            if (state != null) {
-                latestCommit = when;
-            } else {// destruction is forever
-                latestCommit = ValueHistory.END_OF_TIME;
+        private void commit1Writer(Transaction transaction, Duration when, ObjectState state) {
+            synchronized (lock) {
+                assert latestCommit.compareTo(when) < 0;
+                if (state != null) {
+                    latestCommit = when;
+                } else {// destruction is forever
+                    latestCommit = ValueHistory.END_OF_TIME;
+                }
+                uncommittedWriters.remove(transaction);
+                assert stateHistory.getTransitionTimes().contains(when);
             }
-            uncommittedWriters.remove(transaction);
-            assert stateHistory.getTransitionTimes().contains(when);
         }
 
-        private synchronized Duration getLastCommit() {
-            return latestCommit;
+        private Duration getLastCommit() {
+            synchronized (lock) {
+                return latestCommit;
+            }
         }
 
-        private synchronized ValueHistory<ObjectState> getStateHistory() {
-            return new ModifiableValueHistory<>(stateHistory);
+        private ValueHistory<ObjectState> getStateHistory() {
+            synchronized (lock) {
+                return new ModifiableValueHistory<>(stateHistory);
+            }
         }
 
-        private synchronized void removeUncommittedReader(Transaction transaction) {
-            uncommittedReaders.remove(transaction);
+        private void removeUncommittedReader(Transaction transaction) {
+            synchronized (lock) {
+                uncommittedReaders.remove(transaction);
+            }
         }
 
-        private synchronized boolean rollBackWrite(Transaction transaction, Duration when) {
-            if (latestCommit.compareTo(when) < 0 && uncommittedWriters.contains(transaction).get(when)) {
-                stateHistory.removeTransitionsFrom(when);
+        private boolean rollBackWrite(Transaction transaction, Duration when) {
+            synchronized (lock) {
+                if (latestCommit.compareTo(when) < 0 && uncommittedWriters.contains(transaction).get(when)) {
+                    stateHistory.removeTransitionsFrom(when);
+                }
+                // else aborting because of an out-of-order write
+                uncommittedWriters.remove(transaction);// optimisation
+                return stateHistory.isEmpty();
             }
-            // else aborting because of an out-of-order write
-            uncommittedWriters.remove(transaction);// optimisation
-            return stateHistory.isEmpty();
         }
 
-        private synchronized boolean tryToAppendToHistory(Transaction transaction, UUID object, Duration when,
-                ObjectState state, Set<Transaction> transactionsToAbort,
-                Set<Transaction> pastTheEndReadersToEscalateToSuccessors) throws IllegalStateException {
-            assert when != null;
-            if (when.compareTo(latestCommit) <= 0) {
-                // Another transaction has committed a write that invalidates this transaction.
-                throw new IllegalStateException("when before last commit");
+        private boolean tryToAppendToHistory(Transaction transaction, UUID object, Duration when, ObjectState state,
+                Set<Transaction> transactionsToAbort, Set<Transaction> pastTheEndReadersToEscalateToSuccessors)
+                throws IllegalStateException {
+            synchronized (lock) {
+                assert when != null;
+                if (when.compareTo(latestCommit) <= 0) {
+                    // Another transaction has committed a write that invalidates this transaction.
+                    throw new IllegalStateException("when before last commit");
+                }
+                if (state != null && !stateHistory.isEmpty() && stateHistory.getLastValue() == null) {
+                    // Not added to uncommittedWriters.
+                    throw new IllegalStateException("Attempted resurrection of a dead object");
+                }
+
+                final Duration lastTransition0 = stateHistory.getLastTansitionTime();
+                assert lastTransition0 == null || latestCommit.compareTo(lastTransition0) <= 0;
+
+                if (state != null && stateHistory.getFirstTansitionTime().equals(when)
+                        && Boolean.TRUE.equals(uncommittedWriters.contains(transaction).get(when))
+                        && state.equals(stateHistory.get(when))) {
+                    // The given transaction is the creator of the object
+                    return true;
+                } else {// appending
+                    assert lastTransition0 != null;
+                    stateHistory.appendTransition(when, state);// throws IllegalStateException
+                    assert lastTransition0.compareTo(when) < 0;
+
+                    uncommittedWriters.addFrom(when, transaction);
+                    // We have replaced the value written by these other transactions.
+                    transactionsToAbort.addAll(uncommittedReaders.get(when));
+
+                    /*
+                     * Because when must be after lastTransition0, we know that lastTransition0 is
+                     * not at the end of time, so we can compute a point in time just after
+                     * lastTransition0 without danger of overflow.
+                     */
+                    final Duration justAfterPreviousTransition = lastTransition0.plusNanos(1);
+                    pastTheEndReadersToEscalateToSuccessors.addAll(uncommittedReaders.get(justAfterPreviousTransition));
+                }
+                return false;
             }
-            if (state != null && !stateHistory.isEmpty() && stateHistory.getLastValue() == null) {
-                // Not added to uncommittedWriters.
-                throw new IllegalStateException("Attempted resurrection of a dead object");
-            }
-
-            final Duration lastTransition0 = stateHistory.getLastTansitionTime();
-            assert lastTransition0 == null || latestCommit.compareTo(lastTransition0) <= 0;
-
-            if (state != null && stateHistory.getFirstTansitionTime().equals(when)
-                    && Boolean.TRUE.equals(uncommittedWriters.contains(transaction).get(when))
-                    && state.equals(stateHistory.get(when))) {
-                // The given transaction is the creator of the object
-                return true;
-            } else {// appending
-                assert lastTransition0 != null;
-                stateHistory.appendTransition(when, state);// throws IllegalStateException
-                assert lastTransition0.compareTo(when) < 0;
-
-                uncommittedWriters.addFrom(when, transaction);
-                // We have replaced the value written by these other transactions.
-                transactionsToAbort.addAll(uncommittedReaders.get(when));
-
-                /*
-                 * Because when must be after lastTransition0, we know that lastTransition0 is
-                 * not at the end of time, so we can compute a point in time just after
-                 * lastTransition0 without danger of overflow.
-                 */
-                final Duration justAfterPreviousTransition = lastTransition0.plusNanos(1);
-                pastTheEndReadersToEscalateToSuccessors.addAll(uncommittedReaders.get(justAfterPreviousTransition));
-            }
-            return false;
         }
     }// class
 
@@ -773,7 +786,7 @@ public class Universe {
             if (od == null) {// unknown object
                 objectState = null;
             } else {
-                synchronized (od) {
+                synchronized (od.lock) {
                     objectState = od.stateHistory.get(when);
                     if (addTriggers && od.latestCommit.compareTo(when) < 0) {
                         // Is reading an uncommitted state.
@@ -840,7 +853,7 @@ public class Universe {
 
             final Set<Transaction> transactionsToAbort = new HashSet<>();
             final Set<Transaction> pastTheEndReadersToEscalateToSuccessors = new HashSet<>();
-            final ObjectData od = objectDataMap.computeIfAbsent(object, (o) -> new ObjectData(when, state, this));
+            final ObjectData od = objectDataMap.computeIfAbsent(object, (o) -> createObjectData(when, state, this));
             final boolean created;
             try {
                 created = od.tryToAppendToHistory(this, object, when, state, transactionsToAbort,
@@ -1637,6 +1650,18 @@ public class Universe {
             id = nextTransactionId.getAndIncrement();
         } while (lockables.putIfAbsent(id, new Transaction(id, listener)) != null);
         return (Transaction) lockables.get(id);
+    }
+
+    private @NonNull ObjectData createObjectData(@NonNull final Duration whenCreated,
+            @NonNull final ObjectState createdState, @NonNull final Transaction creator) {
+        assert whenCreated != null;
+        assert createdState != null;
+        assert creator != null;
+        Long id;
+        do {
+            id = nextTransactionId.getAndIncrement();
+        } while (lockables.putIfAbsent(id, new ObjectData(id, whenCreated, createdState, creator)) != null);
+        return (ObjectData) lockables.get(id);
     }
 
     private @NonNull TransactionCoordinator createTransactionCoordinator(@NonNull final Transaction transaction) {
