@@ -276,7 +276,7 @@ public class Universe {
         private Duration when;
 
         /*
-         * transactionCoordinator.mutualTransactions.contains(this)
+         * assert transactionCoordinator.mutualTransactions.contains(this)
          */
         @NonNull
         @GuardedBy("lock")
@@ -676,6 +676,7 @@ public class Universe {
         private void reallyBeginAbort() {
             assert Thread.holdsLock(lock);
             assert openness != TransactionOpenness.ABORTED;
+
             openness = TransactionOpenness.ABORTING;
             noLongerAnUncommittedReader();
             rollBackWrites();
@@ -834,7 +835,7 @@ public class Universe {
 
         @Override
         public final String toString() {
-            return "Transaction [" + id + "," + openness + "]";
+            return "Transaction [" + id + "," + getOpenness() + "]";
         }
 
         private boolean tryToAppendToHistory(UUID object, ObjectState state) {
@@ -968,6 +969,7 @@ public class Universe {
                 predecessor.successors.remove(this);
             }
             for (var transaction : mutualTransactions) {
+                assert Thread.holdsLock(transaction.lock);
                 assert transaction.transactionCoordinator == this;
                 transaction.beginAbort();
             }
