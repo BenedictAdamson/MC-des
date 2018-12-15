@@ -674,6 +674,8 @@ public class Universe {
             openness = TransactionOpenness.ABORTED;
             // Help the garbage collector:
             pastTheEndReads.clear();
+
+            lockables.remove(id);
             awaitingAbortCallbacks.add(listener);
 
         }
@@ -768,7 +770,7 @@ public class Universe {
 
         @GuardedBy("trasaction chain of this")
         private @Nullable ObjectState reallyReadUncachedObjectStateWhileReading1(@NonNull ObjectStateId id,
-                ObjectData od) {
+                @NonNull ObjectData od) {
             assert Thread.holdsLock(lock);
             assert Thread.holdsLock(od.lock);
             assert openness == TransactionOpenness.READING;
