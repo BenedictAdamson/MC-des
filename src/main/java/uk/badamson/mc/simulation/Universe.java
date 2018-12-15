@@ -260,15 +260,20 @@ public class Universe {
         private final TransactionListener listener;
 
         @GuardedBy("lock")
-        private final Map<ObjectStateId, ObjectState> objectStatesRead = new HashMap<>();
+        @NonNull
+        private final Map<ObjectStateId, ObjectState> objectStatesRead;
 
         @GuardedBy("lock")
+        @NonNull
         private final Map<UUID, ObjectState> objectStatesWritten;
+
         @GuardedBy("lock")
+        @NonNull
         private final Map<UUID, ObjectStateId> dependencies;
 
         // Must be appended to and committed before this transaction.
         @GuardedBy("lock")
+        @NonNull
         final Map<UUID, ObjectData> pastTheEndReads;
 
         @Nullable
@@ -290,6 +295,7 @@ public class Universe {
             super(id);
             this.listener = Objects.requireNonNull(listener, "listener");
             synchronized (lock) {
+                objectStatesRead = new HashMap<>();
                 objectStatesWritten = new HashMap<>();
                 dependencies = new HashMap<>();
                 pastTheEndReads = new HashMap<>();
@@ -767,10 +773,9 @@ public class Universe {
                 }
             }
 
-            objectStatesRead.put(id, objectState);
-
             synchronized (lock) {
                 assert openness == TransactionOpenness.ABORTING;
+                objectStatesRead.put(id, objectState);
                 final ObjectStateId dependency0 = dependencies.get(object);
                 if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
                     dependencies.put(object, id);
@@ -789,12 +794,14 @@ public class Universe {
 
             final var od = objectDataMap.get(object);
             if (od == null) {// unknown object
-                objectStatesRead.put(id, null);
-                final ObjectStateId dependency0 = dependencies.get(object);
-                if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
-                    dependencies.put(object, id);
+                synchronized (lock) {
+                    objectStatesRead.put(id, null);
+                    final ObjectStateId dependency0 = dependencies.get(object);
+                    if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
+                        dependencies.put(object, id);
+                    }
+                    assert dependencies.containsKey(object);
                 }
-                assert dependencies.containsKey(object);
                 return null;
             } else {
                 final AtomicReference<ObjectState> objectState = new AtomicReference<>();
@@ -805,6 +812,7 @@ public class Universe {
             }
         }
 
+        @GuardedBy("trasaction chain of this")
         private @Nullable ObjectState reallyReadUncachedObjectStateWhileReading1(@NonNull ObjectStateId id,
                 ObjectData od) {
             assert Thread.holdsLock(lock);
