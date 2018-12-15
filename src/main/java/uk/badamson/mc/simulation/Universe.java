@@ -179,6 +179,8 @@ public class Universe {
                 Set<Transaction> transactionsToAbort, Set<Transaction> pastTheEndReadersToEscalateToSuccessors)
                 throws IllegalStateException {
             assert when != null;
+            assert Thread.holdsLock(lock);
+
             if (when.compareTo(latestCommit) <= 0) {
                 // Another transaction has committed a write that invalidates this transaction.
                 throw new IllegalStateException("when before last commit");
