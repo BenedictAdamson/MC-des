@@ -2392,14 +2392,16 @@ public class UniverseTest {
                 final Duration when2 = DURATION_3;
                 final Duration when3 = DURATION_4;
 
+                final int nThreads = Runtime.getRuntime().availableProcessors() * 4;
                 /*
                  * Use multiple latches to limit the kinds of interleaving, so we are mostly
                  * testing only beginCommit().
                  */
                 final CountDownLatch readyToStart = new CountDownLatch(1);
+                final CountDownLatch readsDone = new CountDownLatch(nThreads);
                 final CountDownLatch readyToWrite = new CountDownLatch(1);
+                final CountDownLatch writesDone = new CountDownLatch(nThreads);
                 final CountDownLatch readyToCommit = new CountDownLatch(1);
-                final int nThreads = Runtime.getRuntime().availableProcessors() * 4;
 
                 final UUID[] objects = new UUID[nThreads];
                 final Map<UUID, AtomicReference<Universe.Transaction>> transactions = new ConcurrentHashMap<>(nThreads);
@@ -2424,6 +2426,7 @@ public class UniverseTest {
                                     transaction.getObjectState(object, when2);
                                 }
                             }
+                            readsDone.countDown();
                             try {
                                 readyToWrite.await();
                             } catch (InterruptedException e) {
@@ -2431,6 +2434,7 @@ public class UniverseTest {
                             }
                             transaction.beginWrite(when3);
                             transaction.put(objects[iObject], new ObjectStateTest.TestObjectState(1000 + iObject));
+                            writesDone.countDown();
                             try {
                                 readyToCommit.await();
                             } catch (InterruptedException e) {
@@ -2443,9 +2447,21 @@ public class UniverseTest {
                 }
 
                 readyToStart.countDown();
+                try {
+                    readsDone.await();
+                } catch (InterruptedException e) {
+                    throw new AssertionError(e);
+                }
                 readyToWrite.countDown();
+                try {
+                    writesDone.await();
+                } catch (InterruptedException e) {
+                    throw new AssertionError(e);
+                }
                 readyToCommit.countDown();
+                
                 get(futures);
+                
                 UniverseTest.assertInvariants(universe);
                 final Universe.TransactionCoordinator coordinator0 = transactions.get(objects[0])
                         .get().transactionCoordinator;
