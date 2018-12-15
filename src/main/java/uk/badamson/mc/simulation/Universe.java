@@ -1505,9 +1505,6 @@ public class Universe {
         }
     }
 
-    /*
-     * Merging can remove predecessors, so merging can make committing possible.
-     */
     @GuardedBy("destination transaction chain, sources transaction chains")
     private static void merge(final TransactionCoordinator destination, Set<TransactionCoordinator> sources) {
         assert Thread.holdsLock(destination.lock);
@@ -1612,21 +1609,21 @@ public class Universe {
         }
     }
 
-    private static boolean withLockedChain2(Transaction transaction, ObjectData od, NavigableSet<Lockable> unlocked,
+    private static boolean withLockedChain2(Lockable lockable1, Lockable lockable2, NavigableSet<Lockable> unlocked,
             Set<Lockable> chain, Runnable runnable) {
         return withLockedChain(unlocked, chain, () -> {
             final Set<Lockable> required = new HashSet<>();
-            transaction.addRequiredForLockedChain(required, chain);
-            od.addRequiredForLockedChain(required, chain);
+            lockable1.addRequiredForLockedChain(required, chain);
+            lockable2.addRequiredForLockedChain(required, chain);
             return required;
         }, runnable);
     }
 
-    private static void withLockedChain2(Transaction transaction, ObjectData od, Runnable runnable) {
+    private static void withLockedChain2(Lockable lockable1, Lockable lockable2, Runnable runnable) {
         final NavigableSet<Lockable> chain = new TreeSet<>();
-        transaction.addRequiredForLockedChain(chain, Collections.emptySet());
-        od.addRequiredForLockedChain(chain, Collections.emptySet());
-        while (!withLockedChain2(transaction, od, chain, chain, runnable)) {
+        lockable1.addRequiredForLockedChain(chain, Collections.emptySet());
+        lockable2.addRequiredForLockedChain(chain, Collections.emptySet());
+        while (!withLockedChain2(lockable1, lockable2, chain, chain, runnable)) {
             // try again
         }
     }
