@@ -1629,13 +1629,14 @@ public class Universe {
     }
 
     private final Object historyLock = new Object();
+
     @NonNull
     @GuardedBy("historyLock")
     private Duration historyStart;
 
     private final Map<UUID, ObjectData> objectDataMap = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Long, Lockable> lockables = new ConcurrentHashMap<>();
-    private final AtomicLong nextTransactionId = new AtomicLong(Long.MIN_VALUE);
+    private final AtomicLong nextLockableId = new AtomicLong(Long.MIN_VALUE);
     private final Queue<TransactionListener> awaitingCommitCallbacks = new ConcurrentLinkedQueue<>();
     private final Queue<TransactionListener> awaitingAbortCallbacks = new ConcurrentLinkedQueue<>();
 
@@ -1701,7 +1702,7 @@ public class Universe {
         Objects.requireNonNull(listener, "listener");
         Long id;
         do {
-            id = nextTransactionId.getAndIncrement();
+            id = nextLockableId.getAndIncrement();
         } while (lockables.putIfAbsent(id, new Transaction(id, listener)) != null);
         return (Transaction) lockables.get(id);
     }
@@ -1713,7 +1714,7 @@ public class Universe {
         assert creator != null;
         Long id;
         do {
-            id = nextTransactionId.getAndIncrement();
+            id = nextLockableId.getAndIncrement();
         } while (lockables.putIfAbsent(id, new ObjectData(id, whenCreated, createdState, creator)) != null);
         return (ObjectData) lockables.get(id);
     }
@@ -1722,7 +1723,7 @@ public class Universe {
         assert transaction != null;
         Long id;
         do {
-            id = nextTransactionId.getAndIncrement();
+            id = nextLockableId.getAndIncrement();
         } while (lockables.putIfAbsent(id, new TransactionCoordinator(id, transaction)) != null);
         return (TransactionCoordinator) lockables.get(id);
     }
