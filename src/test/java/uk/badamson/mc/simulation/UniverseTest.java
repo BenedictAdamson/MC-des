@@ -2385,7 +2385,7 @@ public class UniverseTest {
                 assertEquals(1, listener.commits, "Committed");
             }
 
-            @RepeatedTest(32)
+            @RepeatedTest(8)
             public void mutualReadPastLastMultiThreaded() {
                 final Duration historyStart = DURATION_1;
                 final Duration when1 = DURATION_2;
@@ -2487,7 +2487,7 @@ public class UniverseTest {
                     final Universe.Transaction transaction = transactions.get(object).get();
                     assertInvariants(transaction);
                     final Universe.TransactionCoordinator coordinator;
-                    final Set<UUID> pastTheEndReads;
+                    final Map<UUID, Universe.ObjectData> pastTheEndReads;
                     synchronized (transaction.lock) {
                         coordinator = transaction.transactionCoordinator;
                         pastTheEndReads = transaction.pastTheEndReads;
@@ -3381,7 +3381,7 @@ public class UniverseTest {
                     final Universe.Transaction transaction = transactions.get(object).get();
                     assertInvariants(transaction);
                     final Universe.TransactionCoordinator coordinator;
-                    final Set<UUID> pastTheEndReads;
+                    final Map<UUID, Universe.ObjectData> pastTheEndReads;
                     synchronized (transaction.lock) {
                         coordinator = transaction.transactionCoordinator;
                         pastTheEndReads = transaction.pastTheEndReads;
@@ -3556,7 +3556,7 @@ public class UniverseTest {
                 final Universe.Transaction transaction = transactions.get(object).get();
                 assertInvariants(transaction);
                 final Universe.TransactionCoordinator coordinator;
-                final Set<UUID> pastTheEndReads;
+                final Map<UUID, Universe.ObjectData> pastTheEndReads;
                 synchronized (transaction.lock) {
                     coordinator = transaction.transactionCoordinator;
                     pastTheEndReads = transaction.pastTheEndReads;
@@ -3660,7 +3660,7 @@ public class UniverseTest {
                 final Universe.Transaction transaction = transactions.get(object).get();
                 assertInvariants(transaction);
                 final Universe.TransactionCoordinator coordinator;
-                final Set<UUID> pastTheEndReads;
+                final Map<UUID, Universe.ObjectData> pastTheEndReads;
                 synchronized (transaction.lock) {
                     coordinator = transaction.transactionCoordinator;
                     pastTheEndReads = transaction.pastTheEndReads;
@@ -3760,7 +3760,7 @@ public class UniverseTest {
                 final Universe.Transaction transaction = transactions.get(object).get();
                 assertInvariants(transaction);
                 final Universe.TransactionCoordinator coordinator;
-                final Set<UUID> pastTheEndReads;
+                final Map<UUID, Universe.ObjectData> pastTheEndReads;
                 synchronized (transaction.lock) {
                     coordinator = transaction.transactionCoordinator;
                     pastTheEndReads = transaction.pastTheEndReads;

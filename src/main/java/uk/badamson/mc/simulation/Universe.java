@@ -32,7 +32,9 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -166,10 +168,9 @@ public class Universe {
             }
         }
 
+        @GuardedBy("lock")
         private void removeUncommittedReader(Transaction transaction) {
-            synchronized (lock) {
-                uncommittedReaders.remove(transaction);
-            }
+            uncommittedReaders.remove(transaction);
         }
 
         private boolean rollBackWrite(Transaction transaction, Duration when) {
@@ -183,48 +184,48 @@ public class Universe {
             }
         }
 
+        @GuardedBy("lock")
         private boolean tryToAppendToHistory(Transaction transaction, UUID object, Duration when, ObjectState state,
                 Set<Transaction> transactionsToAbort, Set<Transaction> pastTheEndReadersToEscalateToSuccessors)
                 throws IllegalStateException {
-            synchronized (lock) {
-                assert when != null;
-                if (when.compareTo(latestCommit) <= 0) {
-                    // Another transaction has committed a write that invalidates this transaction.
-                    throw new IllegalStateException("when before last commit");
-                }
-                if (state != null && !stateHistory.isEmpty() && stateHistory.getLastValue() == null) {
-                    // Not added to uncommittedWriters.
-                    throw new IllegalStateException("Attempted resurrection of a dead object");
-                }
-
-                final Duration lastTransition0 = stateHistory.getLastTansitionTime();
-                assert lastTransition0 == null || latestCommit.compareTo(lastTransition0) <= 0;
-
-                if (state != null && stateHistory.getFirstTansitionTime().equals(when)
-                        && Boolean.TRUE.equals(uncommittedWriters.contains(transaction).get(when))
-                        && state.equals(stateHistory.get(when))) {
-                    // The given transaction is the creator of the object
-                    return true;
-                } else {// appending
-                    assert lastTransition0 != null;
-                    stateHistory.appendTransition(when, state);// throws IllegalStateException
-                    assert lastTransition0.compareTo(when) < 0;
-
-                    uncommittedWriters.addFrom(when, transaction);
-                    // We have replaced the value written by these other transactions.
-                    transactionsToAbort.addAll(uncommittedReaders.get(when));
-
-                    /*
-                     * Because when must be after lastTransition0, we know that lastTransition0 is
-                     * not at the end of time, so we can compute a point in time just after
-                     * lastTransition0 without danger of overflow.
-                     */
-                    final Duration justAfterPreviousTransition = lastTransition0.plusNanos(1);
-                    pastTheEndReadersToEscalateToSuccessors.addAll(uncommittedReaders.get(justAfterPreviousTransition));
-                }
-                return false;
+            assert when != null;
+            if (when.compareTo(latestCommit) <= 0) {
+                // Another transaction has committed a write that invalidates this transaction.
+                throw new IllegalStateException("when before last commit");
             }
+            if (state != null && !stateHistory.isEmpty() && stateHistory.getLastValue() == null) {
+                // Not added to uncommittedWriters.
+                throw new IllegalStateException("Attempted resurrection of a dead object");
+            }
+
+            final Duration lastTransition0 = stateHistory.getLastTansitionTime();
+            assert lastTransition0 == null || latestCommit.compareTo(lastTransition0) <= 0;
+
+            if (state != null && stateHistory.getFirstTansitionTime().equals(when)
+                    && Boolean.TRUE.equals(uncommittedWriters.contains(transaction).get(when))
+                    && state.equals(stateHistory.get(when))) {
+                // The given transaction is the creator of the object
+                return true;
+            } else {// appending
+                assert lastTransition0 != null;
+                stateHistory.appendTransition(when, state);// throws IllegalStateException
+                assert lastTransition0.compareTo(when) < 0;
+
+                uncommittedWriters.addFrom(when, transaction);
+                // We have replaced the value written by these other transactions.
+                transactionsToAbort.addAll(uncommittedReaders.get(when));
+
+                /*
+                 * Because when must be after lastTransition0, we know that lastTransition0 is
+                 * not at the end of time, so we can compute a point in time just after
+                 * lastTransition0 without danger of overflow.
+                 */
+                final Duration justAfterPreviousTransition = lastTransition0.plusNanos(1);
+                pastTheEndReadersToEscalateToSuccessors.addAll(uncommittedReaders.get(justAfterPreviousTransition));
+            }
+            return false;
         }
+
     }// class
 
     /**
@@ -263,11 +264,7 @@ public class Universe {
         @NonNull
         private final TransactionListener listener;
 
-        /*
-         * May acquire a lock on this.lock while have a lock on a
-         * TransactionCoordinator, but not vice versa.
-         */
-
+        @GuardedBy("lock")
         private final Map<ObjectStateId, ObjectState> objectStatesRead = new HashMap<>();
 
         @GuardedBy("lock")
@@ -277,7 +274,7 @@ public class Universe {
 
         // Must be appended to and committed before this transaction.
         @GuardedBy("lock")
-        final Set<UUID> pastTheEndReads;
+        final Map<UUID, ObjectData> pastTheEndReads;
 
         @Nullable
         @GuardedBy("lock")
@@ -300,7 +297,7 @@ public class Universe {
             synchronized (lock) {
                 objectStatesWritten = new HashMap<>();
                 dependencies = new HashMap<>();
-                pastTheEndReads = new HashSet<>();
+                pastTheEndReads = new HashMap<>();
                 when = null;
                 transactionCoordinator = createTransactionCoordinator(this);
                 openness = TransactionOpenness.READING;
@@ -546,30 +543,16 @@ public class Universe {
             final ObjectStateId id = new ObjectStateId(object, when);
             @Nullable
             ObjectState objectState;
-            final Set<Transaction> additionalPredecessors = new HashSet<>();
-            objectState = objectStatesRead.get(id);
-            if (objectState == null && !objectStatesRead.containsKey(id)) {
+            final boolean readUncached;
+            synchronized (lock) {
+                objectState = objectStatesRead.get(id);
+                readUncached = objectState == null && !objectStatesRead.containsKey(id);
+            }
+            if (readUncached) {
                 // Value is not cached
-                objectState = getOpenness().readUncachedObjectState(this, id, additionalPredecessors);
+                objectState = getOpenness().readUncachedObjectState(this, id);
             }
             // else used cached value
-            for (var predecessor : additionalPredecessors) {
-                Universe.withLockedChain2(predecessor, this, () -> {
-                    assert Thread.holdsLock(predecessor.lock);
-                    assert Thread.holdsLock(lock);
-                    assert predecessor.transactionCoordinator.mutualTransactions.contains(predecessor);
-                    assert transactionCoordinator.mutualTransactions.contains(this);
-                    assert openness == TransactionOpenness.READING;
-
-                    Universe.addPredecessor(predecessor.transactionCoordinator, transactionCoordinator);
-                    /*
-                     * this is still READING, and has acquired an additional predecessor or mutual
-                     * transaction, so committing it should be impossible.
-                     */
-                    assert !mayCommit();
-                    assert !(predecessor.mayCommit() && predecessor.transactionCoordinator.mayCommit());
-                });
-            }
             return objectState;
         }
 
@@ -597,7 +580,9 @@ public class Universe {
          * @see Universe#getObjectState(UUID, Duration)
          */
         public final @NonNull Map<ObjectStateId, ObjectState> getObjectStatesRead() {
-            return new HashMap<>(objectStatesRead);
+            synchronized (lock) {
+                return new HashMap<>(objectStatesRead);
+            }
         }
 
         /**
@@ -664,11 +649,9 @@ public class Universe {
             return openness == TransactionOpenness.COMMITTING && pastTheEndReads.isEmpty();
         }
 
-        @GuardedBy("lock")
+        @GuardedBy("transaction chain of this")
         private void noLongerAnUncommittedReader() {
-            final Set<UUID> objects;
-            objects = dependencies.keySet();
-            for (UUID object : objects) {
+            for (UUID object : dependencies.keySet()) {
                 var od = objectDataMap.get(object);
                 if (od != null) {
                     od.removeUncommittedReader(this);
@@ -760,18 +743,17 @@ public class Universe {
         }
 
         private void reallyBeginWrite(@NonNull Duration when) {
-            if (objectStatesRead.keySet().stream().map(id -> id.getWhen()).filter(t -> 0 <= t.compareTo(when)).findAny()
-                    .orElse(null) != null) {
-                throw new IllegalStateException("Time-stamp of read state at or after the given time.");
-            }
             synchronized (lock) {
+                if (objectStatesRead.keySet().stream().map(id -> id.getWhen()).filter(t -> 0 <= t.compareTo(when))
+                        .findAny().orElse(null) != null) {
+                    throw new IllegalStateException("Time-stamp of read state at or after the given time.");
+                }
                 this.when = when;
                 openness = TransactionOpenness.WRITING;
             }
         }
 
-        private @Nullable ObjectState reallyReadUncachedObjectState(@NonNull ObjectStateId id, boolean addTriggers,
-                Set<Transaction> additionalPredecessors) {
+        private @Nullable ObjectState reallyReadUncachedObjectStateWhileAborting(@NonNull ObjectStateId id) {
             final UUID object = id.getObject();
             final Duration when = id.getWhen();
 
@@ -779,44 +761,106 @@ public class Universe {
                 throw new Universe.PrehistoryException();
             }
 
+            final var od = objectDataMap.get(object);
             @Nullable
             final ObjectState objectState;
-            boolean isPastTheEndRead = false;
-            final var od = objectDataMap.get(object);
             if (od == null) {// unknown object
                 objectState = null;
             } else {
                 synchronized (od.lock) {
                     objectState = od.stateHistory.get(when);
-                    if (addTriggers && od.latestCommit.compareTo(when) < 0) {
-                        // Is reading an uncommitted state.
-                        if (od.stateHistory.getLastTansitionTime().compareTo(when) < 0) {
-                            isPastTheEndRead = true;
-                        } else {
-                            @NonNull
-                            final Duration nextWrite = od.stateHistory.getTansitionTimeAtOrAfter(when);
-                            additionalPredecessors.addAll(od.uncommittedWriters.get(nextWrite));
-                        }
-                        od.uncommittedReaders.addUntil(when, this);
-                        additionalPredecessors.addAll(od.uncommittedWriters.get(when));
-                    }
                 }
             }
 
             objectStatesRead.put(id, objectState);
 
             synchronized (lock) {
-                assert openness == TransactionOpenness.READING || openness == TransactionOpenness.ABORTING;
-                if (isPastTheEndRead) {
-                    pastTheEndReads.add(object);
-                }
-
+                assert openness == TransactionOpenness.ABORTING;
                 final ObjectStateId dependency0 = dependencies.get(object);
                 if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
                     dependencies.put(object, id);
                 }
                 assert dependencies.containsKey(object);
             }
+            return objectState;
+        }
+
+        private @Nullable ObjectState reallyReadUncachedObjectStateWhileReading(@NonNull ObjectStateId id) {
+            final UUID object = id.getObject();
+            final Duration when = id.getWhen();
+            if (when.compareTo(getHistoryStart()) < 0) {
+                throw new Universe.PrehistoryException();
+            }
+
+            final var od = objectDataMap.get(object);
+            if (od == null) {// unknown object
+                objectStatesRead.put(id, null);
+                final ObjectStateId dependency0 = dependencies.get(object);
+                if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
+                    dependencies.put(object, id);
+                }
+                assert dependencies.containsKey(object);
+                return null;
+            } else {
+                final AtomicReference<ObjectState> objectState = new AtomicReference<>();
+                Universe.withLockedChain2(this, od, () -> {
+                    objectState.set(reallyReadUncachedObjectStateWhileReading1(id, od));
+                });
+                return objectState.get();
+            }
+        }
+
+        private @Nullable ObjectState reallyReadUncachedObjectStateWhileReading1(@NonNull ObjectStateId id,
+                ObjectData od) {
+            assert Thread.holdsLock(lock);
+            assert Thread.holdsLock(od.lock);
+            assert openness == TransactionOpenness.READING;
+
+            final UUID object = id.getObject();
+            final Duration when = id.getWhen();
+            final Set<Transaction> additionalPredecessors = new HashSet<>();
+            boolean isPastTheEndRead = false;
+            final ObjectState objectState = od.stateHistory.get(when);
+            if (od.latestCommit.compareTo(when) < 0) {
+                // Is reading an uncommitted state.
+                if (od.stateHistory.getLastTansitionTime().compareTo(when) < 0) {
+                    isPastTheEndRead = true;
+                } else {
+                    @NonNull
+                    final Duration nextWrite = od.stateHistory.getTansitionTimeAtOrAfter(when);
+                    additionalPredecessors.addAll(od.uncommittedWriters.get(nextWrite));
+                }
+                od.uncommittedReaders.addUntil(when, this);
+                additionalPredecessors.addAll(od.uncommittedWriters.get(when));
+            }
+
+            objectStatesRead.put(id, objectState);
+
+            assert openness == TransactionOpenness.READING;
+            if (isPastTheEndRead) {
+                pastTheEndReads.put(object, od);
+            }
+
+            final ObjectStateId dependency0 = dependencies.get(object);
+            if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
+                dependencies.put(object, id);
+            }
+            assert dependencies.containsKey(object);
+
+            for (var predecessor : additionalPredecessors) {
+                assert Thread.holdsLock(predecessor.lock);
+                assert predecessor.transactionCoordinator.mutualTransactions.contains(predecessor);
+                assert transactionCoordinator.mutualTransactions.contains(this);
+
+                Universe.addPredecessor(predecessor.transactionCoordinator, transactionCoordinator);
+                /*
+                 * this is still READING, and has acquired an additional predecessor or mutual
+                 * transaction, so committing it should be impossible.
+                 */
+                assert !mayCommit();
+                assert !(predecessor.mayCommit() && predecessor.transactionCoordinator.mayCommit());
+            }
+
             return objectState;
         }
 
@@ -849,19 +893,35 @@ public class Universe {
         }
 
         private boolean tryToAppendToHistory(UUID object, ObjectState state) {
-            assert when != null;
+            final ObjectData od = objectDataMap.computeIfAbsent(object, (o) -> createObjectData(when, state, this));
+            final AtomicBoolean result = new AtomicBoolean(false);
 
+            final NavigableSet<Lockable> chain = new TreeSet<>(Collections.reverseOrder());
+            chain.add(this);
+            chain.add(od);
+            while (!withLockedTransactionChain(chain, chain, () -> {
+                result.set(tryToAppendToHistory1(object, state));
+                return;
+            })) {
+                // try again
+            }
+            ;
+            return result.get();
+        }
+
+        private boolean tryToAppendToHistory1(UUID object, ObjectState state) {
+            assert Thread.holdsLock(lock);
+            assert when != null;
             final Set<Transaction> transactionsToAbort = new HashSet<>();
             final Set<Transaction> pastTheEndReadersToEscalateToSuccessors = new HashSet<>();
-            final ObjectData od = objectDataMap.computeIfAbsent(object, (o) -> createObjectData(when, state, this));
+            final ObjectData od = objectDataMap.get(object);
+            assert Thread.holdsLock(od.lock);
             final boolean created;
             try {
                 created = od.tryToAppendToHistory(this, object, when, state, transactionsToAbort,
                         pastTheEndReadersToEscalateToSuccessors);
             } catch (IllegalStateException e) {
-                synchronized (lock) {
-                    openness = TransactionOpenness.ABORTING;
-                }
+                openness = TransactionOpenness.ABORTING;
                 // Not added od.uncommittedWriters.
                 return false;
             }
@@ -871,26 +931,25 @@ public class Universe {
                 transaction.beginAbort();
             }
             for (Transaction pastTheEndReader : pastTheEndReadersToEscalateToSuccessors) {
-                Universe.withLockedChain2(this, pastTheEndReader, () -> {
-                    assert Thread.holdsLock(lock);
-                    assert Thread.holdsLock(pastTheEndReader.lock);
-                    assert transactionCoordinator.mutualTransactions.contains(this);
-                    assert pastTheEndReader.transactionCoordinator.mutualTransactions.contains(pastTheEndReader);
-                    assert openness == TransactionOpenness.WRITING;
+                assert Thread.holdsLock(lock);
+                assert Thread.holdsLock(pastTheEndReader.lock);
+                assert transactionCoordinator.mutualTransactions.contains(this);
+                assert pastTheEndReader.transactionCoordinator.mutualTransactions.contains(pastTheEndReader);
+                assert openness == TransactionOpenness.WRITING;
 
-                    Universe.addPredecessor(transactionCoordinator, pastTheEndReader.transactionCoordinator);
-                    pastTheEndReader.pastTheEndReads.remove(object);
+                Universe.addPredecessor(transactionCoordinator, pastTheEndReader.transactionCoordinator);
+                pastTheEndReader.pastTheEndReads.remove(object);
 
-                    /*
-                     * this transaction is WRITING, so committing it should be impossible. this is
-                     * now a predecessor or a mutualTransaction with the pastTheEndReader, so
-                     * committing it should be impossible too.
-                     */
-                    assert !mayCommit();
-                    assert !(pastTheEndReader.mayCommit() && pastTheEndReader.transactionCoordinator.mayCommit());
-                });
+                /*
+                 * this transaction is WRITING, so committing it should be impossible. this is
+                 * now a predecessor or a mutualTransaction with the pastTheEndReader, so
+                 * committing it should be impossible too.
+                 */
+                assert !mayCommit();
+                assert !(pastTheEndReader.mayCommit() && pastTheEndReader.transactionCoordinator.mayCommit());
             }
             return created;
+
         }
 
         private boolean withLockedTransactionChain(NavigableSet<Lockable> unlocked, Set<Lockable> chain,
@@ -904,7 +963,7 @@ public class Universe {
 
         private void withLockedTransactionChain(Runnable runnable) {
             final NavigableSet<Lockable> chain = new TreeSet<>(Collections.reverseOrder());
-            chain.add(this);
+            addRequiredForLockedChain(chain, this, Collections.emptySet());
             while (!withLockedTransactionChain(chain, chain, runnable)) {
                 // try again
             }
@@ -1133,9 +1192,8 @@ public class Universe {
 
             @Override
             @Nullable
-            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id,
-                    Set<Transaction> additionalPredecessors) {
-                return transaction.reallyReadUncachedObjectState(id, true, additionalPredecessors);
+            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
+                return transaction.reallyReadUncachedObjectStateWhileReading(id);
             }
         },
 
@@ -1183,8 +1241,7 @@ public class Universe {
 
             @Override
             @Nullable
-            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id,
-                    Set<Transaction> additionalPredecessors) {
+            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
                 throw new IllegalStateException("Already writing");
             }
         },
@@ -1223,8 +1280,7 @@ public class Universe {
 
             @Override
             @Nullable
-            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id,
-                    Set<Transaction> additionalPredecessors) {
+            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
                 throw new IllegalStateException("Already committing");
             }
         },
@@ -1266,10 +1322,8 @@ public class Universe {
 
             @Override
             @Nullable
-            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id,
-                    Set<Transaction> additionalPredecessors) {
-                // Refrain from adding additional read dependencies.
-                return transaction.reallyReadUncachedObjectState(id, false, additionalPredecessors);
+            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
+                return transaction.reallyReadUncachedObjectStateWhileAborting(id);
             }
         },
 
@@ -1315,8 +1369,7 @@ public class Universe {
 
             @Override
             @Nullable
-            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id,
-                    Set<Transaction> additionalPredecessors) {
+            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
                 throw new IllegalStateException("Committed");
             }
         },
@@ -1360,8 +1413,7 @@ public class Universe {
 
             @Override
             @Nullable
-            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id,
-                    Set<Transaction> additionalPredecessors) {
+            ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id) {
                 throw new IllegalStateException("Aborted");
             }
         };
@@ -1382,8 +1434,7 @@ public class Universe {
          */
         abstract boolean put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state);
 
-        abstract @Nullable ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id,
-                Set<Transaction> additionalPredecessors);
+        abstract @Nullable ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id);
     }// enum
 
     private static final ValueHistory<ObjectState> EMPTY_STATE_HISTORY = new ConstantValueHistory<>((ObjectState) null);
@@ -1428,12 +1479,37 @@ public class Universe {
         }
     }
 
+    private static void addRequiredForLockedChain(final Set<Lockable> required, ObjectData od, Set<Lockable> chain) {
+        if (!required.contains(od)) {
+            required.add(od);
+            if (chain.contains(od)) {
+                assert Thread.holdsLock(od.lock);
+                for (var r : od.uncommittedReaders.getUniverse()) {
+                    addRequiredForLockedChain(required, r, chain);
+                }
+                for (var w : od.uncommittedWriters.getUniverse()) {
+                    addRequiredForLockedChain(required, w, chain);
+                }
+            }
+        }
+        // else infinite recursion possible
+    }
+
     private static void addRequiredForLockedChain(final Set<Lockable> required, Transaction transaction,
             Set<Lockable> chain) {
-        required.add(transaction);
-        if (chain.contains(transaction)) {
-            assert Thread.holdsLock(transaction.lock);
-            addRequiredForLockedChain(required, transaction.transactionCoordinator, chain);
+        if (!required.contains(transaction)) {
+            required.add(transaction);
+            if (chain.contains(transaction)) {
+                assert Thread.holdsLock(transaction.lock);
+                addRequiredForLockedChain(required, transaction.transactionCoordinator, chain);
+                final Universe universe = transaction.getUniverse();
+                for (UUID object : transaction.dependencies.keySet()) {
+                    final ObjectData od = universe.objectDataMap.get(object);
+                    if (od != null) {
+                        addRequiredForLockedChain(required, od, chain);
+                    }
+                }
+            }
         }
     }
 
@@ -1564,21 +1640,21 @@ public class Universe {
         }
     }
 
-    private static boolean withLockedChain2(Transaction transaction1, Transaction transaction2,
-            NavigableSet<Lockable> unlocked, Set<Lockable> chain, Runnable runnable) {
+    private static boolean withLockedChain2(Transaction transaction, ObjectData od, NavigableSet<Lockable> unlocked,
+            Set<Lockable> chain, Runnable runnable) {
         return withLockedChain(unlocked, chain, () -> {
             final Set<Lockable> required = new HashSet<>();
-            addRequiredForLockedChain(required, transaction1, chain);
-            addRequiredForLockedChain(required, transaction2, chain);
+            addRequiredForLockedChain(required, transaction, chain);
+            addRequiredForLockedChain(required, od, chain);
             return required;
         }, runnable);
     }
 
-    private static void withLockedChain2(Transaction transaction1, Transaction transaction2, Runnable runnable) {
+    private static void withLockedChain2(Transaction transaction, ObjectData od, Runnable runnable) {
         final NavigableSet<Lockable> chain = new TreeSet<>(Collections.reverseOrder());
-        chain.add(transaction1);
-        chain.add(transaction2);
-        while (!withLockedChain2(transaction1, transaction2, chain, chain, runnable)) {
+        addRequiredForLockedChain(chain, transaction, Collections.emptySet());
+        addRequiredForLockedChain(chain, od, Collections.emptySet());
+        while (!withLockedChain2(transaction, od, chain, chain, runnable)) {
             // try again
         }
     }
