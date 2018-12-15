@@ -3388,8 +3388,6 @@ public class UniverseTest {
                     }
                     assertSame(coordinator0, coordinator, "All the transactions have merged");
                     assertTrue(pastTheEndReads.isEmpty(), "All past-the-end-reads converted to mutual dependency");
-                    assertEquals(Universe.TransactionOpenness.WRITING, transaction.getOpenness(),
-                            "Committed write for object [" + i + "]");
                 }
             }
 
