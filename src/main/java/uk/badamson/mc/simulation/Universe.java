@@ -120,7 +120,7 @@ public class Universe {
         @GuardedBy("lock")
         private Duration latestCommit;
 
-        ObjectData(final Long id, Duration whenCreated, ObjectState createdState, Transaction creator) {
+        private ObjectData(final Long id, Duration whenCreated, ObjectState createdState, Transaction creator) {
             super(id);
             synchronized (lock) {
                 stateHistory = new ModifiableValueHistory<>();
@@ -132,7 +132,7 @@ public class Universe {
             }
         }
 
-        private void commit1Writer(Transaction transaction, Duration when, ObjectState state) {
+        private void commit1Writer(Transaction transaction, @NonNull Duration when, ObjectState state) {
             synchronized (lock) {
                 assert latestCommit.compareTo(when) < 0;
                 if (state != null) {
@@ -163,7 +163,7 @@ public class Universe {
             uncommittedReaders.remove(transaction);
         }
 
-        private boolean rollBackWrite(Transaction transaction, Duration when) {
+        private boolean rollBackWrite(Transaction transaction, @NonNull Duration when) {
             synchronized (lock) {
                 if (latestCommit.compareTo(when) < 0 && uncommittedWriters.contains(transaction).get(when)) {
                     stateHistory.removeTransitionsFrom(when);
@@ -175,10 +175,12 @@ public class Universe {
         }
 
         @GuardedBy("lock")
-        private boolean tryToAppendToHistory(Transaction transaction, UUID object, Duration when, ObjectState state,
-                Set<Transaction> transactionsToAbort, Set<Transaction> pastTheEndReadersToEscalateToSuccessors)
-                throws IllegalStateException {
+        private boolean tryToAppendToHistory(Transaction transaction, UUID object, @NonNull Duration when,
+                @Nullable ObjectState state, @NonNull Set<Transaction> transactionsToAbort,
+                @NonNull Set<Transaction> pastTheEndReadersToEscalateToSuccessors) throws IllegalStateException {
             assert when != null;
+            assert transactionsToAbort != null;
+            assert pastTheEndReadersToEscalateToSuccessors != null;
             assert Thread.holdsLock(lock);
 
             if (when.compareTo(latestCommit) <= 0) {
@@ -212,6 +214,7 @@ public class Universe {
                  * not at the end of time, so we can compute a point in time just after
                  * lastTransition0 without danger of overflow.
                  */
+                @NonNull
                 final Duration justAfterPreviousTransition = lastTransition0.plusNanos(1);
                 pastTheEndReadersToEscalateToSuccessors.addAll(uncommittedReaders.get(justAfterPreviousTransition));
             }
