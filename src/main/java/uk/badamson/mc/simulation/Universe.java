@@ -19,7 +19,6 @@ package uk.badamson.mc.simulation;
  */
 
 import java.time.Duration;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -267,10 +266,6 @@ public class Universe {
         @NonNull
         private final Map<UUID, ObjectState> objectStatesWritten;
 
-        @GuardedBy("lock")
-        @NonNull
-        private final Map<UUID, ObjectStateId> dependencies;
-
         // Must be appended to and committed before this transaction.
         @GuardedBy("lock")
         @NonNull
@@ -297,7 +292,6 @@ public class Universe {
             synchronized (lock) {
                 objectStatesRead = new HashMap<>();
                 objectStatesWritten = new HashMap<>();
-                dependencies = new HashMap<>();
                 pastTheEndReads = new HashMap<>();
                 when = null;
                 transactionCoordinator = createTransactionCoordinator(this);
@@ -442,43 +436,6 @@ public class Universe {
             noLongerAnUncommittedReader();
             lockables.remove(id);
             listener.onCommit();
-        }
-
-        /**
-         * <p>
-         * The {@linkplain #getObjectStatesRead() object states read} by this
-         * transaction, expressed as the implied
-         * {@linkplain ObjectState#getDependencies() dependencies} of a
-         * {@linkplain ObjectState object state} computed from those object states read.
-         * </p>
-         * <ul>
-         * <li>Always has a (non null) dependency map.</li>
-         * <li>The dependency map does not have a null key.</li>
-         * <li>The dependency map does not have null values.</li>
-         * <li>Each object ID {@linkplain Map#keySet() key} of the dependency map maps
-         * to a value that has that same object ID as the
-         * {@linkplain ObjectStateId#getObject() object} of the object state ID.</li>
-         * <li>Each {@linkplain ObjectStateId#getObject() object} of an
-         * {@linkplain #getObjectStatesRead() object state read} has an entry in the
-         * dependencies map.</li>
-         * <li>The {@linkplain Map#values() collection of values} of the dependencies
-         * map is a {@linkplain Set#containsAll(Collection) sub set} of the
-         * {@linkplain Map#keySet() keys} of the {@linkplain #getObjectStatesRead()
-         * object states read}.</li>
-         * <li>The {@linkplain ObjectStateId#getWhen() time-stamp} of each
-         * {@linkplain Map#keySet() object state ID key} of the
-         * {@linkplain #getObjectStatesRead() object states read} map is at or after the
-         * time-stamp of the {@linkplain Map#get(Object) value} in the dependencies map
-         * for the {@linkplain ObjectStateId#getObject() object ID} of that object state
-         * ID.</li>
-         * </ul>
-         * 
-         * @return The dependency information
-         */
-        public final @NonNull Map<UUID, ObjectStateId> getDependencies() {
-            synchronized (lock) {
-                return new HashMap<>(dependencies);
-            }
         }
 
         /**
@@ -652,8 +609,8 @@ public class Universe {
 
         @GuardedBy("transaction chain of this")
         private void noLongerAnUncommittedReader() {
-            for (UUID object : dependencies.keySet()) {
-                var od = objectDataMap.get(object);
+            for (ObjectStateId id : objectStatesRead.keySet()) {
+                var od = objectDataMap.get(id.getObject());
                 if (od != null) {
                     od.removeUncommittedReader(this);
                 }
@@ -776,11 +733,6 @@ public class Universe {
             synchronized (lock) {
                 assert openness == TransactionOpenness.ABORTING;
                 objectStatesRead.put(id, objectState);
-                final ObjectStateId dependency0 = dependencies.get(object);
-                if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
-                    dependencies.put(object, id);
-                }
-                assert dependencies.containsKey(object);
             }
             return objectState;
         }
@@ -796,11 +748,6 @@ public class Universe {
             if (od == null) {// unknown object
                 synchronized (lock) {
                     objectStatesRead.put(id, null);
-                    final ObjectStateId dependency0 = dependencies.get(object);
-                    if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
-                        dependencies.put(object, id);
-                    }
-                    assert dependencies.containsKey(object);
                 }
                 return null;
             } else {
@@ -843,12 +790,6 @@ public class Universe {
             if (isPastTheEndRead) {
                 pastTheEndReads.put(object, od);
             }
-
-            final ObjectStateId dependency0 = dependencies.get(object);
-            if (dependency0 == null || when.compareTo(dependency0.getWhen()) < 0) {
-                dependencies.put(object, id);
-            }
-            assert dependencies.containsKey(object);
 
             for (var predecessor : additionalPredecessors) {
                 assert Thread.holdsLock(predecessor.lock);
@@ -1507,8 +1448,8 @@ public class Universe {
                 assert Thread.holdsLock(transaction.lock);
                 addRequiredForLockedChain(required, transaction.transactionCoordinator, chain);
                 final Universe universe = transaction.getUniverse();
-                for (UUID object : transaction.dependencies.keySet()) {
-                    final ObjectData od = universe.objectDataMap.get(object);
+                for (ObjectStateId id : transaction.objectStatesRead.keySet()) {
+                    final ObjectData od = universe.objectDataMap.get(id.getObject());
                     if (od != null) {
                         addRequiredForLockedChain(required, od, chain);
                     }
