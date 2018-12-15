@@ -1701,11 +1701,7 @@ public class Universe {
      */
     public final @NonNull Transaction beginTransaction(@NonNull TransactionListener listener) {
         Objects.requireNonNull(listener, "listener");
-        Long id;
-        do {
-            id = nextLockableId.getAndIncrement();
-        } while (lockables.putIfAbsent(id, new Transaction(id, listener)) != null);
-        return (Transaction) lockables.get(id);
+        return (Transaction) createLockable((id) -> new Transaction(id, listener));
     }
 
     private @NonNull Lockable createLockable(Function<Long, Lockable> factory) {
