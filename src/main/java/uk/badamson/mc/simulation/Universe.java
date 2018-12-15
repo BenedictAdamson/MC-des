@@ -417,6 +417,7 @@ public class Universe {
             assert Thread.holdsLock(lock);
             assert pastTheEndReads.isEmpty();
             assert openness == TransactionOpenness.COMMITTING;
+
             openness = TransactionOpenness.COMMITTED;
             for (var entry : objectStatesWritten.entrySet()) {
                 final UUID object = entry.getKey();
@@ -736,9 +737,10 @@ public class Universe {
         private void reallyBeginCommit() {
             assert Thread.holdsLock(lock);
             assert transactionCoordinator.mutualTransactions.contains(this);
+
             openness = TransactionOpenness.COMMITTING;
             if (!pastTheEndReads.isEmpty()) {
-                // Optimization
+                // Optimization: can not commit
                 return;
             }
             transactionCoordinator.commitIfPossible();
@@ -966,11 +968,12 @@ public class Universe {
             for (Transaction transaction : mutualTransactions) {
                 assert Thread.holdsLock(transaction.lock);
                 assert transaction.transactionCoordinator == this;
+
                 transaction.commit();
             }
             for (var successor : successors) {
                 assert Thread.holdsLock(successor.lock);
-                // This is no longer blocking the successor.
+                // This is no longer blocking the successor:
                 successor.predecessors.remove(this);
             }
             for (var successor : successors) {
@@ -1009,6 +1012,7 @@ public class Universe {
             for (var transaction : mutualTransactions) {
                 assert Thread.holdsLock(transaction.lock);
                 assert transaction.transactionCoordinator == this;
+
                 if (!transaction.mayCommit()) {
                     return false;
                 }
@@ -1438,6 +1442,7 @@ public class Universe {
                 }
             }
         }
+        // else infinite recursion possible
     }
 
     /*
