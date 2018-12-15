@@ -36,6 +36,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -1707,25 +1708,25 @@ public class Universe {
         return (Transaction) lockables.get(id);
     }
 
+    private @NonNull Lockable createLockable(Function<Long, Lockable> factory) {
+        Long id;
+        do {
+            id = nextLockableId.getAndIncrement();
+        } while (lockables.putIfAbsent(id, factory.apply(id)) != null);
+        return lockables.get(id);
+    }
+
     private @NonNull ObjectData createObjectData(@NonNull final Duration whenCreated,
             @NonNull final ObjectState createdState, @NonNull final Transaction creator) {
         assert whenCreated != null;
         assert createdState != null;
         assert creator != null;
-        Long id;
-        do {
-            id = nextLockableId.getAndIncrement();
-        } while (lockables.putIfAbsent(id, new ObjectData(id, whenCreated, createdState, creator)) != null);
-        return (ObjectData) lockables.get(id);
+        return (ObjectData) createLockable((id) -> new ObjectData(id, whenCreated, createdState, creator));
     }
 
     private @NonNull TransactionCoordinator createTransactionCoordinator(@NonNull final Transaction transaction) {
         assert transaction != null;
-        Long id;
-        do {
-            id = nextLockableId.getAndIncrement();
-        } while (lockables.putIfAbsent(id, new TransactionCoordinator(id, transaction)) != null);
-        return (TransactionCoordinator) lockables.get(id);
+        return (TransactionCoordinator) createLockable((id) -> new TransactionCoordinator(id, transaction));
     }
 
     private void executeAwaitingAbortCallbacks() {
