@@ -3313,7 +3313,7 @@ public class UniverseTest {
 
             }// class
 
-            @RepeatedTest(8)
+            @RepeatedTest(32)
             public void mutualReadPastLastMultiThreaded() {
                 final Duration historyStart = DURATION_1;
                 final Duration when1 = DURATION_2;
@@ -3616,6 +3616,10 @@ public class UniverseTest {
                             beginCommits.await();
                         } catch (InterruptedException e) {
                             throw new AssertionError(e);
+                        }
+                        synchronized (transaction.lock) {
+                            assertTrue(transaction.pastTheEndReads.isEmpty(),
+                                    "Past-the-end-reads converted to mutual transactions (No past-the-end-reads)");
                         }
                         transaction.beginCommit();
                         assertInvariants(transaction);
