@@ -817,6 +817,7 @@ public class Universe {
 
         @GuardedBy("lock")
         private void rollBackWrites() {
+            assert Thread.holdsLock(lock);
             for (UUID object : objectStatesWritten.keySet()) {
                 assert object != null;
                 assert when != null;
@@ -837,7 +838,10 @@ public class Universe {
         }
 
         private boolean tryToAppendToHistory(UUID object, ObjectState state) {
-            final ObjectData od = objectDataMap.computeIfAbsent(object, (o) -> createObjectData(when, state, this));
+            final ObjectData od;
+            synchronized (lock) {
+                od = objectDataMap.computeIfAbsent(object, (o) -> createObjectData(when, state, this));
+            }
             final AtomicBoolean result = new AtomicBoolean(false);
 
             final NavigableSet<Lockable> chain = new TreeSet<>();
@@ -856,6 +860,7 @@ public class Universe {
         private boolean tryToAppendToHistory1(UUID object, ObjectState state) {
             assert Thread.holdsLock(lock);
             assert when != null;
+
             final Set<Transaction> transactionsToAbort = new HashSet<>();
             final Set<Transaction> pastTheEndReadersToEscalateToSuccessors = new HashSet<>();
             final ObjectData od = objectDataMap.get(object);
