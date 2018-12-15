@@ -65,16 +65,12 @@ public class Universe {
 
         /*
          * If locks are to be held on multiple Lockable objects, the locks must be
-         * acquired in the reverse of the natural ordering of the objects. That is, in
-         * descending order of their ids.
+         * acquired in the natural ordering of the objects. That is, in ascending order
+         * of their ids.
          */
         @NonNull
         protected final Long id;
 
-        /*
-         * May acquire a lock on this.lock while have a lock on a
-         * TransactionCoordinator, but not vice versa.
-         */
         protected final Object lock = new Object();
 
         protected Lockable(@NonNull Long id) {
@@ -95,7 +91,7 @@ public class Universe {
                 return false;
             if (!(obj instanceof Lockable))
                 return false;
-            Lockable other = (Lockable) obj;
+            final Lockable other = (Lockable) obj;
             return getUniverse().equals(other.getUniverse()) && id.equals(other.id);
         }
 
@@ -170,6 +166,7 @@ public class Universe {
 
         @GuardedBy("lock")
         private void removeUncommittedReader(Transaction transaction) {
+            assert Thread.holdsLock(lock);
             uncommittedReaders.remove(transaction);
         }
 
@@ -896,7 +893,7 @@ public class Universe {
             final ObjectData od = objectDataMap.computeIfAbsent(object, (o) -> createObjectData(when, state, this));
             final AtomicBoolean result = new AtomicBoolean(false);
 
-            final NavigableSet<Lockable> chain = new TreeSet<>(Collections.reverseOrder());
+            final NavigableSet<Lockable> chain = new TreeSet<>();
             chain.add(this);
             chain.add(od);
             while (!withLockedTransactionChain(chain, chain, () -> {
@@ -962,7 +959,7 @@ public class Universe {
         }
 
         private void withLockedTransactionChain(Runnable runnable) {
-            final NavigableSet<Lockable> chain = new TreeSet<>(Collections.reverseOrder());
+            final NavigableSet<Lockable> chain = new TreeSet<>();
             addRequiredForLockedChain(chain, this, Collections.emptySet());
             while (!withLockedTransactionChain(chain, chain, runnable)) {
                 // try again
@@ -1444,6 +1441,7 @@ public class Universe {
             @NonNull final TransactionCoordinator successor) {
         assert Thread.holdsLock(predecessor.lock);
         assert Thread.holdsLock(successor.lock);
+
         if (predecessor == successor) {
             // May not be both predecessor and successor; already recorded as mutual
         } else if (successor.predecessors.contains(predecessor)) {
@@ -1541,6 +1539,7 @@ public class Universe {
     private static void merge(final TransactionCoordinator destination, Set<TransactionCoordinator> sources) {
         assert Thread.holdsLock(destination.lock);
         assert !destination.mutualTransactions.isEmpty();// else dangling reference
+
         while (!sources.isEmpty()) {
             assert !sources.contains(destination);
             for (var source : sources) {
@@ -1651,7 +1650,7 @@ public class Universe {
     }
 
     private static void withLockedChain2(Transaction transaction, ObjectData od, Runnable runnable) {
-        final NavigableSet<Lockable> chain = new TreeSet<>(Collections.reverseOrder());
+        final NavigableSet<Lockable> chain = new TreeSet<>();
         addRequiredForLockedChain(chain, transaction, Collections.emptySet());
         addRequiredForLockedChain(chain, od, Collections.emptySet());
         while (!withLockedChain2(transaction, od, chain, chain, runnable)) {
