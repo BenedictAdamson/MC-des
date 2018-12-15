@@ -25,12 +25,14 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -320,6 +322,7 @@ public class Universe {
          */
         public final void beginAbort() {
             withLockedTransactionChain(() -> openness.beginAbort(this));
+            executeAwaitingAbortCallbacks();
         }
 
         /**
@@ -344,6 +347,8 @@ public class Universe {
          */
         public final void beginCommit() {
             withLockedTransactionChain(() -> openness.beginCommit(this));
+            executeAwaitingCommitCallbacks();
+            executeAwaitingAbortCallbacks();
         }
 
         /**
@@ -415,6 +420,7 @@ public class Universe {
         @Override
         public final void close() {
             withLockedTransactionChain(() -> openness.close(this));
+            executeAwaitingAbortCallbacks();
         }
 
         @GuardedBy("lock")
@@ -435,7 +441,7 @@ public class Universe {
 
             noLongerAnUncommittedReader();
             lockables.remove(id);
-            listener.onCommit();
+            awaitingCommitCallbacks.add(listener);
         }
 
         /**
@@ -657,6 +663,7 @@ public class Universe {
             if (getOpenness().put(this, object, state)) {
                 listener.onCreate(object);
             }
+            executeAwaitingAbortCallbacks();
         }
 
         @GuardedBy("transaction chain")
@@ -667,8 +674,7 @@ public class Universe {
             openness = TransactionOpenness.ABORTED;
             // Help the garbage collector:
             pastTheEndReads.clear();
-
-            listener.onAbort();
+            awaitingAbortCallbacks.add(listener);
 
         }
 
@@ -878,7 +884,8 @@ public class Universe {
 
             for (Transaction transaction : transactionsToAbort) {
                 // We have replaced the value written by this other transaction.
-                transaction.beginAbort();
+                assert Thread.holdsLock(transaction.lock);
+                transaction.openness.beginAbort(transaction);
             }
             for (Transaction pastTheEndReader : pastTheEndReadersToEscalateToSuccessors) {
                 assert Thread.holdsLock(lock);
@@ -971,7 +978,8 @@ public class Universe {
             for (var transaction : mutualTransactions) {
                 assert Thread.holdsLock(transaction.lock);
                 assert transaction.transactionCoordinator == this;
-                transaction.beginAbort();
+
+                transaction.openness.beginAbort(transaction);
             }
             for (var successor : successors) {
                 successor.beginAbort();
@@ -1620,6 +1628,8 @@ public class Universe {
     private final Map<UUID, ObjectData> objectDataMap = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Long, Lockable> lockables = new ConcurrentHashMap<>();
     private final AtomicLong nextTransactionId = new AtomicLong(Long.MIN_VALUE);
+    private final Queue<TransactionListener> awaitingCommitCallbacks = new ConcurrentLinkedQueue<>();
+    private final Queue<TransactionListener> awaitingAbortCallbacks = new ConcurrentLinkedQueue<>();
 
     /**
      * <p>
@@ -1665,7 +1675,16 @@ public class Universe {
      * </ul>
      * 
      * @param listener
-     *            The transaction listener to use for this transaction.
+     *            The transaction listener to use for this transaction. This
+     *            universe will inform the listener of the
+     *            {@linkplain Universe.TransactionListener#onAbort() abort} or
+     *            {@linkplain Universe.TransactionListener#onCommit() commit} of the
+     *            transaction, and of
+     *            {@linkplain Universe.TransactionListener#onCreate(UUID) creation}
+     *            of new objects by the transaction. However, those call-backs may
+     *            be made by a tread other than the thread that began the
+     *            transaction, and there may be a (short) delay between an abort and
+     *            commit and the listener being informed.
      * @return a new transaction object; not null
      * @throws NullPointerException
      *             If {@code listener} is null
@@ -1698,6 +1717,22 @@ public class Universe {
             id = nextTransactionId.getAndIncrement();
         } while (lockables.putIfAbsent(id, new TransactionCoordinator(id, transaction)) != null);
         return (TransactionCoordinator) lockables.get(id);
+    }
+
+    private void executeAwaitingAbortCallbacks() {
+        TransactionListener listener = awaitingAbortCallbacks.poll();
+        while (listener != null) {
+            listener.onAbort();
+            listener = awaitingAbortCallbacks.poll();
+        }
+    }
+
+    private void executeAwaitingCommitCallbacks() {
+        TransactionListener listener = awaitingCommitCallbacks.poll();
+        while (listener != null) {
+            listener.onCommit();
+            listener = awaitingCommitCallbacks.poll();
+        }
     }
 
     /**

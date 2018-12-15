@@ -880,6 +880,7 @@ public class UniverseTest {
                     final CountDownLatch ready = new CountDownLatch(1);
                     final AtomicReference<Universe> universeAR = new AtomicReference<>();
                     final int nThreads = Runtime.getRuntime().availableProcessors() * 4;
+                    final Map<Universe.Transaction, CountingTransactionListener> transactions = new ConcurrentHashMap<>();
                     /*
                      * Start the other threads while the universe object is not constructed, so the
                      * safe publication at Thread.start() does not publish the constructed state.
@@ -895,19 +896,27 @@ public class UniverseTest {
 
                             final CountingTransactionListener listener = new CountingTransactionListener();
                             final Universe.Transaction transaction = universe.beginTransaction(listener);
+                            transactions.put(transaction, listener);
                             transaction.beginWrite(when);
                             transaction.put(object, objectState);
 
                             beginCommit(transaction);
-
-                            assertCommonPostconditions(historyStart0, object, when, universe, listener);
                         }));
                     }
 
                     universeAR.set(new Universe(historyStart0));
                     ready.countDown();
+
                     get(futures);
+
                     UniverseTest.assertInvariants(universeAR.get());
+                    for (var entry : transactions.entrySet()) {
+                        final Universe.Transaction transaction = entry.getKey();
+                        final CountingTransactionListener listener = entry.getValue();
+                        assertInvariants(transaction);
+                        assertAll(() -> assertEquals(0, listener.getAborts(), "Did not abort"),
+                                () -> assertEquals(1, listener.getCommits(), "Committed"));
+                    }
                 }
 
                 @Test
