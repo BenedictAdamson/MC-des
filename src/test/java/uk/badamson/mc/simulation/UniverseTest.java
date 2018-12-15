@@ -880,6 +880,7 @@ public class UniverseTest {
                     final CountDownLatch ready = new CountDownLatch(1);
                     final AtomicReference<Universe> universeAR = new AtomicReference<>();
                     final int nThreads = Runtime.getRuntime().availableProcessors() * 4;
+                    final Map<Universe.Transaction, CountingTransactionListener> transactions = new ConcurrentHashMap<>();
                     /*
                      * Start the other threads while the universe object is not constructed, so the
                      * safe publication at Thread.start() does not publish the constructed state.
@@ -895,19 +896,27 @@ public class UniverseTest {
 
                             final CountingTransactionListener listener = new CountingTransactionListener();
                             final Universe.Transaction transaction = universe.beginTransaction(listener);
+                            transactions.put(transaction, listener);
                             transaction.beginWrite(when);
                             transaction.put(object, objectState);
 
                             beginCommit(transaction);
-
-                            assertCommonPostconditions(historyStart0, object, when, universe, listener);
                         }));
                     }
 
                     universeAR.set(new Universe(historyStart0));
                     ready.countDown();
+
                     get(futures);
+
                     UniverseTest.assertInvariants(universeAR.get());
+                    for (var entry : transactions.entrySet()) {
+                        final Universe.Transaction transaction = entry.getKey();
+                        final CountingTransactionListener listener = entry.getValue();
+                        assertInvariants(transaction);
+                        assertAll(() -> assertEquals(0, listener.getAborts(), "Did not abort"),
+                                () -> assertEquals(1, listener.getCommits(), "Committed"));
+                    }
                 }
 
                 @Test
@@ -3400,41 +3409,12 @@ public class UniverseTest {
             }
         }// class
 
-        private static Map<UUID, ObjectStateId> assertDependenciesInvariants(Universe.Transaction transaction) {
-            final Map<UUID, ObjectStateId> dependencies = transaction.getDependencies();
-            assertNotNull(dependencies, "Always has a dependency map.");// guard
-            final Set<ObjectStateId> objectStatesRead = transaction.getObjectStatesRead().keySet();
-            for (var entry : dependencies.entrySet()) {
-                final UUID object = entry.getKey();
-                final ObjectStateId objectStateId = entry.getValue();
-                assertAll(() -> assertNotNull(object, "The dependency map does not have a null key."), // guard
-                        () -> assertNotNull(objectStateId, "The dependency map does not have null values."));// guard
-
-                ObjectStateIdTest.assertInvariants(objectStateId);
-                assertSame(object, objectStateId.getObject(),
-                        "Each object ID key of the dependency map maps to a value that has that same object ID as the object of the object state ID.");
-                assertThat(
-                        "The collection of values of the dependencies map is a sub set of the keys of the object states read.",
-                        objectStateId, isIn(objectStatesRead));
-            }
-            for (ObjectStateId objectStateRead : objectStatesRead) {
-                final UUID object = objectStateRead.getObject();
-                final Duration when = objectStateRead.getWhen();
-                assertThat("Each object of an object state read has an entry in the dependencies map.", object,
-                        isIn(dependencies.keySet()));// guard
-                assertThat("The time-stamp of each object state ID key of the object states read map is "
-                        + "at or after the time-stamp of the value in the dependencies map for the object ID of that object state ID.",
-                        when, greaterThanOrEqualTo(dependencies.get(object).getWhen()));
-            }
-            return dependencies;
-        }
-
         public static void assertInvariants(Universe.Transaction transaction) {
             UniverseTest.assertInvariants(transaction);// inherited
 
             assertAll(() -> assertObjectStatesReadInvariants(transaction),
                     () -> assertObjectStatesWrittenInvariants(transaction),
-                    () -> assertDependenciesInvariants(transaction), () -> assertOpennessInvariants(transaction));
+                    () -> assertOpennessInvariants(transaction));
         }
 
         public static void assertInvariants(Universe.Transaction transaction1, Universe.Transaction transaction2) {

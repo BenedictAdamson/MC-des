@@ -125,7 +125,7 @@ public final class SimulationEngine {
                      * the dependency information is probably partially or approximately correct, so
                      * using it is a good heuristic.
                      */
-                    addDependencies(new TreeSet<>(transaction.getDependencies().values()));
+                    addDependencies(new TreeSet<>(transaction.getObjectStatesRead().keySet()));
                     transaction.beginCommit();
                 } catch (Exception | AssertionError e) {
                     // Hard to test: race hazard.

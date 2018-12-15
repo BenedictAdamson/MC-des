@@ -38,7 +38,7 @@ pipeline {
         stage('Build') { 
             steps {
                 configFileProvider([configFile(fileId: 'maven-settings', variable: 'MAVEN_SETTINGS')]){ 
-                    sh 'mvn -s $MAVEN_SETTINGS clean package'
+                    sh 'mvn -s $MAVEN_SETTINGS -DskipTests=true clean package'
                 }
             }
         }
@@ -65,7 +65,7 @@ pipeline {
             }
             steps {
                 configFileProvider([configFile(fileId: 'maven-settings', variable: 'MAVEN_SETTINGS')]){ 
-                    sh 'mvn -s $MAVEN_SETTINGS deploy'
+                    sh 'mvn -s $MAVEN_SETTINGS -DskipTests=true deploy'
                 }
             }
         }
