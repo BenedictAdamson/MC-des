@@ -37,25 +37,35 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
+import uk.badamson.mc.ComparableTest;
 import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.history.ModifiableValueHistory;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.history.ValueHistoryTest;
-import uk.badamson.mc.simulation.Universe.TransactionOpenness;
 
 /**
  * <p>
@@ -115,14 +125,11 @@ public class UniverseTest {
             test(DURATION_1);
         }
 
-        @Test
-        public void b() {
-            test(DURATION_2);
+        private void assertPostconditions(final AtomicReference<Universe> universe, final Duration historyStart) {
+            assertPostconditions(universe.get(), historyStart);
         }
 
-        private void test(final Duration historyStart) {
-            final Universe universe = new Universe(historyStart);
-
+        private void assertPostconditions(final Universe universe, final Duration historyStart) {
             assertInvariants(universe);
 
             assertSame(historyStart, universe.getHistoryStart(),
@@ -134,32 +141,72 @@ public class UniverseTest {
             assertUnknownObjectInvariants(universe, OBJECT_A);
             assertUnknownObjectInvariants(universe, OBJECT_B);
         }
+
+        @Test
+        public void b() {
+            test(DURATION_2);
+        }
+
+        @RepeatedTest(64)
+        public void multiThreaded() {
+            final Duration historyStart = DURATION_1;
+            final CountDownLatch ready = new CountDownLatch(1);
+            final AtomicReference<Universe> universe = new AtomicReference<>();
+            /*
+             * Start the other thread while the universe object is not constructed, so the
+             * safe publication at Thread.start() does not publish the constructed state.
+             */
+            final var future = runInOtherThread(ready, () -> assertPostconditions(universe, historyStart));
+
+            universe.set(new Universe(historyStart));
+
+            ready.countDown();
+            get(future);
+        }
+
+        private void test(final Duration historyStart) {
+            final Universe universe = new Universe(historyStart);
+
+            assertPostconditions(universe, historyStart);
+        }
     }// class
 
     static class CountingTransactionListener implements Universe.TransactionListener {
 
-        int aborts;
-        int commits;
-        final Set<UUID> created = new HashSet<>();
+        private int aborts = 0;
+        private int commits = 0;
+        private final Set<UUID> created = new HashSet<>();
 
-        final int getEnds() {
+        final synchronized int getAborts() {
+            return aborts;
+        }
+
+        final synchronized int getCommits() {
+            return commits;
+        }
+
+        final synchronized Set<UUID> getCreated() {
+            return new HashSet<>(created);
+        }
+
+        final synchronized int getEnds() {
             return aborts + commits;
         }
 
         @Override
-        public void onAbort() {
+        public synchronized void onAbort() {
             assertEquals(0, aborts, "Aborts at most once");
             ++aborts;
         }
 
         @Override
-        public void onCommit() {
+        public synchronized void onCommit() {
             assertEquals(0, commits, "Commits at most once");
             ++commits;
         }
 
         @Override
-        public void onCreate(@NonNull UUID object) {
+        public synchronized void onCreate(@NonNull UUID object) {
             assertNotNull(object, "object");
             created.add(object);
         }
@@ -208,6 +255,32 @@ public class UniverseTest {
                 test(OBJECT_A, DURATION_1, end, end);
             }
 
+            @RepeatedTest(32)
+            public void multiThreaded() {
+                final UUID object = OBJECT_A;
+                final Duration historyStart0 = DURATION_1;
+                final Duration historyStart = DURATION_2;
+                final Duration whenLastCommit = DURATION_3;
+
+                final CountDownLatch ready = new CountDownLatch(1);
+                final AtomicReference<Universe> universeAR = new AtomicReference<>();
+                /*
+                 * Start the other thread while the universe object is not constructed, so the
+                 * safe publication at Thread.start() does not publish the constructed state.
+                 */
+                final var future = runInOtherThread(ready, () -> assertPostconditions(universeAR, historyStart));
+
+                final Universe universe = new Universe(historyStart0);
+                final ObjectState objectState = new ObjectStateTest.TestObjectState(1);
+                putAndCommit(universe, object, whenLastCommit, objectState);
+
+                setHistoryStart(universe, historyStart);
+
+                universeAR.set(universe);
+                ready.countDown();
+                get(future);
+            }
+
             @Test
             public void noOp() {
                 final Duration when = DURATION_1;
@@ -222,18 +295,27 @@ public class UniverseTest {
                 final ObjectState objectState = new ObjectStateTest.TestObjectState(1);
                 putAndCommit(universe, object, whenLastCommit, objectState);
 
-                setHistoryStart(universe, historyStart);
+                universe.setHistoryStart(historyStart);
+
+                assertPostconditions(universe, historyStart);
             }
 
+        }// class
+
+        private void assertPostconditions(final AtomicReference<Universe> universe, final Duration historyStart) {
+            assertPostconditions(universe.get(), historyStart);
+        }
+
+        private void assertPostconditions(final Universe universe, Duration historyStart) {
+            assertInvariants(universe);
+            assertEquals(historyStart, universe.getHistoryStart(),
+                    "The history start time of this universe is equal to the given history start time.");
         }
 
         private void setHistoryStart(final Universe universe, @NonNull Duration historyStart) {
             universe.setHistoryStart(historyStart);
 
-            assertInvariants(universe);
-
-            assertEquals(historyStart, universe.getHistoryStart(),
-                    "The history start time of this universe is equal to the given history start time.");
+            assertPostconditions(universe, historyStart);
         }
 
     }// class
@@ -678,8 +760,8 @@ public class UniverseTest {
             }// class
 
             private void beginAbort(Universe.Transaction transaction) {
-                final boolean aborted0 = transaction.getOpenness() == TransactionOpenness.ABORTED;
-                final boolean committed0 = transaction.getOpenness() == TransactionOpenness.COMMITTED;
+                final boolean aborted0 = transaction.getOpenness() == Universe.TransactionOpenness.ABORTED;
+                final boolean committed0 = transaction.getOpenness() == Universe.TransactionOpenness.COMMITTED;
 
                 transaction.beginAbort();
 
@@ -688,11 +770,11 @@ public class UniverseTest {
                 final Universe.TransactionOpenness openness = transaction.getOpenness();
                 assertAll(
                         () -> assertThat("The transaction is aborting, aborted or committed.", openness,
-                                isOneOf(TransactionOpenness.COMMITTED, TransactionOpenness.ABORTED,
-                                        TransactionOpenness.ABORTING)),
-                        () -> assertTrue(!committed0 || openness == TransactionOpenness.COMMITTED,
+                                isOneOf(Universe.TransactionOpenness.COMMITTED, Universe.TransactionOpenness.ABORTED,
+                                        Universe.TransactionOpenness.ABORTING)),
+                        () -> assertTrue(!committed0 || openness == Universe.TransactionOpenness.COMMITTED,
                                 "If this transaction was committed, it remains committed."),
-                        () -> assertTrue(!aborted0 || openness == TransactionOpenness.ABORTED,
+                        () -> assertTrue(!aborted0 || openness == Universe.TransactionOpenness.ABORTED,
                                 "If this transaction was aborted, it remains aborted."));
             }
 
@@ -779,9 +861,53 @@ public class UniverseTest {
                     test(DURATION_1, OBJECT_A, DURATION_2);
                 }
 
+                private void assertCommonPostconditions(final Duration historyStart0, final UUID object,
+                        final Duration when, final Universe universe, final CountingTransactionListener listener) {
+                    assertAll(() -> assertEquals(0, listener.getAborts(), "Did not abort"),
+                            () -> assertEquals(1, listener.getCommits(), "Committed"),
+                            () -> assertEquals(historyStart0, universe.getHistoryStart(), "History start unchanged"),
+                            () -> assertEquals(when, universe.getLatestCommit(object), "Latest commit of object"));
+                }
+
                 @Test
                 public void b() {
                     test(DURATION_2, OBJECT_B, DURATION_3);
+                }
+
+                @RepeatedTest(8)
+                public void multiThreaded() {
+                    final Duration historyStart0 = DURATION_1;
+                    final CountDownLatch ready = new CountDownLatch(1);
+                    final AtomicReference<Universe> universeAR = new AtomicReference<>();
+                    final int nThreads = Runtime.getRuntime().availableProcessors() * 4;
+                    /*
+                     * Start the other threads while the universe object is not constructed, so the
+                     * safe publication at Thread.start() does not publish the constructed state.
+                     */
+                    final List<Future<Void>> futures = new ArrayList<>(nThreads);
+                    for (int i = 0; i < nThreads; ++i) {
+                        futures.add(runInOtherThread(ready, () -> {
+                            final Universe universe = universeAR.get();
+                            final ThreadLocalRandom random = ThreadLocalRandom.current();
+                            final UUID object = UUID.randomUUID();
+                            final Duration when = historyStart0.plusSeconds(random.nextInt(1, nThreads * 7));
+                            final ObjectState objectState = new ObjectStateTest.TestObjectState(random.nextInt());
+
+                            final CountingTransactionListener listener = new CountingTransactionListener();
+                            final Universe.Transaction transaction = universe.beginTransaction(listener);
+                            transaction.beginWrite(when);
+                            transaction.put(object, objectState);
+
+                            beginCommit(transaction);
+
+                            assertCommonPostconditions(historyStart0, object, when, universe, listener);
+                        }));
+                    }
+
+                    universeAR.set(new Universe(historyStart0));
+                    ready.countDown();
+                    get(futures);
+                    UniverseTest.assertInvariants(universeAR.get());
                 }
 
                 @Test
@@ -799,14 +925,11 @@ public class UniverseTest {
 
                     beginCommit(transaction);
 
-                    assertAll(() -> assertEquals(0, listener.aborts, "Did not abort"),
-                            () -> assertEquals(1, listener.commits, "Committed"),
-                            () -> assertEquals(historyStart0, universe.getHistoryStart(), "History start unchanged"),
-                            () -> assertThat("History end", universe.getHistoryEnd(), isOneOf(historyStart0, when)),
+                    assertCommonPostconditions(historyStart0, object, when, universe, listener);
+                    assertAll(() -> assertThat("History end", universe.getHistoryEnd(), isOneOf(historyStart0, when)),
                             () -> assertTrue(
                                     when.compareTo(historyStart0) <= 0 || universe.getHistoryEnd().equals(when),
-                                    "History end advanced if not prehistoric"),
-                            () -> assertEquals(when, universe.getLatestCommit(object), "Latest commit of object"));
+                                    "History end advanced if not prehistoric"));
                 }
 
             }
@@ -848,11 +971,11 @@ public class UniverseTest {
 
                     beginCommit(writeTransaction);
 
-                    assertAll(() -> assertEquals(1, writeListener.commits, "Write committed"),
-                            () -> assertEquals(0, writeListener.aborts, "Write not aborted"),
-                            () -> assertEquals(1, readListener.commits,
+                    assertAll(() -> assertEquals(1, writeListener.getCommits(), "Write committed"),
+                            () -> assertEquals(0, writeListener.getAborts(), "Write not aborted"),
+                            () -> assertEquals(1, readListener.getCommits(),
                                     "Read committed (subsequent write enabled commit)"),
-                            () -> assertEquals(0, readListener.aborts, "Read not aborted"),
+                            () -> assertEquals(0, readListener.getAborts(), "Read not aborted"),
                             () -> assertEquals(when3, universe.getLatestCommit(object), "Latest commit of object"));
                 }
 
@@ -2261,6 +2384,121 @@ public class UniverseTest {
                 assertEquals(0, listener.aborts, "Did not abort");
                 assertEquals(1, listener.commits, "Committed");
             }
+
+            @RepeatedTest(8)
+            public void mutualReadPastLastMultiThreaded() {
+                final Duration historyStart = DURATION_1;
+                final Duration when1 = DURATION_2;
+                final Duration when2 = DURATION_3;
+                final Duration when3 = DURATION_4;
+
+                final int nThreads = Runtime.getRuntime().availableProcessors() * 4;
+                /*
+                 * Use multiple latches to limit the kinds of interleaving, so we are mostly
+                 * testing only beginCommit().
+                 */
+                final CountDownLatch readyToStart = new CountDownLatch(1);
+                final CountDownLatch readsDone = new CountDownLatch(nThreads);
+                final CountDownLatch readyToWrite = new CountDownLatch(1);
+                final CountDownLatch writesDone = new CountDownLatch(nThreads);
+                final CountDownLatch readyToCommit = new CountDownLatch(1);
+
+                final UUID[] objects = new UUID[nThreads];
+                final Map<UUID, AtomicReference<Universe.Transaction>> transactions = new ConcurrentHashMap<>(nThreads);
+                final Universe universe = new Universe(historyStart);
+                for (int i = 0; i < nThreads; i++) {
+                    objects[i] = UUID.randomUUID();
+                    final ObjectState objectStateI1 = new ObjectStateTest.TestObjectState(i);
+                    UniverseTest.putAndCommit(universe, objects[i], when1, objectStateI1);
+                }
+                final List<Future<Void>> futures = new ArrayList<>(nThreads);
+                for (int i = 0; i < nThreads; ++i) {
+                    final int iObject = i;
+                    futures.add(runInOtherThread(readyToStart, () -> {
+                        final CountingTransactionListener listener = new CountingTransactionListener();
+                        try (final Universe.Transaction transaction = universe.beginTransaction(listener);) {
+                            transactions.put(objects[iObject], new AtomicReference<Universe.Transaction>(transaction));
+                            for (int j = 0; j < nThreads; ++j) {
+                                final UUID object = objects[j];
+                                if (iObject == j) {
+                                    transaction.getObjectState(object, when1);
+                                } else {
+                                    transaction.getObjectState(object, when2);
+                                }
+                            }
+                            readsDone.countDown();
+                            try {
+                                readyToWrite.await();
+                            } catch (InterruptedException e) {
+                                throw new AssertionError(e);
+                            }
+                            transaction.beginWrite(when3);
+                            transaction.put(objects[iObject], new ObjectStateTest.TestObjectState(1000 + iObject));
+                            writesDone.countDown();
+                            try {
+                                readyToCommit.await();
+                            } catch (InterruptedException e) {
+                                throw new AssertionError(e);
+                            }
+
+                            beginCommit(transaction);
+                        }
+                    }));
+                }
+
+                readyToStart.countDown();
+                try {
+                    readsDone.await();
+                } catch (InterruptedException e) {
+                    throw new AssertionError(e);
+                }
+                readyToWrite.countDown();
+                try {
+                    writesDone.await();
+                } catch (InterruptedException e) {
+                    throw new AssertionError(e);
+                }
+                readyToCommit.countDown();
+
+                get(futures);
+
+                UniverseTest.assertInvariants(universe);
+                final Universe.TransactionCoordinator coordinator0 = transactions.get(objects[0])
+                        .get().transactionCoordinator;
+                UniverseTest.assertInvariants(coordinator0);
+                synchronized (coordinator0.lock) {
+                    assertTrue(coordinator0.predecessors.isEmpty(), "TransactionCoordinator has no predecessors");
+                    assertTrue(coordinator0.successors.isEmpty(), "TransactionCoordinator has no succesors");
+                }
+
+                for (int i = 0; i < nThreads; ++i) {
+                    final UUID object = objects[i];
+                    final Universe.Transaction transaction = transactions.get(object).get();
+                    assertInvariants(transaction);
+                    final Universe.TransactionCoordinator coordinator;
+                    synchronized (transaction.lock) {
+                        coordinator = transaction.transactionCoordinator;
+                    }
+                    assertSame(coordinator0, coordinator, "All the transactions have merged");
+                }
+
+                for (int i = 0; i < nThreads; ++i) {
+                    final UUID object = objects[i];
+                    final Universe.Transaction transaction = transactions.get(object).get();
+                    assertInvariants(transaction);
+                    final Universe.TransactionCoordinator coordinator;
+                    final Map<UUID, Universe.ObjectData> pastTheEndReads;
+                    synchronized (transaction.lock) {
+                        coordinator = transaction.transactionCoordinator;
+                        pastTheEndReads = transaction.pastTheEndReads;
+                    }
+                    assertSame(coordinator0, coordinator, "All the transactions have merged");
+                    assertTrue(pastTheEndReads.isEmpty(), "All past-the-end-reads converted to mutual dependency");
+                    assertEquals(Universe.TransactionOpenness.COMMITTED, transaction.getOpenness(),
+                            "Committed write for object [" + i + "]");
+                    assertEquals(when3, universe.getLatestCommit(object), "Committed write for object [" + i + "]");
+                }
+            }
         }// class
 
         @Nested
@@ -2532,6 +2770,31 @@ public class UniverseTest {
                     test(DURATION_2, DURATION_3);
                 }
 
+                private void doTransaction(final Duration when1, final Universe universe) {
+                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final Universe.Transaction transaction = universe.beginTransaction(listener);
+
+                    assertThrows(Universe.PrehistoryException.class,
+                            () -> getObjectState(transaction, OBJECT_A, when1));
+                }
+
+                @RepeatedTest(32)
+                public void multiThreaded() {
+                    final Duration when1 = DURATION_1;
+                    final Duration historyStart = DURATION_2;
+
+                    final CountDownLatch ready = new CountDownLatch(1);
+                    final AtomicReference<Universe> universeAR = new AtomicReference<>();
+                    /*
+                     * Start the other thread while the universe object is not constructed, so the
+                     * safe publication at Thread.start() does not publish the constructed state.
+                     */
+                    final var future = runInOtherThread(ready, () -> doTransaction(when1, universeAR.get()));
+                    universeAR.set(new Universe(historyStart));
+                    ready.countDown();
+                    get(future);
+                }
+
                 @Test
                 public void near() {
                     test(DURATION_2.minusNanos(1L), DURATION_2);
@@ -2540,13 +2803,8 @@ public class UniverseTest {
                 private void test(final Duration when1, final Duration historyStart) {
                     assert when1.compareTo(historyStart) < 0;
 
-                    final CountingTransactionListener listener = new CountingTransactionListener();
-
                     final Universe universe = new Universe(historyStart);
-                    final Universe.Transaction transaction = universe.beginTransaction(listener);
-
-                    assertThrows(Universe.PrehistoryException.class,
-                            () -> getObjectState(transaction, OBJECT_A, when1));
+                    doTransaction(when1, universe);
                 }
 
             }// class
@@ -2871,6 +3129,45 @@ public class UniverseTest {
                     test(DURATION_1, OBJECT_A, ValueHistory.END_OF_TIME);
                 }
 
+                @RepeatedTest(8)
+                public void multiThreaded() {
+                    final Duration historyStart = DURATION_1;
+                    final Duration when = DURATION_2;
+
+                    final CountDownLatch ready = new CountDownLatch(1);
+                    final AtomicReference<Universe> universeAR = new AtomicReference<>();
+                    final int nThreads = Runtime.getRuntime().availableProcessors() * 4;
+                    /*
+                     * Start the other threads while the universe object is not constructed, so the
+                     * safe publication at Thread.start() does not publish the constructed state.
+                     */
+                    final List<Future<Void>> futures = new ArrayList<>(nThreads);
+                    for (int i = 0; i < nThreads; ++i) {
+                        futures.add(runInOtherThread(ready, () -> {
+                            final Universe universe = universeAR.get();
+                            final CountingTransactionListener listener = new CountingTransactionListener();
+                            final ObjectState objectState = new ObjectStateTest.TestObjectState(1);
+                            final UUID object = UUID.randomUUID();
+                            final Universe.Transaction transaction = universe.beginTransaction(listener);
+                            transaction.beginWrite(when);
+
+                            put(transaction, object, objectState);
+
+                            final ModifiableValueHistory<ObjectState> expectedHistory = new ModifiableValueHistory<>();
+                            expectedHistory.appendTransition(when, objectState);
+                            assertAll(() -> assertThat("Added the object", object, isIn(universe.getObjectIds())),
+                                    () -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
+                                            "Object state history"),
+                                    () -> assertEquals(Collections.singleton(object), listener.getCreated(),
+                                            "Called creation call-back"));
+                        }));
+                    }
+
+                    universeAR.set(new Universe(historyStart));
+                    ready.countDown();
+                    get(futures);
+                }
+
                 private void test(final Duration historyStart, UUID object, Duration when) {
                     final ObjectState objectState = new ObjectStateTest.TestObjectState(1);
                     final ModifiableValueHistory<ObjectState> expectedHistory = new ModifiableValueHistory<>();
@@ -3016,6 +3313,84 @@ public class UniverseTest {
 
             }// class
 
+            @RepeatedTest(32)
+            public void mutualReadPastLastMultiThreaded() {
+                final Duration historyStart = DURATION_1;
+                final Duration when1 = DURATION_2;
+                final Duration when2 = DURATION_3;
+                final Duration when3 = DURATION_4;
+
+                final CountDownLatch ready = new CountDownLatch(1);
+                final int nThreads = Runtime.getRuntime().availableProcessors() * 4;
+
+                final UUID[] objects = new UUID[nThreads];
+                final Map<UUID, AtomicReference<Universe.Transaction>> transactions = new ConcurrentHashMap<>(nThreads);
+                final Universe universe = new Universe(historyStart);
+                for (int i = 0; i < nThreads; i++) {
+                    objects[i] = UUID.randomUUID();
+                    final ObjectState objectStateI1 = new ObjectStateTest.TestObjectState(i);
+                    UniverseTest.putAndCommit(universe, objects[i], when1, objectStateI1);
+                }
+                final List<Future<Void>> futures = new ArrayList<>(nThreads);
+                for (int i = 0; i < nThreads; ++i) {
+                    final int iObject = i;
+                    futures.add(runInOtherThread(ready, () -> {
+                        final CountingTransactionListener listener = new CountingTransactionListener();
+                        Universe.Transaction transaction = universe.beginTransaction(listener);
+                        transactions.put(objects[iObject], new AtomicReference<Universe.Transaction>(transaction));
+                        for (int j = 0; j < nThreads; ++j) {
+                            final UUID object = objects[j];
+                            if (iObject == j) {
+                                transaction.getObjectState(object, when1);
+                            } else {
+                                transaction.getObjectState(object, when2);
+                            }
+                            assertInvariants(transaction);
+                        }
+                        transaction.beginWrite(when3);
+                        final ObjectStateTest.TestObjectState state = new ObjectStateTest.TestObjectState(
+                                1000 + iObject);
+                        put(transaction, objects[iObject], state);
+                    }));
+                }
+
+                ready.countDown();
+                get(futures);
+                UniverseTest.assertInvariants(universe);
+                final Universe.TransactionCoordinator coordinator0 = transactions.get(objects[0])
+                        .get().transactionCoordinator;
+                UniverseTest.assertInvariants(coordinator0);
+                synchronized (coordinator0.lock) {
+                    assertTrue(coordinator0.predecessors.isEmpty(), "TransactionCoordinator has no predecessors");
+                    assertTrue(coordinator0.successors.isEmpty(), "TransactionCoordinator has no succesors");
+                }
+
+                for (int i = 0; i < nThreads; ++i) {
+                    final UUID object = objects[i];
+                    final Universe.Transaction transaction = transactions.get(object).get();
+                    assertInvariants(transaction);
+                    final Universe.TransactionCoordinator coordinator;
+                    synchronized (transaction.lock) {
+                        coordinator = transaction.transactionCoordinator;
+                    }
+                    assertSame(coordinator0, coordinator, "All the transactions have merged");
+                }
+
+                for (int i = 0; i < nThreads; ++i) {
+                    final UUID object = objects[i];
+                    final Universe.Transaction transaction = transactions.get(object).get();
+                    assertInvariants(transaction);
+                    final Universe.TransactionCoordinator coordinator;
+                    final Map<UUID, Universe.ObjectData> pastTheEndReads;
+                    synchronized (transaction.lock) {
+                        coordinator = transaction.transactionCoordinator;
+                        pastTheEndReads = transaction.pastTheEndReads;
+                    }
+                    assertSame(coordinator0, coordinator, "All the transactions have merged");
+                    assertTrue(pastTheEndReads.isEmpty(), "All past-the-end-reads converted to mutual dependency");
+                }
+            }
+
             private void put(final Universe.Transaction transaction, UUID object, ObjectState state) {
                 transaction.put(object, state);
 
@@ -3055,20 +3430,15 @@ public class UniverseTest {
         }
 
         public static void assertInvariants(Universe.Transaction transaction) {
-            ObjectTest.assertInvariants(transaction);// inherited
+            UniverseTest.assertInvariants(transaction);// inherited
 
-            final Universe universe = transaction.getUniverse();
-
-            assertNotNull(universe, "universe");// guard
-
-            assertAll(() -> UniverseTest.assertInvariants(universe),
-                    () -> assertObjectStatesReadInvariants(transaction),
+            assertAll(() -> assertObjectStatesReadInvariants(transaction),
                     () -> assertObjectStatesWrittenInvariants(transaction),
                     () -> assertDependenciesInvariants(transaction), () -> assertOpennessInvariants(transaction));
         }
 
         public static void assertInvariants(Universe.Transaction transaction1, Universe.Transaction transaction2) {
-            ObjectTest.assertInvariants(transaction1, transaction2);// inherited
+            UniverseTest.assertInvariants(transaction1, transaction2);// inherited
         }
 
         private static Map<ObjectStateId, ObjectState> assertObjectStatesReadInvariants(
@@ -3114,9 +3484,298 @@ public class UniverseTest {
             assertNotNull(openness, "openness");
             return openness;
         }
+
+        @RepeatedTest(32)
+        public void mutualReadPastLastMultiThreaded() {
+            final Duration historyStart = DURATION_1;
+            final Duration when1 = DURATION_2;
+            final Duration when2 = DURATION_3;
+            final Duration when3 = DURATION_4;
+
+            final CountDownLatch ready = new CountDownLatch(1);
+            final int nThreads = Runtime.getRuntime().availableProcessors() * 4;
+
+            final UUID[] objects = new UUID[nThreads];
+            final Map<UUID, AtomicReference<Universe.Transaction>> transactions = new ConcurrentHashMap<>(nThreads);
+            final Universe universe = new Universe(historyStart);
+            for (int i = 0; i < nThreads; i++) {
+                objects[i] = UUID.randomUUID();
+                final ObjectState objectStateI1 = new ObjectStateTest.TestObjectState(i);
+                UniverseTest.putAndCommit(universe, objects[i], when1, objectStateI1);
+            }
+            final List<Future<Void>> futures = new ArrayList<>(nThreads);
+            for (int i = 0; i < nThreads; ++i) {
+                final int iObject = i;
+                futures.add(runInOtherThread(ready, () -> {
+                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    try (final Universe.Transaction transaction = universe.beginTransaction(listener);) {
+                        transactions.put(objects[iObject], new AtomicReference<Universe.Transaction>(transaction));
+                        for (int j = 0; j < nThreads; ++j) {
+                            final UUID object = objects[j];
+                            if (iObject == j) {
+                                transaction.getObjectState(object, when1);
+                            } else {
+                                transaction.getObjectState(object, when2);
+                            }
+                            assertInvariants(transaction);
+                        }
+                        transaction.beginWrite(when3);
+                        assertInvariants(transaction);
+                        transaction.put(objects[iObject], new ObjectStateTest.TestObjectState(1000 + iObject));
+                        assertInvariants(transaction);
+                        transaction.beginCommit();
+                        assertInvariants(transaction);
+                    } // try
+                }));
+            }
+
+            ready.countDown();
+            get(futures);
+            UniverseTest.assertInvariants(universe);
+            final Universe.TransactionCoordinator coordinator0 = transactions.get(objects[0])
+                    .get().transactionCoordinator;
+            UniverseTest.assertInvariants(coordinator0);
+            synchronized (coordinator0.lock) {
+                assertTrue(coordinator0.predecessors.isEmpty(), "TransactionCoordinator has no predecessors");
+                assertTrue(coordinator0.successors.isEmpty(), "TransactionCoordinator has no succesors");
+            }
+
+            for (int i = 0; i < nThreads; ++i) {
+                final UUID object = objects[i];
+                final Universe.Transaction transaction = transactions.get(object).get();
+                assertInvariants(transaction);
+                final Universe.TransactionCoordinator coordinator;
+                synchronized (transaction.lock) {
+                    coordinator = transaction.transactionCoordinator;
+                }
+                assertSame(coordinator0, coordinator, "All the transactions have merged");
+            }
+
+            for (int i = 0; i < nThreads; ++i) {
+                final UUID object = objects[i];
+                final Universe.Transaction transaction = transactions.get(object).get();
+                assertInvariants(transaction);
+                final Universe.TransactionCoordinator coordinator;
+                final Map<UUID, Universe.ObjectData> pastTheEndReads;
+                synchronized (transaction.lock) {
+                    coordinator = transaction.transactionCoordinator;
+                    pastTheEndReads = transaction.pastTheEndReads;
+                }
+                assertSame(coordinator0, coordinator, "All the transactions have merged");
+                assertTrue(pastTheEndReads.isEmpty(), "All past-the-end-reads converted to mutual dependency");
+                assertEquals(Universe.TransactionOpenness.COMMITTED, transaction.getOpenness(),
+                        "Committed write for object [" + i + "]");
+                assertEquals(when3, universe.getLatestCommit(object), "Committed write for object [" + i + "]");
+            }
+        }
+
+        @RepeatedTest(32)
+        public void mutualReadPastLastMultiThreadedInterleavedReadsAndWrites() {
+            final Duration historyStart = DURATION_1;
+            final Duration when1 = DURATION_2;
+            final Duration when2 = DURATION_3;
+            final Duration when3 = DURATION_4;
+
+            final int nThreads = Runtime.getRuntime().availableProcessors() * 4;
+            final CountDownLatch ready = new CountDownLatch(1);
+            final CountDownLatch writesDone = new CountDownLatch(nThreads);
+            final CountDownLatch beginCommits = new CountDownLatch(1);
+
+            final UUID[] objects = new UUID[nThreads];
+            final Map<UUID, AtomicReference<Universe.Transaction>> transactions = new ConcurrentHashMap<>(nThreads);
+            final Universe universe = new Universe(historyStart);
+            for (int i = 0; i < nThreads; i++) {
+                objects[i] = UUID.randomUUID();
+                final ObjectState objectStateI1 = new ObjectStateTest.TestObjectState(i);
+                UniverseTest.putAndCommit(universe, objects[i], when1, objectStateI1);
+            }
+            final List<Future<Void>> futures = new ArrayList<>(nThreads);
+            for (int i = 0; i < nThreads; ++i) {
+                final int iObject = i;
+                futures.add(runInOtherThread(ready, () -> {
+                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    try (final Universe.Transaction transaction = universe.beginTransaction(listener);) {
+                        transactions.put(objects[iObject], new AtomicReference<Universe.Transaction>(transaction));
+                        for (int j = 0; j < nThreads; ++j) {
+                            final UUID object = objects[j];
+                            if (iObject == j) {
+                                transaction.getObjectState(object, when1);
+                            } else {
+                                transaction.getObjectState(object, when2);
+                            }
+                            assertInvariants(transaction);
+                        } // for
+                        transaction.beginWrite(when3);
+                        assertInvariants(transaction);
+                        transaction.put(objects[iObject], new ObjectStateTest.TestObjectState(1000 + iObject));
+                        assertInvariants(transaction);
+                        writesDone.countDown();
+                        try {
+                            beginCommits.await();
+                        } catch (InterruptedException e) {
+                            throw new AssertionError(e);
+                        }
+                        synchronized (transaction.lock) {
+                            assertTrue(transaction.pastTheEndReads.isEmpty(),
+                                    "Past-the-end-reads converted to mutual transactions (No past-the-end-reads)");
+                        }
+                        transaction.beginCommit();
+                        assertInvariants(transaction);
+                    } // try
+                }));
+            }
+
+            ready.countDown();
+            try {
+                writesDone.await();
+            } catch (InterruptedException e) {
+                throw new AssertionError(e);
+            }
+            beginCommits.countDown();
+
+            get(futures);
+
+            UniverseTest.assertInvariants(universe);
+            final Universe.TransactionCoordinator coordinator0 = transactions.get(objects[0])
+                    .get().transactionCoordinator;
+            UniverseTest.assertInvariants(coordinator0);
+            synchronized (coordinator0.lock) {
+                assertTrue(coordinator0.predecessors.isEmpty(), "TransactionCoordinator has no predecessors");
+                assertTrue(coordinator0.successors.isEmpty(), "TransactionCoordinator has no succesors");
+            }
+
+            for (int i = 0; i < nThreads; ++i) {
+                final UUID object = objects[i];
+                final Universe.Transaction transaction = transactions.get(object).get();
+                assertInvariants(transaction);
+                final Universe.TransactionCoordinator coordinator;
+                synchronized (transaction.lock) {
+                    coordinator = transaction.transactionCoordinator;
+                }
+                assertSame(coordinator0, coordinator, "All the transactions have merged");
+            }
+
+            for (int i = 0; i < nThreads; ++i) {
+                final UUID object = objects[i];
+                final Universe.Transaction transaction = transactions.get(object).get();
+                assertInvariants(transaction);
+                final Universe.TransactionCoordinator coordinator;
+                final Map<UUID, Universe.ObjectData> pastTheEndReads;
+                synchronized (transaction.lock) {
+                    coordinator = transaction.transactionCoordinator;
+                    pastTheEndReads = transaction.pastTheEndReads;
+                }
+                assertSame(coordinator0, coordinator, "All the transactions have merged");
+                assertTrue(pastTheEndReads.isEmpty(), "All past-the-end-reads converted to mutual dependency");
+                assertEquals(Universe.TransactionOpenness.COMMITTED, transaction.getOpenness(),
+                        "Committed write for object [" + i + "]");
+                assertEquals(when3, universe.getLatestCommit(object), "Committed write for object [" + i + "]");
+            }
+        }
+
+        @RepeatedTest(32)
+        public void mutualReadPastLastMultiThreadedInterleavedWritesAndCommits() {
+            final Duration historyStart = DURATION_1;
+            final Duration when1 = DURATION_2;
+            final Duration when2 = DURATION_3;
+            final Duration when3 = DURATION_4;
+
+            final int nThreads = Runtime.getRuntime().availableProcessors() * 4;
+            final CountDownLatch ready = new CountDownLatch(1);
+            final CountDownLatch readsDone = new CountDownLatch(nThreads);
+            final CountDownLatch beginWrites = new CountDownLatch(1);
+
+            final UUID[] objects = new UUID[nThreads];
+            final Map<UUID, AtomicReference<Universe.Transaction>> transactions = new ConcurrentHashMap<>(nThreads);
+            final Universe universe = new Universe(historyStart);
+            for (int i = 0; i < nThreads; i++) {
+                objects[i] = UUID.randomUUID();
+                final ObjectState objectStateI1 = new ObjectStateTest.TestObjectState(i);
+                UniverseTest.putAndCommit(universe, objects[i], when1, objectStateI1);
+            }
+            final List<Future<Void>> futures = new ArrayList<>(nThreads);
+            for (int i = 0; i < nThreads; ++i) {
+                final int iObject = i;
+                futures.add(runInOtherThread(ready, () -> {
+                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    try (final Universe.Transaction transaction = universe.beginTransaction(listener);) {
+                        transactions.put(objects[iObject], new AtomicReference<Universe.Transaction>(transaction));
+                        for (int j = 0; j < nThreads; ++j) {
+                            final UUID object = objects[j];
+                            if (iObject == j) {
+                                transaction.getObjectState(object, when1);
+                            } else {
+                                transaction.getObjectState(object, when2);
+                            }
+                            assertInvariants(transaction);
+                        } // for
+                        readsDone.countDown();
+                        try {
+                            beginWrites.await();
+                        } catch (InterruptedException e) {
+                            throw new AssertionError(e);
+                        }
+                        transaction.beginWrite(when3);
+                        assertInvariants(transaction);
+                        transaction.put(objects[iObject], new ObjectStateTest.TestObjectState(1000 + iObject));
+                        assertInvariants(transaction);
+                        transaction.beginCommit();
+                        assertInvariants(transaction);
+                    } // try
+                }));
+            }
+
+            ready.countDown();
+            try {
+                readsDone.await();
+            } catch (InterruptedException e) {
+                throw new AssertionError(e);
+            }
+            beginWrites.countDown();
+
+            get(futures);
+
+            UniverseTest.assertInvariants(universe);
+            final Universe.TransactionCoordinator coordinator0 = transactions.get(objects[0])
+                    .get().transactionCoordinator;
+            UniverseTest.assertInvariants(coordinator0);
+            synchronized (coordinator0.lock) {
+                assertTrue(coordinator0.predecessors.isEmpty(), "TransactionCoordinator has no predecessors");
+                assertTrue(coordinator0.successors.isEmpty(), "TransactionCoordinator has no succesors");
+            }
+
+            for (int i = 0; i < nThreads; ++i) {
+                final UUID object = objects[i];
+                final Universe.Transaction transaction = transactions.get(object).get();
+                assertInvariants(transaction);
+                final Universe.TransactionCoordinator coordinator;
+                synchronized (transaction.lock) {
+                    coordinator = transaction.transactionCoordinator;
+                }
+                assertSame(coordinator0, coordinator, "All the transactions have merged");
+            }
+
+            for (int i = 0; i < nThreads; ++i) {
+                final UUID object = objects[i];
+                final Universe.Transaction transaction = transactions.get(object).get();
+                assertInvariants(transaction);
+                final Universe.TransactionCoordinator coordinator;
+                final Map<UUID, Universe.ObjectData> pastTheEndReads;
+                synchronized (transaction.lock) {
+                    coordinator = transaction.transactionCoordinator;
+                    pastTheEndReads = transaction.pastTheEndReads;
+                }
+                assertSame(coordinator0, coordinator, "All the transactions have merged");
+                assertTrue(pastTheEndReads.isEmpty(), "All past-the-end-reads converted to mutual dependency");
+                assertEquals(Universe.TransactionOpenness.COMMITTED, transaction.getOpenness(),
+                        "Committed write for object [" + i + "]");
+                assertEquals(when3, universe.getLatestCommit(object), "Committed write for object [" + i + "]");
+            }
+        }
     }// class
 
     static final UUID OBJECT_A = ObjectStateIdTest.OBJECT_A;
+
     static final UUID OBJECT_B = ObjectStateIdTest.OBJECT_B;
     static final UUID OBJECT_C = UUID.randomUUID();
     static final UUID OBJECT_D = UUID.randomUUID();
@@ -3169,6 +3828,23 @@ public class UniverseTest {
 
     public static void assertInvariants(Universe universe, UUID object, Duration when) {
         // Do nothing
+    }
+
+    private static void assertInvariants(Universe.Lockable lockable) {
+        ObjectTest.assertInvariants(lockable);// inherited
+        ComparableTest.assertInvariants(lockable);// inherited
+
+        final Universe universe = lockable.getUniverse();
+
+        assertNotNull(universe, "universe");// guard
+
+        UniverseTest.assertInvariants(universe);
+    }
+
+    private static void assertInvariants(Universe.Lockable lockable1, Universe.Lockable lockable2) {
+        ObjectTest.assertInvariants(lockable1, lockable2);// inherited
+        ComparableTest.assertInvariants(lockable1, lockable2);// inherited
+        ComparableTest.assertComparableConsistentWithEquals(lockable1, lockable2);
     }
 
     private static @Nullable Duration assertLatestCommitInvariants(@NonNull Universe universe, @NonNull UUID object) {
@@ -3235,6 +3911,48 @@ public class UniverseTest {
                         "Unknown objects have an unknown state for all points in time."));
     }
 
+    private static void get(final Future<Void> future) {
+        try {
+            future.get();
+        } catch (InterruptedException e) {
+            throw new AssertionError(e);
+        } catch (ExecutionException e) {
+            final Throwable cause = e.getCause();
+            if (cause instanceof AssertionError) {
+                throw (AssertionError) cause;
+            } else if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            } else {
+                throw new AssertionError(e);
+            }
+        }
+    }
+
+    private static void get(final List<Future<Void>> futures) {
+        final List<Throwable> exceptions = new ArrayList<>(futures.size());
+        for (var future : futures) {
+            try {
+                get(future);
+            } catch (Exception | AssertionError e) {
+                exceptions.add(e);
+            }
+        }
+        final int nExceptions = exceptions.size();
+        if (0 < nExceptions) {
+            final Throwable e = exceptions.get(0);
+            for (int i = 1; i < nExceptions; ++i) {
+                e.addSuppressed(exceptions.get(i));
+            }
+            if (e instanceof AssertionError) {
+                throw (AssertionError) e;
+            } else if (e instanceof RuntimeException) {
+                throw (RuntimeException) e;
+            } else {
+                throw new AssertionError(e);
+            }
+        }
+    }
+
     static void putAndCommit(final Universe universe, UUID object, Duration when, ObjectState state) {
         final Universe.TransactionListener listener = new Universe.TransactionListener() {
 
@@ -3254,10 +3972,27 @@ public class UniverseTest {
             }
 
         };
-        final Universe.Transaction transaction = universe.beginTransaction(listener);
-        transaction.beginWrite(when);
-        transaction.put(object, state);
-        transaction.beginCommit();
+        try (final Universe.Transaction transaction = universe.beginTransaction(listener);) {
+            transaction.beginWrite(when);
+            transaction.put(object, state);
+            transaction.beginCommit();
+        }
+    }
+
+    private static Future<Void> runInOtherThread(final CountDownLatch ready, final Runnable operation) {
+        final CompletableFuture<Void> future = new CompletableFuture<Void>();
+        final Thread thread = new Thread(() -> {
+            try {
+                ready.await();
+                operation.run();
+            } catch (Throwable e) {
+                future.completeExceptionally(e);
+                return;
+            }
+            future.complete(null);
+        });
+        thread.start();
+        return future;
     }
 
 }

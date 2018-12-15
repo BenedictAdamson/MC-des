@@ -228,6 +228,11 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
     }
 
     @Override
+    public final Set<VALUE> getUniverse() {
+        return new HashSet<>(containsMap.keySet());
+    }
+
+    @Override
     public final int hashCode() {
         return getFirstValue().hashCode() + streamOfTransitions().mapToInt(entry -> entry.hashCode()).sum();
     }
@@ -247,6 +252,8 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
      * value at any points in time.</li>
      * <li>Whether this history {@linkplain #contains(Object) contains} other values
      * is unchanged.</li>
+     * <li>The {@linkplain #getUniverse() universe} of this time varying set does
+     * not {@linkplain Set#contains(Object) contain} the given value.</li>
      * </ul>
      * 
      * @param value

@@ -26,6 +26,7 @@ import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Set;
@@ -50,6 +51,7 @@ public class SetHistoryTest {
         assertThat(
                 "The transition times of the containment history of a value is a sub set of the transition times of this history.",
                 transitionTimes, everyItem(isIn(history.getTransitionTimes())));
+        assertUniverseInvariants(history);
         for (var t : transitionTimes) {
             assertEquals(history.get(t).contains(value), contains.get(t).booleanValue(),
                     "The containment history for a value indicates that the value is present for a point in time if, and only if, that value is contained in the set for which this is a history at that point in time.");
@@ -64,6 +66,8 @@ public class SetHistoryTest {
 
     public static <VALUE> void assertInvariants(SetHistory<VALUE> history, Duration time) {
         ValueHistoryTest.assertInvariants(history, time);// inherited
+        assertTrue(history.getUniverse().contains(history.get(time)),
+                "The value of this time varying set at any point in time is a non-strict sub set of the universe.");
     }
 
     public static <VALUE> void assertInvariants(SetHistory<VALUE> history1, SetHistory<VALUE> history2) {
@@ -72,5 +76,35 @@ public class SetHistoryTest {
 
     public static <VALUE> void assertInvariants(SetHistory<VALUE> history, VALUE value) {
         assertContainsInvariants(history, value);
+    }
+
+    /**
+     * <p>
+     * The set that {@linkplain Set#contains(Object) contains} all the values that
+     * can be in this time varying set.
+     * </p>
+     * <ul>
+     * <li>Always have a (non null) universe.</li>
+     * <li>The {@linkplain #get(Duration) value of this time varying set} at any
+     * point in time {@linkplain Set#containsAll(java.util.Collection) is a
+     * non-strict sub set} of the universe.</li>
+     * <li>The {@linkplain #getFirstValue() value of this time varying set at the
+     * start of time} {@linkplain Set#containsAll(java.util.Collection) is a
+     * non-strict sub set} of the universe.</li>
+     * <li>The {@linkplain #getLastValue() value of this time varying set at the end
+     * of time} {@linkplain Set#containsAll(java.util.Collection) is a non-strict
+     * sub set} of the universe.</li>
+     * </ul>
+     * 
+     * @return
+     */
+    private static <VALUE> Set<VALUE> assertUniverseInvariants(SetHistory<VALUE> history) {
+        final Set<VALUE> universe = history.getUniverse();
+        assertNotNull(universe, "Always have a (non null) universe."); // guard
+        assertTrue(universe.containsAll(history.getFirstValue()),
+                "The value of this time varying set at the start of time is a non-strict sub set of the universe.");
+        assertTrue(universe.containsAll(history.getLastValue()),
+                "The value of this time varying set at the end of time is a non-strict sub set of the universe.");
+        return universe;
     }
 }
