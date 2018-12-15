@@ -164,15 +164,14 @@ public class Universe {
             uncommittedReaders.remove(transaction);
         }
 
+        @GuardedBy("lock")
         private boolean rollBackWrite(Transaction transaction, @NonNull Duration when) {
-            synchronized (lock) {
-                if (latestCommit.compareTo(when) < 0 && uncommittedWriters.contains(transaction).get(when)) {
-                    stateHistory.removeTransitionsFrom(when);
-                }
-                // else aborting because of an out-of-order write
-                uncommittedWriters.remove(transaction);// optimisation
-                return stateHistory.isEmpty();
+            if (latestCommit.compareTo(when) < 0 && uncommittedWriters.contains(transaction).get(when)) {
+                stateHistory.removeTransitionsFrom(when);
             }
+            // else aborting because of an out-of-order write
+            uncommittedWriters.remove(transaction);// optimisation
+            return stateHistory.isEmpty();
         }
 
         @GuardedBy("lock")
@@ -824,7 +823,7 @@ public class Universe {
             }
         }
 
-        @GuardedBy("lock")
+        @GuardedBy("transaction chain")
         private void rollBackWrites() {
             assert Thread.holdsLock(lock);
             for (UUID object : objectStatesWritten.keySet()) {
@@ -836,6 +835,7 @@ public class Universe {
                  * null.
                  */
                 final ObjectData od = objectDataMap.get(object);
+                assert Thread.holdsLock(od.lock);
                 if (od.rollBackWrite(this, when)) {
                     objectDataMap.remove(object);
                     lockables.remove(od.lock);
@@ -1469,6 +1469,12 @@ public class Universe {
                 final Universe universe = transaction.getUniverse();
                 for (ObjectStateId id : transaction.objectStatesRead.keySet()) {
                     final ObjectData od = universe.objectDataMap.get(id.getObject());
+                    if (od != null) {
+                        addRequiredForLockedChain(required, od, chain);
+                    }
+                } // for
+                for (UUID object : transaction.objectStatesWritten.keySet()) {
+                    final ObjectData od = universe.objectDataMap.get(object);
                     if (od != null) {
                         addRequiredForLockedChain(required, od, chain);
                     }
