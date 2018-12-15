@@ -835,8 +835,10 @@ public class Universe {
                  * (the state we wrote), so objectDataMap.get(object) is guaranteed to be not
                  * null.
                  */
-                if (objectDataMap.get(object).rollBackWrite(this, when)) {
+                final ObjectData od = objectDataMap.get(object);
+                if (od.rollBackWrite(this, when)) {
                     objectDataMap.remove(object);
+                    lockables.remove(od.lock);
                 }
             }
         }
