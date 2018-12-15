@@ -79,6 +79,8 @@ public class Universe {
             this.id = id;
         }
 
+        abstract void addRequiredForLockedChain(final Set<Lockable> required, Set<Lockable> chain);
+
         @Override
         public final int compareTo(Lockable that) {
             return id.compareTo(that.id);
@@ -131,6 +133,23 @@ public class Universe {
                 uncommittedWriters.addFrom(whenCreated, creator);
                 latestCommit = ValueHistory.START_OF_TIME;
             }
+        }
+
+        @Override
+        void addRequiredForLockedChain(final Set<Lockable> required, Set<Lockable> chain) {
+            if (!required.contains(this)) {
+                required.add(this);
+                if (chain.contains(this)) {
+                    assert Thread.holdsLock(lock);
+                    for (var r : uncommittedReaders.getUniverse()) {
+                        r.addRequiredForLockedChain(required, chain);
+                    }
+                    for (var w : uncommittedWriters.getUniverse()) {
+                        w.addRequiredForLockedChain(required, chain);
+                    }
+                }
+            }
+            // else infinite recursion possible
         }
 
         private void commit1Writer(Transaction transaction, @NonNull Duration when, ObjectState state) {
@@ -297,6 +316,30 @@ public class Universe {
                 when = null;
                 transactionCoordinator = createTransactionCoordinator(this);
                 openness = TransactionOpenness.READING;
+            }
+        }
+
+        @Override
+        void addRequiredForLockedChain(final Set<Lockable> required, Set<Lockable> chain) {
+            if (!required.contains(this)) {
+                required.add(this);
+                if (chain.contains(this)) {
+                    assert Thread.holdsLock(lock);
+                    transactionCoordinator.addRequiredForLockedChain(required, chain);
+                    final Universe universe = getUniverse();
+                    for (ObjectStateId id : objectStatesRead.keySet()) {
+                        final ObjectData od = universe.objectDataMap.get(id.getObject());
+                        if (od != null) {
+                            od.addRequiredForLockedChain(required, chain);
+                        }
+                    } // for
+                    for (UUID object : objectStatesWritten.keySet()) {
+                        final ObjectData od = universe.objectDataMap.get(object);
+                        if (od != null) {
+                            od.addRequiredForLockedChain(required, chain);
+                        }
+                    }
+                }
             }
         }
 
@@ -856,8 +899,8 @@ public class Universe {
             final AtomicBoolean result = new AtomicBoolean(false);
 
             final NavigableSet<Lockable> chain = new TreeSet<>();
-            chain.add(this);
-            chain.add(od);
+            addRequiredForLockedChain(chain, Collections.emptySet());
+            od.addRequiredForLockedChain(chain, Collections.emptySet());
             while (!withLockedTransactionChain(chain, chain, () -> {
                 result.set(tryToAppendToHistory1(object, state));
                 return;
@@ -917,19 +960,18 @@ public class Universe {
                 Runnable runnable) {
             return Universe.withLockedChain(unlocked, chain, () -> {
                 final Set<Lockable> required = new HashSet<>();
-                addRequiredForLockedChain(required, this, chain);
+                addRequiredForLockedChain(required, chain);
                 return required;
             }, runnable);
         }
 
         private void withLockedTransactionChain(Runnable runnable) {
             final NavigableSet<Lockable> chain = new TreeSet<>();
-            addRequiredForLockedChain(chain, this, Collections.emptySet());
+            addRequiredForLockedChain(chain, Collections.emptySet());
             while (!withLockedTransactionChain(chain, chain, runnable)) {
                 // try again
             }
         }
-
     }// class
 
     final class TransactionCoordinator extends Lockable {
@@ -970,6 +1012,27 @@ public class Universe {
                 mutualTransactions.add(transaction);
                 successors = new HashSet<>();
             }
+        }
+
+        @Override
+        void addRequiredForLockedChain(final Set<Lockable> required, Set<Lockable> chain) {
+            if (!required.contains(this)) {
+                required.add(this);
+                if (chain.contains(this)) {
+                    assert Thread.holdsLock(lock);
+                    for (var p : predecessors) {
+                        p.addRequiredForLockedChain(required, chain);
+                    }
+                    // mutualTransactions.isEmpty() permitted
+                    for (var t : mutualTransactions) {
+                        t.addRequiredForLockedChain(required, chain);
+                    }
+                    for (var s : successors) {
+                        s.addRequiredForLockedChain(required, chain);
+                    }
+                }
+            }
+            // else infinite recursion possible
         }
 
         @GuardedBy("transaction chain")
@@ -1059,7 +1122,6 @@ public class Universe {
         public final String toString() {
             return "TransactionCoordinator [" + id + "]";
         }
-
     }// class
 
     /**
@@ -1443,67 +1505,6 @@ public class Universe {
         }
     }
 
-    private static void addRequiredForLockedChain(final Set<Lockable> required, ObjectData od, Set<Lockable> chain) {
-        if (!required.contains(od)) {
-            required.add(od);
-            if (chain.contains(od)) {
-                assert Thread.holdsLock(od.lock);
-                for (var r : od.uncommittedReaders.getUniverse()) {
-                    addRequiredForLockedChain(required, r, chain);
-                }
-                for (var w : od.uncommittedWriters.getUniverse()) {
-                    addRequiredForLockedChain(required, w, chain);
-                }
-            }
-        }
-        // else infinite recursion possible
-    }
-
-    private static void addRequiredForLockedChain(final Set<Lockable> required, Transaction transaction,
-            Set<Lockable> chain) {
-        if (!required.contains(transaction)) {
-            required.add(transaction);
-            if (chain.contains(transaction)) {
-                assert Thread.holdsLock(transaction.lock);
-                addRequiredForLockedChain(required, transaction.transactionCoordinator, chain);
-                final Universe universe = transaction.getUniverse();
-                for (ObjectStateId id : transaction.objectStatesRead.keySet()) {
-                    final ObjectData od = universe.objectDataMap.get(id.getObject());
-                    if (od != null) {
-                        addRequiredForLockedChain(required, od, chain);
-                    }
-                } // for
-                for (UUID object : transaction.objectStatesWritten.keySet()) {
-                    final ObjectData od = universe.objectDataMap.get(object);
-                    if (od != null) {
-                        addRequiredForLockedChain(required, od, chain);
-                    }
-                }
-            }
-        }
-    }
-
-    private static void addRequiredForLockedChain(final Set<Lockable> required,
-            TransactionCoordinator transactionCoordinator, Set<Lockable> chain) {
-        if (!required.contains(transactionCoordinator)) {
-            required.add(transactionCoordinator);
-            if (chain.contains(transactionCoordinator)) {
-                assert Thread.holdsLock(transactionCoordinator.lock);
-                for (var p : transactionCoordinator.predecessors) {
-                    addRequiredForLockedChain(required, p, chain);
-                }
-                // transactionCoordinator.mutualTransactions.isEmpty() permitted
-                for (var t : transactionCoordinator.mutualTransactions) {
-                    addRequiredForLockedChain(required, t, chain);
-                }
-                for (var s : transactionCoordinator.successors) {
-                    addRequiredForLockedChain(required, s, chain);
-                }
-            }
-        }
-        // else infinite recursion possible
-    }
-
     /*
      * Merging can remove predecessors, so merging can make committing possible.
      */
@@ -1615,16 +1616,16 @@ public class Universe {
             Set<Lockable> chain, Runnable runnable) {
         return withLockedChain(unlocked, chain, () -> {
             final Set<Lockable> required = new HashSet<>();
-            addRequiredForLockedChain(required, transaction, chain);
-            addRequiredForLockedChain(required, od, chain);
+            transaction.addRequiredForLockedChain(required, chain);
+            od.addRequiredForLockedChain(required, chain);
             return required;
         }, runnable);
     }
 
     private static void withLockedChain2(Transaction transaction, ObjectData od, Runnable runnable) {
         final NavigableSet<Lockable> chain = new TreeSet<>();
-        addRequiredForLockedChain(chain, transaction, Collections.emptySet());
-        addRequiredForLockedChain(chain, od, Collections.emptySet());
+        transaction.addRequiredForLockedChain(chain, Collections.emptySet());
+        od.addRequiredForLockedChain(chain, Collections.emptySet());
         while (!withLockedChain2(transaction, od, chain, chain, runnable)) {
             // try again
         }
