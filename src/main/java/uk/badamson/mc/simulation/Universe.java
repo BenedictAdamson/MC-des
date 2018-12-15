@@ -95,14 +95,7 @@ public class Universe {
             return getUniverse().equals(other.getUniverse()) && id.equals(other.id);
         }
 
-        /**
-         * <p>
-         * The {@link Universe} for which this transaction changes the state.
-         * </p>
-         * 
-         * @return the universe; not null.
-         */
-        public final @NonNull Universe getUniverse() {
+        final @NonNull Universe getUniverse() {
             return Universe.this;
         }
 
@@ -479,20 +472,20 @@ public class Universe {
 
         /**
          * <p>
-         * Get the state of a given object, of the {@linkplain #getUniverse() universe}
-         * of this transaction, at a given point in time.
+         * Get the state of a given object, of the universe of this transaction, at a
+         * given point in time.
          * </p>
          * <ul>
          * <li>The object state of for an object ID and point in time is either the same
          * object state as can be {@linkplain Universe#getObjectState(UUID, Duration)
-         * got} from the {@linkplain #getUniverse() universe} of this transaction, or is
-         * the same object state as has already been {@linkplain #getObjectStatesRead()
-         * got} by this transaction.</li>
+         * got} from the universe of this transaction, or is the same object state as
+         * has already been {@linkplain #getObjectStatesRead() got} by this
+         * transaction.</li>
          * <li>The object state of for an object ID and point in time that has not
          * already been {@linkplain #getObjectStatesRead() read} by this transaction is
          * the same object state as can be
-         * {@linkplain Universe#getObjectState(UUID, Duration) got} from the
-         * {@linkplain #getUniverse() universe} of this transaction.</li>
+         * {@linkplain Universe#getObjectState(UUID, Duration) got} from the universe of
+         * this transaction.</li>
          * <li>The object state for an object ID and point in time that has already been
          * {@linkplain #getObjectStatesRead() read} by this transaction is the same
          * object state as was read previously. That is, the transaction object caches
@@ -660,7 +653,7 @@ public class Universe {
         /**
          * <p>
          * Try to add a state transition (or an initial state) for an object to the
-         * {@linkplain #getUniverse() universe} of this transaction.
+         * universe of this transaction.
          * <p>
          * <ul>
          * <li>The method records the given state as one of the
@@ -1700,8 +1693,6 @@ public class Universe {
      * </p>
      * <ul>
      * <li>Always returns a (non null) transaction.</li>
-     * <li>The {@linkplain Universe.Transaction#getUniverse() universe} of the
-     * returned transaction is this transaction.</li>
      * <li>The returned transaction {@linkplain Map#isEmpty() has not}
      * {@linkplain Universe.Transaction#getObjectStatesRead() read any object
      * states}.</li>
