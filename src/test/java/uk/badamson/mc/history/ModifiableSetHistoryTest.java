@@ -433,6 +433,8 @@ public class ModifiableSetHistoryTest {
         assertAll("This history does not contain the given value at any points in time.",
                 () -> assertSame(Boolean.FALSE, contains.getFirstValue(), "[start of time]."),
                 () -> assertTrue(contains.isEmpty(), "[no transitions]."));
+        assertTrue(!history.getUniverse().contains(value),
+                "The universe of this time varying set does not contain the given value.");
     }
 
     @Test

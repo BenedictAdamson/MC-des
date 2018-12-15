@@ -68,4 +68,26 @@ public interface SetHistory<VALUE> extends ValueHistory<Set<VALUE>> {
      * @see Set#contains(Object)
      */
     public @NonNull ValueHistory<Boolean> contains(@Nullable VALUE value);
+
+    /**
+     * <p>
+     * The set that {@linkplain Set#contains(Object) contains} all the values that
+     * can be in this time varying set.
+     * </p>
+     * <ul>
+     * <li>Always have a (non null) universe.</li>
+     * <li>The {@linkplain #get(Duration) value of this time varying set} at any
+     * point in time {@linkplain Set#containsAll(java.util.Collection) is a
+     * non-strict sub set} of the universe.</li>
+     * <li>The {@linkplain #getFirstValue() value of this time varying set at the
+     * start of time} {@linkplain Set#containsAll(java.util.Collection) is a
+     * non-strict sub set} of the universe.</li>
+     * <li>The {@linkplain #getLastValue() value of this time varying set at the end
+     * of time} {@linkplain Set#containsAll(java.util.Collection) is a non-strict
+     * sub set} of the universe.</li>
+     * </ul>
+     * 
+     * @return
+     */
+    public @NonNull Set<VALUE> getUniverse();
 }
