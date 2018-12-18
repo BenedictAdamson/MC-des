@@ -21,6 +21,7 @@ package uk.badamson.mc.simulation;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -439,11 +440,17 @@ public final class SimulationEngine {
      * @throws NullPointerException
      *             If {@code when} is null.
      */
-    public final @NonNull void advanceHistory(@NonNull Duration when) {
+    public final void advanceHistory(@NonNull Duration when) {
         Objects.requireNonNull(when, "when");
-        // TODO handle already advancing to state.
-        universalAdvanceTo = when;
-        for (UUID object : universe.getObjectIds()) {
+        final Set<UUID> objectsToAdvance;
+        if (universalAdvanceTo.compareTo(when) < 0) {
+            universalAdvanceTo = when;
+            objectsToAdvance = universe.getObjectIds();
+        } else {
+            // Optimization
+            objectsToAdvance = Collections.emptySet();
+        }
+        for (UUID object : objectsToAdvance) {
             getEngine1(object).advanceHistory(when, null);
         }
     }

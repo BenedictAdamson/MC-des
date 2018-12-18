@@ -242,6 +242,38 @@ public class SimulationEngineTest {
         }// class
 
         @Nested
+        public class Past {
+
+            @Test
+            public void a() {
+                test(WHEN_1, WHEN_2, WHEN_3, WHEN_4, OBJECT_A);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_2, WHEN_3, WHEN_4, WHEN_5, OBJECT_B);
+            }
+
+            private void test(@NonNull Duration historyStart, @NonNull Duration before, @NonNull Duration when1,
+                    @NonNull Duration when2, @NonNull UUID object) {
+                assert historyStart.compareTo(when1) < 0;
+                assert before.compareTo(when1) < 0;
+                assert when1.compareTo(when2) < 0;
+                final Universe universe = new Universe(historyStart);
+                final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
+                UniverseTest.putAndCommit(universe, object, before, state0);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+                engine.advanceHistory(when2);
+
+                advanceHistory(engine, when1);
+
+                assertThat("Advanced the state history of the sole object.", universe.getLatestCommit(object),
+                        greaterThanOrEqualTo(when2));
+                assertThat("Advanced the history end.", universe.getHistoryEnd(), greaterThanOrEqualTo(when2));
+            }
+        }// class
+
+        @Nested
         public class Spawning {
 
             @Test
