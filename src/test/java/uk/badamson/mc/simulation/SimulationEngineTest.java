@@ -39,6 +39,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -150,6 +152,41 @@ public class SimulationEngineTest {
             engine.advanceHistory(object, when);
 
             assertInvariants(engine);
+        }
+
+        @RepeatedTest(32)
+        public void independentMultiThreaded() {
+            final Duration historyStart = WHEN_1;
+            final Duration before = WHEN_2;
+            final Duration when = WHEN_3;
+            assert historyStart.compareTo(when) < 0;
+            assert before.compareTo(when) < 0;
+
+            final Universe universe = new Universe(historyStart);
+            final Collection<UUID> objects = new ArrayList<>(N_THREADS);
+            for (int o = 1; o <= N_THREADS; ++o) {
+                final UUID object = UUID.randomUUID();
+                final ObjectState state0 = new ObjectStateTest.TestObjectState(o);
+                objects.add(object);
+                UniverseTest.putAndCommit(universe, object, before, state0);
+            }
+            final CountDownLatch ready = new CountDownLatch(1);
+            final List<Future<Void>> futures = new ArrayList<>(N_THREADS);
+            final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor);
+            for (final UUID object : objects) {
+                futures.add(runInOtherThread(ready, () -> {
+                    engine.advanceHistory(object, when);
+                }));
+            } // for
+
+            ready.countDown();
+            get(futures);
+
+            assertInvariants(engine);
+            for (var future : futures) {
+                assertAll("future", () -> assertFalse(future.isCancelled(), "Not cancelled"),
+                        () -> assertTrue(future.isDone(), "Done"));
+            }
         }
 
     }// class
@@ -1004,7 +1041,7 @@ public class SimulationEngineTest {
         ObjectTest.assertInvariants(engine1, engine2);// inherited
     }
 
-    private static void get(final Future<ObjectState> future) {
+    private static <T> void get(final Future<T> future) {
         try {
             future.get();
         } catch (InterruptedException e) {
@@ -1021,7 +1058,7 @@ public class SimulationEngineTest {
         }
     }
 
-    private static void get(final List<Future<ObjectState>> futures) {
+    private static <T> void get(final List<Future<T>> futures) {
         final List<Throwable> exceptions = new ArrayList<>(futures.size());
         for (var future : futures) {
             try {
@@ -1044,6 +1081,22 @@ public class SimulationEngineTest {
                 throw new AssertionError(e);
             }
         }
+    }
+
+    private static Future<Void> runInOtherThread(final CountDownLatch ready, final Runnable operation) {
+        final CompletableFuture<Void> future = new CompletableFuture<Void>();
+        final Thread thread = new Thread(() -> {
+            try {
+                ready.await();
+                operation.run();
+            } catch (Throwable e) {
+                future.completeExceptionally(e);
+                return;
+            }
+            future.complete(null);
+        });
+        thread.start();
+        return future;
     }
 
     private DirectExecutor directExecutor;
