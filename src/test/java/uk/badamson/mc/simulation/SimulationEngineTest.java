@@ -33,15 +33,20 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -875,6 +880,51 @@ public class SimulationEngineTest {
             return future;
         }
 
+        @RepeatedTest(32)
+        public void independentMultiThreaded() {
+            final Duration historyStart = WHEN_1;
+            final Duration before = WHEN_2;
+            final Duration when = WHEN_3;
+            assert historyStart.compareTo(when) < 0;
+            assert before.compareTo(when) < 0;
+
+            final Universe universe = new Universe(historyStart);
+            final Collection<UUID> objects = new ArrayList<>(N_THREADS);
+            for (int o = 1; o <= N_THREADS; ++o) {
+                final UUID object = UUID.randomUUID();
+                final ObjectState state0 = new ObjectStateTest.TestObjectState(o);
+                objects.add(object);
+                UniverseTest.putAndCommit(universe, object, before, state0);
+            }
+            final List<Future<ObjectState>> futures = new ArrayList<>(N_THREADS);
+            final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor);
+            for (final UUID object : objects) {
+                futures.add(engine.computeObjectState(object, when));
+            }
+
+            get(futures);
+
+            assertInvariants(engine);
+            for (var future : futures) {
+                assertAll("future", () -> assertFalse(future.isCancelled(), "Not cancelled"),
+                        () -> assertTrue(future.isDone(), "Done"));
+            }
+            for (var future : futures) {
+                final ObjectState state2;
+                try {
+                    state2 = future.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    fail("Computation succeeds", e);
+                    return;// never happens
+                }
+                assertNotNull(state2, "Computed a state");// guard
+                ObjectStateTest.assertInvariants(state2);
+            }
+            for (final UUID object : objects) {
+                assertThat("Advanced the state history", universe.getLatestCommit(object), greaterThanOrEqualTo(when));
+            }
+        }
+
     }// class
 
     @Nested
@@ -939,6 +989,8 @@ public class SimulationEngineTest {
     private static final UUID OBJECT_A = UniverseTest.OBJECT_A;
     private static final UUID OBJECT_B = UniverseTest.OBJECT_B;
 
+    private static final int N_THREADS = Runtime.getRuntime().availableProcessors() * 4;
+
     public static void assertInvariants(SimulationEngine engine) {
         ObjectTest.assertInvariants(engine);// inherited
 
@@ -952,12 +1004,58 @@ public class SimulationEngineTest {
         ObjectTest.assertInvariants(engine1, engine2);// inherited
     }
 
+    private static void get(final Future<ObjectState> future) {
+        try {
+            future.get();
+        } catch (InterruptedException e) {
+            throw new AssertionError(e);
+        } catch (ExecutionException e) {
+            final Throwable cause = e.getCause();
+            if (cause instanceof AssertionError) {
+                throw (AssertionError) cause;
+            } else if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            } else {
+                throw new AssertionError(e);
+            }
+        }
+    }
+
+    private static void get(final List<Future<ObjectState>> futures) {
+        final List<Throwable> exceptions = new ArrayList<>(futures.size());
+        for (var future : futures) {
+            try {
+                get(future);
+            } catch (Exception | AssertionError e) {
+                exceptions.add(e);
+            }
+        }
+        final int nExceptions = exceptions.size();
+        if (0 < nExceptions) {
+            final Throwable e = exceptions.get(0);
+            for (int i = 1; i < nExceptions; ++i) {
+                e.addSuppressed(exceptions.get(i));
+            }
+            if (e instanceof AssertionError) {
+                throw (AssertionError) e;
+            } else if (e instanceof RuntimeException) {
+                throw (RuntimeException) e;
+            } else {
+                throw new AssertionError(e);
+            }
+        }
+    }
+
     private DirectExecutor directExecutor;
+
     private EnqueingExector enqueingExector;
+
+    private Executor threadPoolExecutor;
 
     @BeforeEach
     public void setUpExectors() {
         directExecutor = new DirectExecutor();
         enqueingExector = new EnqueingExector();
+        threadPoolExecutor = Executors.newFixedThreadPool(N_THREADS);
     }
 }

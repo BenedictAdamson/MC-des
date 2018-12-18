@@ -22,7 +22,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -34,6 +33,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
@@ -393,7 +393,8 @@ public final class SimulationEngine {
     @NonNull
     private final Executor executor;
 
-    private final Map<UUID, Engine1> engines = new HashMap<>();
+    // Hard to test that a concurrent Map.
+    private final Map<UUID, Engine1> engines = new ConcurrentHashMap<>();
 
     @NonNull
     @GuardedBy("lock")
