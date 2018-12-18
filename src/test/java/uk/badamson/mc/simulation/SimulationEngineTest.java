@@ -38,6 +38,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -182,7 +183,34 @@ public class SimulationEngineTest {
             ready.countDown();
             get(futures);
 
-            assertInvariants(engine);
+            for (var future : futures) {
+                assertAll("future", () -> assertFalse(future.isCancelled(), "Not cancelled"),
+                        () -> assertTrue(future.isDone(), "Done"));
+            }
+        }
+
+        @RepeatedTest(32)
+        public void sameObjectMultiThreaded() {
+            final Duration historyStart = WHEN_1;
+            final Duration before = WHEN_2;
+            final UUID object = OBJECT_A;
+
+            final Universe universe = new Universe(historyStart);
+            UniverseTest.putAndCommit(universe, object, before, new ObjectStateTest.TestObjectState(1));
+            final CountDownLatch ready = new CountDownLatch(1);
+            final List<Future<Void>> futures = new ArrayList<>(N_THREADS);
+            final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor);
+            final Random random = new Random();
+            for (int i = 0; i < N_THREADS; ++i) {
+                final Duration when = before.plusMillis(random.nextInt(N_THREADS * 2000));
+                futures.add(runInOtherThread(ready, () -> {
+                    engine.advanceHistory(object, when);
+                }));
+            } // for
+
+            ready.countDown();
+            get(futures);
+
             for (var future : futures) {
                 assertAll("future", () -> assertFalse(future.isCancelled(), "Not cancelled"),
                         () -> assertTrue(future.isDone(), "Done"));
