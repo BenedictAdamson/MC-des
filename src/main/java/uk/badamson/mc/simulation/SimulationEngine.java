@@ -154,10 +154,9 @@ public final class SimulationEngine {
             assert when != null;
             assert !object.equals(dependent);
 
-            // TODO optimize test for existing object
             final boolean work = latestCommit != null && ValueHistory.START_OF_TIME.compareTo(latestCommit) < 0
                     && latestCommit.compareTo(when) < 0 && advanceTo.compareTo(when) < 0
-                    && universe.getObjectIds().contains(object);
+                    && universe.containsObject(object);
             advanceTo = when;
             if (dependent != null) {
                 dependentObjects.add(dependent);
@@ -307,7 +306,7 @@ public final class SimulationEngine {
         }
 
         private void scheduleAdvance1() {
-            assert universe.getObjectIds().contains(object);
+            assert universe.containsObject(object);
             executor.execute(this);
         }
 
