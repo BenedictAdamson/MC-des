@@ -44,8 +44,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -187,6 +189,24 @@ public class SimulationEngineTest {
                 assertAll("future", () -> assertFalse(future.isCancelled(), "Not cancelled"),
                         () -> assertTrue(future.isDone(), "Done"));
             }
+        }
+
+        @Test
+        public void rejectedExecution() {
+            final Duration historyStart = WHEN_1;
+            final Duration before = WHEN_2;
+            final Duration when = WHEN_3;
+            final UUID object = OBJECT_A;
+            assert historyStart.compareTo(when) < 0;
+            assert before.compareTo(when) < 0;
+
+            final Universe universe = new Universe(historyStart);
+            final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
+            UniverseTest.putAndCommit(universe, object, before, state0);
+            final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor);
+            threadPoolExecutor.shutdown();
+
+            advanceHistory(engine, object, when);
         }
 
         @RepeatedTest(32)
@@ -413,6 +433,34 @@ public class SimulationEngineTest {
             engine.advanceHistory(when);
 
             assertInvariants(engine);
+        }
+
+        @RepeatedTest(8)
+        public void multiThreaded() {
+            final Duration historyStart = WHEN_1;
+            final Duration before = WHEN_2;
+            final UUID object = OBJECT_A;
+            final Universe universe = new Universe(historyStart);
+            final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
+            UniverseTest.putAndCommit(universe, object, before, state0);
+
+            final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor);
+            final Random random = new Random();
+            for (int i = 0; i < N_THREADS; ++i) {
+                final Duration when = before.plusMillis(random.nextInt(N_THREADS * 2000));
+                assert historyStart.compareTo(when) < 0;
+                assert before.compareTo(when) < 0;
+                engine.advanceHistory(when);
+            }
+
+            threadPoolExecutor.shutdown();
+            try {
+                threadPoolExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                throw new AssertionError(e);
+            }
+            assertInvariants(engine);
+            UniverseTest.assertInvariants(universe, object);
         }
 
     }// class
@@ -1026,7 +1074,7 @@ public class SimulationEngineTest {
                 }
                 assertNotNull(state2, "Computed a state");// guard
                 ObjectStateTest.assertInvariants(state2);
-            }
+            } // for
         }
 
     }// class
@@ -1173,7 +1221,7 @@ public class SimulationEngineTest {
 
     private EnqueingExector enqueingExector;
 
-    private Executor threadPoolExecutor;
+    private ExecutorService threadPoolExecutor;
 
     @BeforeEach
     public void setUpExectors() {

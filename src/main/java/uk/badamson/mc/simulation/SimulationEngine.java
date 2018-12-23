@@ -37,6 +37,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.stream.Collectors;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -183,7 +184,7 @@ public final class SimulationEngine {
                 dependentObjects.add(dependent);
             }
             if (work) {
-                scheduleAdvance1();
+                tryToScheduleAdvance1();
             }
         }
 
@@ -228,7 +229,7 @@ public final class SimulationEngine {
             assert latestCommit != null;
             if (hasWorkToDo()) {
                 // Try again
-                scheduleAdvance1();
+                tryToScheduleAdvance1();
             }
             // else abandoning
         }
@@ -257,7 +258,7 @@ public final class SimulationEngine {
 
             if (hasWorkToDo()) {
                 // Further work required for the object this engine moves forward.
-                scheduleAdvance1();
+                tryToScheduleAdvance1();
             } else {
                 synchronized (this) {
                     running = false;
@@ -324,7 +325,7 @@ public final class SimulationEngine {
             final boolean readyToAdvance = objectDependencies.isEmpty();
             if (readyToAdvance) {
                 // Removed the last remaining dependency, so can (re)try advancing the state
-                scheduleAdvance1();
+                tryToScheduleAdvance1();
             }
         }
 
@@ -347,9 +348,13 @@ public final class SimulationEngine {
             return future;
         }
 
-        private void scheduleAdvance1() {
+        private void tryToScheduleAdvance1() {
             assert universe.containsObject(object);
-            executor.execute(this);
+            try {
+                executor.execute(this);
+            } catch (RejectedExecutionException e) {
+                // Do nothing. Ok to fail because only need to try.
+            }
         }
 
     }
