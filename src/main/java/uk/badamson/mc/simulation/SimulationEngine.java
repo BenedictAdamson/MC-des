@@ -393,7 +393,7 @@ public final class SimulationEngine {
 
                 @Override
                 public void onCommit() {
-                    complete(state);
+                    complete(getState());
                 }
 
                 @Override
@@ -404,10 +404,23 @@ public final class SimulationEngine {
             });
         }
 
+        @Nullable
+        private ObjectState getState() {
+            synchronized (lock) {
+                return state;
+            }
+        }
+
+        private void setState(@Nullable ObjectState state) {
+            synchronized (lock) {
+                this.state = state;
+            }
+        }
+
         private void startReadTransaction() {
             try (final Universe.Transaction transaction = createReadTransaction();) {
                 try {
-                    state = transaction.getObjectState(id.getObject(), id.getWhen());
+                    setState(transaction.getObjectState(id.getObject(), id.getWhen()));
                     transaction.beginCommit();
                 } catch (Universe.PrehistoryException e) {
                     completeExceptionally(e);
