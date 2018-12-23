@@ -19,7 +19,9 @@ package uk.badamson.mc.simulation;
  */
 
 import java.time.Duration;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -31,13 +33,17 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.stream.Collectors;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
+import net.jcip.annotations.GuardedBy;
+import net.jcip.annotations.ThreadSafe;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.simulation.Universe.PrehistoryException;
 
@@ -47,25 +53,38 @@ import uk.badamson.mc.simulation.Universe.PrehistoryException;
  * state.
  * </p>
  */
+@ThreadSafe
 public final class SimulationEngine {
 
     /*
      * Drives the simulation forward for one simulation object.
      */
     private final class Engine1 implements Universe.TransactionListener, Runnable {
+        @GuardedBy("this")
+        private boolean running = false;
+
         @NonNull
         private final UUID object;
+
+        @GuardedBy("this")
         @NonNull
         private Duration latestCommit = ValueHistory.START_OF_TIME;
+
         // steps has no null values
+        @GuardedBy("this")
         private final NavigableMap<Duration, FutureObjectState> steps = new TreeMap<>();
+
         @NonNull
+        @GuardedBy("this")
         private Duration advanceTo = ValueHistory.START_OF_TIME;
+
         /*
          * Objects that can not have their state advanced until the object that this
          * advances has advanced. dependentObjects does not contain null
          */
+        @GuardedBy("this")
         private final Set<UUID> dependentObjects = new HashSet<>();
+
         /*
          * Objects that ought to have their states advanced before we try to advance the
          * state of the object that this advances.
@@ -73,12 +92,18 @@ public final class SimulationEngine {
          * The dependencies are weak "ought to" rather than a strong "must" because it
          * is impossible to compute reliable dependency information.
          */
+        @GuardedBy("this")
         private final Set<UUID> objectDependencies = new HashSet<>();
+
+        @GuardedBy("this")
+        private final Set<UUID> creating = new HashSet<>();
 
         private Engine1(@NonNull UUID object) {
             assert object != null;
             this.object = object;
-            latestCommit = universe.getLatestCommit(object);
+            synchronized (this) {
+                latestCommit = universe.getLatestCommit(object);
+            }
         }
 
         /*
@@ -104,19 +129,23 @@ public final class SimulationEngine {
             }
         }
 
-        private void addDependency(final UUID objectDependency) {
+        private synchronized void addDependency(final UUID objectDependency) {
             objectDependencies.add(objectDependency);
         }
 
         private void advance1() {
-            latestCommit = universe.getLatestCommit(object);
-            assert latestCommit != null;
-            assert latestCommit.compareTo(ValueHistory.END_OF_TIME) < 0;
             try (final Universe.Transaction transaction = universe.beginTransaction(this)) {
                 try {
-                    final ObjectState state0 = transaction.getObjectState(object, latestCommit);
+                    final Duration when = universe.getLatestCommit(object);
+                    assert when != null;
+                    assert when.compareTo(ValueHistory.END_OF_TIME) < 0;
+                    synchronized (this) {
+                        latestCommit = when;
+                        creating.clear();
+                    }
+                    final ObjectState state0 = transaction.getObjectState(object, when);
                     assert state0 != null;
-                    putNextStateTransition(state0, transaction, latestCommit);
+                    putNextStateTransition(state0, transaction, when);
                     /*
                      * Before this transaction can be committed, any object states it depends on
                      * must be committed. Ensure those object states will be (eventually) committed.
@@ -139,64 +168,88 @@ public final class SimulationEngine {
             assert when != null;
             assert !object.equals(dependent);
 
-            // TODO optimize test for existing object
-            final boolean work = latestCommit != null && ValueHistory.START_OF_TIME.compareTo(latestCommit) < 0
-                    && latestCommit.compareTo(when) < 0 && advanceTo.compareTo(when) < 0
-                    && universe.getObjectIds().contains(object);
-            advanceTo = when;
-            if (dependent != null) {
-                dependentObjects.add(dependent);
+            final boolean work;
+            synchronized (this) {
+                final boolean advanceFurther = advanceTo.compareTo(when) < 0;
+                work = !running && latestCommit != null && ValueHistory.START_OF_TIME.compareTo(latestCommit) < 0
+                        && latestCommit.compareTo(when) < 0 && advanceFurther && universe.containsObject(object);
+                if (advanceFurther) {
+                    advanceTo = when;
+                }
+                if (work) {
+                    running = true;
+                }
+                if (dependent != null) {
+                    dependentObjects.add(dependent);
+                }
             }
             if (work) {
-                scheduleAdvance1();
+                tryToScheduleAdvance1();
             }
         }
 
         private void completeCommitableReads() {
-            latestCommit = universe.getLatestCommit(object);
-            final boolean unknownObject = latestCommit == null;
-            final SortedMap<Duration, FutureObjectState> commitableReads = unknownObject ? steps
-                    : new TreeMap<>(steps.headMap(latestCommit, true));
-            for (var future : commitableReads.values()) {
-                if (!future.isDone()) {
-                    future.startReadTransaction();
+            final Collection<FutureObjectState> transactionsToStart;
+            synchronized (this) {
+                latestCommit = universe.getLatestCommit(object);
+                final boolean unknownObject = latestCommit == null;
+                final SortedMap<Duration, FutureObjectState> commitableReads = unknownObject ? steps
+                        : new TreeMap<>(steps.headMap(latestCommit, true));
+                transactionsToStart = new ArrayList<>(commitableReads.size());
+                for (var future : commitableReads.values()) {
+                    if (!future.isDone()) {
+                        transactionsToStart.add(future);
+                    }
                 }
+                steps.keySet().removeAll(commitableReads.keySet());
+                assert !(unknownObject && !steps.isEmpty());
+            }
+
+            for (FutureObjectState future : transactionsToStart) {
+                future.startReadTransaction();
                 assert future.isDone();
             }
-            steps.keySet().removeAll(commitableReads.keySet());
-            assert !(unknownObject && !steps.isEmpty());
         }
 
-        private void completeExceptionally(Throwable e) {
-            advanceTo = latestCommit;
+        private synchronized void completeExceptionally(Throwable e) {
+            advanceTo = latestCommit;// cease further work
+
             for (var step : steps.values()) {
                 step.completeExceptionally(e);
             }
             steps.clear();
         }
 
-        private boolean hasWorkToDo() {
+        private synchronized boolean hasWorkToDo() {
             return latestCommit != null && latestCommit.compareTo(advanceTo) < 0;
         }
 
         @Override
         public void onAbort() {
-            assert latestCommit != null;
+            // assert latestCommit != null;
             if (hasWorkToDo()) {
                 // Try again
-                scheduleAdvance1();
+                tryToScheduleAdvance1();
             }
             // else abandoning
         }
 
         @Override
         public void onCommit() {
-            assert latestCommit != null;
-            /*
-             * As we have committed, we evidently are not awaiting the advance of any other
-             * objects before committing.
-             */
-            objectDependencies.clear();
+            final Set<UUID> dependents;
+            final Set<UUID> created;
+            synchronized (this) {
+                assert latestCommit != null;
+                /*
+                 * As we have committed, we evidently are not awaiting the advance of any other
+                 * objects before committing.
+                 */
+                objectDependencies.clear();
+                dependents = new HashSet<>(dependentObjects);
+                dependentObjects.clear();
+                created = new HashSet<>(creating);
+                creating.clear();
+            }
             /*
              * Now that we have advanced the simulation, some waiting reads might be able to
              * complete.
@@ -205,22 +258,31 @@ public final class SimulationEngine {
 
             if (hasWorkToDo()) {
                 // Further work required for the object this engine moves forward.
-                scheduleAdvance1();
+                tryToScheduleAdvance1();
+            } else {
+                synchronized (this) {
+                    running = false;
+                }
+            }
+
+            // Some created objects might now need their state to be advanced.
+            for (UUID c : created) {
+                final Engine1 engine = getEngine1(c);
+                engine.advanceHistory(getUniversalAdvanceTo(), null);
             }
 
             // And some aborted writes could be restarted
-            for (UUID dependent : dependentObjects) {
-                removeDependency(object, dependent);
+            for (UUID dependent : dependents) {
+                final Engine1 engine1 = getEngine1(dependent);
+                engine1.removeDependency1(object);
             }
-            dependentObjects.clear();
         }
 
         @Override
         public void onCreate(@NonNull UUID createdObject) {
-            dependentObjects.add(createdObject);
-            final Engine1 engine = getEngine1(createdObject);
-            engine.addDependency(object);
-            engine.advanceHistory(universalAdvanceTo, null);
+            synchronized (this) {
+                creating.add(createdObject);
+            }
         }
 
         private void putNextStateTransition(@NonNull final ObjectState state0,
@@ -256,12 +318,13 @@ public final class SimulationEngine {
             }
         }
 
-        private void removeDependency1(final UUID dependedOnObject) {
+        private synchronized void removeDependency1(final UUID dependedOnObject) {
             assert latestCommit != null;
             objectDependencies.remove(dependedOnObject);
-            if (objectDependencies.isEmpty()) {
+            final boolean readyToAdvance = objectDependencies.isEmpty();
+            if (readyToAdvance) {
                 // Removed the last remaining dependency, so can (re)try advancing the state
-                scheduleAdvance1();
+                tryToScheduleAdvance1();
             }
         }
 
@@ -275,15 +338,22 @@ public final class SimulationEngine {
             assert object.equals(id.getObject());
             assert !object.equals(dependent);
 
-            final FutureObjectState future = steps.computeIfAbsent(when, t -> new FutureObjectState(id));
+            final FutureObjectState future;
+            synchronized (this) {
+                future = steps.computeIfAbsent(when, t -> new FutureObjectState(id));
+            }
             advanceHistory(when, dependent);
             completeCommitableReads();
             return future;
         }
 
-        private void scheduleAdvance1() {
-            assert universe.getObjectIds().contains(object);
-            executor.execute(this);
+        private void tryToScheduleAdvance1() {
+            assert universe.containsObject(object);
+            try {
+                executor.execute(this);
+            } catch (RejectedExecutionException e) {
+                // Do nothing. Ok to fail because only need to try.
+            }
         }
 
     }
@@ -303,9 +373,13 @@ public final class SimulationEngine {
     }// class
 
     private final class FutureObjectState extends EngineFuture<ObjectState> {
+        private final Object lock = new Object();
+
         @NonNull
         private final ObjectStateId id;
+
         @Nullable
+        @GuardedBy("lock")
         private ObjectState state;
 
         private FutureObjectState(@NonNull ObjectStateId id) {
@@ -323,7 +397,7 @@ public final class SimulationEngine {
 
                 @Override
                 public void onCommit() {
-                    complete(state);
+                    complete(getState());
                 }
 
                 @Override
@@ -334,10 +408,23 @@ public final class SimulationEngine {
             });
         }
 
+        @Nullable
+        private ObjectState getState() {
+            synchronized (lock) {
+                return state;
+            }
+        }
+
+        private void setState(@Nullable ObjectState state) {
+            synchronized (lock) {
+                this.state = state;
+            }
+        }
+
         private void startReadTransaction() {
             try (final Universe.Transaction transaction = createReadTransaction();) {
                 try {
-                    state = transaction.getObjectState(id.getObject(), id.getWhen());
+                    setState(transaction.getObjectState(id.getObject(), id.getWhen()));
                     transaction.beginCommit();
                 } catch (Universe.PrehistoryException e) {
                     completeExceptionally(e);
@@ -356,15 +443,19 @@ public final class SimulationEngine {
         return "Failure for " + state0 + " putNextStateTransition, object=" + object + ", when=" + when;
     }
 
+    private final Object lock = new Object();
+
     @NonNull
     private final Universe universe;
 
     @NonNull
     private final Executor executor;
 
-    private final Map<UUID, Engine1> engines = new HashMap<>();
+    // Hard to test that a concurrent Map.
+    private final Map<UUID, Engine1> engines = new ConcurrentHashMap<>();
 
     @NonNull
+    @GuardedBy("lock")
     private Duration universalAdvanceTo = ValueHistory.START_OF_TIME;
 
     /**
@@ -400,19 +491,31 @@ public final class SimulationEngine {
      * If necessary, schedule computations, so the
      * {@linkplain Universe#getHistoryEnd() history end time} of the
      * {@linkplain #getUniverse() universe} of this engine extends at least to a
-     * given point in time. time.
+     * given point in time.
      * </p>
+     * <ul>
+     * <li>After scheduling the computation, the method returns immediately, rather
+     * than awaiting completion of the computation.</li>
+     * </ul>
      * 
      * @param when
      *            The point in time of interest.
      * @throws NullPointerException
      *             If {@code when} is null.
      */
-    public final @NonNull void advanceHistory(@NonNull Duration when) {
+    public final void advanceHistory(@NonNull Duration when) {
         Objects.requireNonNull(when, "when");
-        // TODO handle already advancing to state.
-        universalAdvanceTo = when;
-        for (UUID object : universe.getObjectIds()) {
+        final Set<UUID> objectsToAdvance;
+        synchronized (lock) {
+            if (universalAdvanceTo.compareTo(when) < 0) {
+                universalAdvanceTo = when;
+                objectsToAdvance = universe.getObjectIds();
+            } else {
+                // Optimization
+                objectsToAdvance = Collections.emptySet();
+            }
+        }
+        for (UUID object : objectsToAdvance) {
             getEngine1(object).advanceHistory(when, null);
         }
     }
@@ -422,12 +525,14 @@ public final class SimulationEngine {
      * If necessary, schedule computation of the state history of a given object, of
      * the {@linkplain #getUniverse() universe} of this engine, so the
      * {@linkplain Universe#getLatestCommit(UUID) committed history} of the given
-     * object extends at least to a given point in time. time.
+     * object extends at least to a given point in time.
      * </p>
      * <ul>
      * <li>This method is cheaper than {@link #computeObjectState(UUID, Duration)},
      * as it does not need to create and maintain a {@link Future} for recording the
-     * computed state.
+     * computed state.</li>
+     * <li>After scheduling the computation, the method returns immediately, rather
+     * than awaiting completion of the computation.</li>
      * </ul>
      * 
      * @param object
@@ -502,6 +607,12 @@ public final class SimulationEngine {
         return executor;
     }
 
+    private Duration getUniversalAdvanceTo() {
+        synchronized (lock) {
+            return universalAdvanceTo;
+        }
+    }
+
     /**
      * <p>
      * The collection of simulated objects and their {@linkplain ObjectState state}
@@ -516,12 +627,6 @@ public final class SimulationEngine {
     @NonNull
     public final Universe getUniverse() {
         return universe;
-    }
-
-    private void removeDependency(UUID dependedOnObject, UUID dependency) {
-        assert dependency != null;
-        final Engine1 engine1 = getEngine1(dependency);
-        engine1.removeDependency1(dependedOnObject);
     }
 
 }

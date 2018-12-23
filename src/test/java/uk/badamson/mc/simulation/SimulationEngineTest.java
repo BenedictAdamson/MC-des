@@ -33,15 +33,25 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -147,6 +157,86 @@ public class SimulationEngineTest {
             assertInvariants(engine);
         }
 
+        @RepeatedTest(32)
+        public void independentMultiThreaded() {
+            final Duration historyStart = WHEN_1;
+            final Duration before = WHEN_2;
+            final Duration when = WHEN_3;
+            assert historyStart.compareTo(when) < 0;
+            assert before.compareTo(when) < 0;
+
+            final Universe universe = new Universe(historyStart);
+            final Collection<UUID> objects = new ArrayList<>(N_THREADS);
+            for (int o = 1; o <= N_THREADS; ++o) {
+                final UUID object = UUID.randomUUID();
+                final ObjectState state0 = new ObjectStateTest.TestObjectState(o);
+                objects.add(object);
+                UniverseTest.putAndCommit(universe, object, before, state0);
+            }
+            final CountDownLatch ready = new CountDownLatch(1);
+            final List<Future<Void>> futures = new ArrayList<>(N_THREADS);
+            final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor);
+            for (final UUID object : objects) {
+                futures.add(runInOtherThread(ready, () -> {
+                    engine.advanceHistory(object, when);
+                }));
+            } // for
+
+            ready.countDown();
+            get(futures);
+
+            for (var future : futures) {
+                assertAll("future", () -> assertFalse(future.isCancelled(), "Not cancelled"),
+                        () -> assertTrue(future.isDone(), "Done"));
+            }
+        }
+
+        @Test
+        public void rejectedExecution() {
+            final Duration historyStart = WHEN_1;
+            final Duration before = WHEN_2;
+            final Duration when = WHEN_3;
+            final UUID object = OBJECT_A;
+            assert historyStart.compareTo(when) < 0;
+            assert before.compareTo(when) < 0;
+
+            final Universe universe = new Universe(historyStart);
+            final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
+            UniverseTest.putAndCommit(universe, object, before, state0);
+            final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor);
+            threadPoolExecutor.shutdown();
+
+            advanceHistory(engine, object, when);
+        }
+
+        @RepeatedTest(32)
+        public void sameObjectMultiThreaded() {
+            final Duration historyStart = WHEN_1;
+            final Duration before = WHEN_2;
+            final UUID object = OBJECT_A;
+
+            final Universe universe = new Universe(historyStart);
+            UniverseTest.putAndCommit(universe, object, before, new ObjectStateTest.TestObjectState(1));
+            final CountDownLatch ready = new CountDownLatch(1);
+            final List<Future<Void>> futures = new ArrayList<>(N_THREADS);
+            final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor);
+            final Random random = new Random();
+            for (int i = 0; i < N_THREADS; ++i) {
+                final Duration when = before.plusMillis(random.nextInt(N_THREADS * 2000));
+                futures.add(runInOtherThread(ready, () -> {
+                    engine.advanceHistory(object, when);
+                }));
+            } // for
+
+            ready.countDown();
+            get(futures);
+
+            for (var future : futures) {
+                assertAll("future", () -> assertFalse(future.isCancelled(), "Not cancelled"),
+                        () -> assertTrue(future.isDone(), "Done"));
+            }
+        }
+
     }// class
 
     @Nested
@@ -242,6 +332,38 @@ public class SimulationEngineTest {
         }// class
 
         @Nested
+        public class Past {
+
+            @Test
+            public void a() {
+                test(WHEN_1, WHEN_2, WHEN_3, WHEN_4, OBJECT_A);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_2, WHEN_3, WHEN_4, WHEN_5, OBJECT_B);
+            }
+
+            private void test(@NonNull Duration historyStart, @NonNull Duration before, @NonNull Duration when1,
+                    @NonNull Duration when2, @NonNull UUID object) {
+                assert historyStart.compareTo(when1) < 0;
+                assert before.compareTo(when1) < 0;
+                assert when1.compareTo(when2) < 0;
+                final Universe universe = new Universe(historyStart);
+                final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
+                UniverseTest.putAndCommit(universe, object, before, state0);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+                engine.advanceHistory(when2);
+
+                advanceHistory(engine, when1);
+
+                assertThat("Advanced the state history of the sole object.", universe.getLatestCommit(object),
+                        greaterThanOrEqualTo(when2));
+                assertThat("Advanced the history end.", universe.getHistoryEnd(), greaterThanOrEqualTo(when2));
+            }
+        }// class
+
+        @Nested
         public class Spawning {
 
             @Test
@@ -275,10 +397,89 @@ public class SimulationEngineTest {
             }
         }// class
 
+        @Nested
+        public class Succesive {
+
+            @Test
+            public void a() {
+                test(WHEN_1, WHEN_2, WHEN_3, WHEN_4, OBJECT_A);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_2, WHEN_3, WHEN_4, WHEN_5, OBJECT_B);
+            }
+
+            private void test(@NonNull Duration historyStart, @NonNull Duration before, @NonNull Duration when1,
+                    @NonNull Duration when2, @NonNull UUID object) {
+                assert historyStart.compareTo(when1) < 0;
+                assert before.compareTo(when1) < 0;
+                assert when1.compareTo(when2) < 0;
+                final Universe universe = new Universe(historyStart);
+                final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
+                UniverseTest.putAndCommit(universe, object, before, state0);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+                engine.advanceHistory(when1);
+
+                advanceHistory(engine, when2);
+
+                assertThat("Advanced the state history of the sole object.", universe.getLatestCommit(object),
+                        greaterThanOrEqualTo(when2));
+                assertThat("Advanced the history end.", universe.getHistoryEnd(), greaterThanOrEqualTo(when2));
+            }
+        }// class
+
         private void advanceHistory(SimulationEngine engine, @NonNull Duration when) {
             engine.advanceHistory(when);
 
             assertInvariants(engine);
+        }
+
+        @RepeatedTest(8)
+        public void multiThreaded() {
+            final Duration historyStart = WHEN_1;
+            final Duration before = WHEN_2;
+            final UUID object = OBJECT_A;
+            final Universe universe = new Universe(historyStart);
+            final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
+            UniverseTest.putAndCommit(universe, object, before, state0);
+
+            final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor);
+            /*
+             * Closely synchronize the crucial method call, to maximise the possibility of
+             * race hazards,
+             *
+             */
+            final CountDownLatch ready = new CountDownLatch(1);
+            final CountDownLatch started = new CountDownLatch(N_THREADS);
+            final Random random = new Random();
+            final Duration[] when = new Duration[N_THREADS];
+            Duration last = before;
+            for (int i = 0; i < N_THREADS; ++i) {
+                when[i] = before.plusMillis(random.nextInt(N_THREADS * 2000));
+                last = when[i].compareTo(last) < 0 ? when[i] : last;
+                assert historyStart.compareTo(when[i]) < 0;
+                assert before.compareTo(when[i]) < 0;
+            } // for
+            for (int i = 0; i < N_THREADS; ++i) {
+                final int iThread = i;
+                runInOtherThread(ready, () -> {
+                    engine.advanceHistory(when[iThread]);
+                    started.countDown();
+                });
+            } // for
+
+            ready.countDown();
+            try {
+                started.await();
+                threadPoolExecutor.shutdown();
+                threadPoolExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                throw new AssertionError(e);
+            }
+            assertInvariants(engine);
+            UniverseTest.assertInvariants(universe, object);
+            assertThat("Advanced the history end.", universe.getHistoryEnd(), greaterThanOrEqualTo(last));
         }
 
     }// class
@@ -811,6 +1012,90 @@ public class SimulationEngineTest {
             return future;
         }
 
+        @RepeatedTest(32)
+        public void independentMultiThreaded() {
+            final Duration historyStart = WHEN_1;
+            final Duration before = WHEN_2;
+            final Duration when = WHEN_3;
+            assert historyStart.compareTo(when) < 0;
+            assert before.compareTo(when) < 0;
+
+            final Universe universe = new Universe(historyStart);
+            final Collection<UUID> objects = new ArrayList<>(N_THREADS);
+            for (int o = 1; o <= N_THREADS; ++o) {
+                final UUID object = UUID.randomUUID();
+                final ObjectState state0 = new ObjectStateTest.TestObjectState(o);
+                objects.add(object);
+                UniverseTest.putAndCommit(universe, object, before, state0);
+            }
+            final List<Future<ObjectState>> futures = new ArrayList<>(N_THREADS);
+            final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor);
+            for (final UUID object : objects) {
+                futures.add(engine.computeObjectState(object, when));
+            }
+
+            get(futures);
+
+            assertInvariants(engine);
+            for (var future : futures) {
+                assertAll("future", () -> assertFalse(future.isCancelled(), "Not cancelled"),
+                        () -> assertTrue(future.isDone(), "Done"));
+            }
+            for (var future : futures) {
+                final ObjectState state2;
+                try {
+                    state2 = future.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    fail("Computation succeeds", e);
+                    return;// never happens
+                }
+                assertNotNull(state2, "Computed a state");// guard
+                ObjectStateTest.assertInvariants(state2);
+            }
+            for (final UUID object : objects) {
+                assertThat("Advanced the state history", universe.getLatestCommit(object), greaterThanOrEqualTo(when));
+            }
+        }
+
+        @RepeatedTest(32)
+        public void sameObjectMultiThreaded() {
+            final Duration historyStart = WHEN_1;
+            final Duration before = WHEN_2;
+            final UUID object = OBJECT_A;
+
+            final Universe universe = new Universe(historyStart);
+            UniverseTest.putAndCommit(universe, object, before, new ObjectStateTest.TestObjectState(1));
+            final List<Future<ObjectState>> futures = new ArrayList<>(N_THREADS);
+            final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor);
+            final Random random = new Random();
+            for (int i = 0; i < N_THREADS; ++i) {
+                final Duration when = before.plusMillis(random.nextInt(N_THREADS * 2000));
+                assert historyStart.compareTo(when) < 0;
+                assert before.compareTo(when) < 0;
+                futures.add(engine.computeObjectState(object, when));
+            }
+
+            get(futures);
+
+            assertInvariants(engine);
+            UniverseTest.assertInvariants(universe, object);
+            for (var future : futures) {
+                assertAll("future", () -> assertFalse(future.isCancelled(), "Not cancelled"),
+                        () -> assertTrue(future.isDone(), "Done"));
+            }
+            for (var future : futures) {
+                final ObjectState state2;
+                try {
+                    state2 = future.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    fail("Computation succeeds", e);
+                    return;// never happens
+                }
+                assertNotNull(state2, "Computed a state");// guard
+                ObjectStateTest.assertInvariants(state2);
+            } // for
+        }
+
     }// class
 
     @Nested
@@ -875,6 +1160,8 @@ public class SimulationEngineTest {
     private static final UUID OBJECT_A = UniverseTest.OBJECT_A;
     private static final UUID OBJECT_B = UniverseTest.OBJECT_B;
 
+    private static final int N_THREADS = Runtime.getRuntime().availableProcessors() * 4;
+
     public static void assertInvariants(SimulationEngine engine) {
         ObjectTest.assertInvariants(engine);// inherited
 
@@ -888,12 +1175,77 @@ public class SimulationEngineTest {
         ObjectTest.assertInvariants(engine1, engine2);// inherited
     }
 
+    private static <T> void get(final Future<T> future) {
+        try {
+            future.get();
+        } catch (InterruptedException e) {
+            throw new AssertionError(e);
+        } catch (ExecutionException e) {
+            final Throwable cause = e.getCause();
+            if (cause instanceof AssertionError) {
+                throw (AssertionError) cause;
+            } else if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            } else {
+                throw new AssertionError(e);
+            }
+        }
+    }
+
+    private static <T> void get(final List<Future<T>> futures) {
+        final List<Throwable> exceptions = new ArrayList<>(futures.size());
+        for (var future : futures) {
+            try {
+                get(future);
+            } catch (Exception | AssertionError e) {
+                exceptions.add(e);
+            }
+        }
+        final int nExceptions = exceptions.size();
+        if (0 < nExceptions) {
+            final Throwable e = exceptions.get(0);
+            for (int i = 1; i < nExceptions; ++i) {
+                final Throwable exception = exceptions.get(i);
+                if (!e.equals(exception)) {
+                    e.addSuppressed(exception);
+                }
+            }
+            if (e instanceof AssertionError) {
+                throw (AssertionError) e;
+            } else if (e instanceof RuntimeException) {
+                throw (RuntimeException) e;
+            } else {
+                throw new AssertionError(e);
+            }
+        }
+    }
+
+    private static Future<Void> runInOtherThread(final CountDownLatch ready, final Runnable operation) {
+        final CompletableFuture<Void> future = new CompletableFuture<Void>();
+        final Thread thread = new Thread(() -> {
+            try {
+                ready.await();
+                operation.run();
+            } catch (Throwable e) {
+                future.completeExceptionally(e);
+                return;
+            }
+            future.complete(null);
+        });
+        thread.start();
+        return future;
+    }
+
     private DirectExecutor directExecutor;
+
     private EnqueingExector enqueingExector;
+
+    private ExecutorService threadPoolExecutor;
 
     @BeforeEach
     public void setUpExectors() {
         directExecutor = new DirectExecutor();
         enqueingExector = new EnqueingExector();
+        threadPoolExecutor = Executors.newFixedThreadPool(N_THREADS);
     }
 }

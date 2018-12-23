@@ -1704,6 +1704,29 @@ public class Universe {
         return (Transaction) createLockable((id) -> new Transaction(id, listener));
     }
 
+    /**
+     * <p>
+     * Whether this universe contains an object with a given ID.
+     * </p>
+     * <ul>
+     * <li>This universe contains an object with a given ID if, and only if, the
+     * {@linkplain #getObjectIds() set of object IDs that this universe contains}
+     * {@linkplain Set#contains(Object) contains} that object ID.</li>
+     * <li>This method is likely to be more efficient than using the result of the
+     * {@link #getObjectIds()} method..</li>
+     * </ul>
+     * 
+     * @param object
+     *            The ID of the object of interest.
+     * @return whether contained.
+     * @throws NullPointerException
+     *             If {@code object} is null.
+     */
+    public final boolean containsObject(final UUID object) {
+        Objects.requireNonNull(object, "object");
+        return objectDataMap.containsKey(object);
+    }
+
     private @NonNull Lockable createLockable(Function<Long, Lockable> factory) {
         Long id;
         do {

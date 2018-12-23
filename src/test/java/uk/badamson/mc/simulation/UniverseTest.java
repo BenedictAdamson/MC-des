@@ -517,7 +517,7 @@ public class UniverseTest {
 
                     beginAbort(transaction);
 
-                    assertAll(
+                    assertAll(() -> UniverseTest.assertInvariants(universe),
                             () -> assertSame(objectState1, universe.getObjectState(object, when2),
                                     "Rolled back aborted write [values]"),
                             () -> assertEquals(Collections.singleton(when1),
@@ -863,7 +863,8 @@ public class UniverseTest {
 
                 private void assertCommonPostconditions(final Duration historyStart0, final UUID object,
                         final Duration when, final Universe universe, final CountingTransactionListener listener) {
-                    assertAll(() -> assertEquals(0, listener.getAborts(), "Did not abort"),
+                    assertAll(() -> UniverseTest.assertInvariants(universe),
+                            () -> assertEquals(0, listener.getAborts(), "Did not abort"),
                             () -> assertEquals(1, listener.getCommits(), "Committed"),
                             () -> assertEquals(historyStart0, universe.getHistoryStart(), "History start unchanged"),
                             () -> assertEquals(when, universe.getLatestCommit(object), "Latest commit of object"));
@@ -1057,7 +1058,8 @@ public class UniverseTest {
 
                     beginCommit(transaction);
 
-                    assertAll(() -> assertEquals(0, listener.aborts, "Did not abort"),
+                    assertAll(() -> UniverseTest.assertInvariants(universe),
+                            () -> assertEquals(0, listener.aborts, "Did not abort"),
                             () -> assertEquals(1, listener.commits, "Committed"),
                             () -> assertEquals(historyStart0, universe.getHistoryStart(), "History start unchanged"));
                     assertAll("Destruction is forever.",
@@ -1329,7 +1331,8 @@ public class UniverseTest {
 
                     beginCommit(transaction);
 
-                    assertAll(() -> assertTrue(0 < listener.getEnds(), "Ended transaction"),
+                    assertAll(() -> UniverseTest.assertInvariants(universe),
+                            () -> assertTrue(0 < listener.getEnds(), "Ended transaction"),
                             () -> assertEquals(1, listener.aborts, "Aborted commit"),
                             () -> assertEquals(ValueHistory.END_OF_TIME, universe.getLatestCommit(object),
                                     "Latest commit of object (destruction is forever)"));
@@ -1430,6 +1433,7 @@ public class UniverseTest {
 
                     beginCommit(transaction2);
 
+                    UniverseTest.assertInvariants(universe);
                     assertEquals(1, listener.commits, "Committed");
                     assertEquals(Set.of(object1, object2), universe.getObjectIds(), "Object IDs");
                     assertEquals(objectStateHistory1, universe.getObjectStateHistory(object1),
@@ -2209,7 +2213,8 @@ public class UniverseTest {
 
                     beginCommit(transaction2);
 
-                    assertAll(() -> assertEquals(1, listener1.getEnds(), "Ended transaction 1"),
+                    assertAll(() -> UniverseTest.assertInvariants(universe),
+                            () -> assertEquals(1, listener1.getEnds(), "Ended transaction 1"),
                             () -> assertTrue(0 < listener2.getEnds(), "Ended transaction 2"),
                             () -> assertEquals(1, listener2.commits, "Comitted transaction 2"),
                             () -> assertEquals(1, listener1.aborts, "Aborted (invalidated) transaction 1"));
@@ -2994,7 +2999,7 @@ public class UniverseTest {
 
                     put(transaction, object, objectState);
 
-                    assertAll(
+                    assertAll(() -> UniverseTest.assertInvariants(universe),
                             () -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
                                     "Object state history (did not add to history because aborting)"),
                             () -> assertEquals(Collections.emptySet(), listener.created,
@@ -3189,7 +3194,8 @@ public class UniverseTest {
 
                     put(transaction, object, objectState);
 
-                    assertAll(() -> assertEquals(Collections.singleton(object), universe.getObjectIds(), "Object IDs"),
+                    assertAll(() -> UniverseTest.assertInvariants(universe),
+                            () -> assertEquals(Collections.singleton(object), universe.getObjectIds(), "Object IDs"),
                             () -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
                                     "Object state history"),
                             () -> assertEquals(Collections.singleton(object), listener.created,
@@ -3771,6 +3777,14 @@ public class UniverseTest {
     static final Duration DURATION_8 = Duration.ofSeconds(47);
     static final Duration DURATION_9 = Duration.ofSeconds(53);
 
+    private static boolean assertContainsObjectInvariants(Universe universe, @NonNull UUID object) {
+        final boolean containsObject = universe.containsObject(object);
+        assertEquals(universe.getObjectIds().contains(object), containsObject,
+                "This universe contains an object with a given ID if, and only if, "
+                        + "the set of object IDs that this universe contains that object ID.");
+        return containsObject;
+    }
+
     private static Duration assertHistoryEndInvariants(Universe universe) {
         final Duration historyEnd = universe.getHistoryEnd();
 
@@ -3801,9 +3815,10 @@ public class UniverseTest {
         ObjectTest.assertInvariants(universe1, universe2);// inherited
     }
 
-    private static void assertInvariants(Universe universe, @NonNull UUID object) {
+    public static void assertInvariants(Universe universe, @NonNull UUID object) {
         assertAll(() -> assertObjectStateHistoryInvariants(universe, object),
-                () -> assertLatestCommitInvariants(universe, object));
+                () -> assertLatestCommitInvariants(universe, object),
+                () -> assertContainsObjectInvariants(universe, object));
     }
 
     public static void assertInvariants(Universe universe, UUID object, Duration when) {
@@ -3828,7 +3843,7 @@ public class UniverseTest {
     }
 
     private static @Nullable Duration assertLatestCommitInvariants(@NonNull Universe universe, @NonNull UUID object) {
-        final boolean containedObject = universe.getObjectIds().contains(object);
+        final boolean containedObject = universe.containsObject(object);
         final SortedSet<Duration> transitionTimes = containedObject
                 ? universe.getObjectStateHistory(object).getTransitionTimes()
                 : Collections.emptySortedSet();
@@ -3873,7 +3888,7 @@ public class UniverseTest {
 
         assertNull(history.getFirstValue(),
                 "An object state history indicates that the object does not exist at the start of time.");
-        assertFalse(!history.isEmpty() && !universe.getObjectIds().contains(object),
+        assertFalse(!history.isEmpty() && !universe.containsObject(object),
                 "The object state history for a given object is not empty only if the object is one of the known objects in this universe.");
 
         return history;
