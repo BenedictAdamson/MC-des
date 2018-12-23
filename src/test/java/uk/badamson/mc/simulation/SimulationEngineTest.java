@@ -990,6 +990,45 @@ public class SimulationEngineTest {
             }
         }
 
+        @RepeatedTest(32)
+        public void sameObjectMultiThreaded() {
+            final Duration historyStart = WHEN_1;
+            final Duration before = WHEN_2;
+            final UUID object = OBJECT_A;
+
+            final Universe universe = new Universe(historyStart);
+            UniverseTest.putAndCommit(universe, object, before, new ObjectStateTest.TestObjectState(1));
+            final List<Future<ObjectState>> futures = new ArrayList<>(N_THREADS);
+            final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor);
+            final Random random = new Random();
+            for (int i = 0; i < N_THREADS; ++i) {
+                final Duration when = before.plusMillis(random.nextInt(N_THREADS * 2000));
+                assert historyStart.compareTo(when) < 0;
+                assert before.compareTo(when) < 0;
+                futures.add(engine.computeObjectState(object, when));
+            }
+
+            get(futures);
+
+            assertInvariants(engine);
+            UniverseTest.assertInvariants(universe, object);
+            for (var future : futures) {
+                assertAll("future", () -> assertFalse(future.isCancelled(), "Not cancelled"),
+                        () -> assertTrue(future.isDone(), "Done"));
+            }
+            for (var future : futures) {
+                final ObjectState state2;
+                try {
+                    state2 = future.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    fail("Computation succeeds", e);
+                    return;// never happens
+                }
+                assertNotNull(state2, "Computed a state");// guard
+                ObjectStateTest.assertInvariants(state2);
+            }
+        }
+
     }// class
 
     @Nested
@@ -1099,7 +1138,10 @@ public class SimulationEngineTest {
         if (0 < nExceptions) {
             final Throwable e = exceptions.get(0);
             for (int i = 1; i < nExceptions; ++i) {
-                e.addSuppressed(exceptions.get(i));
+                final Throwable exception = exceptions.get(i);
+                if (!e.equals(exception)) {
+                    e.addSuppressed(exception);
+                }
             }
             if (e instanceof AssertionError) {
                 throw (AssertionError) e;

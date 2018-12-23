@@ -3815,7 +3815,7 @@ public class UniverseTest {
         ObjectTest.assertInvariants(universe1, universe2);// inherited
     }
 
-    private static void assertInvariants(Universe universe, @NonNull UUID object) {
+    public static void assertInvariants(Universe universe, @NonNull UUID object) {
         assertAll(() -> assertObjectStateHistoryInvariants(universe, object),
                 () -> assertLatestCommitInvariants(universe, object),
                 () -> assertContainsObjectInvariants(universe, object));
