@@ -507,12 +507,14 @@ public final class SimulationEngine {
     public final void advanceHistory(@NonNull Duration when) {
         Objects.requireNonNull(when, "when");
         final Set<UUID> objectsToAdvance;
-        if (universalAdvanceTo.compareTo(when) < 0) {
-            universalAdvanceTo = when;
-            objectsToAdvance = universe.getObjectIds();
-        } else {
-            // Optimization
-            objectsToAdvance = Collections.emptySet();
+        synchronized (lock) {
+            if (universalAdvanceTo.compareTo(when) < 0) {
+                universalAdvanceTo = when;
+                objectsToAdvance = universe.getObjectIds();
+            } else {
+                // Optimization
+                objectsToAdvance = Collections.emptySet();
+            }
         }
         for (UUID object : objectsToAdvance) {
             getEngine1(object).advanceHistory(when, null);

@@ -445,22 +445,41 @@ public class SimulationEngineTest {
             UniverseTest.putAndCommit(universe, object, before, state0);
 
             final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor);
+            /*
+             * Closely synchronize the crucial method call, to maximise the possibility of
+             * race hazards,
+             *
+             */
+            final CountDownLatch ready = new CountDownLatch(1);
+            final CountDownLatch started = new CountDownLatch(N_THREADS);
             final Random random = new Random();
+            final Duration[] when = new Duration[N_THREADS];
+            Duration last = before;
             for (int i = 0; i < N_THREADS; ++i) {
-                final Duration when = before.plusMillis(random.nextInt(N_THREADS * 2000));
-                assert historyStart.compareTo(when) < 0;
-                assert before.compareTo(when) < 0;
-                engine.advanceHistory(when);
-            }
+                when[i] = before.plusMillis(random.nextInt(N_THREADS * 2000));
+                last = when[i].compareTo(last) < 0 ? when[i] : last;
+                assert historyStart.compareTo(when[i]) < 0;
+                assert before.compareTo(when[i]) < 0;
+            } // for
+            for (int i = 0; i < N_THREADS; ++i) {
+                final int iThread = i;
+                runInOtherThread(ready, () -> {
+                    engine.advanceHistory(when[iThread]);
+                    started.countDown();
+                });
+            } // for
 
-            threadPoolExecutor.shutdown();
+            ready.countDown();
             try {
+                started.await();
+                threadPoolExecutor.shutdown();
                 threadPoolExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 throw new AssertionError(e);
             }
             assertInvariants(engine);
             UniverseTest.assertInvariants(universe, object);
+            assertThat("Advanced the history end.", universe.getHistoryEnd(), greaterThanOrEqualTo(last));
         }
 
     }// class
