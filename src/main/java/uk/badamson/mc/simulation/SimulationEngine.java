@@ -129,7 +129,7 @@ public final class SimulationEngine {
             }
         }
 
-        private void addDependency(final UUID objectDependency) {
+        private synchronized void addDependency(final UUID objectDependency) {
             objectDependencies.add(objectDependency);
         }
 
@@ -179,9 +179,9 @@ public final class SimulationEngine {
                 if (work) {
                     running = true;
                 }
-            }
-            if (dependent != null) {
-                dependentObjects.add(dependent);
+                if (dependent != null) {
+                    dependentObjects.add(dependent);
+                }
             }
             if (work) {
                 tryToScheduleAdvance1();
@@ -226,7 +226,7 @@ public final class SimulationEngine {
 
         @Override
         public void onAbort() {
-            assert latestCommit != null;
+            // assert latestCommit != null;
             if (hasWorkToDo()) {
                 // Try again
                 tryToScheduleAdvance1();
@@ -268,8 +268,7 @@ public final class SimulationEngine {
             // Some created objects might now need their state to be advanced.
             for (UUID c : created) {
                 final Engine1 engine = getEngine1(c);
-                final Duration when = universalAdvanceTo;
-                engine.advanceHistory(when, null);
+                engine.advanceHistory(getUniversalAdvanceTo(), null);
             }
 
             // And some aborted writes could be restarted
@@ -606,6 +605,12 @@ public final class SimulationEngine {
     @NonNull
     public final Executor getExecutor() {
         return executor;
+    }
+
+    private Duration getUniversalAdvanceTo() {
+        synchronized (lock) {
+            return universalAdvanceTo;
+        }
     }
 
     /**
