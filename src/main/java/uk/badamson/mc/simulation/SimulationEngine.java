@@ -45,7 +45,6 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 import net.jcip.annotations.GuardedBy;
 import net.jcip.annotations.ThreadSafe;
 import uk.badamson.mc.history.ValueHistory;
-import uk.badamson.mc.simulation.Universe.PrehistoryException;
 
 /**
  * <p>
@@ -426,7 +425,7 @@ public final class SimulationEngine {
                 try {
                     setState(transaction.getObjectState(id.getObject(), id.getWhen()));
                     transaction.beginCommit();
-                } catch (Universe.PrehistoryException e) {
+                } catch (PrehistoryException e) {
                     completeExceptionally(e);
                 } catch (Exception e) {// never happens
                     completeExceptionally(new AssertionError("Unexpected exception from Universe.Transaction", e));

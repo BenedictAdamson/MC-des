@@ -29,7 +29,7 @@ public final class PrehistoryException extends IllegalStateException {
 
     private static final long serialVersionUID = 1L;
 
-    private PrehistoryException() {
+    PrehistoryException() {
         super("Point in time is before the start of history");
         // Do nothing
     }

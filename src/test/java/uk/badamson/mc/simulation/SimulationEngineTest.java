@@ -783,7 +783,7 @@ public class SimulationEngineTest {
                     return;// never happens
                 } catch (ExecutionException e) {
                     assertThat("Threw PrehistoryException exception", e.getCause(),
-                            instanceOf(Universe.PrehistoryException.class));
+                            instanceOf(PrehistoryException.class));
                     return;
                 }
                 fail("Did not throw exception");

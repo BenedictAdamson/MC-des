@@ -245,24 +245,6 @@ public class Universe {
 
     /**
      * <p>
-     * An exception for indicating that the {@linkplain ObjectState state} of an
-     * object can not be determined for a given point in time because that point in
-     * time is before the {@linkplain Universe#getHistoryStart() start of history}.
-     * </p>
-     */
-    public static final class PrehistoryException extends IllegalStateException {
-
-        private static final long serialVersionUID = 1L;
-
-        private PrehistoryException() {
-            super("Point in time is before the start of history");
-            // Do nothing
-        }
-
-    }
-
-    /**
-     * <p>
      * A transaction for changing the state of a {@link Universe}.
      * </p>
      * <p>
@@ -768,7 +750,7 @@ public class Universe {
             final Duration when = id.getWhen();
 
             if (when.compareTo(getHistoryStart()) < 0) {
-                throw new Universe.PrehistoryException();
+                throw new PrehistoryException();
             }
 
             final var od = objectDataMap.get(object);
@@ -793,7 +775,7 @@ public class Universe {
             final UUID object = id.getObject();
             final Duration when = id.getWhen();
             if (when.compareTo(getHistoryStart()) < 0) {
-                throw new Universe.PrehistoryException();
+                throw new PrehistoryException();
             }
 
             final var od = objectDataMap.get(object);

@@ -2788,8 +2788,7 @@ public class UniverseTest {
                     final CountingTransactionListener listener = new CountingTransactionListener();
                     final Universe.Transaction transaction = universe.beginTransaction(listener);
 
-                    assertThrows(Universe.PrehistoryException.class,
-                            () -> getObjectState(transaction, OBJECT_A, when1));
+                    assertThrows(PrehistoryException.class, () -> getObjectState(transaction, OBJECT_A, when1));
                 }
 
                 @RepeatedTest(32)
@@ -2941,7 +2940,7 @@ public class UniverseTest {
             }// class
 
             private ObjectState getObjectState(final Universe.Transaction transaction, UUID object, Duration when)
-                    throws Universe.PrehistoryException {
+                    throws PrehistoryException {
                 final ObjectStateId id = new ObjectStateId(object, when);
                 final boolean wasPreviouslyRead = transaction.getObjectStatesRead().containsKey(id);
                 final ObjectState previouslyReadState = transaction.getObjectStatesRead().get(id);
