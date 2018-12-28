@@ -32,7 +32,7 @@ import net.jcip.annotations.ThreadSafe;
 public interface TransactionListener {
     /**
      * <p>
-     * An action to perform when (if) a transaction successfully completes its
+     * An action to perform when (if) a transaction aborts its commit operation.
      * commit operation.
      * </p>
      */
@@ -40,7 +40,7 @@ public interface TransactionListener {
 
     /**
      * <p>
-     * An action to perform when (if) a transaction aborts its commit operation.
+     * An action to perform when (if) a transaction successfully completes its
      * </p>
      */
     public void onCommit();
