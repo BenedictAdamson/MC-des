@@ -27,13 +27,18 @@ import net.jcip.annotations.ThreadSafe;
  * <p>
  * An object that can respond to {@link Universe.Transaction} events.
  * </p>
+ * <p>
+ * This interface defines some call-backs that may be called to indicate that
+ * events have occurred. The call-backs may be made by a tread other than the
+ * thread that began the transaction, and there may be a (short) delay between
+ * an abort or a commit and the listener being informed.
+ * </p>
  */
 @ThreadSafe
 public interface TransactionListener {
     /**
      * <p>
      * An action to perform when (if) a transaction aborts its commit operation.
-     * commit operation.
      * </p>
      */
     public void onAbort();
@@ -41,6 +46,7 @@ public interface TransactionListener {
     /**
      * <p>
      * An action to perform when (if) a transaction successfully completes its
+     * commit operation.
      * </p>
      */
     public void onCommit();
