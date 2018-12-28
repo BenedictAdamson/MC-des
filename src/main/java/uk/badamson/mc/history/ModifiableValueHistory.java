@@ -186,9 +186,9 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      *             If {@code when} is null.
      */
     @Override
-    public final @Nullable VALUE get(@NonNull final Duration t) {
-        Objects.requireNonNull(t, "t");
-        final var previousTransition = transitions.floorEntry(t);
+    public final @Nullable VALUE get(@NonNull final Duration when) {
+        Objects.requireNonNull(when, "when");
+        final var previousTransition = transitions.floorEntry(when);
         return previousTransition == null ? firstValue : previousTransition.getValue();
     }
 

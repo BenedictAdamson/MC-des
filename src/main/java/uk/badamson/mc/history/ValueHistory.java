@@ -91,7 +91,7 @@ public interface ValueHistory<VALUE> {
      * @throws NullPointerException
      *             If {@code when} is null.
      */
-    public @Nullable VALUE get(@NonNull Duration t);
+    public @Nullable VALUE get(@NonNull Duration when);
 
     /**
      * <p>

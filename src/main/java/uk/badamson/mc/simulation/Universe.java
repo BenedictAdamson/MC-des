@@ -361,15 +361,8 @@ public class Universe {
          * {@linkplain Universe.TransactionOpenness#WRITING writing}.</li>
          * </ul>
          *
-         * @param onCommit
-         *            An action to perform when (if) this transaction successfully
-         *            completes the commit operation.
-         * @param onAbort
-         *            An action to perform when (if) this transaction aborts the commit
-         *            operation.
          * @throws IllegalStateException
-         *             If {@linkplain #didBeginCommit() committing this transaction has
-         *             already begun}.
+         *             If committing this transaction has already begun.
          */
         public final void beginCommit() {
             withLockedTransactionChain(() -> openness.beginCommit(this));
@@ -521,11 +514,10 @@ public class Universe {
          *             requested object is not one of the
          *             {@linkplain #getObjectStatesRead() object states already
          *             read}.</li>
-         *             <li>If {@linkplain #didBeginCommit() committing this transaction
-         *             has started} (because its {@link #beginCommit()} method has been
-         *             called) and the requested object is not one of the
-         *             {@linkplain #getObjectStatesRead() object states already
-         *             read}.</li>
+         *             <li>If committing this transaction has started (because its
+         *             {@link #beginCommit()} method has been called) and the requested
+         *             object is not one of the {@linkplain #getObjectStatesRead()
+         *             object states already read}.</li>
          *             </ul>
          */
         public final @Nullable ObjectState getObjectState(@NonNull final UUID object, @NonNull final Duration when) {
@@ -678,9 +670,8 @@ public class Universe {
          *             <ul>
          *             <li>If this transaction is not in write mode (because its
          *             {@link #beginWrite(Duration)} method has not been called).</li>
-         *             <li>If {@linkplain #didBeginCommit() committing this transaction
-         *             has been started} (because its {@link #beginCommit()} method has
-         *             been called).</li>
+         *             <li>If committing this transaction has been started (because its
+         *             {@link #beginCommit()} method has been called).</li>
          *             </ul>
          */
         public final void put(@NonNull final UUID object, @Nullable final ObjectState state) {
@@ -1622,14 +1613,13 @@ public class Universe {
      * @param listener
      *            The transaction listener to use for this transaction. This
      *            universe will inform the listener of the
-     *            {@linkplain Universe.TransactionListener#onAbort() abort} or
-     *            {@linkplain Universe.TransactionListener#onCommit() commit} of the
-     *            transaction, and of
-     *            {@linkplain Universe.TransactionListener#onCreate(UUID) creation}
-     *            of new objects by the transaction. However, those call-backs may
-     *            be made by a tread other than the thread that began the
-     *            transaction, and there may be a (short) delay between an abort and
-     *            commit and the listener being informed.
+     *            {@linkplain TransactionListener#onAbort() abort} or
+     *            {@linkplain TransactionListener#onCommit() commit} of the
+     *            transaction, and of {@linkplain TransactionListener#onCreate(UUID)
+     *            creation} of new objects by the transaction. However, those
+     *            call-backs may be made by a tread other than the thread that began
+     *            the transaction, and there may be a (short) delay between an abort
+     *            and commit and the listener being informed.
      * @return a new transaction object; not null
      * @throws NullPointerException
      *             If {@code listener} is null

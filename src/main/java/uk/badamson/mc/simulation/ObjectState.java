@@ -40,8 +40,7 @@ public interface ObjectState {
 
     /**
      * <p>
-     * Compute the next state transition of the {@link {@link #getObject()} object}
-     * of this object state.
+     * Compute the next state transition of the object of this object state.
      * </p>
      * <p>
      * This computation may be expensive; recomputing state transition should be
@@ -60,7 +59,7 @@ public interface ObjectState {
      * ID.</li>
      * <li>The method must {@linkplain Universe.Transaction#put(UUID, ObjectState)
      * put} for the given object, using the given transaction, a state that is not
-     * {@linkplain ObjectState#equals(Object) equal} to this state.</li>
+     * equal to this state.</li>
      * <li>The method may {@linkplain Universe.Transaction#put(UUID, ObjectState)
      * put} no more than one object state for any object ID.</li>
      * </ul>
