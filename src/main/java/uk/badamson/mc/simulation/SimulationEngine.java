@@ -577,6 +577,7 @@ public final class SimulationEngine {
      *             <li>If {@code object} is null.</li>
      *             <li>If {@code when} is null.</li>
      *             </ul>
+     * @see Universe#getObjectState(UUID, Duration)
      */
     public final @NonNull Future<ObjectState> computeObjectState(@NonNull final UUID object,
             @NonNull final Duration when) {

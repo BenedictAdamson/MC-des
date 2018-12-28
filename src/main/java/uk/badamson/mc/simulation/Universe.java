@@ -54,10 +54,16 @@ import uk.badamson.mc.history.ValueHistory;
  * histories.
  * </p>
  * <p>
- * This collection enforces constraints that ensure that the object state
- * histories are <dfn>consistent</dfn>. Consistency means that if a universe
- * contains an object state, it also contains all the depended upon states of
- * that state, unless those states are {@linkplain #getHistoryStart() too old}.
+ * This collection is modifiable: the state histories of the simulated objects
+ * may be appended to. This collection enforces constraints that ensure that the
+ * object state histories are <dfn>consistent</dfn>. Consistency means that if a
+ * universe contains an object state, it also contains all the depended upon
+ * states of that state, unless those states are {@linkplain #getHistoryStart()
+ * too old}.
+ * </p>
+ * <p>
+ * This collection enables safe multi-threaded modification by using
+ * {@linkplain Universe.Transaction transactions}.
  * </p>
  */
 @ThreadSafe
@@ -382,7 +388,7 @@ public class Universe {
          * @param when
          *            The time-stamp of all object states to be
          *            {@linkplain #put(UUID, ObjectState) put} (written) by this
-         *            transaction, expressed as the duration since an epoch.
+         *            transaction, expressed as the duration since an (implied) epoch.
          *
          * @throws NullPointerException
          *             If {@code when} is null.
@@ -1606,8 +1612,8 @@ public class Universe {
      * <li>The returned transaction {@linkplain Map#isEmpty() has not}
      * {@linkplain Universe.Transaction#getObjectStatesWritten() written any object
      * states}.</li>
-     * <li>The transaction {@linkplain Universe.Transaction#getOpenness() is in}
-     * {@linkplain Universe.TransactionOpenness#READING read mode}.</li>
+     * <li>The returned transaction {@linkplain Universe.Transaction#getOpenness()
+     * is in} {@linkplain Universe.TransactionOpenness#READING read mode}.</li>
      * </ul>
      *
      * @param listener
@@ -1617,9 +1623,9 @@ public class Universe {
      *            {@linkplain TransactionListener#onCommit() commit} of the
      *            transaction, and of {@linkplain TransactionListener#onCreate(UUID)
      *            creation} of new objects by the transaction. However, those
-     *            call-backs may be made by a tread other than the thread that began
-     *            the transaction, and there may be a (short) delay between an abort
-     *            and commit and the listener being informed.
+     *            call-backs may be made by a thread other than the thread that
+     *            began the transaction, and there may be a (short) delay between an
+     *            abort and commit and the listener being informed.
      * @return a new transaction object; not null
      * @throws NullPointerException
      *             If {@code listener} is null
@@ -1638,7 +1644,11 @@ public class Universe {
      * {@linkplain #getObjectIds() set of object IDs that this universe contains}
      * {@linkplain Set#contains(Object) contains} that object ID.</li>
      * <li>This method is likely to be more efficient than using the result of the
-     * {@link #getObjectIds()} method..</li>
+     * {@link #getObjectIds()} method.</li>
+     * <li>This method may indicate that this universe contains an object before the
+     * {@linkplain Universe.Transaction transaction} adding that object to this
+     * universe has {@linkplain Universe.TransactionOpenness#COMMITTED committed}
+     * the addition. That is, this method may read uncommitted information.</li>
      * </ul>
      *
      * @param object
@@ -1704,8 +1714,8 @@ public class Universe {
      * {@linkplain ValueHistory#END_OF_TIME end of time}.</li>
      * </ul>
      *
-     * @return the point in time, expressed as the duration since an epoch; not
-     *         null.
+     * @return the point in time, expressed as the duration since an (implied)
+     *         epoch; not null.
      */
     public final @NonNull Duration getHistoryEnd() {
         Duration historyEnd = ValueHistory.END_OF_TIME;
@@ -1729,8 +1739,8 @@ public class Universe {
      * <li>Always have a (non null) history start.</li>
      * </ul>
      *
-     * @return the point in time, expressed as the duration since an epoch; not
-     *         null.
+     * @return the point in time, expressed as the duration since an (implied)
+     *         epoch; not null.
      */
     public final @NonNull Duration getHistoryStart() {
         synchronized (historyLock) {
@@ -1777,8 +1787,12 @@ public class Universe {
      * <li>Always have a (non null) set of object IDs.</li>
      * <li>The set of object IDs does not have a null element.</li>
      * <li>The set of object IDs may be immutable.</li>
-     * <li>The set of object IDs might or might not be a copy of an internal set,and
-     * so might or might not reflect subsequent changes to this universe.</li>
+     * <li>The set of object IDs might or might not be a copy of an internal set,
+     * and so might or might not reflect subsequent changes to this universe.</li>
+     * <li>The set of object IDs may include the IDs of objects before the
+     * {@linkplain Universe.Transaction transactions} adding those object to this
+     * universe have {@linkplain Universe.TransactionOpenness#COMMITTED committed}
+     * the additions. That is, this method may read uncommitted information.</li>
      * </ul>
      *
      * @return the object IDs.
@@ -1805,12 +1819,26 @@ public class Universe {
      * history} of the object.</li>
      * <li>The (non null) state of an object at a given point in time is the state
      * it had at the latest state transition at or before that point in time.</li>
+     * <li>This method may return an object state before the
+     * {@linkplain Universe.Transaction transaction} adding that object state has
+     * {@linkplain Universe.TransactionOpenness#COMMITTED committed} the addition.
+     * That is, this method may read uncommitted information.</li>
      * </ul>
+     * <p>
+     * To read only committed object states use a
+     * {@linkplain Universe.Transaction#getObjectState(UUID, Duration) read}
+     * operation in a {@linkplain Universe.Transaction transaction} and wait until
+     * that transaction has {@linkplain Universe.TransactionOpenness#COMMITTED
+     * committed}. In practice, this is easier using a {@link SimulationEngine} to
+     * do an {@linkplain SimulationEngine#computeObjectState(UUID, Duration)
+     * asynchronous computation} of the wanted object state.
+     * </p>
      *
      * @param object
      *            The ID of the object of interest.
      * @param when
-     *            The point in time of interest.
+     *            The point in time of interest, expressed as the duration since an
+     *            (implied) epoch.
      * @return The state of the given object at the given point in time.
      * @throws NullPointerException
      *             <ul>
@@ -1833,10 +1861,23 @@ public class Universe {
      * object.</li>
      * <li>The object state history for a given object is not
      * {@linkplain ValueHistory#isEmpty() empty} only if the object is one of the
-     * {@linkplain #getObjectIds() known objects} in this universe..</li>
-     * <li>Only the {@linkplain ValueHistory#getLastValue() last value} in a (non
-     * null) object state history may be a null state (indicating that the object
-     * ceased to exist at that time).</li>
+     * {@linkplain #getObjectIds() known objects} in this universe.</li>
+     * <li>An object state history may record null values
+     * {@linkplain ValueHistory#get(Duration) for} points in time, which indicates
+     * that the object does not exist (or is not known to exist, for points in time
+     * before the {@linkplain #getHistoryStart() start of history}) at that point in
+     * time.</li>
+     * <li>The {@linkplain ValueHistory#getLastValue() last value} in a (non null)
+     * object state history may be a null state (indicating that the object ceased
+     * to exist at that time).</li>
+     * <li>An object state history may record values before the
+     * {@linkplain #getHistoryStart() start of history}, but those records may be
+     * incomplete. In particular, the object state history may indicate that the
+     * object did not exist (has a null state) for points in time at which it
+     * actually existed.</li>
+     * <li>The {@linkplain ValueHistory#getTransitions() transitions} in a (non
+     * null) object state history may include at most one transition to a null state
+     * (indicating that the object ceased to exist at that time).</li>
      * <li>An object state history may record values before the
      * {@linkplain #getHistoryStart() start of history}, but those records may be
      * incomplete. In particular, the object state history may indicate that the
@@ -1847,12 +1888,8 @@ public class Universe {
      * {@linkplain #getHistoryEnd() end of history}, but those transitions might be
      * transitions {@linkplain Transaction#put(UUID, ObjectState) written} by
      * transactions that have not yet been {@linkplain TransactionOpenness#COMMITTED
-     * committed}, and so could be rolled-back.</li>
-     * <li>An object state history may record null values
-     * {@linkplain ValueHistory#get(Duration) for} points in time, which indicates
-     * that the object does not exist (or is not known to exist, for points in time
-     * before the {@linkplain #getHistoryStart() start of history}) at that point in
-     * time.</li>
+     * committed}, and so could be rolled-back. That is, this method may read
+     * uncommitted information.</li>
      * <li>An object state history indicates that the object does not exist (has a
      * null state) {@linkplain ValueHistory#getFirstValue() at the start of
      * time}.</li>
@@ -1862,12 +1899,11 @@ public class Universe {
      *
      * @param object
      *            The object of interest
-     * @return The state history of the given object, or null if this universe does
-     *         not {@linkplain #getObjectIds() include} the given object. A null
-     *         {@linkplain ValueHistory#get(Duration) value} in the history
-     *         indicates that the object did not exist at that time.
+     * @return The state history of the given object.
      * @throws NullPointerException
      *             If {@code object} is null
+     * @see #getLatestCommit(UUID)
+     * @see #getObjectState(UUID, Duration)
      */
     public final @NonNull ValueHistory<ObjectState> getObjectStateHistory(@NonNull final UUID object) {
         Objects.requireNonNull(object, "object");
@@ -1915,7 +1951,8 @@ public class Universe {
      * </ul>
      *
      * @param historyStart
-     *            the point in time, expressed as the duration since an epoch.
+     *            the point in time, expressed as the duration since an (implied)
+     *            epoch.
      *
      * @throws NullPointerException
      *             If {@code historyStart} is null.
