@@ -52,7 +52,9 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
      *            identifies is a state.
      * @param when
      *            The point in time that the {@linkplain #getObject() object} has
-     *            the state identified by this ID.
+     *            the state identified by this ID, expressed as a duration since an
+     *            (implied) epoch. All {@link ObjectState} objects in a simulation
+     *            should use the same epoch.
      * @throws NullPointerException
      *             <ul>
      *             <li>If {@code object} is null.</li>
@@ -141,8 +143,8 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
      * identified by this ID.
      * </p>
      * <p>
-     * Expressed as the duration since an epoch. All {@link ObjectState} objects in
-     * a simulation should use the same epoch.
+     * Expressed as the duration since an (implied) epoch. All {@link ObjectState}
+     * objects in a simulation should use the same epoch.
      * </p>
      *
      * @return the amount of time since the epoch; not null.
