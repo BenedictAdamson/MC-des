@@ -39,7 +39,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -80,7 +79,7 @@ public class UniverseTest {
         @Test
         public void a() {
             final Universe universe = new Universe(DURATION_1);
-            final CountingTransactionListener listener = new CountingTransactionListener();
+            final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
 
             beginTransaction(universe, listener);
         }
@@ -88,13 +87,12 @@ public class UniverseTest {
         @Test
         public void b() {
             final Universe universe = new Universe(DURATION_2);
-            final CountingTransactionListener listener = new CountingTransactionListener();
+            final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
 
             beginTransaction(universe, listener);
         }
 
-        private Universe.Transaction beginTransaction(final Universe universe,
-                final Universe.TransactionListener listener) {
+        private Universe.Transaction beginTransaction(final Universe universe, final TransactionListener listener) {
             final Universe.Transaction transaction = universe.beginTransaction(listener);
 
             assertNotNull(transaction, "Not null, transaction");// guard
@@ -169,48 +167,6 @@ public class UniverseTest {
 
             assertPostconditions(universe, historyStart);
         }
-    }// class
-
-    static class CountingTransactionListener implements Universe.TransactionListener {
-
-        private int aborts = 0;
-        private int commits = 0;
-        private final Set<UUID> created = new HashSet<>();
-
-        final synchronized int getAborts() {
-            return aborts;
-        }
-
-        final synchronized int getCommits() {
-            return commits;
-        }
-
-        final synchronized Set<UUID> getCreated() {
-            return new HashSet<>(created);
-        }
-
-        final synchronized int getEnds() {
-            return aborts + commits;
-        }
-
-        @Override
-        public synchronized void onAbort() {
-            assertEquals(0, aborts, "Aborts at most once");
-            ++aborts;
-        }
-
-        @Override
-        public synchronized void onCommit() {
-            assertEquals(0, commits, "Commits at most once");
-            ++commits;
-        }
-
-        @Override
-        public synchronized void onCreate(@NonNull UUID object) {
-            assertNotNull(object, "object");
-            created.add(object);
-        }
-
     }// class
 
     @Nested
@@ -352,7 +308,7 @@ public class UniverseTest {
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
                     final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
 
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object, when1, objectState1);
@@ -392,7 +348,7 @@ public class UniverseTest {
                 }
 
                 private void test(final Duration historyStart, UUID object, Duration when) {
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     final Universe.Transaction transaction = universe.beginTransaction(listener);
@@ -434,7 +390,7 @@ public class UniverseTest {
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object, when1, objectState1);
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     final Universe.Transaction transaction = universe.beginTransaction(listener);
                     transaction.getObjectState(object, when2);
 
@@ -466,8 +422,8 @@ public class UniverseTest {
                     assert when1.compareTo(when2) <= 0;
                     final ObjectState objectState = new ObjectStateTest.TestObjectState(1);
 
-                    final CountingTransactionListener writeListener = new CountingTransactionListener();
-                    final CountingTransactionListener readListener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener writeListener = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener readListener = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     final Universe.Transaction writeTransaction = universe.beginTransaction(writeListener);
@@ -510,7 +466,7 @@ public class UniverseTest {
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object, when1, objectState1);
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     final Universe.Transaction transaction = universe.beginTransaction(listener);
                     transaction.beginWrite(when2);
                     transaction.put(object, objectState2);
@@ -564,8 +520,8 @@ public class UniverseTest {
                     final ObjectState objectStateB1 = new ObjectStateTest.TestObjectState(21);
                     final ObjectState objectStateB2 = new ObjectStateTest.TestObjectState(22);
 
-                    final CountingTransactionListener listenerA = new CountingTransactionListener();
-                    final CountingTransactionListener listenerB = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerA = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerB = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, objectA, whenA1, objectStateA1);
@@ -616,8 +572,8 @@ public class UniverseTest {
                     final ObjectStateTest.TestObjectState state1 = new ObjectStateTest.TestObjectState(1);
                     final ObjectStateTest.TestObjectState state2 = new ObjectStateTest.TestObjectState(2);
 
-                    final CountingTransactionListener readListener = new CountingTransactionListener();
-                    final CountingTransactionListener writeListener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener readListener = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener writeListener = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object, when1, state1);
@@ -663,8 +619,8 @@ public class UniverseTest {
                     final ObjectStateTest.TestObjectState state2 = new ObjectStateTest.TestObjectState(2);
                     final ObjectStateTest.TestObjectState state3 = new ObjectStateTest.TestObjectState(3);
 
-                    final CountingTransactionListener listener1 = new CountingTransactionListener();
-                    final CountingTransactionListener listener2 = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener1 = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener2 = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object, when1, state1);
@@ -728,8 +684,8 @@ public class UniverseTest {
                     final ObjectState objectStateB1 = new ObjectStateTest.TestObjectState(21);
                     final ObjectState objectStateB2 = new ObjectStateTest.TestObjectState(22);
 
-                    final CountingTransactionListener listenerA = new CountingTransactionListener();
-                    final CountingTransactionListener listenerB = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerA = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerB = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, objectA, whenA1, objectStateA1);
@@ -781,7 +737,7 @@ public class UniverseTest {
             @Test
             public void empty() {
                 final Universe universe = new Universe(DURATION_1);
-                final CountingTransactionListener listener = new CountingTransactionListener();
+                final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                 final Universe.Transaction transaction = universe.beginTransaction(listener);
 
                 beginAbort(transaction);
@@ -836,7 +792,7 @@ public class UniverseTest {
                     final ValueHistory<ObjectState> objectStateHistory0 = new ModifiableValueHistory<>(
                             universe.getObjectStateHistory(object));
 
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     final Universe.Transaction transaction = universe.beginTransaction(listener);
                     transaction.beginWrite(when1);
                     transaction.put(object, objectState2);
@@ -844,7 +800,7 @@ public class UniverseTest {
                     beginCommit(transaction);
 
                     assertAll("Transaction", () -> assertEquals(1, listener.getEnds(), "ended"),
-                            () -> assertEquals(1, listener.aborts, "aborted"));
+                            () -> assertEquals(1, listener.getAborts(), "aborted"));
                     assertEquals(objectStateHistory0, universe.getObjectStateHistory(object), "Reverted state history");
                     assertAll("History range unchanged",
                             () -> assertEquals(historyStart0, universe.getHistoryStart(), "start"),
@@ -862,7 +818,8 @@ public class UniverseTest {
                 }
 
                 private void assertCommonPostconditions(final Duration historyStart0, final UUID object,
-                        final Duration when, final Universe universe, final CountingTransactionListener listener) {
+                        final Duration when, final Universe universe,
+                        final TransactionListenerTest.CountingTransactionListener listener) {
                     assertAll(() -> UniverseTest.assertInvariants(universe),
                             () -> assertEquals(0, listener.getAborts(), "Did not abort"),
                             () -> assertEquals(1, listener.getCommits(), "Committed"),
@@ -881,7 +838,7 @@ public class UniverseTest {
                     final CountDownLatch ready = new CountDownLatch(1);
                     final AtomicReference<Universe> universeAR = new AtomicReference<>();
                     final int nThreads = Runtime.getRuntime().availableProcessors() * 4;
-                    final Map<Universe.Transaction, CountingTransactionListener> transactions = new ConcurrentHashMap<>();
+                    final Map<Universe.Transaction, TransactionListenerTest.CountingTransactionListener> transactions = new ConcurrentHashMap<>();
                     /*
                      * Start the other threads while the universe object is not constructed, so the
                      * safe publication at Thread.start() does not publish the constructed state.
@@ -895,7 +852,7 @@ public class UniverseTest {
                             final Duration when = historyStart0.plusSeconds(random.nextInt(1, nThreads * 7));
                             final ObjectState objectState = new ObjectStateTest.TestObjectState(random.nextInt());
 
-                            final CountingTransactionListener listener = new CountingTransactionListener();
+                            final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                             final Universe.Transaction transaction = universe.beginTransaction(listener);
                             transactions.put(transaction, listener);
                             transaction.beginWrite(when);
@@ -913,7 +870,7 @@ public class UniverseTest {
                     UniverseTest.assertInvariants(universeAR.get());
                     for (var entry : transactions.entrySet()) {
                         final Universe.Transaction transaction = entry.getKey();
-                        final CountingTransactionListener listener = entry.getValue();
+                        final TransactionListenerTest.CountingTransactionListener listener = entry.getValue();
                         assertInvariants(transaction);
                         assertAll(() -> assertEquals(0, listener.getAborts(), "Did not abort"),
                                 () -> assertEquals(1, listener.getCommits(), "Committed"));
@@ -927,7 +884,7 @@ public class UniverseTest {
 
                 private void test(final Duration historyStart0, final UUID object, final Duration when) {
                     final Universe universe = new Universe(historyStart0);
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     final Universe.Transaction transaction = universe.beginTransaction(listener);
                     final ObjectState objectState = new ObjectStateTest.TestObjectState(1);
                     transaction.beginWrite(when);
@@ -964,8 +921,8 @@ public class UniverseTest {
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
                     final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
 
-                    final CountingTransactionListener readListener = new CountingTransactionListener();
-                    final CountingTransactionListener writeListener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener readListener = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener writeListener = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object, when1, objectState1);
@@ -1010,8 +967,8 @@ public class UniverseTest {
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
                     final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
 
-                    final CountingTransactionListener listener1 = new CountingTransactionListener();
-                    final CountingTransactionListener listener2 = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener1 = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener2 = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object, when0, objectState0);
@@ -1027,7 +984,7 @@ public class UniverseTest {
                     beginCommit(transaction2);
 
                     assertAll(() -> assertTrue(0 < listener2.getEnds(), "Ended commit"),
-                            () -> assertEquals(1, listener2.aborts, "Aborted commit"), () -> assertEquals(when0,
+                            () -> assertEquals(1, listener2.getAborts(), "Aborted commit"), () -> assertEquals(when0,
                                     universe.getLatestCommit(object), "Latest commit of object (unchanged)"));
                 }
 
@@ -1051,7 +1008,7 @@ public class UniverseTest {
                     final Universe universe = new Universe(historyStart0);
                     final ObjectState objectState0 = new ObjectStateTest.TestObjectState(1);
                     putAndCommit(universe, object, historyStart0, objectState0);
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     final Universe.Transaction transaction = universe.beginTransaction(listener);
                     transaction.beginWrite(when);
                     transaction.put(object, null);
@@ -1059,8 +1016,8 @@ public class UniverseTest {
                     beginCommit(transaction);
 
                     assertAll(() -> UniverseTest.assertInvariants(universe),
-                            () -> assertEquals(0, listener.aborts, "Did not abort"),
-                            () -> assertEquals(1, listener.commits, "Committed"),
+                            () -> assertEquals(0, listener.getAborts(), "Did not abort"),
+                            () -> assertEquals(1, listener.getCommits(), "Committed"),
                             () -> assertEquals(historyStart0, universe.getHistoryStart(), "History start unchanged"));
                     assertAll("Destruction is forever.",
                             () -> assertEquals(ValueHistory.END_OF_TIME, universe.getHistoryEnd(), "History end"),
@@ -1089,8 +1046,8 @@ public class UniverseTest {
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
                     final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
 
-                    final CountingTransactionListener listener1 = new CountingTransactionListener();
-                    final CountingTransactionListener listener2 = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener1 = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener2 = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object, when0, objectState0);
@@ -1106,8 +1063,9 @@ public class UniverseTest {
                     beginCommit(transaction2);
 
                     assertAll(() -> assertTrue(0 < listener2.getEnds(), "Ended transaction"),
-                            () -> assertEquals(1, listener2.aborts, "Aborted transaction"), () -> assertEquals(when0,
-                                    universe.getLatestCommit(object), "Latest commit of object (unchanged)"));
+                            () -> assertEquals(1, listener2.getAborts(), "Aborted transaction"),
+                            () -> assertEquals(when0, universe.getLatestCommit(object),
+                                    "Latest commit of object (unchanged)"));
                 }
 
             }// class
@@ -1129,7 +1087,7 @@ public class UniverseTest {
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
                     final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
 
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(earliestCompleteState);
                     UniverseTest.putAndCommit(universe, object1, when1, objectState1);
@@ -1141,8 +1099,9 @@ public class UniverseTest {
                     beginCommit(transaction);
 
                     assertAll(() -> assertTrue(0 < listener.getEnds(), "Ended transaction"),
-                            () -> assertEquals(1, listener.commits, "Committed transaction"), () -> assertEquals(when2,
-                                    universe.getLatestCommit(object2), "Latest commit of object (advanced)"));
+                            () -> assertEquals(1, listener.getCommits(), "Committed transaction"),
+                            () -> assertEquals(when2, universe.getLatestCommit(object2),
+                                    "Latest commit of object (advanced)"));
                 }
 
             }// class
@@ -1171,7 +1130,7 @@ public class UniverseTest {
                     assert whenDestroy.compareTo(whenRead) <= 0;
                     final ObjectState objectState0 = new ObjectStateTest.TestObjectState(1);
 
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object, whenExist, objectState0);
@@ -1181,8 +1140,8 @@ public class UniverseTest {
 
                     beginCommit(transaction);
 
-                    assertAll("Transaction", () -> assertEquals(1, listener.commits, "committed"),
-                            () -> assertEquals(0, listener.aborts, "not aborted"));
+                    assertAll("Transaction", () -> assertEquals(1, listener.getCommits(), "committed"),
+                            () -> assertEquals(0, listener.getAborts(), "not aborted"));
                 }
 
             }// class
@@ -1210,7 +1169,7 @@ public class UniverseTest {
                     assert when1.compareTo(when2) < 0;
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
 
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object, when1, objectState1);
@@ -1219,8 +1178,8 @@ public class UniverseTest {
 
                     beginCommit(transaction);
 
-                    assertAll(() -> assertEquals(0, listener.commits, "not committed"),
-                            () -> assertEquals(0, listener.aborts, "not aborted"));
+                    assertAll(() -> assertEquals(0, listener.getCommits(), "not committed"),
+                            () -> assertEquals(0, listener.getAborts(), "not aborted"));
                 }
 
             }// class
@@ -1248,8 +1207,8 @@ public class UniverseTest {
                     assert when1.compareTo(when2) <= 0;
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
 
-                    final CountingTransactionListener writeListener = new CountingTransactionListener();
-                    final CountingTransactionListener readListener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener writeListener = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener readListener = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     final Universe.Transaction writeTransaction = universe.beginTransaction(writeListener);
@@ -1260,8 +1219,8 @@ public class UniverseTest {
 
                     beginCommit(readTransaction);
 
-                    assertAll(() -> assertEquals(0, readListener.aborts, "Read not aborted."),
-                            () -> assertEquals(0, readListener.commits, "Read not committed."));
+                    assertAll(() -> assertEquals(0, readListener.getAborts(), "Read not aborted."),
+                            () -> assertEquals(0, readListener.getCommits(), "Read not committed."));
                 }
 
             }// class
@@ -1283,7 +1242,7 @@ public class UniverseTest {
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
                     final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
 
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object, when1, objectState1);
@@ -1296,7 +1255,7 @@ public class UniverseTest {
                     beginCommit(transaction);
 
                     assertTrue(0 < listener.getEnds(), "Ended transaction");
-                    assertEquals(1, listener.commits, "Committed transaction");
+                    assertEquals(1, listener.getCommits(), "Committed transaction");
                 }
 
             }// class
@@ -1319,7 +1278,7 @@ public class UniverseTest {
                     final ObjectState objectState1 = null;// critical
                     final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
 
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object, when0, objectState0);
@@ -1333,7 +1292,7 @@ public class UniverseTest {
 
                     assertAll(() -> UniverseTest.assertInvariants(universe),
                             () -> assertTrue(0 < listener.getEnds(), "Ended transaction"),
-                            () -> assertEquals(1, listener.aborts, "Aborted commit"),
+                            () -> assertEquals(1, listener.getAborts(), "Aborted commit"),
                             () -> assertEquals(ValueHistory.END_OF_TIME, universe.getLatestCommit(object),
                                     "Latest commit of object (destruction is forever)"));
                 }
@@ -1364,9 +1323,9 @@ public class UniverseTest {
                     final ObjectStateTest.TestObjectState state4 = new ObjectStateTest.TestObjectState(4);
                     final ObjectStateTest.TestObjectState state5 = new ObjectStateTest.TestObjectState(5);
 
-                    final CountingTransactionListener readListener = new CountingTransactionListener();
-                    final CountingTransactionListener readWriteListener = new CountingTransactionListener();
-                    final CountingTransactionListener writeListener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener readListener = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener readWriteListener = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener writeListener = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object1, when1, state1);
@@ -1395,10 +1354,10 @@ public class UniverseTest {
                     assertAll(() -> assertEquals(1, readListener.getEnds(), "Ended read transaction"),
                             () -> assertEquals(1, readWriteListener.getEnds(), "Ended read-write transaction"),
                             () -> assertEquals(1, writeListener.getEnds(), "Ended write transaction"),
-                            () -> assertEquals(1, writeListener.commits, "Comitted write transaction"),
-                            () -> assertEquals(1, readWriteListener.aborts,
+                            () -> assertEquals(1, writeListener.getCommits(), "Comitted write transaction"),
+                            () -> assertEquals(1, readWriteListener.getAborts(),
                                     "Aborted (invalidated) read-write transaction"),
-                            () -> assertEquals(1, readListener.aborts, "Aborted (invalidated) read transaction"));
+                            () -> assertEquals(1, readListener.getAborts(), "Aborted (invalidated) read transaction"));
                 }
 
             }// class
@@ -1422,7 +1381,7 @@ public class UniverseTest {
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
                     final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
 
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(when);
                     UniverseTest.putAndCommit(universe, object1, when, objectState1);
@@ -1434,7 +1393,7 @@ public class UniverseTest {
                     beginCommit(transaction2);
 
                     UniverseTest.assertInvariants(universe);
-                    assertEquals(1, listener.commits, "Committed");
+                    assertEquals(1, listener.getCommits(), "Committed");
                     assertEquals(Set.of(object1, object2), universe.getObjectIds(), "Object IDs");
                     assertEquals(objectStateHistory1, universe.getObjectStateHistory(object1),
                             "The object state histories of other objects are unchanged.");
@@ -1458,8 +1417,8 @@ public class UniverseTest {
                 private void test(final Duration historyStart, UUID object, Duration when) {
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
 
-                    final CountingTransactionListener readListener = new CountingTransactionListener();
-                    final CountingTransactionListener writeListener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener readListener = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener writeListener = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     final Universe.Transaction writeTransaction = universe.beginTransaction(writeListener);
@@ -1471,10 +1430,10 @@ public class UniverseTest {
 
                     beginCommit(writeTransaction);
 
-                    assertAll(() -> assertEquals(0, writeListener.aborts, "Write not aborted."),
-                            () -> assertEquals(1, writeListener.commits, "Write committed."),
-                            () -> assertEquals(0, readListener.aborts, "Read not aborted."), () -> assertEquals(1,
-                                    readListener.commits, "Read committed (triggered by commit of write)."));
+                    assertAll(() -> assertEquals(0, writeListener.getAborts(), "Write not aborted."),
+                            () -> assertEquals(1, writeListener.getCommits(), "Write committed."),
+                            () -> assertEquals(0, readListener.getAborts(), "Read not aborted."), () -> assertEquals(1,
+                                    readListener.getCommits(), "Read committed (triggered by commit of write)."));
                 }
 
             }// class
@@ -1501,8 +1460,8 @@ public class UniverseTest {
                     final ObjectStateTest.TestObjectState state2 = new ObjectStateTest.TestObjectState(2);
                     final ObjectStateTest.TestObjectState state3 = new ObjectStateTest.TestObjectState(3);
 
-                    final CountingTransactionListener readListener = new CountingTransactionListener();
-                    final CountingTransactionListener writeListener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener readListener = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener writeListener = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object1, when1, state1);
@@ -1520,8 +1479,8 @@ public class UniverseTest {
 
                     assertAll(() -> assertEquals(1, readListener.getEnds(), "Ended read transaction"),
                             () -> assertEquals(1, writeListener.getEnds(), "Ended write transaction"),
-                            () -> assertEquals(1, writeListener.commits, "Comitted write transaction"),
-                            () -> assertEquals(1, readListener.aborts, "Aborted (invalidated) read transaction"));
+                            () -> assertEquals(1, writeListener.getCommits(), "Comitted write transaction"),
+                            () -> assertEquals(1, readListener.getAborts(), "Aborted (invalidated) read transaction"));
                 }
 
             }// class
@@ -1548,8 +1507,8 @@ public class UniverseTest {
                     final ObjectStateTest.TestObjectState state2 = new ObjectStateTest.TestObjectState(2);
                     final ObjectStateTest.TestObjectState state3 = new ObjectStateTest.TestObjectState(3);
 
-                    final CountingTransactionListener readListener = new CountingTransactionListener();
-                    final CountingTransactionListener writeListener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener readListener = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener writeListener = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object1, when1, state1);
@@ -1569,8 +1528,8 @@ public class UniverseTest {
 
                     assertAll(() -> assertEquals(1, readListener.getEnds(), "Ended read transaction"),
                             () -> assertEquals(1, writeListener.getEnds(), "Ended write transaction"),
-                            () -> assertEquals(1, writeListener.commits, "Comitted write transaction"),
-                            () -> assertEquals(1, readListener.aborts, "Aborted (invalidated) read transaction"));
+                            () -> assertEquals(1, writeListener.getCommits(), "Comitted write transaction"),
+                            () -> assertEquals(1, readListener.getAborts(), "Aborted (invalidated) read transaction"));
                 }
 
             }// class
@@ -1599,9 +1558,9 @@ public class UniverseTest {
                     final ObjectStateTest.TestObjectState state3 = new ObjectStateTest.TestObjectState(3);
                     final ObjectStateTest.TestObjectState state4 = new ObjectStateTest.TestObjectState(4);
 
-                    final CountingTransactionListener readListener = new CountingTransactionListener();
-                    final CountingTransactionListener writeListener1 = new CountingTransactionListener();
-                    final CountingTransactionListener writeListener2 = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener readListener = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener writeListener1 = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener writeListener2 = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object1, when1, state1);
@@ -1625,9 +1584,9 @@ public class UniverseTest {
                     assertAll(() -> assertEquals(1, readListener.getEnds(), "Ended read transaction"),
                             () -> assertEquals(1, writeListener1.getEnds(), "Ended write transaction 1"),
                             () -> assertEquals(1, writeListener2.getEnds(), "Ended write transaction 2"),
-                            () -> assertEquals(1, writeListener1.commits, "Comitted write transaction 1"),
-                            () -> assertEquals(1, writeListener1.commits, "Comitted write transaction 2"),
-                            () -> assertEquals(1, readListener.aborts, "Aborted read transaction"));
+                            () -> assertEquals(1, writeListener1.getCommits(), "Comitted write transaction 1"),
+                            () -> assertEquals(1, writeListener2.getCommits(), "Comitted write transaction 2"),
+                            () -> assertEquals(1, readListener.getAborts(), "Aborted read transaction"));
                 }
 
             }// class
@@ -1656,9 +1615,9 @@ public class UniverseTest {
                     final ObjectState objectStateC1 = new ObjectStateTest.TestObjectState(31);
                     final ObjectState objectStateC2 = new ObjectStateTest.TestObjectState(32);
 
-                    final CountingTransactionListener listenerA = new CountingTransactionListener();
-                    final CountingTransactionListener listenerB = new CountingTransactionListener();
-                    final CountingTransactionListener listenerC = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerA = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerB = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerC = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, objectA, when1, objectStateA1);
@@ -1690,9 +1649,9 @@ public class UniverseTest {
                     beginCommit(transactionB);
                     beginCommit(transactionC);
 
-                    assertAll(() -> assertEquals(1, listenerA.commits, "Committed A."),
-                            () -> assertEquals(1, listenerB.commits, "Committed B."),
-                            () -> assertEquals(1, listenerC.commits, "Committed C."));
+                    assertAll(() -> assertEquals(1, listenerA.getCommits(), "Committed A."),
+                            () -> assertEquals(1, listenerB.getCommits(), "Committed B."),
+                            () -> assertEquals(1, listenerC.getCommits(), "Committed C."));
                 }
 
             }// class
@@ -1721,9 +1680,9 @@ public class UniverseTest {
                     final ObjectState objectStateC1 = new ObjectStateTest.TestObjectState(31);
                     final ObjectState objectStateC2 = new ObjectStateTest.TestObjectState(32);
 
-                    final CountingTransactionListener listenerA = new CountingTransactionListener();
-                    final CountingTransactionListener listenerB = new CountingTransactionListener();
-                    final CountingTransactionListener listenerC = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerA = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerB = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerC = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, objectA, when1, objectStateA1);
@@ -1752,9 +1711,9 @@ public class UniverseTest {
                     beginCommit(transactionB);
                     beginCommit(transactionC);
 
-                    assertAll(() -> assertEquals(1, listenerA.commits, "Committed A."),
-                            () -> assertEquals(1, listenerB.commits, "Committed B."),
-                            () -> assertEquals(1, listenerC.commits, "Committed C."));
+                    assertAll(() -> assertEquals(1, listenerA.getCommits(), "Committed A."),
+                            () -> assertEquals(1, listenerB.getCommits(), "Committed B."),
+                            () -> assertEquals(1, listenerC.getCommits(), "Committed C."));
                 }
 
             }// class
@@ -1785,10 +1744,10 @@ public class UniverseTest {
                     final ObjectState objectStateD1 = new ObjectStateTest.TestObjectState(41);
                     final ObjectState objectStateD2 = new ObjectStateTest.TestObjectState(42);
 
-                    final CountingTransactionListener listenerA = new CountingTransactionListener();
-                    final CountingTransactionListener listenerB = new CountingTransactionListener();
-                    final CountingTransactionListener listenerC = new CountingTransactionListener();
-                    final CountingTransactionListener listenerD = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerA = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerB = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerC = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerD = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, objectA, when1, objectStateA1);
@@ -1827,10 +1786,10 @@ public class UniverseTest {
                     beginCommit(transactionC);
                     beginCommit(transactionD);
 
-                    assertAll(() -> assertEquals(1, listenerA.commits, "Committed A."),
-                            () -> assertEquals(1, listenerB.commits, "Committed B."),
-                            () -> assertEquals(1, listenerC.commits, "Committed C."),
-                            () -> assertEquals(1, listenerD.commits, "Committed D."));
+                    assertAll(() -> assertEquals(1, listenerA.getCommits(), "Committed A."),
+                            () -> assertEquals(1, listenerB.getCommits(), "Committed B."),
+                            () -> assertEquals(1, listenerC.getCommits(), "Committed C."),
+                            () -> assertEquals(1, listenerD.getCommits(), "Committed D."));
                 }
 
             }// class
@@ -1882,12 +1841,12 @@ public class UniverseTest {
                     final ObjectState objectStateF1 = new ObjectStateTest.TestObjectState(61);
                     final ObjectState objectStateF2 = new ObjectStateTest.TestObjectState(62);
 
-                    final CountingTransactionListener listenerA = new CountingTransactionListener();
-                    final CountingTransactionListener listenerB = new CountingTransactionListener();
-                    final CountingTransactionListener listenerC = new CountingTransactionListener();
-                    final CountingTransactionListener listenerD = new CountingTransactionListener();
-                    final CountingTransactionListener listenerE = new CountingTransactionListener();
-                    final CountingTransactionListener listenerF = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerA = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerB = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerC = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerD = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerE = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerF = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(DURATION_1);
                     UniverseTest.putAndCommit(universe, objectA, DURATION_1, objectStateA1);
@@ -1949,12 +1908,12 @@ public class UniverseTest {
                     beginCommit(transactionE);
                     beginCommit(transactionF);
 
-                    assertAll(() -> assertEquals(1, listenerA.commits, "Committed A."),
-                            () -> assertEquals(1, listenerB.commits, "Committed B."),
-                            () -> assertEquals(1, listenerC.commits, "Committed C."),
-                            () -> assertEquals(1, listenerD.commits, "Committed D."),
-                            () -> assertEquals(1, listenerE.commits, "Committed E."),
-                            () -> assertEquals(1, listenerF.commits, "Committed F."));
+                    assertAll(() -> assertEquals(1, listenerA.getCommits(), "Committed A."),
+                            () -> assertEquals(1, listenerB.getCommits(), "Committed B."),
+                            () -> assertEquals(1, listenerC.getCommits(), "Committed C."),
+                            () -> assertEquals(1, listenerD.getCommits(), "Committed D."),
+                            () -> assertEquals(1, listenerE.getCommits(), "Committed E."),
+                            () -> assertEquals(1, listenerF.getCommits(), "Committed F."));
                 }
 
             }// class
@@ -1996,8 +1955,8 @@ public class UniverseTest {
                     final ObjectState objectStateB1 = new ObjectStateTest.TestObjectState(21);
                     final ObjectState objectStateB2 = new ObjectStateTest.TestObjectState(22);
 
-                    final CountingTransactionListener listenerA = new CountingTransactionListener();
-                    final CountingTransactionListener listenerB = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerA = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerB = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, objectA, whenA1, objectStateA1);
@@ -2018,8 +1977,8 @@ public class UniverseTest {
                     beginCommit(transactionA);
                     beginCommit(transactionB);
 
-                    assertAll(() -> assertEquals(1, listenerA.commits, "Committed A."),
-                            () -> assertEquals(1, listenerB.commits, "Committed B."));
+                    assertAll(() -> assertEquals(1, listenerA.getCommits(), "Committed A."),
+                            () -> assertEquals(1, listenerB.getCommits(), "Committed B."));
                 }
 
             }// class
@@ -2061,8 +2020,8 @@ public class UniverseTest {
                     final ObjectState objectStateB1 = new ObjectStateTest.TestObjectState(21);
                     final ObjectState objectStateB2 = new ObjectStateTest.TestObjectState(22);
 
-                    final CountingTransactionListener listenerA = new CountingTransactionListener();
-                    final CountingTransactionListener listenerB = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerA = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerB = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, objectA, whenA1, objectStateA1);
@@ -2084,8 +2043,8 @@ public class UniverseTest {
 
                     assertAll(() -> assertEquals(0, listenerA.getEnds(), "Has not ended A."),
                             () -> assertEquals(0, listenerB.getEnds(), "Has not ended B."),
-                            () -> assertEquals(0, listenerA.commits, "Has not committed A."),
-                            () -> assertEquals(0, listenerB.commits, "Has not committed B."));
+                            () -> assertEquals(0, listenerA.getCommits(), "Has not committed A."),
+                            () -> assertEquals(0, listenerB.getCommits(), "Has not committed B."));
                 }
 
             }// class
@@ -2130,9 +2089,9 @@ public class UniverseTest {
                     final ObjectState objectStateC1 = new ObjectStateTest.TestObjectState(31);
                     final ObjectState objectStateC2 = new ObjectStateTest.TestObjectState(32);
 
-                    final CountingTransactionListener listenerA = new CountingTransactionListener();
-                    final CountingTransactionListener listenerB = new CountingTransactionListener();
-                    final CountingTransactionListener listenerC = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerA = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerB = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerC = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, objectB, whenB1, objectStateB1);
@@ -2161,9 +2120,9 @@ public class UniverseTest {
                     assertAll(() -> assertEquals(0, listenerA.getEnds(), "Did not end A."),
                             () -> assertEquals(0, listenerB.getEnds(), "Did not end B."),
                             () -> assertEquals(0, listenerC.getEnds(), "Did not end C."),
-                            () -> assertEquals(0, listenerA.commits, "Did not commit A."),
-                            () -> assertEquals(0, listenerB.commits, "Did not commit B."), () -> assertEquals(0,
-                                    listenerC.commits, "Did not commit C (awaiting indirect dependency)."));
+                            () -> assertEquals(0, listenerA.getCommits(), "Did not commit A."),
+                            () -> assertEquals(0, listenerB.getCommits(), "Did not commit B."), () -> assertEquals(0,
+                                    listenerC.getCommits(), "Did not commit C (awaiting indirect dependency)."));
                 }
 
             }// class
@@ -2192,8 +2151,8 @@ public class UniverseTest {
                     final ObjectStateTest.TestObjectState state3 = new ObjectStateTest.TestObjectState(3);
                     final ObjectStateTest.TestObjectState state4 = new ObjectStateTest.TestObjectState(4);
 
-                    final CountingTransactionListener listener1 = new CountingTransactionListener();
-                    final CountingTransactionListener listener2 = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener1 = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener2 = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object1, when1, state1);
@@ -2216,8 +2175,8 @@ public class UniverseTest {
                     assertAll(() -> UniverseTest.assertInvariants(universe),
                             () -> assertEquals(1, listener1.getEnds(), "Ended transaction 1"),
                             () -> assertTrue(0 < listener2.getEnds(), "Ended transaction 2"),
-                            () -> assertEquals(1, listener2.commits, "Comitted transaction 2"),
-                            () -> assertEquals(1, listener1.aborts, "Aborted (invalidated) transaction 1"));
+                            () -> assertEquals(1, listener2.getCommits(), "Comitted transaction 2"),
+                            () -> assertEquals(1, listener1.getAborts(), "Aborted (invalidated) transaction 1"));
                     assertAll(
                             () -> assertSame(state1, universe.getObjectState(object1, when5),
                                     "Rolled back aborted write [values]"),
@@ -2250,9 +2209,9 @@ public class UniverseTest {
                     final ObjectState objectStateB1 = new ObjectStateTest.TestObjectState(22);
                     final ObjectState objectStateB2 = new ObjectStateTest.TestObjectState(22);
 
-                    final CountingTransactionListener listenerA = new CountingTransactionListener();
-                    final CountingTransactionListener listenerB1 = new CountingTransactionListener();
-                    final CountingTransactionListener listenerB2 = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerA = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerB1 = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listenerB2 = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     putAndCommit(universe, objectA, historyStart, objectStateA0);
@@ -2279,12 +2238,14 @@ public class UniverseTest {
 
                     beginCommit(transactionA);
 
-                    assertAll("Independent write ended", () -> assertEquals(0, listenerA.aborts, "not aborted."),
-                            () -> assertEquals(1, listenerA.commits, "committed."));
-                    assertAll("First of duplicate writes won", () -> assertEquals(0, listenerB1.aborts, "not aborted."),
-                            () -> assertEquals(1, listenerB1.commits, "committed."));
-                    assertAll("Seconds of duplicate writes lost", () -> assertEquals(1, listenerB2.aborts, "aborted."),
-                            () -> assertEquals(0, listenerB2.commits, "not committed."));
+                    assertAll("Independent write ended", () -> assertEquals(0, listenerA.getAborts(), "not aborted."),
+                            () -> assertEquals(1, listenerA.getCommits(), "committed."));
+                    assertAll("First of duplicate writes won",
+                            () -> assertEquals(0, listenerB1.getAborts(), "not aborted."),
+                            () -> assertEquals(1, listenerB1.getCommits(), "committed."));
+                    assertAll("Seconds of duplicate writes lost",
+                            () -> assertEquals(1, listenerB2.getAborts(), "aborted."),
+                            () -> assertEquals(0, listenerB2.getCommits(), "not committed."));
                 }
 
             }// class
@@ -2320,7 +2281,7 @@ public class UniverseTest {
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object, when1, objectState1);
 
-                    final CountingTransactionListener writeListener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener writeListener = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe.Transaction transaction = universe.beginTransaction(writeListener);
                     transaction.getObjectState(object, when1);
@@ -2329,8 +2290,8 @@ public class UniverseTest {
 
                     beginCommit(transaction);
 
-                    assertAll(() -> assertEquals(0, writeListener.aborts, "Write did not abort."),
-                            () -> assertEquals(1, writeListener.commits, "Write committed."));
+                    assertAll(() -> assertEquals(0, writeListener.getAborts(), "Write did not abort."),
+                            () -> assertEquals(1, writeListener.getCommits(), "Write committed."));
                     assertEquals(Collections.singleton(object), universe.getObjectIds(), "Object IDs.");
                     assertEquals(expectedObjectStateHistory, universe.getObjectStateHistory(object),
                             "Object state history.");
@@ -2365,8 +2326,8 @@ public class UniverseTest {
                 final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
                 final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
 
-                final CountingTransactionListener listener1 = new CountingTransactionListener();
-                final CountingTransactionListener listener2 = new CountingTransactionListener();
+                final TransactionListenerTest.CountingTransactionListener listener1 = new TransactionListenerTest.CountingTransactionListener();
+                final TransactionListenerTest.CountingTransactionListener listener2 = new TransactionListenerTest.CountingTransactionListener();
 
                 final Universe universe = new Universe(historyStart);
                 UniverseTest.putAndCommit(universe, object, when0, objectState0);
@@ -2382,21 +2343,21 @@ public class UniverseTest {
                 beginCommit(transaction1);
                 beginCommit(transaction2);
 
-                assertEquals(0, listener2.commits, "Did not commit second transaction");
-                assertEquals(1, listener2.aborts, "Aborted second transaction");
+                assertEquals(0, listener2.getCommits(), "Did not commit second transaction");
+                assertEquals(1, listener2.getAborts(), "Aborted second transaction");
             }
 
             @Test
             public void immediately() {
                 final Universe universe = new Universe(DURATION_1);
 
-                final CountingTransactionListener listener = new CountingTransactionListener();
+                final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                 final Universe.Transaction transaction = universe.beginTransaction(listener);
 
                 beginCommit(transaction);
 
-                assertEquals(0, listener.aborts, "Did not abort");
-                assertEquals(1, listener.commits, "Committed");
+                assertEquals(0, listener.getAborts(), "Did not abort");
+                assertEquals(1, listener.getCommits(), "Committed");
             }
 
             @RepeatedTest(8)
@@ -2429,7 +2390,7 @@ public class UniverseTest {
                 for (int i = 0; i < nThreads; ++i) {
                     final int iObject = i;
                     futures.add(runInOtherThread(readyToStart, () -> {
-                        final CountingTransactionListener listener = new CountingTransactionListener();
+                        final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                         try (final Universe.Transaction transaction = universe.beginTransaction(listener);) {
                             transactions.put(objects[iObject], new AtomicReference<Universe.Transaction>(transaction));
                             for (int j = 0; j < nThreads; ++j) {
@@ -2532,7 +2493,7 @@ public class UniverseTest {
 
                 private final void test(Duration historyStart, Duration when) {
                     final Universe universe = new Universe(historyStart);
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     Universe.Transaction transaction = universe.beginTransaction(listener);
 
                     beginWrite(transaction, when);
@@ -2562,7 +2523,7 @@ public class UniverseTest {
                 private final void test(Duration historyStart, UUID object, Duration when1, Duration when2) {
                     assert when1.compareTo(when2) < 0;
                     final Universe universe = new Universe(historyStart);
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     Universe.Transaction transaction = universe.beginTransaction(listener);
                     transaction.getObjectState(object, when1);
 
@@ -2605,7 +2566,7 @@ public class UniverseTest {
                     assert when1.compareTo(when2) < 0;
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
 
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object, when1, objectState1);
@@ -2638,7 +2599,7 @@ public class UniverseTest {
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object, when1, objectState1);
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     final Universe.Transaction transaction = universe.beginTransaction(listener);
                     transaction.beginWrite(when2);
                     transaction.put(object, objectState2);
@@ -2646,7 +2607,7 @@ public class UniverseTest {
                     close(transaction);
 
                     assertAll(() -> assertEquals(1, listener.getEnds(), "Ended the transaction"),
-                            () -> assertEquals(1, listener.aborts, "Aborted the transaction"),
+                            () -> assertEquals(1, listener.getAborts(), "Aborted the transaction"),
                             () -> assertSame(objectState1, universe.getObjectState(object, when2),
                                     "Rolled back aborted write [values]"),
                             () -> assertEquals(Collections.singleton(when1),
@@ -2673,7 +2634,7 @@ public class UniverseTest {
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
                     final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
 
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object, when1, objectState1);
@@ -2691,7 +2652,7 @@ public class UniverseTest {
 
             @Test
             public void afterAbort() {
-                final CountingTransactionListener listener = new CountingTransactionListener();
+                final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
 
                 final Universe universe = new Universe(DURATION_1);
                 final Universe.Transaction transaction = universe.beginTransaction(listener);
@@ -2699,8 +2660,8 @@ public class UniverseTest {
 
                 close(transaction);
 
-                assertAll(() -> assertEquals(0, listener.commits, "Not committed"),
-                        () -> assertEquals(1, listener.aborts, "Aborted"));
+                assertAll(() -> assertEquals(0, listener.getCommits(), "Not committed"),
+                        () -> assertEquals(1, listener.getAborts(), "Aborted"));
             }
 
             private void close(final Universe.Transaction transaction) {
@@ -2734,13 +2695,13 @@ public class UniverseTest {
             @Test
             public void immediately() {
                 final Universe universe = new Universe(DURATION_1);
-                final CountingTransactionListener listener = new CountingTransactionListener();
+                final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                 final Universe.Transaction transaction = universe.beginTransaction(listener);
 
                 close(transaction);
 
                 assertAll(() -> assertEquals(1, listener.getEnds(), "Ended the transaction"),
-                        () -> assertEquals(1, listener.aborts, "Aborted the transaction"));
+                        () -> assertEquals(1, listener.getAborts(), "Aborted the transaction"));
             }
 
         }// class
@@ -2763,7 +2724,7 @@ public class UniverseTest {
 
                 private void test(final Duration historyStart, UUID object, Duration when) {
                     final Universe universe = new Universe(historyStart);
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     final Universe.Transaction transaction = universe.beginTransaction(listener);
 
                     getObjectState(transaction, object, when);
@@ -2785,7 +2746,7 @@ public class UniverseTest {
                 }
 
                 private void doTransaction(final Duration when1, final Universe universe) {
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     final Universe.Transaction transaction = universe.beginTransaction(listener);
 
                     assertThrows(PrehistoryException.class, () -> getObjectState(transaction, OBJECT_A, when1));
@@ -2847,7 +2808,7 @@ public class UniverseTest {
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object, when1, objectState1);
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     final Universe.Transaction transaction = universe.beginTransaction(listener);
 
                     final ObjectState objectState2 = getObjectState(transaction, object, when2);
@@ -2884,7 +2845,7 @@ public class UniverseTest {
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object, when1, objectState1);
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     final Universe.Transaction transaction = universe.beginTransaction(listener);
                     transaction.beginAbort();
 
@@ -2921,8 +2882,8 @@ public class UniverseTest {
                     final ObjectStateId id2 = new ObjectStateId(object, when2);
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
 
-                    final CountingTransactionListener listener1 = new CountingTransactionListener();
-                    final CountingTransactionListener listener2 = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener1 = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener2 = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     final Universe.Transaction transaction1 = universe.beginTransaction(listener1);
@@ -2991,7 +2952,7 @@ public class UniverseTest {
                     final ModifiableValueHistory<ObjectState> expectedHistory = new ModifiableValueHistory<>();
 
                     final Universe universe = new Universe(historyStart);
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     final Universe.Transaction transaction = universe.beginTransaction(listener);
                     transaction.beginWrite(when);
                     transaction.beginAbort();
@@ -3001,7 +2962,7 @@ public class UniverseTest {
                     assertAll(() -> UniverseTest.assertInvariants(universe),
                             () -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
                                     "Object state history (did not add to history because aborting)"),
-                            () -> assertEquals(Collections.emptySet(), listener.created,
+                            () -> assertEquals(Collections.emptySet(), listener.getCreated(),
                                     "Did not call creation call-back"));
                 }
 
@@ -3026,14 +2987,14 @@ public class UniverseTest {
 
                     final Universe universe = new Universe(earliestCompleteState);
                     UniverseTest.putAndCommit(universe, object1, when1, objectState1);
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     final Universe.Transaction transaction = universe.beginTransaction(listener);
                     transaction.getObjectState(object1, when1);
                     transaction.beginWrite(when2);
 
                     put(transaction, object2, objectState2);
 
-                    assertEquals(Collections.singleton(object2), listener.created, "Called creation call-back");
+                    assertEquals(Collections.singleton(object2), listener.getCreated(), "Called creation call-back");
                 }
 
             }// class
@@ -3066,7 +3027,7 @@ public class UniverseTest {
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object, when1, objectState1);
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     final Universe.Transaction transaction = universe.beginTransaction(listener);
                     transaction.getObjectState(object, when1);
                     transaction.beginWrite(when2);
@@ -3076,7 +3037,7 @@ public class UniverseTest {
                     assertAll(
                             () -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
                                     "Object state history"),
-                            () -> assertEquals(Collections.emptySet(), listener.created,
+                            () -> assertEquals(Collections.emptySet(), listener.getCreated(),
                                     "Did not call creation call-back"));
                 }
 
@@ -3108,7 +3069,7 @@ public class UniverseTest {
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object, when, objectState1);
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     final Universe.Transaction transaction = universe.beginTransaction(listener);
                     // Should transaction.getObjectState(object, when), but not for this test.
                     transaction.beginWrite(when);
@@ -3158,7 +3119,7 @@ public class UniverseTest {
                     for (int i = 0; i < nThreads; ++i) {
                         futures.add(runInOtherThread(ready, () -> {
                             final Universe universe = universeAR.get();
-                            final CountingTransactionListener listener = new CountingTransactionListener();
+                            final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                             final ObjectState objectState = new ObjectStateTest.TestObjectState(1);
                             final UUID object = UUID.randomUUID();
                             final Universe.Transaction transaction = universe.beginTransaction(listener);
@@ -3187,7 +3148,7 @@ public class UniverseTest {
                     expectedHistory.appendTransition(when, objectState);
 
                     final Universe universe = new Universe(historyStart);
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     final Universe.Transaction transaction = universe.beginTransaction(listener);
                     transaction.beginWrite(when);
 
@@ -3197,7 +3158,7 @@ public class UniverseTest {
                             () -> assertEquals(Collections.singleton(object), universe.getObjectIds(), "Object IDs"),
                             () -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
                                     "Object state history"),
-                            () -> assertEquals(Collections.singleton(object), listener.created,
+                            () -> assertEquals(Collections.singleton(object), listener.getCreated(),
                                     "Called creation call-back"));
                 }
 
@@ -3237,7 +3198,7 @@ public class UniverseTest {
                     final ValueHistory<ObjectState> objectStateHistory0 = new ModifiableValueHistory<>(
                             universe.getObjectStateHistory(object));
 
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     final Universe.Transaction transaction = universe.beginTransaction(listener);
                     transaction.beginWrite(when1);
 
@@ -3274,8 +3235,8 @@ public class UniverseTest {
                     final ObjectStateTest.TestObjectState state2 = new ObjectStateTest.TestObjectState(2);
                     final ObjectStateTest.TestObjectState state3 = new ObjectStateTest.TestObjectState(3);
 
-                    final CountingTransactionListener listener1 = new CountingTransactionListener();
-                    final CountingTransactionListener listener2 = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener1 = new TransactionListenerTest.CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener2 = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
                     UniverseTest.putAndCommit(universe, object1, when1, state1);
@@ -3317,7 +3278,7 @@ public class UniverseTest {
                     UniverseTest.putAndCommit(universe, object1, when1, objectState1);
                     UniverseTest.putAndCommit(universe, object2, when2, objectState2);
 
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     final Universe.Transaction transaction = universe.beginTransaction(listener);
                     transaction.getObjectState(object2, when2);
                     transaction.beginWrite(when3);
@@ -3349,7 +3310,7 @@ public class UniverseTest {
                 for (int i = 0; i < nThreads; ++i) {
                     final int iObject = i;
                     futures.add(runInOtherThread(ready, () -> {
-                        final CountingTransactionListener listener = new CountingTransactionListener();
+                        final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                         Universe.Transaction transaction = universe.beginTransaction(listener);
                         transactions.put(objects[iObject], new AtomicReference<Universe.Transaction>(transaction));
                         for (int j = 0; j < nThreads; ++j) {
@@ -3492,7 +3453,7 @@ public class UniverseTest {
             for (int i = 0; i < nThreads; ++i) {
                 final int iObject = i;
                 futures.add(runInOtherThread(ready, () -> {
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     try (final Universe.Transaction transaction = universe.beginTransaction(listener);) {
                         transactions.put(objects[iObject], new AtomicReference<Universe.Transaction>(transaction));
                         for (int j = 0; j < nThreads; ++j) {
@@ -3578,7 +3539,7 @@ public class UniverseTest {
             for (int i = 0; i < nThreads; ++i) {
                 final int iObject = i;
                 futures.add(runInOtherThread(ready, () -> {
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     try (final Universe.Transaction transaction = universe.beginTransaction(listener);) {
                         transactions.put(objects[iObject], new AtomicReference<Universe.Transaction>(transaction));
                         for (int j = 0; j < nThreads; ++j) {
@@ -3682,7 +3643,7 @@ public class UniverseTest {
             for (int i = 0; i < nThreads; ++i) {
                 final int iObject = i;
                 futures.add(runInOtherThread(ready, () -> {
-                    final CountingTransactionListener listener = new CountingTransactionListener();
+                    final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     try (final Universe.Transaction transaction = universe.beginTransaction(listener);) {
                         transactions.put(objects[iObject], new AtomicReference<Universe.Transaction>(transaction));
                         for (int j = 0; j < nThreads; ++j) {
@@ -3948,7 +3909,7 @@ public class UniverseTest {
     }
 
     static void putAndCommit(final Universe universe, UUID object, Duration when, ObjectState state) {
-        final Universe.TransactionListener listener = new Universe.TransactionListener() {
+        final TransactionListener listener = new TransactionListener() {
 
             @Override
             public void onAbort() {

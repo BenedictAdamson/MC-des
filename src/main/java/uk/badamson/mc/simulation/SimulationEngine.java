@@ -58,7 +58,7 @@ public final class SimulationEngine {
     /*
      * Drives the simulation forward for one simulation object.
      */
-    private final class Engine1 implements Universe.TransactionListener, Runnable {
+    private final class Engine1 implements TransactionListener, Runnable {
         @GuardedBy("this")
         private boolean running = false;
 
@@ -387,7 +387,7 @@ public final class SimulationEngine {
         }
 
         private Universe.Transaction createReadTransaction() {
-            return universe.beginTransaction(new Universe.TransactionListener() {
+            return universe.beginTransaction(new TransactionListener() {
 
                 @Override
                 public void onAbort() {

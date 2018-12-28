@@ -1109,48 +1109,6 @@ public class Universe {
 
     /**
      * <p>
-     * An object that can respond to {@link Universe.Transaction} events.
-     * </p>
-     */
-    @ThreadSafe
-    public interface TransactionListener {
-        /**
-         * <p>
-         * An action to perform when (if) a transaction successfully completes its
-         * commit operation.
-         * </p>
-         */
-        public void onAbort();
-
-        /**
-         * <p>
-         * An action to perform when (if) a transaction aborts its commit operation.
-         * </p>
-         */
-        public void onCommit();
-
-        /**
-         * <p>
-         * An action to perform when (if) a transaction creates a new object.
-         * </p>
-         * <p>
-         * The method can be called before the transaction commits.
-         * </p>
-         * 
-         * @param object
-         *            The object created by the transaction.
-         * @throws NullPointerException
-         *             (Optionally) if {@code object} is null.
-         * @throws IllegalStateException
-         *             (Optionally) if this method of listener has previously been
-         *             called for the same transaction and object.
-         */
-        public void onCreate(@NonNull UUID object);
-
-    }// interface
-
-    /**
-     * <p>
      * The degree to which a {@link Universe.Transaction} can be said to be
      * <dfn>open</dfn>.
      * </p>
