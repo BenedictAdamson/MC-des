@@ -77,9 +77,9 @@ public class Universe {
          * of their ids.
          */
         @NonNull
-        protected final Long id;
+        final Long id;
 
-        protected final Object lock = new Object();
+        final Object lock = new Object();
 
         protected Lockable(@NonNull final Long id) {
             assert id != null;
@@ -255,11 +255,34 @@ public class Universe {
      * A transaction for changing the state of a {@link Universe}.
      * </p>
      * <p>
-     * That is, a record of a set of reads and up to one write to the state
-     * histories of the Universe that can be committed as an atomic operation. A
-     * transaction may read (fetch) and write (put) values. A transaction however
-     * may not interleave reads and writes. All its writes must be after any reads,
-     * after having entered <i>write mode</i>.
+     * That is, a record of a set of reads of and writes to the state histories of
+     * the Universe that can be committed as an atomic operation. A transaction may
+     * read (fetch) and write (put) values. A transaction however may not interleave
+     * reads and writes. All its writes must be after any reads, after having
+     * entered <i>write mode</i>.
+     * </p>
+     * <p>
+     * These transactions are <i>optimistic</i>: a transaction is allowed to perform
+     * operations that it may transpire can not be
+     * {@linkplain Universe.TransactionOpenness#COMMITTED committed}, in which case
+     * it will be {@linkplain Universe.TransactionOpenness#ABORTED aborted}.
+     * </p>
+     * <p>
+     * These transactions are <i>asynchronous</i>: a client indicating that it wants
+     * to commit a transaction (by calling {@link #beginCommit()}) does not block in
+     * that method call until the transaction has
+     * {@linkplain Universe.TransactionOpenness#COMMITTED committed} (or
+     * {@linkplain Universe.TransactionOpenness#ABORTED aborted}). Instead a
+     * call-back to a {@linkplain TransactionListener listener} is used to indicate
+     * the transaction is {@linkplain TransactionListener#onCommit() committed} (or
+     * {@linkplain TransactionListener#onAbort() aborted}). However, these
+     * transactions are not lock free: callers to the methods of this class may
+     * block for short periods while waiting to acquire locks.
+     * </p>
+     * <p>
+     * This class does not have a publicly accessible constructor; use the
+     * {@link Universe#beginTransaction(TransactionListener)} method to create new
+     * transaction objects.
      * </p>
      */
     @NotThreadSafe
@@ -339,9 +362,6 @@ public class Universe {
          * </p>
          * <ul>
          * <li>If this transaction {@linkplain #getOpenness() was}
-         * {@linkplain Universe.TransactionOpenness#COMMITTED committed}, it remains
-         * committed.</li>
-         * <li>If this transaction {@linkplain #getOpenness() was}
          * {@linkplain Universe.TransactionOpenness#ABORTED aborted}, it remains
          * committed.</li>
          * <li>The transaction {@linkplain #getOpenness() is}
@@ -350,7 +370,17 @@ public class Universe {
          * {@linkplain Universe.TransactionOpenness#COMMITTED committed}.</li>
          * <li>The method rolls back any {@linkplain #put(UUID, ObjectState) writes} the
          * transaction has performed.</li>
+         * <li>This method must be called from the same thread that
+         * {@linkplain Universe#beginTransaction(TransactionListener) began} this
+         * transaction.</li>
          * </ul>
+         *
+         * @throws IllegalStateException
+         *             If this transaction has already been
+         *             {@linkplain Universe.TransactionOpenness#COMMITTED committed}. In
+         *             practice, that means this method should not be called after a
+         *             request to {@linkplain #beginCommit() begin committing} this
+         *             transaction.
          */
         public final void beginAbort() {
             withLockedTransactionChain(() -> openness.beginAbort(this));
@@ -365,6 +395,13 @@ public class Universe {
          * <li>The transaction {@linkplain #getOpenness() is} not (anymore)
          * {@linkplain Universe.TransactionOpenness#READING reading} or
          * {@linkplain Universe.TransactionOpenness#WRITING writing}.</li>
+         * <li>On return from the method, or subsequently (and perhaps asynchronously),
+         * this transaction will become
+         * {@linkplain Universe.TransactionOpenness#COMMITTED committed} or
+         * {@linkplain Universe.TransactionOpenness#ABORTED aborted}.</li>
+         * <li>This method must be called from the same thread that
+         * {@linkplain Universe#beginTransaction(TransactionListener) began} this
+         * transaction.</li>
          * </ul>
          *
          * @throws IllegalStateException
@@ -383,6 +420,9 @@ public class Universe {
          * <ul>
          * <li>The {@linkplain #getWhen() time-stamp of any object states to be written}
          * by this transaction becomes the same as the given time-stamp.</li>
+         * <li>This method must be called from the same thread that
+         * {@linkplain Universe#beginTransaction(TransactionListener) began} this
+         * transaction.</li>
          * </ul>
          *
          * @param when
@@ -398,12 +438,11 @@ public class Universe {
          * @throws IllegalStateException
          *             <ul>
          *             <li>If the any of the {@linkplain #getObjectStatesRead() reads}
-         *             done by this transaction were for for
+         *             done by this transaction were for
          *             {@linkplain ObjectStateId#getWhen() times} at of after the given
          *             time.</li>
-         *             </ul>
-         *             If this transaction is already in write mode. That is, if this
-         *             method has already been called for this transaction.</li>
+         *             <li>If this transaction is already in write mode. That is, if
+         *             this method has already been called for this transaction.</li>
          *             </ul>
          */
         public final void beginWrite(@NonNull final Duration when) {
@@ -420,11 +459,12 @@ public class Universe {
          * </p>
          * <ul>
          * <li>The method removes any unnecessary hidden references to this transaction
-         * object, so the transaction object can be garbage collected.</li>
+         * object, so the transaction object can eventually be garbage collected, if the
+         * client no longer has references to it.</li>
          * <li>The method ensures that any transactions dependent on this transaction
          * can also eventually abort or commit.</li>
          * <li>This transaction {@linkplain #getOpenness() is}
-         * {@linkplain Universe.TransactionOpenness#ABORTED aborted}
+         * {@linkplain Universe.TransactionOpenness#ABORTED aborted},
          * {@linkplain Universe.TransactionOpenness#COMMITTING committing} or
          * {@linkplain Universe.TransactionOpenness#COMMITTED committed}.</li>
          * <li>If this transaction {@linkplain #getOpenness() was}
@@ -470,11 +510,11 @@ public class Universe {
 
         /**
          * <p>
-         * Get the state of a given object, of the universe of this transaction, at a
-         * given point in time.
+         * Get (read) the state of a given object, of the universe of this transaction,
+         * at a given point in time.
          * </p>
          * <ul>
-         * <li>The object state of for an object ID and point in time is either the same
+         * <li>The object state for an object ID and point in time is either the same
          * object state as can be {@linkplain Universe#getObjectState(UUID, Duration)
          * got} from the universe of this transaction, or is the same object state as
          * has already been {@linkplain #getObjectStatesRead() got} by this
@@ -501,7 +541,8 @@ public class Universe {
          * @param object
          *            The ID of the object of interest.
          * @param when
-         *            The point in time of interest.
+         *            The point in time of interest, expressed as the duration since an
+         *            (implied) epoch.
          * @return The state of the given object at the given point in time.
          * @throws NullPointerException
          *             <ul>
@@ -561,6 +602,13 @@ public class Universe {
          * to a null value indicates that the {@linkplain ObjectStateId#getObject()
          * object} of the key did not exist at the {@linkplain ObjectStateId#getWhen()
          * point in time} of the key.</li>
+         * <li>The collection of object states read may include object states that have
+         * not been committed by the transaction that
+         * {@linkplain #put(UUID, ObjectState) wrote} them. Only if this transaction
+         * {@linkplain #getOpenness() has} been
+         * {@linkplain Universe.TransactionOpenness#COMMITTED committed} is the
+         * collection of object states read guaranteed to contain only committed
+         * values.</li>
          * </ul>
          *
          * @return the object states read.
@@ -574,7 +622,7 @@ public class Universe {
 
         /**
          * <p>
-         * The object states that have been read as part of this transaction.
+         * The object states that have been written as part of this transaction.
          * </p>
          * <ul>
          * <li>Always have a (non null) map of object states written.</li>
@@ -618,11 +666,13 @@ public class Universe {
 
         /**
          * <p>
-         * The time-stamp of an object states (to be)
-         * {@linkplain #put(UUID, ObjectState) written} by this transaction.
+         * The time-stamp of any object states (to be)
+         * {@linkplain #put(UUID, ObjectState) written} by this transaction, expressed
+         * as the duration since an (implied) epoch.
          * </p>
          *
-         * @return the time-stamp, or null if this transaction is (still) in read mode.
+         * @return the time-stamp, or null if this transaction has not (yet) entered
+         *         write mode.
          */
         public final @Nullable Duration getWhen() {
             synchronized (lock) {
@@ -649,27 +699,31 @@ public class Universe {
 
         /**
          * <p>
-         * Try to add a state transition (or an initial state) for an object to the
-         * universe of this transaction.
+         * Try to add (write) a state transition (or an initial state) for an object to
+         * the universe of this transaction.
          * <p>
          * <ul>
          * <li>The method records the given state as one of the
-         * {@linkplain #getObjectStatesWritten() states written}.</li>
+         * {@linkplain #getObjectStatesWritten() states written} of this
+         * transaction.</li>
          * <li>This method is <dfn>optimistic</dfn>. It assumes that this transaction
          * will be successfully committed, so any other transactions that have read the
          * old state of the object at the {@linkplain #getWhen() time} of this write (or
          * a later time) are now invalid and must be aborted.</li>
+         * <li>This method must be called from the same thread that
+         * {@linkplain Universe#beginTransaction(TransactionListener) began} this
+         * transaction and which {@linkplain #beginWrite(Duration) changed it to write
+         * mode}.</li>
          * </ul>
          *
          * @param object
          *            The ID of the object that has the given state transition at the
          *            given time.
          * @param state
-         *            The state of the object just after this state transition, at the
-         *            given point in time. A null value indicates that the object ceases
-         *            to exist at the given time. Destroyed objects may not be
-         *            resurrected. Therefore the object state will remain null for all
-         *            subsequent points in time.
+         *            The state of the object just after the state transition, at the
+         *            {@linkplain #getWhen() write time} of this transaction. A null
+         *            value indicates that the object ceases to exist at the write time
+         *            of this transaction.
          * @throws NullPointerException
          *             If {@code object} is null.
          * @throws IllegalStateException
