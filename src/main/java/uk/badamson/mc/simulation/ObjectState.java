@@ -32,7 +32,7 @@ import net.jcip.annotations.Immutable;
  * </p>
  * <p>
  * The state of the object is assumed to pass through a sequence of discrete
- * states: this class is for discrete event simulations.
+ * states: this interface is for discrete event simulations.
  * </p>
  */
 @Immutable
@@ -43,7 +43,7 @@ public interface ObjectState {
      * Compute the next state transition of the object of this object state.
      * </p>
      * <p>
-     * This computation may be expensive; recomputing state transition should be
+     * This computation may be expensive; recomputing state transitions should be
      * avoided.
      * </p>
      * <ul>
@@ -51,7 +51,7 @@ public interface ObjectState {
      * {@linkplain Universe.Transaction#getObjectState(UUID, Duration) fetches}
      * (reads) state information must be before the given (current) point in
      * time.</li>
-     * <li>The method puts the given transaction
+     * <li>The method must put the given transaction
      * {@linkplain Universe.Transaction#beginWrite(Duration) into write mode}, with
      * a write time-stamp in the future (after the given point in time).</li>
      * <li>The method must {@linkplain Universe.Transaction#put(UUID, ObjectState)
@@ -73,19 +73,21 @@ public interface ObjectState {
      * @param object
      *            The ID of the object for which this is a state.
      * @param when
-     *            The point in time that the object entered this state.
+     *            The point in time that the object entered this state, expressed as
+     *            a duration since an (implied) epoch.
      *
      * @throws NullPointerException
+     *             (Optional)
      *             <ul>
      *             <li>If {@code transaction} is null.</li>
      *             <li>If {@code object} is null.</li>
      *             <li>If {@code when} is null.</li>
      *             </ul>
      * @throws IllegalArgumentException
-     *             If the {@linkplain Universe.Transaction#getObjectStatesRead()
-     *             object states read} for the {@code transaction} consists of other
-     *             than an entry for this state with the given object ID and
-     *             time-stamp.
+     *             (Optional) If the
+     *             {@linkplain Universe.Transaction#getObjectStatesRead() object
+     *             states read} for the {@code transaction} consists of other than
+     *             an entry for this state with the given object ID and time-stamp.
      */
     public abstract void putNextStateTransition(@NonNull Universe.Transaction transaction, @NonNull UUID object,
             @NonNull Duration when);
