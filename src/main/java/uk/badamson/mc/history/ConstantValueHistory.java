@@ -77,6 +77,12 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
         return Objects.equals(value, other.value);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @throws NullPointerException
+     *             {@inheritDoc}
+     */
     @Override
     public final VALUE get(final Duration t) {
         Objects.requireNonNull(t, "t");

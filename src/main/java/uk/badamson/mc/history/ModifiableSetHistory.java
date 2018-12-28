@@ -45,9 +45,11 @@ import net.jcip.annotations.NotThreadSafe;
  * points in time.
  * </p>
  *
- * @param VALUE
- *            The class of values of this value history. This must be an
- *            {@link Immutable immutable} type.
+ * <dl>
+ * <dt>VALUE</dt>
+ * <dd>The class of values of this set history. This must be {@link Immutable
+ * immutable}, or have reference semantics.</dd>
+ * </dl>
  *
  * @see ModifiableValueHistory
  */
@@ -61,7 +63,8 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
 
     /**
      * <p>
-     * Construct an set value history that is unknown (null) for all points in time.
+     * Construct a set value history that is initially {@linkplain Set#isEmpty()
+     * empty} for all points in time.
      * </p>
      * <ul>
      * <li>This {@linkplain #isEmpty() is empty}.</li>
@@ -180,10 +183,16 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
             return super.equals(that);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @throws NullPointerException
+     *             {@inheritDoc}
+     */
     @Override
-    public final @NonNull Set<VALUE> get(@NonNull final Duration t) {
-        Objects.requireNonNull(t, "t");
-        final Set<VALUE> result = containsMap.entrySet().stream().filter(e -> e.getValue().get(t).booleanValue())
+    public final @NonNull Set<VALUE> get(@NonNull final Duration when) {
+        Objects.requireNonNull(when, "when");
+        final Set<VALUE> result = containsMap.entrySet().stream().filter(e -> e.getValue().get(when).booleanValue())
                 .map(e -> e.getKey()).collect(Collectors.toSet());
         return result;
     }

@@ -176,16 +176,10 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
     }
 
     /**
-     * <p>
-     * Get the value at a given point in time.
-     * </p>
+     * {@inheritDoc}
      *
-     * @param when
-     *            The point in time of interest, expressed as a duration since an
-     *            epoch.
-     * @return The value at the given point in time.
      * @throws NullPointerException
-     *             If {@code when} is null.
+     *             {@inheritDoc}
      */
     @Override
     public final @Nullable VALUE get(@NonNull final Duration when) {
