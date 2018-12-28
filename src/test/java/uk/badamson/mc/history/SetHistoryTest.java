@@ -19,9 +19,9 @@ package uk.badamson.mc.history;
  */
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.collection.IsIn.isIn;
+import static org.hamcrest.collection.IsIn.in;
 import static org.hamcrest.core.Every.everyItem;
-import static org.hamcrest.core.IsCollectionContaining.hasItem;
+import static org.hamcrest.core.IsIterableContaining.hasItem;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -51,7 +51,7 @@ public class SetHistoryTest {
                 containsValues, not(hasItem(nullValue())));
         assertThat(
                 "The transition times of the containment history of a value is a sub set of the transition times of this history.",
-                transitionTimes, everyItem(isIn(history.getTransitionTimes())));
+                transitionTimes, everyItem(in(history.getTransitionTimes())));
         assertUniverseInvariants(history);
         for (final var t : transitionTimes) {
             assertEquals(history.get(t).contains(value), contains.get(t).booleanValue(),

@@ -19,7 +19,7 @@ package uk.badamson.mc.history;
  */
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.collection.IsIn.isIn;
+import static org.hamcrest.collection.IsIn.in;
 import static org.hamcrest.core.AnyOf.anyOf;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsNull.nullValue;
@@ -186,7 +186,7 @@ public class ValueHistoryTest {
                         transitionTime, anyOf(nullValue(Duration.class), greaterThanOrEqualTo(when))),
                 () -> assertThat(
                         "A (non null) transition time at or after the given time is one of the transition times.",
-                        transitionTime, anyOf(nullValue(Duration.class), isIn(history.getTransitionTimes()))));
+                        transitionTime, anyOf(nullValue(Duration.class), in(history.getTransitionTimes()))));
 
         return transitionTime;
     }

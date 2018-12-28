@@ -19,8 +19,8 @@ package uk.badamson.mc.simulation;
  */
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.collection.IsIn.isIn;
-import static org.hamcrest.collection.IsIn.isOneOf;
+import static org.hamcrest.collection.IsIn.in;
+import static org.hamcrest.collection.IsIn.oneOf;
 import static org.hamcrest.collection.IsMapContaining.hasEntry;
 import static org.hamcrest.core.AnyOf.anyOf;
 import static org.hamcrest.core.Is.is;
@@ -731,7 +731,7 @@ public class UniverseTest {
                 final Universe.TransactionOpenness openness = transaction.getOpenness();
                 assertAll(
                         () -> assertThat("The transaction is aborting, aborted or committed.", openness,
-                                isOneOf(Universe.TransactionOpenness.COMMITTED, Universe.TransactionOpenness.ABORTED,
+                                oneOf(Universe.TransactionOpenness.COMMITTED, Universe.TransactionOpenness.ABORTED,
                                         Universe.TransactionOpenness.ABORTING)),
                         () -> assertTrue(!committed0 || openness == Universe.TransactionOpenness.COMMITTED,
                                 "If this transaction was committed, it remains committed."),
@@ -898,7 +898,7 @@ public class UniverseTest {
                     beginCommit(transaction);
 
                     assertCommonPostconditions(historyStart0, object, when, universe, listener);
-                    assertAll(() -> assertThat("History end", universe.getHistoryEnd(), isOneOf(historyStart0, when)),
+                    assertAll(() -> assertThat("History end", universe.getHistoryEnd(), oneOf(historyStart0, when)),
                             () -> assertTrue(
                                     when.compareTo(historyStart0) <= 0 || universe.getHistoryEnd().equals(when),
                                     "History end advanced if not prehistoric"));
@@ -2690,7 +2690,7 @@ public class UniverseTest {
                 assertInvariants(transaction);
                 final Universe.TransactionOpenness openness = transaction.getOpenness();
                 assertThat("This transaction is aborted committing or committed.", openness,
-                        isOneOf(Universe.TransactionOpenness.ABORTED, Universe.TransactionOpenness.COMMITTED,
+                        oneOf(Universe.TransactionOpenness.ABORTED, Universe.TransactionOpenness.COMMITTED,
                                 Universe.TransactionOpenness.COMMITTING));
                 assertFalse(
                         openness0 == Universe.TransactionOpenness.ABORTED
@@ -2939,7 +2939,7 @@ public class UniverseTest {
                         () -> assertTrue(!wasPreviouslyRead || objectState == previouslyReadState,
                                 "that has already been read by this transaction is the same object state as was read previously."));
                 assertAll("The method records the returned state as one of the read states.",
-                        () -> assertThat("has key.", id, isIn(transaction.getObjectStatesRead().keySet())),
+                        () -> assertThat("has key.", id, in(transaction.getObjectStatesRead().keySet())),
                         () -> assertSame(objectState, transaction.getObjectStatesRead().get(id), "state"));
 
                 return objectState;
@@ -3151,7 +3151,7 @@ public class UniverseTest {
 
                             final ModifiableValueHistory<ObjectState> expectedHistory = new ModifiableValueHistory<>();
                             expectedHistory.appendTransition(when, objectState);
-                            assertAll(() -> assertThat("Added the object", object, isIn(universe.getObjectIds())),
+                            assertAll(() -> assertThat("Added the object", object, in(universe.getObjectIds())),
                                     () -> assertEquals(expectedHistory, universe.getObjectStateHistory(object),
                                             "Object state history"),
                                     () -> assertEquals(Collections.singleton(object), listener.getCreated(),
@@ -3839,7 +3839,7 @@ public class UniverseTest {
                 "An object has a last committed state time-stamp if, and only if, it is a known object.");
         assertThat(
                 "If an object is known, its last committed state time-stamp is one of the transition times of the state history of that object, or is the start of time, or is the end of time.",
-                latestCommit, anyOf(is((Duration) null), isIn(transitionTimes), is(ValueHistory.START_OF_TIME),
+                latestCommit, anyOf(is((Duration) null), in(transitionTimes), is(ValueHistory.START_OF_TIME),
                         is(ValueHistory.END_OF_TIME)));
         return latestCommit;
     }
@@ -3880,7 +3880,7 @@ public class UniverseTest {
     }
 
     private static void assertUnknownObjectInvariants(final Universe universe, final UUID object) {
-        assertAll(() -> assertThat("Not a known object ID", object, not(isIn(universe.getObjectIds()))),
+        assertAll(() -> assertThat("Not a known object ID", object, not(in(universe.getObjectIds()))),
                 () -> assertTrue(assertObjectStateHistoryInvariants(universe, object).isEmpty(),
                         "unknown objects have an empty state history"),
                 () -> assertNull(universe.getWhenFirstState(object),
