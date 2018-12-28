@@ -1,7 +1,7 @@
 package uk.badamson.mc.simulation;
-/* 
+/*
  * © Copyright Benedict Adamson 2018.
- * 
+ *
  * This file is part of MC-des.
  *
  * MC-des is free software: you can redistribute it and/or modify
@@ -64,7 +64,7 @@ public interface ObjectState {
      * <li>The method may {@linkplain Universe.Transaction#put(UUID, ObjectState)
      * put} no more than one object state for any object ID.</li>
      * </ul>
-     * 
+     *
      * @param transaction
      *            The transaction that the method must use to
      *            {@linkplain Universe.Transaction#getObjectState(UUID, Duration)
@@ -75,7 +75,7 @@ public interface ObjectState {
      *            The ID of the object for which this is a state.
      * @param when
      *            The point in time that the object entered this state.
-     * 
+     *
      * @throws NullPointerException
      *             <ul>
      *             <li>If {@code transaction} is null.</li>

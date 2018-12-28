@@ -1,7 +1,7 @@
 package uk.badamson.mc.history;
-/* 
+/*
  * © Copyright Benedict Adamson 2018.
- * 
+ *
  * This file is part of MC-des.
  *
  * MC-des is free software: you can redistribute it and/or modify
@@ -34,7 +34,7 @@ import net.jcip.annotations.Immutable;
  * The nominally time-wise variation of a value that does not actually vary
  * through time.
  * </p>
- * 
+ *
  * @param VALUE
  *            The class of values of this value history. This must be
  *            {@link Immutable immutable}, or have reference semantics.
@@ -53,16 +53,16 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * <li>The {@linkplain #getFirstValue() first value} is the given value.</li>
      * <li>The {@linkplain #getLastValue() last value} is the given value.</li>
      * </ul>
-     * 
+     *
      * @param value
      *            The value {@linkplain #get(Duration) at} all points in time.
      */
-    public ConstantValueHistory(@Nullable VALUE value) {
+    public ConstantValueHistory(@Nullable final VALUE value) {
         this.value = value;
     }
 
     @Override
-    public final boolean equals(Object obj) {
+    public final boolean equals(final Object obj) {
         if (this == obj)
             return true;
         if (obj == null)
@@ -71,12 +71,12 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
         if (!(obj instanceof ConstantValueHistory))
             return false;
         @SuppressWarnings("unchecked")
-        ConstantValueHistory<VALUE> other = (ConstantValueHistory<VALUE>) obj;
+        final ConstantValueHistory<VALUE> other = (ConstantValueHistory<VALUE>) obj;
         return Objects.equals(value, other.value);
     }
 
     @Override
-    public final VALUE get(Duration t) {
+    public final VALUE get(final Duration t) {
         Objects.requireNonNull(t, "t");
         return value;
     }
@@ -91,7 +91,7 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * <li>This method is more efficient than using the
      * {@link #getTransitionTimes()} method.</li>
      * </ul>
-     * 
+     *
      * @return the first transition time.
      */
     @Override
@@ -114,7 +114,7 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * <li>This method is more efficient than using the
      * {@link #getTransitionTimes()} method.</li>
      * </ul>
-     * 
+     *
      * @return the last transition time.
      */
     @Override
@@ -138,7 +138,7 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * <li>This method is more efficient than using the
      * {@link #getTransitionTimes()} method.</li>
      * </ul>
-     * 
+     *
      * @param when
      *            The point in time of interest, expressed as a duration since an
      *            epoch.
@@ -147,7 +147,7 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      *             if {@code when} is null.
      */
     @Override
-    public final Duration getTansitionTimeAtOrAfter(Duration when) {
+    public final Duration getTansitionTimeAtOrAfter(final Duration when) {
         Objects.requireNonNull(when, "when");
         return null;
     }
@@ -162,7 +162,7 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * <li>The transitions map is
      * {@linkplain Collections#unmodifiableSortedMap(SortedMap) unmodifiable}.</li>
      * </ul>
-     * 
+     *
      * @return a map of the transitions.
      */
     @Override
@@ -186,7 +186,7 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * <li>The returned set is
      * {@linkplain Collections#unmodifiableSortedSet(SortedSet) unmodifiable}.</li>
      * </ul>
-     * 
+     *
      * @return the transition times
      */
     @Override
@@ -196,7 +196,7 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
 
     @Override
     public final int hashCode() {
-        return (value == null ? 0 : value.hashCode());
+        return value == null ? 0 : value.hashCode();
     }
 
     /**
@@ -208,7 +208,7 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * <li>This method is more efficient than using the
      * {@link #getTransitionTimes()} method.</li>
      * </ul>
-     * 
+     *
      */
     @Override
     public final boolean isEmpty() {
@@ -227,7 +227,7 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * {@linkplain #getTransitions() transitions map} and then creating a stream
      * from its entries.</li>
      * </ul>
-     * 
+     *
      * @return a stream of the transitions.
      */
     @Override

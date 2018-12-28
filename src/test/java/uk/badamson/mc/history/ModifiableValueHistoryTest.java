@@ -1,7 +1,7 @@
 package uk.badamson.mc.history;
-/* 
+/*
  * © Copyright Benedict Adamson 2018.
- * 
+ *
  * This file is part of MC-des.
  *
  * MC-des is free software: you can redistribute it and/or modify
@@ -61,7 +61,7 @@ public class ModifiableValueHistoryTest {
                 appendTransition_1(WHEN_1, Boolean.TRUE);
             }
 
-            private <VALUE> void appendTransition_1(Duration when, VALUE value) {
+            private <VALUE> void appendTransition_1(final Duration when, final VALUE value) {
                 final ModifiableValueHistory<VALUE> history0 = new ModifiableValueHistory<>();
                 final ModifiableValueHistory<VALUE> history1 = new ModifiableValueHistory<>();
                 history1.appendTransition(when, value);
@@ -102,8 +102,8 @@ public class ModifiableValueHistoryTest {
 
             @Nested
             public class InvalidState {
-                private <VALUE> void appendTransition_2InvalidState(Duration when1, VALUE value1, Duration when2,
-                        VALUE value2) {
+                private <VALUE> void appendTransition_2InvalidState(final Duration when1, final VALUE value1,
+                        final Duration when2, final VALUE value2) {
                     assert when2.compareTo(when1) <= 0 || Objects.equals(value1, value2);
                     final ModifiableValueHistory<VALUE> history = new ModifiableValueHistory<>();
                     history.appendTransition(when1, value1);
@@ -141,7 +141,8 @@ public class ModifiableValueHistoryTest {
                 appendTransition_2(WHEN_1, Boolean.FALSE, WHEN_2, Boolean.TRUE);
             }
 
-            private <VALUE> void appendTransition_2(Duration when1, VALUE value1, Duration when2, VALUE value2) {
+            private <VALUE> void appendTransition_2(final Duration when1, final VALUE value1, final Duration when2,
+                    final VALUE value2) {
                 assert when1.compareTo(when2) < 0;
                 final ModifiableValueHistory<VALUE> history = new ModifiableValueHistory<>();
                 history.appendTransition(when1, value1);
@@ -158,8 +159,8 @@ public class ModifiableValueHistoryTest {
             }
         }// class
 
-        private <VALUE> void appendTransition(ModifiableValueHistory<VALUE> history, Duration when, VALUE value)
-                throws IllegalStateException {
+        private <VALUE> void appendTransition(final ModifiableValueHistory<VALUE> history, final Duration when,
+                final VALUE value) throws IllegalStateException {
             final SortedSet<Duration> transitionTimes0 = new TreeSet<>(history.getTransitionTimes());
             final Map<Duration, VALUE> transitionValues0 = ValueHistoryTest.getTransitionValues(history);
 
@@ -209,7 +210,7 @@ public class ModifiableValueHistoryTest {
                 constructor_1(Integer.MIN_VALUE);
             }
 
-            private <VALUE> void constructor_1(VALUE value) {
+            private <VALUE> void constructor_1(final VALUE value) {
                 final var history1 = new ModifiableValueHistory<>(value);
                 final var history2 = new ModifiableValueHistory<>(value);
 
@@ -272,7 +273,7 @@ public class ModifiableValueHistoryTest {
             ValueHistoryTest.assertInvariants(history1, WHEN_2);
         }
 
-        private <VALUE> ModifiableValueHistory<VALUE> constructor(ValueHistory<VALUE> that) {
+        private <VALUE> ModifiableValueHistory<VALUE> constructor(final ValueHistory<VALUE> that) {
             final ModifiableValueHistory<VALUE> history = new ModifiableValueHistory<>(that);
 
             assertInvariants(history);
@@ -298,7 +299,7 @@ public class ModifiableValueHistoryTest {
                 test(WHEN_2, WHEN_3);
             }
 
-            private void test(Duration t1, Duration t2) {
+            private void test(final Duration t1, final Duration t2) {
                 assert t1.compareTo(t2) < 0;
                 final ModifiableValueHistory<Boolean> history = new ModifiableValueHistory<>(Boolean.FALSE);
                 history.appendTransition(t1, Boolean.TRUE);
@@ -360,7 +361,7 @@ public class ModifiableValueHistoryTest {
             test(when, when);
         }
 
-        private <VALUE> void removeTransitionsFrom(ModifiableValueHistory<VALUE> history, Duration when) {
+        private <VALUE> void removeTransitionsFrom(final ModifiableValueHistory<VALUE> history, final Duration when) {
             final VALUE firstValue0 = history.getFirstValue();
             final SortedMap<Duration, VALUE> transitions0 = new TreeMap<>(history.getTransitions());
 
@@ -374,14 +375,14 @@ public class ModifiableValueHistoryTest {
             assertSame(firstValue0, history.getFirstValue(), "The first value of the history is unchanged.");
             assertTrue(transitionTimes.isEmpty() || transitionTimes.last().compareTo(when) < 0,
                     "The set of state transitions contains no times at or after the given time.");
-            for (var entry0 : transitions0.entrySet()) {
+            for (final var entry0 : transitions0.entrySet()) {
                 final Duration t = entry0.getKey();
                 assertTrue(when.compareTo(t) <= 0 || transitionsEntries.contains(entry0),
                         "Removing state transitions from a given point  in time does not change the transitions before the point in time.");
             }
         }
 
-        private void test(Duration t1, Duration t2) {
+        private void test(final Duration t1, final Duration t2) {
             assert t1.compareTo(t2) <= 0;
             final ModifiableValueHistory<Boolean> history = new ModifiableValueHistory<>(Boolean.FALSE);
             history.appendTransition(t2, Boolean.TRUE);
@@ -432,7 +433,8 @@ public class ModifiableValueHistoryTest {
                 setValueFrom_1(Boolean.FALSE, WHEN_1, (Boolean) null);
             }
 
-            private <VALUE> ModifiableValueHistory<VALUE> setValueFrom_1(VALUE firstValue, Duration when, VALUE value) {
+            private <VALUE> ModifiableValueHistory<VALUE> setValueFrom_1(final VALUE firstValue, final Duration when,
+                    final VALUE value) {
                 final ModifiableValueHistory<VALUE> history = new ModifiableValueHistory<VALUE>(firstValue);
 
                 setValueFrom(history, when, value);
@@ -470,8 +472,8 @@ public class ModifiableValueHistoryTest {
                 setValueFrom_2(Integer.valueOf(1), when, Integer.valueOf(2), when, Integer.valueOf(3));
             }
 
-            private <VALUE> ModifiableValueHistory<VALUE> setValueFrom_2(VALUE firstValue, Duration when1, VALUE value1,
-                    Duration when2, VALUE value2) {
+            private <VALUE> ModifiableValueHistory<VALUE> setValueFrom_2(final VALUE firstValue, final Duration when1,
+                    final VALUE value1, final Duration when2, final VALUE value2) {
                 final ModifiableValueHistory<VALUE> history = new ModifiableValueHistory<VALUE>(firstValue);
                 history.setValueFrom(when1, value1);
 
@@ -482,7 +484,8 @@ public class ModifiableValueHistoryTest {
 
         }// class
 
-        private <VALUE> void setValueFrom(ModifiableValueHistory<VALUE> history, Duration when, VALUE value) {
+        private <VALUE> void setValueFrom(final ModifiableValueHistory<VALUE> history, final Duration when,
+                final VALUE value) {
             final VALUE firstValue0 = history.getFirstValue();
 
             history.setValueFrom(when, value);
@@ -538,8 +541,8 @@ public class ModifiableValueHistoryTest {
                 setValueUntil_1(Boolean.FALSE, WHEN_1, (Boolean) null);
             }
 
-            private <VALUE> ModifiableValueHistory<VALUE> setValueUntil_1(VALUE firstValue, Duration when,
-                    VALUE value) {
+            private <VALUE> ModifiableValueHistory<VALUE> setValueUntil_1(final VALUE firstValue, final Duration when,
+                    final VALUE value) {
                 final ModifiableValueHistory<VALUE> history = new ModifiableValueHistory<VALUE>(firstValue);
 
                 setValueUntil(history, when, value);
@@ -578,8 +581,8 @@ public class ModifiableValueHistoryTest {
                 setValueUntil_2(Integer.valueOf(1), when, Integer.valueOf(2), when, Integer.valueOf(3));
             }
 
-            private <VALUE> ModifiableValueHistory<VALUE> setValueUntil_2(VALUE firstValue, Duration when1,
-                    VALUE value1, Duration when2, VALUE value2) {
+            private <VALUE> ModifiableValueHistory<VALUE> setValueUntil_2(final VALUE firstValue, final Duration when1,
+                    final VALUE value1, final Duration when2, final VALUE value2) {
                 final ModifiableValueHistory<VALUE> history = new ModifiableValueHistory<VALUE>(firstValue);
                 history.setValueUntil(when1, value1);
 
@@ -590,7 +593,8 @@ public class ModifiableValueHistoryTest {
 
         }// class
 
-        private <VALUE> void setValueUntil(ModifiableValueHistory<VALUE> history, Duration when, VALUE value) {
+        private <VALUE> void setValueUntil(final ModifiableValueHistory<VALUE> history, final Duration when,
+                final VALUE value) {
             final VALUE lastValue0 = history.getLastValue();
 
             history.setValueUntil(when, value);
@@ -613,13 +617,13 @@ public class ModifiableValueHistoryTest {
 
     private static final Duration WHEN_4 = Duration.ofSeconds(5);
 
-    public static <VALUE> void assertInvariants(ModifiableValueHistory<VALUE> history) {
+    public static <VALUE> void assertInvariants(final ModifiableValueHistory<VALUE> history) {
         ObjectTest.assertInvariants(history);// inherited
         ValueHistoryTest.assertInvariants(history);// inherited
     }
 
-    public static <VALUE> void assertInvariants(ModifiableValueHistory<VALUE> history1,
-            ModifiableValueHistory<VALUE> history2) {
+    public static <VALUE> void assertInvariants(final ModifiableValueHistory<VALUE> history1,
+            final ModifiableValueHistory<VALUE> history2) {
         ObjectTest.assertInvariants(history1, history2);// inherited
         ValueHistoryTest.assertInvariants(history1, history2);// inherited
     }

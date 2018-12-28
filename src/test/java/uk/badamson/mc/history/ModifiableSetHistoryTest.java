@@ -1,7 +1,7 @@
 package uk.badamson.mc.history;
-/* 
+/*
  * © Copyright Benedict Adamson 2018.
- * 
+ *
  * This file is part of MC-des.
  *
  * MC-des is free software: you can redistribute it and/or modify
@@ -52,7 +52,7 @@ public class ModifiableSetHistoryTest {
                 addFrom_1(WHEN_1, Integer.MIN_VALUE);
             }
 
-            private <VALUE> void addFrom_1(Duration when, VALUE value) {
+            private <VALUE> void addFrom_1(final Duration when, final VALUE value) {
                 final Map<Duration, Set<VALUE>> expectedTransitions = Collections.singletonMap(when,
                         Collections.singleton(value));
                 final Map<Duration, Boolean> expectedContainsTransitions = Collections.singletonMap(when, Boolean.TRUE);
@@ -85,7 +85,8 @@ public class ModifiableSetHistoryTest {
         @Nested
         public class Call2 {
 
-            private <VALUE> void addFrom_2_differentValues(Duration when1, VALUE value1, Duration when2, VALUE value2) {
+            private <VALUE> void addFrom_2_differentValues(final Duration when1, final VALUE value1,
+                    final Duration when2, final VALUE value2) {
                 assert when1.compareTo(when2) < 0;
                 final Set<Duration> expectedTransitionTimes = Set.of(when1, when2);
                 final Map<Duration, Set<VALUE>> expectedTransitions = Map.of(when1, Collections.singleton(value1),
@@ -111,7 +112,7 @@ public class ModifiableSetHistoryTest {
                                 ValueHistoryTest.getTransitionValues(history.contains(value2)), "[2]"));
             }
 
-            private <VALUE> void addFrom_2_sameValue(Duration when1, Duration when2, VALUE value) {
+            private <VALUE> void addFrom_2_sameValue(final Duration when1, final Duration when2, final VALUE value) {
                 final Duration whenEarliest = when1.compareTo(when2) <= 0 ? when1 : when2;
                 final Map<Duration, Set<VALUE>> expectedTransitions = Collections.singletonMap(whenEarliest,
                         Collections.singleton(value));
@@ -167,7 +168,8 @@ public class ModifiableSetHistoryTest {
 
         }// class
 
-        private <VALUE> void addFrom(ModifiableSetHistory<VALUE> history, Duration when, VALUE value) {
+        private <VALUE> void addFrom(final ModifiableSetHistory<VALUE> history, final Duration when,
+                final VALUE value) {
             history.addFrom(when, value);
 
             assertInvariants(history);
@@ -188,7 +190,7 @@ public class ModifiableSetHistoryTest {
         @Nested
         public class Call1 {
 
-            private <VALUE> void addUntil_1(Duration when, VALUE value) {
+            private <VALUE> void addUntil_1(final Duration when, final VALUE value) {
                 final Duration justAfter = when.plusNanos(1L);
                 final Map<Duration, Set<VALUE>> expectedTransitions = Collections.singletonMap(justAfter,
                         Collections.emptySet());
@@ -228,8 +230,8 @@ public class ModifiableSetHistoryTest {
         @Nested
         public class Call2 {
 
-            private <VALUE> void addUntil_2_differentValues(Duration when1, VALUE value1, Duration when2,
-                    VALUE value2) {
+            private <VALUE> void addUntil_2_differentValues(final Duration when1, final VALUE value1,
+                    final Duration when2, final VALUE value2) {
                 assert when1.compareTo(when2) < 0;
                 final Duration justAfter1 = when1.plusNanos(1L);
                 final Duration justAfter2 = when2.plusNanos(1L);
@@ -257,7 +259,7 @@ public class ModifiableSetHistoryTest {
                                 ValueHistoryTest.getTransitionValues(history.contains(value2)), "[2]"));
             }
 
-            private <VALUE> void addUntil_2_sameValue(Duration when1, Duration when2, VALUE value) {
+            private <VALUE> void addUntil_2_sameValue(final Duration when1, final Duration when2, final VALUE value) {
                 final Duration whenLatest = when1.compareTo(when2) <= 0 ? when2 : when1;
                 final Duration justAfter = whenLatest.plusNanos(1L);
                 final Map<Duration, Set<VALUE>> expectedTransitions = Collections.singletonMap(justAfter,
@@ -313,7 +315,8 @@ public class ModifiableSetHistoryTest {
             }
         }// class
 
-        private <VALUE> void addUntil(ModifiableSetHistory<VALUE> history, Duration when, VALUE value) {
+        private <VALUE> void addUntil(final ModifiableSetHistory<VALUE> history, final Duration when,
+                final VALUE value) {
             history.addUntil(when, value);
 
             assertInvariants(history);
@@ -401,30 +404,30 @@ public class ModifiableSetHistoryTest {
 
     private static final Duration WHEN_3 = Duration.ofSeconds(3);
 
-    private static <VALUE> Set<VALUE> assertFirstValueInvariants(ModifiableSetHistory<VALUE> history) {
+    private static <VALUE> Set<VALUE> assertFirstValueInvariants(final ModifiableSetHistory<VALUE> history) {
         final Set<VALUE> firstValue = history.getFirstValue();
 
         return firstValue;
     }
 
-    public static <VALUE> void assertInvariants(ModifiableSetHistory<VALUE> history) {
+    public static <VALUE> void assertInvariants(final ModifiableSetHistory<VALUE> history) {
         ObjectTest.assertInvariants(history);// inherited
         SetHistoryTest.assertInvariants(history);// inherited
 
         assertFirstValueInvariants(history);
     }
 
-    public static <VALUE> void assertInvariants(ModifiableSetHistory<VALUE> history1,
-            ModifiableSetHistory<VALUE> history2) {
+    public static <VALUE> void assertInvariants(final ModifiableSetHistory<VALUE> history1,
+            final ModifiableSetHistory<VALUE> history2) {
         ObjectTest.assertInvariants(history1, history2);// inherited
         SetHistoryTest.assertInvariants(history1, history2);// inherited
     }
 
-    public static <VALUE> void assertInvariants(ModifiableSetHistory<VALUE> history, VALUE value) {
+    public static <VALUE> void assertInvariants(final ModifiableSetHistory<VALUE> history, final VALUE value) {
         SetHistoryTest.assertInvariants(history, value);
     }
 
-    private static <VALUE> void remove(ModifiableSetHistory<VALUE> history, VALUE value) {
+    private static <VALUE> void remove(final ModifiableSetHistory<VALUE> history, final VALUE value) {
         history.remove(value);
 
         assertInvariants(history);

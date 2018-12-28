@@ -1,7 +1,7 @@
 package uk.badamson.mc.simulation;
-/* 
+/*
  * © Copyright Benedict Adamson 2018.
- * 
+ *
  * This file is part of MC-des.
  *
  * MC-des is free software: you can redistribute it and/or modify
@@ -70,18 +70,18 @@ public class TransactionListenerTest {
         }
 
         @Override
-        public synchronized void onCreate(@NonNull UUID object) {
+        public synchronized void onCreate(@NonNull final UUID object) {
             assertNotNull(object, "object");
             created.add(object);
         }
 
     }// class
 
-    public static void assertInvariants(TransactionListener listener) {
+    public static void assertInvariants(final TransactionListener listener) {
         // Do nothing
     }
 
-    public static void assertInvariants(TransactionListener listener1, TransactionListener listener2) {
+    public static void assertInvariants(final TransactionListener listener1, final TransactionListener listener2) {
         // Do nothing
     }
 

@@ -1,7 +1,7 @@
 package uk.badamson.mc.simulation;
-/* 
+/*
  * © Copyright Benedict Adamson 2018.
- * 
+ *
  * This file is part of MC-des.
  *
  * MC-des is free software: you can redistribute it and/or modify
@@ -58,7 +58,7 @@ public interface TransactionListener {
      * <p>
      * The method can be called before the transaction commits.
      * </p>
-     * 
+     *
      * @param object
      *            The object created by the transaction.
      * @throws NullPointerException

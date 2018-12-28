@@ -2,9 +2,9 @@ package uk.badamson.mc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/* 
+/*
  * © Copyright Benedict Adamson 2018.
- * 
+ *
  * This file is part of MC-des.
  *
  * MC-des is free software: you can redistribute it and/or modify
@@ -28,16 +28,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 public class ComparableTest {
 
-    public static <T extends Comparable<T>> void assertComparableConsistentWithEquals(T object1, T object2) {
+    public static <T extends Comparable<T>> void assertComparableConsistentWithEquals(final T object1,
+            final T object2) {
         assertEquals(object1.compareTo(object2) == 0, object1.equals(object2),
                 "Natural ordering is consistent with equals");
     }
 
-    public static <T extends Comparable<T>> void assertInvariants(T object) {
+    public static <T extends Comparable<T>> void assertInvariants(final T object) {
         assertInvariants(object, object);
     }
 
-    public static <T extends Comparable<T>> void assertInvariants(T object1, T object2) {
+    public static <T extends Comparable<T>> void assertInvariants(final T object1, final T object2) {
         object1.compareTo(object2);// require only that it does not throw an exception
     }
 

@@ -1,7 +1,7 @@
 package uk.badamson.mc.history;
-/* 
+/*
  * © Copyright Benedict Adamson 2018.
- * 
+ *
  * This file is part of MC-des.
  *
  * MC-des is free software: you can redistribute it and/or modify
@@ -31,11 +31,11 @@ import net.jcip.annotations.NotThreadSafe;
  * The time-wise variation of a {@linkplain Set set} of value that changes at
  * discrete points in time.
  * </p>
- * 
+ *
  * @param VALUE
  *            The class of values of this set history. This must be
  *            {@link Immutable immutable}, or have reference semantics.
- * 
+ *
  * @see ValueHistory
  */
 @NotThreadSafe
@@ -60,11 +60,11 @@ public interface SetHistory<VALUE> extends ValueHistory<Set<VALUE>> {
      * {@linkplain Set#containsAll(java.util.Collection) sub set} of the
      * {@linkplain #getTransitionTimes() transition times} of this history.</li>
      * </ul>
-     * 
+     *
      * @param value
      *            The value of interest.
      * @return The containment history of the given value.
-     * 
+     *
      * @see Set#contains(Object)
      */
     public @NonNull ValueHistory<Boolean> contains(@Nullable VALUE value);
@@ -86,7 +86,7 @@ public interface SetHistory<VALUE> extends ValueHistory<Set<VALUE>> {
      * of time} {@linkplain Set#containsAll(java.util.Collection) is a non-strict
      * sub set} of the universe.</li>
      * </ul>
-     * 
+     *
      * @return
      */
     public @NonNull Set<VALUE> getUniverse();

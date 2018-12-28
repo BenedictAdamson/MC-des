@@ -1,7 +1,7 @@
 package uk.badamson.mc.simulation;
-/* 
+/*
  * © Copyright Benedict Adamson 2018.
- * 
+ *
  * This file is part of MC-des.
  *
  * MC-des is free software: you can redistribute it and/or modify
@@ -47,7 +47,7 @@ public class ObjectStateIdTest {
     static final Duration DURATION_A = Duration.ZERO;
     static final Duration DURATION_B = Duration.ofSeconds(15);
 
-    public static void assertInvariants(ObjectStateId id) {
+    public static void assertInvariants(final ObjectStateId id) {
         ObjectTest.assertInvariants(id);// inherited
         ComparableTest.assertInvariants(id);
 
@@ -57,7 +57,7 @@ public class ObjectStateIdTest {
         assertAll(() -> assertNotNull(objectId, "objectId"), () -> assertNotNull(when, "when"));
     }
 
-    public static void assertInvariants(ObjectStateId id1, ObjectStateId id2) {
+    public static void assertInvariants(final ObjectStateId id1, final ObjectStateId id2) {
         ObjectTest.assertInvariants(id1, id2);// inherited
         ComparableTest.assertInvariants(id1, id2);
         ComparableTest.assertComparableConsistentWithEquals(id1, id2);
@@ -78,7 +78,7 @@ public class ObjectStateIdTest {
                 "The natural ordering orders by object IDs if time-stamps are equivalent.");
     }
 
-    private static void constructor(UUID object, Duration when) {
+    private static void constructor(final UUID object, final Duration when) {
         final ObjectStateId id = new ObjectStateId(object, when);
 
         assertInvariants(id);
@@ -89,7 +89,7 @@ public class ObjectStateIdTest {
                         sameInstance(when)));
     }
 
-    private static void constructor_2Equal(UUID object, Duration when) {
+    private static void constructor_2Equal(final UUID object, final Duration when) {
         // Copy attributes so can test that checks for equality rather than sameness
         final UUID object2 = new UUID(object.getMostSignificantBits(), object.getLeastSignificantBits());
         final Duration when2 = when.plus(Duration.ZERO);

@@ -1,7 +1,7 @@
 package uk.badamson.mc.simulation;
-/* 
+/*
  * © Copyright Benedict Adamson 2018.
- * 
+ *
  * This file is part of MC-des.
  *
  * MC-des is free software: you can redistribute it and/or modify
@@ -87,7 +87,7 @@ public final class SimulationEngine {
         /*
          * Objects that ought to have their states advanced before we try to advance the
          * state of the object that this advances.
-         * 
+         *
          * The dependencies are weak "ought to" rather than a strong "must" because it
          * is impossible to compute reliable dependency information.
          */
@@ -97,7 +97,7 @@ public final class SimulationEngine {
         @GuardedBy("this")
         private final Set<UUID> creating = new HashSet<>();
 
-        private Engine1(@NonNull UUID object) {
+        private Engine1(@NonNull final UUID object) {
             assert object != null;
             this.object = object;
             synchronized (this) {
@@ -113,7 +113,7 @@ public final class SimulationEngine {
          * given point in time should remain O(N).
          */
         private void addDependencies(@NonNull final SortedSet<ObjectStateId> dependencyIds) {
-            for (ObjectStateId dependencyId : dependencyIds) {
+            for (final ObjectStateId dependencyId : dependencyIds) {
                 final UUID objectDependency = dependencyId.getObject();
                 final Duration dependencyWhen = dependencyId.getWhen();
                 final Duration dependencyLastestCommit = universe.getLatestCommit(objectDependency);
@@ -163,7 +163,7 @@ public final class SimulationEngine {
             }
         }
 
-        private void advanceHistory(@NonNull final Duration when, @Nullable UUID dependent) {
+        private void advanceHistory(@NonNull final Duration when, @Nullable final UUID dependent) {
             assert when != null;
             assert !object.equals(dependent);
 
@@ -195,7 +195,7 @@ public final class SimulationEngine {
                 final SortedMap<Duration, FutureObjectState> commitableReads = unknownObject ? steps
                         : new TreeMap<>(steps.headMap(latestCommit, true));
                 transactionsToStart = new ArrayList<>(commitableReads.size());
-                for (var future : commitableReads.values()) {
+                for (final var future : commitableReads.values()) {
                     if (!future.isDone()) {
                         transactionsToStart.add(future);
                     }
@@ -204,16 +204,16 @@ public final class SimulationEngine {
                 assert !(unknownObject && !steps.isEmpty());
             }
 
-            for (FutureObjectState future : transactionsToStart) {
+            for (final FutureObjectState future : transactionsToStart) {
                 future.startReadTransaction();
                 assert future.isDone();
             }
         }
 
-        private synchronized void completeExceptionally(Throwable e) {
+        private synchronized void completeExceptionally(final Throwable e) {
             advanceTo = latestCommit;// cease further work
 
-            for (var step : steps.values()) {
+            for (final var step : steps.values()) {
                 step.completeExceptionally(e);
             }
             steps.clear();
@@ -265,20 +265,20 @@ public final class SimulationEngine {
             }
 
             // Some created objects might now need their state to be advanced.
-            for (UUID c : created) {
+            for (final UUID c : created) {
                 final Engine1 engine = getEngine1(c);
                 engine.advanceHistory(getUniversalAdvanceTo(), null);
             }
 
             // And some aborted writes could be restarted
-            for (UUID dependent : dependents) {
+            for (final UUID dependent : dependents) {
                 final Engine1 engine1 = getEngine1(dependent);
                 engine1.removeDependency1(object);
             }
         }
 
         @Override
-        public void onCreate(@NonNull UUID createdObject) {
+        public void onCreate(@NonNull final UUID createdObject) {
             synchronized (this) {
                 creating.add(createdObject);
             }
@@ -291,28 +291,25 @@ public final class SimulationEngine {
 
                 final var objectStatesReadAtOrAfter = transaction.getObjectStatesRead().keySet().stream()
                         .filter(id -> (when.compareTo(id.getWhen()) < 0
-                                || (when.equals(id.getWhen()) && !object.equals(id.getObject()))))
+                                || when.equals(id.getWhen()) && !object.equals(id.getObject())))
                         .collect(Collectors.toSet());
                 final Duration whenWritten = transaction.getWhen();
                 final Map<UUID, ObjectState> objectStatesWritten = transaction.getObjectStatesWritten();
-                if (!objectStatesReadAtOrAfter.isEmpty()) {
+                if (!objectStatesReadAtOrAfter.isEmpty())
                     throw new IllegalStateException(
                             "Read object states at or after the given time " + objectStatesReadAtOrAfter);
-                }
-                if (whenWritten == null) {
+                if (whenWritten == null)
                     throw new IllegalStateException("Did not put the transaction into write mode.");
-                } else if (whenWritten.compareTo(when) <= 0) {
+                else if (whenWritten.compareTo(when) <= 0)
                     throw new IllegalStateException("when is not after the given point in time");
-                }
                 final ObjectState nextState = objectStatesWritten.get(object);
-                if (nextState == null && !objectStatesWritten.containsKey(object)) {
+                if (nextState == null && !objectStatesWritten.containsKey(object))
                     throw new IllegalStateException("Did not put() a state for the given object");
-                } else if (Objects.equals(state0, nextState)) {
+                else if (Objects.equals(state0, nextState))
                     throw new IllegalStateException("put() a state equal to itself");
-                }
-            } catch (RuntimeException e) {
+            } catch (final RuntimeException e) {
                 throw new RuntimeException(createPutNextStateTransitionFailureMessage(state0, object, when), e);
-            } catch (AssertionError e) {
+            } catch (final AssertionError e) {
                 throw new AssertionError(createPutNextStateTransitionFailureMessage(state0, object, when), e);
             }
         }
@@ -332,7 +329,7 @@ public final class SimulationEngine {
             advance1();
         }
 
-        private FutureObjectState schedule(final ObjectStateId id, UUID dependent) {
+        private FutureObjectState schedule(final ObjectStateId id, final UUID dependent) {
             final Duration when = id.getWhen();
             assert object.equals(id.getObject());
             assert !object.equals(dependent);
@@ -350,7 +347,7 @@ public final class SimulationEngine {
             assert universe.containsObject(object);
             try {
                 executor.execute(this);
-            } catch (RejectedExecutionException e) {
+            } catch (final RejectedExecutionException e) {
                 // Do nothing. Ok to fail because only need to try.
             }
         }
@@ -381,7 +378,7 @@ public final class SimulationEngine {
         @GuardedBy("lock")
         private ObjectState state;
 
-        private FutureObjectState(@NonNull ObjectStateId id) {
+        private FutureObjectState(@NonNull final ObjectStateId id) {
             assert id != null;
             this.id = id;
         }
@@ -400,7 +397,7 @@ public final class SimulationEngine {
                 }
 
                 @Override
-                public void onCreate(UUID object) {
+                public void onCreate(final UUID object) {
                     throw new AssertionError("Read transactions do not create objects");
                 }
 
@@ -414,7 +411,7 @@ public final class SimulationEngine {
             }
         }
 
-        private void setState(@Nullable ObjectState state) {
+        private void setState(@Nullable final ObjectState state) {
             synchronized (lock) {
                 this.state = state;
             }
@@ -425,11 +422,11 @@ public final class SimulationEngine {
                 try {
                     setState(transaction.getObjectState(id.getObject(), id.getWhen()));
                     transaction.beginCommit();
-                } catch (PrehistoryException e) {
+                } catch (final PrehistoryException e) {
                     completeExceptionally(e);
-                } catch (Exception e) {// never happens
+                } catch (final Exception e) {// never happens
                     completeExceptionally(new AssertionError("Unexpected exception from Universe.Transaction", e));
-                } catch (AssertionError e) {// never happens
+                } catch (final AssertionError e) {// never happens
                     completeExceptionally(e);
                 }
             }
@@ -437,7 +434,7 @@ public final class SimulationEngine {
 
     }// class
 
-    private static String createPutNextStateTransitionFailureMessage(final ObjectState state0, UUID object,
+    private static String createPutNextStateTransitionFailureMessage(final ObjectState state0, final UUID object,
             final Duration when) {
         return "Failure for " + state0 + " putNextStateTransition, object=" + object + ", when=" + when;
     }
@@ -467,7 +464,7 @@ public final class SimulationEngine {
      * <li>This engine has the given executor as its {@linkplain #getExecutor()
      * executor}.</li>
      * </ul>
-     * 
+     *
      * @param universe
      *            The collection of simulated objects and their
      *            {@linkplain ObjectState state} histories that this drives
@@ -496,13 +493,13 @@ public final class SimulationEngine {
      * <li>After scheduling the computation, the method returns immediately, rather
      * than awaiting completion of the computation.</li>
      * </ul>
-     * 
+     *
      * @param when
      *            The point in time of interest.
      * @throws NullPointerException
      *             If {@code when} is null.
      */
-    public final void advanceHistory(@NonNull Duration when) {
+    public final void advanceHistory(@NonNull final Duration when) {
         Objects.requireNonNull(when, "when");
         final Set<UUID> objectsToAdvance;
         synchronized (lock) {
@@ -514,7 +511,7 @@ public final class SimulationEngine {
                 objectsToAdvance = Collections.emptySet();
             }
         }
-        for (UUID object : objectsToAdvance) {
+        for (final UUID object : objectsToAdvance) {
             getEngine1(object).advanceHistory(when, null);
         }
     }
@@ -533,7 +530,7 @@ public final class SimulationEngine {
      * <li>After scheduling the computation, the method returns immediately, rather
      * than awaiting completion of the computation.</li>
      * </ul>
-     * 
+     *
      * @param object
      *            The ID of the object of interest.
      * @param when
@@ -544,7 +541,7 @@ public final class SimulationEngine {
      *             <li>If {@code when} is null.</li>
      *             </ul>
      */
-    public final @NonNull void advanceHistory(@NonNull UUID object, @NonNull Duration when) {
+    public final @NonNull void advanceHistory(@NonNull final UUID object, @NonNull final Duration when) {
         Objects.requireNonNull(object, "object");
         Objects.requireNonNull(when, "when");
         getEngine1(object).advanceHistory(when, null);
@@ -567,7 +564,7 @@ public final class SimulationEngine {
      * {@linkplain Universe#getHistoryStart() start of history} of the
      * {@linkplain #getUniverse() universe} of this engine.</li>
      * </ul>
-     * 
+     *
      * @param object
      *            The ID of the object of interest.
      * @param when
@@ -581,12 +578,13 @@ public final class SimulationEngine {
      *             <li>If {@code when} is null.</li>
      *             </ul>
      */
-    public final @NonNull Future<ObjectState> computeObjectState(@NonNull UUID object, @NonNull Duration when) {
+    public final @NonNull Future<ObjectState> computeObjectState(@NonNull final UUID object,
+            @NonNull final Duration when) {
         final ObjectStateId id = new ObjectStateId(object, when);
         return getEngine1(object).schedule(id, null);
     }
 
-    private Engine1 getEngine1(UUID object) {
+    private Engine1 getEngine1(final UUID object) {
         assert object != null;
         return engines.computeIfAbsent(object, Engine1::new);
     }
@@ -598,7 +596,7 @@ public final class SimulationEngine {
      * <ul>
      * <li>Always have a (non null) executor.</li>
      * </ul>
-     * 
+     *
      * @return the executor
      */
     @NonNull
@@ -620,7 +618,7 @@ public final class SimulationEngine {
      * <ul>
      * <li>Always have a (non null) associated universe.</li>
      * </ul>
-     * 
+     *
      * @return the universe;
      */
     @NonNull

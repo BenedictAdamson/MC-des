@@ -1,7 +1,7 @@
 package uk.badamson.mc.history;
-/* 
+/*
  * © Copyright Benedict Adamson 2018.
- * 
+ *
  * This file is part of MC-des.
  *
  * MC-des is free software: you can redistribute it and/or modify
@@ -36,7 +36,7 @@ import net.jcip.annotations.NotThreadSafe;
  * <p>
  * The time-wise variation of a value that changes at discrete points in time.
  * </p>
- * 
+ *
  * @param VALUE
  *            The class of values of this value history. This must be
  *            {@link Immutable immutable}, or have reference semantics.
@@ -71,7 +71,7 @@ public interface ValueHistory<VALUE> {
      * equal (or equally null) and having {@linkplain SortedMap#equals(Object)
      * equal} {@linkplain #getTransitions() transitions}.
      * </p>
-     * 
+     *
      * @param that
      *            The other object
      * @return Whether equal.
@@ -83,7 +83,7 @@ public interface ValueHistory<VALUE> {
      * <p>
      * Get the value at a given point in time.
      * </p>
-     * 
+     *
      * @param when
      *            The point in time of interest, expressed as a duration since an
      *            epoch.
@@ -108,7 +108,7 @@ public interface ValueHistory<VALUE> {
      * <li>This method is typically more efficient than using the
      * {@link #getTransitionTimes()} method.</li>
      * </ul>
-     * 
+     *
      * @return the first transition time.
      */
     public @Nullable Duration getFirstTansitionTime();
@@ -125,7 +125,7 @@ public interface ValueHistory<VALUE> {
      * <li>This method is typically more efficient than using the
      * {@link #get(Duration)} method.</li>
      * </ul>
-     * 
+     *
      * @return the last value.
      */
     public @Nullable VALUE getFirstValue();
@@ -145,7 +145,7 @@ public interface ValueHistory<VALUE> {
      * <li>This method is typically more efficient than using the
      * {@link #getTransitionTimes()} method.</li>
      * </ul>
-     * 
+     *
      * @return the last transition time.
      */
     public @Nullable Duration getLastTansitionTime();
@@ -168,7 +168,7 @@ public interface ValueHistory<VALUE> {
      * <li>This method is typically more efficient than using the
      * {@link #getTransitionTimes()} and {@link #get(Duration)} methods.</li>
      * </ul>
-     * 
+     *
      * @return the last value.
      */
     public @Nullable VALUE getLastValue();
@@ -191,7 +191,7 @@ public interface ValueHistory<VALUE> {
      * <li>This method is more efficient than using the
      * {@link #getTransitionTimes()} method.</li>
      * </ul>
-     * 
+     *
      * @param when
      *            The point in time of interest, expressed as a duration since an
      *            epoch.
@@ -221,7 +221,7 @@ public interface ValueHistory<VALUE> {
      * modifying it will not change this value history (it might be a newly
      * constructed object).</li>
      * </ul>
-     * 
+     *
      * @return a map of the transitions.
      */
     public @NonNull SortedMap<Duration, VALUE> getTransitions();
@@ -254,7 +254,7 @@ public interface ValueHistory<VALUE> {
      * <li>This method is typically more efficient that using the
      * {@linkplain #getTransitions() transitions map}.</li>
      * </ul>
-     * 
+     *
      * @return the transition times
      */
     public @NonNull SortedSet<Duration> getTransitionTimes();
@@ -269,7 +269,7 @@ public interface ValueHistory<VALUE> {
      * value is null) plus the {@linkplain Map#hashCode() hash code} of the
      * {@linkplain #getTransitions() transitions}.
      * </p>
-     * 
+     *
      * @return the hash code
      */
     @Override
@@ -286,7 +286,7 @@ public interface ValueHistory<VALUE> {
      * <li>This method is more efficient than using the
      * {@link #getTransitionTimes()} method.</li>
      * </ul>
-     * 
+     *
      */
     public boolean isEmpty();
 
@@ -304,7 +304,7 @@ public interface ValueHistory<VALUE> {
      * the {@linkplain #getTransitions() transitions map} and then creating a stream
      * from its entries.</li>
      * </ul>
-     * 
+     *
      * @return a stream of the transitions.
      */
     public @NonNull Stream<Map.Entry<Duration, VALUE>> streamOfTransitions();

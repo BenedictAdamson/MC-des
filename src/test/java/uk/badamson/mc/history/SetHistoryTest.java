@@ -1,7 +1,7 @@
 package uk.badamson.mc.history;
-/* 
+/*
  * © Copyright Benedict Adamson 2018.
- * 
+ *
  * This file is part of MC-des.
  *
  * MC-des is free software: you can redistribute it and/or modify
@@ -39,7 +39,8 @@ import java.util.stream.Collectors;
  */
 public class SetHistoryTest {
 
-    private static <VALUE> ValueHistory<Boolean> assertContainsInvariants(SetHistory<VALUE> history, VALUE value) {
+    private static <VALUE> ValueHistory<Boolean> assertContainsInvariants(final SetHistory<VALUE> history,
+            final VALUE value) {
         final ValueHistory<Boolean> contains = history.contains(value);
 
         assertNotNull(contains, "Always have a containment history for a value.");// guard
@@ -52,7 +53,7 @@ public class SetHistoryTest {
                 "The transition times of the containment history of a value is a sub set of the transition times of this history.",
                 transitionTimes, everyItem(isIn(history.getTransitionTimes())));
         assertUniverseInvariants(history);
-        for (var t : transitionTimes) {
+        for (final var t : transitionTimes) {
             assertEquals(history.get(t).contains(value), contains.get(t).booleanValue(),
                     "The containment history for a value indicates that the value is present for a point in time if, and only if, that value is contained in the set for which this is a history at that point in time.");
         }
@@ -60,21 +61,21 @@ public class SetHistoryTest {
         return contains;
     }
 
-    public static <VALUE> void assertInvariants(SetHistory<VALUE> history) {
+    public static <VALUE> void assertInvariants(final SetHistory<VALUE> history) {
         ValueHistoryTest.assertInvariants(history);// inherited
     }
 
-    public static <VALUE> void assertInvariants(SetHistory<VALUE> history, Duration time) {
+    public static <VALUE> void assertInvariants(final SetHistory<VALUE> history, final Duration time) {
         ValueHistoryTest.assertInvariants(history, time);// inherited
         assertTrue(history.getUniverse().contains(history.get(time)),
                 "The value of this time varying set at any point in time is a non-strict sub set of the universe.");
     }
 
-    public static <VALUE> void assertInvariants(SetHistory<VALUE> history1, SetHistory<VALUE> history2) {
+    public static <VALUE> void assertInvariants(final SetHistory<VALUE> history1, final SetHistory<VALUE> history2) {
         ValueHistoryTest.assertInvariants(history1, history2);// inherited
     }
 
-    public static <VALUE> void assertInvariants(SetHistory<VALUE> history, VALUE value) {
+    public static <VALUE> void assertInvariants(final SetHistory<VALUE> history, final VALUE value) {
         assertContainsInvariants(history, value);
     }
 
@@ -95,10 +96,10 @@ public class SetHistoryTest {
      * of time} {@linkplain Set#containsAll(java.util.Collection) is a non-strict
      * sub set} of the universe.</li>
      * </ul>
-     * 
+     *
      * @return
      */
-    private static <VALUE> Set<VALUE> assertUniverseInvariants(SetHistory<VALUE> history) {
+    private static <VALUE> Set<VALUE> assertUniverseInvariants(final SetHistory<VALUE> history) {
         final Set<VALUE> universe = history.getUniverse();
         assertNotNull(universe, "Always have a (non null) universe."); // guard
         assertTrue(universe.containsAll(history.getFirstValue()),

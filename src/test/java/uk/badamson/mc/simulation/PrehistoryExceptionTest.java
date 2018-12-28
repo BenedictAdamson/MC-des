@@ -1,7 +1,7 @@
 package uk.badamson.mc.simulation;
-/* 
+/*
  * © Copyright Benedict Adamson 2018.
- * 
+ *
  * This file is part of MC-des.
  *
  * MC-des is free software: you can redistribute it and/or modify
@@ -27,11 +27,11 @@ import uk.badamson.mc.ObjectTest;
  */
 public class PrehistoryExceptionTest {
 
-    public static void assertInvariants(PrehistoryException exception) {
+    public static void assertInvariants(final PrehistoryException exception) {
         ObjectTest.assertInvariants(exception);// inherited
     }
 
-    public static void assertInvariants(PrehistoryException exception1, PrehistoryException exception2) {
+    public static void assertInvariants(final PrehistoryException exception1, final PrehistoryException exception2) {
         ObjectTest.assertInvariants(exception1, exception2);// inherited
     }
 

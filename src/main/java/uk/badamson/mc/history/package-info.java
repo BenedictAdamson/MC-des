@@ -7,7 +7,7 @@
 package uk.badamson.mc.history;
 /*
  * © Copyright Benedict Adamson 2018.
- * 
+ *
  * This file is part of MC-des.
  *
  * MC-des is free software: you can redistribute it and/or modify it under the

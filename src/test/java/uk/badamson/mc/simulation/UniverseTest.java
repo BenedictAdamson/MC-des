@@ -1,7 +1,7 @@
 package uk.badamson.mc.simulation;
-/* 
+/*
  * © Copyright Benedict Adamson 2018.
- * 
+ *
  * This file is part of MC-des.
  *
  * MC-des is free software: you can redistribute it and/or modify
@@ -185,7 +185,7 @@ public class UniverseTest {
                 test(DURATION_2);
             }
 
-            private void test(Duration historyStart) {
+            private void test(final Duration historyStart) {
                 final Universe universe = new Universe(historyStart);
 
                 setHistoryStart(universe, historyStart);
@@ -262,13 +262,13 @@ public class UniverseTest {
             assertPostconditions(universe.get(), historyStart);
         }
 
-        private void assertPostconditions(final Universe universe, Duration historyStart) {
+        private void assertPostconditions(final Universe universe, final Duration historyStart) {
             assertInvariants(universe);
             assertEquals(historyStart, universe.getHistoryStart(),
                     "The history start time of this universe is equal to the given history start time.");
         }
 
-        private void setHistoryStart(final Universe universe, @NonNull Duration historyStart) {
+        private void setHistoryStart(final Universe universe, @NonNull final Duration historyStart) {
             universe.setHistoryStart(historyStart);
 
             assertPostconditions(universe, historyStart);
@@ -300,8 +300,8 @@ public class UniverseTest {
                     test(DURATION_2, OBJECT_B, DURATION_3, DURATION_4, DURATION_5);
                 }
 
-                private void test(final Duration historyStart, UUID object, Duration when1, Duration when2,
-                        Duration when3) {
+                private void test(final Duration historyStart, final UUID object, final Duration when1,
+                        final Duration when2, final Duration when3) {
                     assert when1.compareTo(when2) <= 0;
                     assert when2.compareTo(when3) <= 0;
                     assert when1.compareTo(when3) < 0;
@@ -347,7 +347,7 @@ public class UniverseTest {
                     test(DURATION_1, OBJECT_A, when);
                 }
 
-                private void test(final Duration historyStart, UUID object, Duration when) {
+                private void test(final Duration historyStart, final UUID object, final Duration when) {
                     final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
 
                     final Universe universe = new Universe(historyStart);
@@ -384,7 +384,8 @@ public class UniverseTest {
                     test(DURATION_1, OBJECT_A, when, when);
                 }
 
-                private void test(final Duration historyStart, UUID object, Duration when1, Duration when2) {
+                private void test(final Duration historyStart, final UUID object, final Duration when1,
+                        final Duration when2) {
                     assert when1.compareTo(when2) <= 0;
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
 
@@ -418,7 +419,8 @@ public class UniverseTest {
                     test(DURATION_1, OBJECT_A, when, when);
                 }
 
-                private void test(final Duration historyStart, UUID object, Duration when1, Duration when2) {
+                private void test(final Duration historyStart, final UUID object, final Duration when1,
+                        final Duration when2) {
                     assert when1.compareTo(when2) <= 0;
                     final ObjectState objectState = new ObjectStateTest.TestObjectState(1);
 
@@ -459,7 +461,8 @@ public class UniverseTest {
                     test(DURATION_2, OBJECT_B, DURATION_3, DURATION_4);
                 }
 
-                private void test(final Duration historyStart, UUID object, Duration when1, Duration when2) {
+                private void test(final Duration historyStart, final UUID object, final Duration when1,
+                        final Duration when2) {
                     assert when1.compareTo(when2) < 0;
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
                     final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
@@ -507,8 +510,9 @@ public class UniverseTest {
                     test(DURATION_2, OBJECT_B, OBJECT_A, when1, when1, when2, when2, when3, when3);
                 }
 
-                private void test(final Duration historyStart, UUID objectA, UUID objectB, Duration whenA1,
-                        Duration whenB1, Duration whenB2, Duration whenA2, Duration whenA3, Duration whenB3) {
+                private void test(final Duration historyStart, final UUID objectA, final UUID objectB,
+                        final Duration whenA1, final Duration whenB1, final Duration whenB2, final Duration whenA2,
+                        final Duration whenA3, final Duration whenB3) {
                     assert whenA1.compareTo(whenA2) < 0;
                     assert whenA2.compareTo(whenA3) <= 0;
                     assert whenB1.compareTo(whenB2) < 0;
@@ -565,8 +569,8 @@ public class UniverseTest {
                     test(DURATION_2, DURATION_3, DURATION_4, DURATION_5, OBJECT_B);
                 }
 
-                private void test(final Duration historyStart, Duration when1, Duration when2, Duration when3,
-                        UUID object) {
+                private void test(final Duration historyStart, final Duration when1, final Duration when2,
+                        final Duration when3, final UUID object) {
                     assert when1.compareTo(when2) < 0;
                     assert when2.compareTo(when3) < 0;
                     final ObjectStateTest.TestObjectState state1 = new ObjectStateTest.TestObjectState(1);
@@ -611,8 +615,8 @@ public class UniverseTest {
                     test(DURATION_2, DURATION_3, DURATION_4, DURATION_5, OBJECT_B);
                 }
 
-                private void test(final Duration historyStart, Duration when1, Duration when2, Duration when3,
-                        UUID object) {
+                private void test(final Duration historyStart, final Duration when1, final Duration when2,
+                        final Duration when3, final UUID object) {
                     assert when1.compareTo(when2) < 0;
                     assert when2.compareTo(when3) < 0;
                     final ObjectStateTest.TestObjectState state1 = new ObjectStateTest.TestObjectState(1);
@@ -671,8 +675,9 @@ public class UniverseTest {
                     test(DURATION_2, OBJECT_B, OBJECT_A, when1, when1, when2, when2, when3, when3);
                 }
 
-                private void test(final Duration historyStart, UUID objectA, UUID objectB, Duration whenA1,
-                        Duration whenB1, Duration whenB2, Duration whenA2, Duration whenA3, Duration whenB3) {
+                private void test(final Duration historyStart, final UUID objectA, final UUID objectB,
+                        final Duration whenA1, final Duration whenB1, final Duration whenB2, final Duration whenA2,
+                        final Duration whenA3, final Duration whenB3) {
                     assert whenA1.compareTo(whenA2) < 0;
                     assert whenA2.compareTo(whenA3) <= 0;
                     assert whenB1.compareTo(whenB2) < 0;
@@ -715,7 +720,7 @@ public class UniverseTest {
                 }
             }// class
 
-            private void beginAbort(Universe.Transaction transaction) {
+            private void beginAbort(final Universe.Transaction transaction) {
                 final boolean aborted0 = transaction.getOpenness() == Universe.TransactionOpenness.ABORTED;
                 final boolean committed0 = transaction.getOpenness() == Universe.TransactionOpenness.COMMITTED;
 
@@ -868,7 +873,7 @@ public class UniverseTest {
                     get(futures);
 
                     UniverseTest.assertInvariants(universeAR.get());
-                    for (var entry : transactions.entrySet()) {
+                    for (final var entry : transactions.entrySet()) {
                         final Universe.Transaction transaction = entry.getKey();
                         final TransactionListenerTest.CountingTransactionListener listener = entry.getValue();
                         assertInvariants(transaction);
@@ -914,8 +919,8 @@ public class UniverseTest {
                     test(DURATION_2, OBJECT_B, DURATION_3, DURATION_4, DURATION_5);
                 }
 
-                private void test(final Duration historyStart, UUID object, Duration when1, Duration when2,
-                        Duration when3) {
+                private void test(final Duration historyStart, final UUID object, final Duration when1,
+                        final Duration when2, final Duration when3) {
                     assert when1.compareTo(when2) < 0;
                     assert when2.compareTo(when3) < 0;
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
@@ -961,8 +966,8 @@ public class UniverseTest {
                     test(DURATION_2, OBJECT_B, DURATION_3, DURATION_4, DURATION_5);
                 }
 
-                private void test(final Duration historyStart, UUID object, Duration when0, Duration when1,
-                        Duration when2) {
+                private void test(final Duration historyStart, final UUID object, final Duration when0,
+                        final Duration when1, final Duration when2) {
                     final ObjectState objectState0 = new ObjectStateTest.TestObjectState(0);
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
                     final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
@@ -1040,8 +1045,8 @@ public class UniverseTest {
                     test(DURATION_2, OBJECT_B, DURATION_3, DURATION_4, DURATION_5);
                 }
 
-                private void test(final Duration historyStart, UUID object, Duration when0, Duration when1,
-                        Duration when2) {
+                private void test(final Duration historyStart, final UUID object, final Duration when0,
+                        final Duration when1, final Duration when2) {
                     final ObjectState objectState0 = new ObjectStateTest.TestObjectState(0);
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
                     final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
@@ -1083,7 +1088,7 @@ public class UniverseTest {
                 }
 
                 private void test(final Duration earliestCompleteState, final Duration when1, final Duration when2,
-                        UUID object1, UUID object2) {
+                        final UUID object1, final UUID object2) {
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
                     final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
 
@@ -1124,8 +1129,8 @@ public class UniverseTest {
                     test(OBJECT_B, DURATION_2, DURATION_3, DURATION_4, DURATION_5);
                 }
 
-                private void test(UUID object, Duration historyStart, Duration whenExist, Duration whenDestroy,
-                        Duration whenRead) {
+                private void test(final UUID object, final Duration historyStart, final Duration whenExist,
+                        final Duration whenDestroy, final Duration whenRead) {
                     assert whenExist.compareTo(whenDestroy) < 0;
                     assert whenDestroy.compareTo(whenRead) <= 0;
                     final ObjectState objectState0 = new ObjectStateTest.TestObjectState(1);
@@ -1165,7 +1170,8 @@ public class UniverseTest {
                     test(DURATION_2, OBJECT_B, when1, when1.plusNanos(1));
                 }
 
-                private void test(final Duration historyStart, UUID object, Duration when1, Duration when2) {
+                private void test(final Duration historyStart, final UUID object, final Duration when1,
+                        final Duration when2) {
                     assert when1.compareTo(when2) < 0;
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
 
@@ -1203,7 +1209,8 @@ public class UniverseTest {
                     test(DURATION_1, OBJECT_A, when, when);
                 }
 
-                private void test(final Duration historyStart, UUID object, Duration when1, Duration when2) {
+                private void test(final Duration historyStart, final UUID object, final Duration when1,
+                        final Duration when2) {
                     assert when1.compareTo(when2) <= 0;
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
 
@@ -1237,8 +1244,8 @@ public class UniverseTest {
                     test(DURATION_2, OBJECT_B, DURATION_3, DURATION_4, DURATION_5);
                 }
 
-                private void test(final Duration historyStart, UUID object, Duration when1, Duration when2,
-                        Duration when3) {
+                private void test(final Duration historyStart, final UUID object, final Duration when1,
+                        final Duration when2, final Duration when3) {
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
                     final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
 
@@ -1272,8 +1279,8 @@ public class UniverseTest {
                     test(DURATION_2, OBJECT_B, DURATION_3, DURATION_4, DURATION_5);
                 }
 
-                private void test(final Duration historyStart, UUID object, Duration when0, Duration when1,
-                        Duration when2) {
+                private void test(final Duration historyStart, final UUID object, final Duration when0,
+                        final Duration when1, final Duration when2) {
                     final ObjectState objectState0 = new ObjectStateTest.TestObjectState(0);
                     final ObjectState objectState1 = null;// critical
                     final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
@@ -1312,8 +1319,9 @@ public class UniverseTest {
                     test(DURATION_2, DURATION_3, DURATION_4, DURATION_5, DURATION_6, OBJECT_B, OBJECT_C, OBJECT_A);
                 }
 
-                private void test(final Duration historyStart, Duration when1, Duration when2, Duration when3,
-                        Duration when4, UUID object1, UUID object2, UUID object3) {
+                private void test(final Duration historyStart, final Duration when1, final Duration when2,
+                        final Duration when3, final Duration when4, final UUID object1, final UUID object2,
+                        final UUID object3) {
                     assert when1.compareTo(when2) < 0;
                     assert when2.compareTo(when3) < 0;
                     assert when3.compareTo(when4) < 0;
@@ -1414,7 +1422,7 @@ public class UniverseTest {
                     test(DURATION_2, OBJECT_B, DURATION_3);
                 }
 
-                private void test(final Duration historyStart, UUID object, Duration when) {
+                private void test(final Duration historyStart, final UUID object, final Duration when) {
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
 
                     final TransactionListenerTest.CountingTransactionListener readListener = new TransactionListenerTest.CountingTransactionListener();
@@ -1451,8 +1459,8 @@ public class UniverseTest {
                     test(DURATION_2, DURATION_3, DURATION_4, DURATION_5, DURATION_6, OBJECT_B, OBJECT_A);
                 }
 
-                private void test(final Duration historyStart, Duration when1, Duration when2, Duration when3,
-                        Duration when4, UUID object1, UUID object2) {
+                private void test(final Duration historyStart, final Duration when1, final Duration when2,
+                        final Duration when3, final Duration when4, final UUID object1, final UUID object2) {
                     assert when1.compareTo(when2) < 0;
                     assert when2.compareTo(when3) < 0;
                     assert when3.compareTo(when4) <= 0;
@@ -1498,8 +1506,8 @@ public class UniverseTest {
                     test(DURATION_2, DURATION_3, DURATION_4, DURATION_5, DURATION_6, OBJECT_B, OBJECT_A);
                 }
 
-                private void test(final Duration historyStart, Duration when1, Duration when2, Duration when3,
-                        Duration when4, UUID object1, UUID object2) {
+                private void test(final Duration historyStart, final Duration when1, final Duration when2,
+                        final Duration when3, final Duration when4, final UUID object1, final UUID object2) {
                     assert when1.compareTo(when2) < 0;
                     assert when2.compareTo(when3) < 0;
                     assert when3.compareTo(when4) <= 0;
@@ -1547,8 +1555,9 @@ public class UniverseTest {
                     test(DURATION_2, DURATION_3, DURATION_4, DURATION_5, DURATION_6, DURATION_7, OBJECT_B, OBJECT_A);
                 }
 
-                private void test(final Duration historyStart, Duration when1, Duration when2, Duration when3,
-                        Duration when4, Duration when5, UUID object1, UUID object2) {
+                private void test(final Duration historyStart, final Duration when1, final Duration when2,
+                        final Duration when3, final Duration when4, final Duration when5, final UUID object1,
+                        final UUID object2) {
                     assert when1.compareTo(when2) < 0;
                     assert when2.compareTo(when3) < 0;
                     assert when3.compareTo(when4) < 0;
@@ -1604,8 +1613,8 @@ public class UniverseTest {
                     test(DURATION_2, OBJECT_B, OBJECT_C, OBJECT_D, DURATION_3, DURATION_4, DURATION_5);
                 }
 
-                private void test(final Duration historyStart, UUID objectA, UUID objectB, UUID objectC, Duration when1,
-                        Duration when2, Duration when3) {
+                private void test(final Duration historyStart, final UUID objectA, final UUID objectB,
+                        final UUID objectC, final Duration when1, final Duration when2, final Duration when3) {
                     assert when1.compareTo(when2) < 0;
                     assert when2.compareTo(when3) <= 0;
                     final ObjectState objectStateA1 = new ObjectStateTest.TestObjectState(11);
@@ -1669,8 +1678,8 @@ public class UniverseTest {
                     test(DURATION_2, OBJECT_B, OBJECT_C, OBJECT_D, DURATION_3, DURATION_4, DURATION_5);
                 }
 
-                private void test(final Duration historyStart, UUID objectA, UUID objectB, UUID objectC, Duration when1,
-                        Duration when2, Duration when3) {
+                private void test(final Duration historyStart, final UUID objectA, final UUID objectB,
+                        final UUID objectC, final Duration when1, final Duration when2, final Duration when3) {
                     assert when1.compareTo(when2) < 0;
                     assert when2.compareTo(when3) <= 0;
                     final ObjectState objectStateA1 = new ObjectStateTest.TestObjectState(11);
@@ -1731,8 +1740,9 @@ public class UniverseTest {
                     test(DURATION_2, OBJECT_B, OBJECT_C, OBJECT_D, OBJECT_E, DURATION_3, DURATION_4, DURATION_5);
                 }
 
-                private void test(final Duration historyStart, UUID objectA, UUID objectB, UUID objectC, UUID objectD,
-                        Duration when1, Duration when2, Duration when3) {
+                private void test(final Duration historyStart, final UUID objectA, final UUID objectB,
+                        final UUID objectC, final UUID objectD, final Duration when1, final Duration when2,
+                        final Duration when3) {
                     assert when1.compareTo(when2) < 0;
                     assert when2.compareTo(when3) <= 0;
                     final ObjectState objectStateA1 = new ObjectStateTest.TestObjectState(11);
@@ -1827,7 +1837,8 @@ public class UniverseTest {
                     test(OBJECT_F, OBJECT_A, OBJECT_B, OBJECT_C, OBJECT_D, OBJECT_E);
                 }
 
-                private void test(UUID objectA, UUID objectB, UUID objectC, UUID objectD, UUID objectE, UUID objectF) {
+                private void test(final UUID objectA, final UUID objectB, final UUID objectC, final UUID objectD,
+                        final UUID objectE, final UUID objectF) {
                     final ObjectState objectStateA1 = new ObjectStateTest.TestObjectState(11);
                     final ObjectState objectStateA2 = new ObjectStateTest.TestObjectState(12);
                     final ObjectState objectStateB1 = new ObjectStateTest.TestObjectState(21);
@@ -1942,8 +1953,9 @@ public class UniverseTest {
                     test(DURATION_2, OBJECT_B, OBJECT_A, when1, when1, when2, when2, when3, when3);
                 }
 
-                private void test(final Duration historyStart, UUID objectA, UUID objectB, Duration whenA1,
-                        Duration whenB1, Duration whenB2, Duration whenA2, Duration whenA3, Duration whenB3) {
+                private void test(final Duration historyStart, final UUID objectA, final UUID objectB,
+                        final Duration whenA1, final Duration whenB1, final Duration whenB2, final Duration whenA2,
+                        final Duration whenA3, final Duration whenB3) {
                     assert whenA1.compareTo(whenA2) < 0;
                     assert whenA2.compareTo(whenA3) <= 0;
                     assert whenB1.compareTo(whenB2) < 0;
@@ -2007,8 +2019,9 @@ public class UniverseTest {
                     test(DURATION_2, OBJECT_B, OBJECT_A, when1, when1, when2, when2, when3, when3);
                 }
 
-                private void test(final Duration historyStart, UUID objectA, UUID objectB, Duration whenA1,
-                        Duration whenB1, Duration whenB2, Duration whenA2, Duration whenA3, Duration whenB3) {
+                private void test(final Duration historyStart, final UUID objectA, final UUID objectB,
+                        final Duration whenA1, final Duration whenB1, final Duration whenB2, final Duration whenA2,
+                        final Duration whenA3, final Duration whenB3) {
                     assert whenA1.compareTo(whenA2) < 0;
                     assert whenA2.compareTo(whenA3) <= 0;
                     assert whenB1.compareTo(whenB2) < 0;
@@ -2073,9 +2086,9 @@ public class UniverseTest {
                             when3);
                 }
 
-                private void test(final Duration historyStart, UUID objectA, UUID objectB, UUID objectC, Duration whenA,
-                        Duration whenB1, Duration whenC1, Duration whenC2, Duration whenB2, Duration whenB3,
-                        Duration whenC3) {
+                private void test(final Duration historyStart, final UUID objectA, final UUID objectB,
+                        final UUID objectC, final Duration whenA, final Duration whenB1, final Duration whenC1,
+                        final Duration whenC2, final Duration whenB2, final Duration whenB3, final Duration whenC3) {
                     assert whenA.compareTo(whenB3) < 0;
                     assert whenB1.compareTo(whenB2) < 0;
                     assert whenB2.compareTo(whenB3) <= 0;
@@ -2140,8 +2153,9 @@ public class UniverseTest {
                     test(DURATION_2, DURATION_3, DURATION_4, DURATION_5, DURATION_6, DURATION_7, OBJECT_B, OBJECT_A);
                 }
 
-                private void test(final Duration historyStart, Duration when1, Duration when2, Duration when3,
-                        Duration when4, Duration when5, UUID object1, UUID object2) {
+                private void test(final Duration historyStart, final Duration when1, final Duration when2,
+                        final Duration when3, final Duration when4, final Duration when5, final UUID object1,
+                        final UUID object2) {
                     assert when1.compareTo(when2) < 0;
                     assert when2.compareTo(when3) < 0;
                     assert when3.compareTo(when4) < 0;
@@ -2200,7 +2214,8 @@ public class UniverseTest {
                     test(OBJECT_B, OBJECT_A, DURATION_2, DURATION_3, DURATION_4);
                 }
 
-                private void test(UUID objectA, UUID objectB, Duration historyStart, Duration whenA, Duration whenB) {
+                private void test(final UUID objectA, final UUID objectB, final Duration historyStart,
+                        final Duration whenA, final Duration whenB) {
                     assert historyStart.compareTo(whenA) < 0;
                     assert whenA.compareTo(whenB) < 0;
                     final ObjectState objectStateA0 = new ObjectStateTest.TestObjectState(11);
@@ -2404,7 +2419,7 @@ public class UniverseTest {
                             readsDone.countDown();
                             try {
                                 readyToWrite.await();
-                            } catch (InterruptedException e) {
+                            } catch (final InterruptedException e) {
                                 throw new AssertionError(e);
                             }
                             transaction.beginWrite(when3);
@@ -2412,7 +2427,7 @@ public class UniverseTest {
                             writesDone.countDown();
                             try {
                                 readyToCommit.await();
-                            } catch (InterruptedException e) {
+                            } catch (final InterruptedException e) {
                                 throw new AssertionError(e);
                             }
 
@@ -2424,13 +2439,13 @@ public class UniverseTest {
                 readyToStart.countDown();
                 try {
                     readsDone.await();
-                } catch (InterruptedException e) {
+                } catch (final InterruptedException e) {
                     throw new AssertionError(e);
                 }
                 readyToWrite.countDown();
                 try {
                     writesDone.await();
-                } catch (InterruptedException e) {
+                } catch (final InterruptedException e) {
                     throw new AssertionError(e);
                 }
                 readyToCommit.countDown();
@@ -2491,10 +2506,10 @@ public class UniverseTest {
                     test(DURATION_2, DURATION_3);
                 }
 
-                private final void test(Duration historyStart, Duration when) {
+                private final void test(final Duration historyStart, final Duration when) {
                     final Universe universe = new Universe(historyStart);
                     final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
-                    Universe.Transaction transaction = universe.beginTransaction(listener);
+                    final Universe.Transaction transaction = universe.beginTransaction(listener);
 
                     beginWrite(transaction, when);
                 }
@@ -2520,18 +2535,19 @@ public class UniverseTest {
                     test(DURATION_1, OBJECT_A, when1, when2);
                 }
 
-                private final void test(Duration historyStart, UUID object, Duration when1, Duration when2) {
+                private final void test(final Duration historyStart, final UUID object, final Duration when1,
+                        final Duration when2) {
                     assert when1.compareTo(when2) < 0;
                     final Universe universe = new Universe(historyStart);
                     final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
-                    Universe.Transaction transaction = universe.beginTransaction(listener);
+                    final Universe.Transaction transaction = universe.beginTransaction(listener);
                     transaction.getObjectState(object, when1);
 
                     beginWrite(transaction, when2);
                 }
             }// class
 
-            private final void beginWrite(Universe.Transaction transaction, Duration when) {
+            private final void beginWrite(final Universe.Transaction transaction, final Duration when) {
                 transaction.beginWrite(when);
 
                 assertInvariants(transaction);
@@ -2562,7 +2578,8 @@ public class UniverseTest {
                     test(DURATION_2, OBJECT_B, when1, when1.plusNanos(1));
                 }
 
-                private void test(final Duration historyStart, UUID object, Duration when1, Duration when2) {
+                private void test(final Duration historyStart, final UUID object, final Duration when1,
+                        final Duration when2) {
                     assert when1.compareTo(when2) < 0;
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
 
@@ -2592,7 +2609,8 @@ public class UniverseTest {
                     test(DURATION_2, OBJECT_B, DURATION_3, DURATION_4);
                 }
 
-                private void test(final Duration historyStart, UUID object, Duration when1, Duration when2) {
+                private void test(final Duration historyStart, final UUID object, final Duration when1,
+                        final Duration when2) {
                     assert when1.compareTo(when2) < 0;
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
                     final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
@@ -2629,8 +2647,8 @@ public class UniverseTest {
                     test(DURATION_2, OBJECT_B, DURATION_3, DURATION_4, DURATION_5);
                 }
 
-                private void test(final Duration historyStart, UUID object, Duration when1, Duration when2,
-                        Duration when3) {
+                private void test(final Duration historyStart, final UUID object, final Duration when1,
+                        final Duration when2, final Duration when3) {
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
                     final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
 
@@ -2722,7 +2740,7 @@ public class UniverseTest {
                     test(DURATION_2, OBJECT_B, DURATION_3);
                 }
 
-                private void test(final Duration historyStart, UUID object, Duration when) {
+                private void test(final Duration historyStart, final UUID object, final Duration when) {
                     final Universe universe = new Universe(historyStart);
                     final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     final Universe.Transaction transaction = universe.beginTransaction(listener);
@@ -2802,7 +2820,8 @@ public class UniverseTest {
                     test(DURATION_1, OBJECT_A, when, when);
                 }
 
-                private void test(final Duration historyStart, UUID object, Duration when1, Duration when2) {
+                private void test(final Duration historyStart, final UUID object, final Duration when1,
+                        final Duration when2) {
                     final ObjectStateId id2 = new ObjectStateId(object, when2);
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
 
@@ -2839,7 +2858,8 @@ public class UniverseTest {
                     test(DURATION_1, OBJECT_A, when, when);
                 }
 
-                private void test(final Duration historyStart, UUID object, Duration when1, Duration when2) {
+                private void test(final Duration historyStart, final UUID object, final Duration when1,
+                        final Duration when2) {
                     final ObjectStateId id2 = new ObjectStateId(object, when2);
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
 
@@ -2877,7 +2897,8 @@ public class UniverseTest {
                     test(DURATION_1, OBJECT_A, when, when);
                 }
 
-                private void test(final Duration historyStart, UUID object, Duration when1, Duration when2) {
+                private void test(final Duration historyStart, final UUID object, final Duration when1,
+                        final Duration when2) {
                     assert when1.compareTo(when2) <= 0;
                     final ObjectStateId id2 = new ObjectStateId(object, when2);
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
@@ -2900,8 +2921,8 @@ public class UniverseTest {
 
             }// class
 
-            private ObjectState getObjectState(final Universe.Transaction transaction, UUID object, Duration when)
-                    throws PrehistoryException {
+            private ObjectState getObjectState(final Universe.Transaction transaction, final UUID object,
+                    final Duration when) throws PrehistoryException {
                 final ObjectStateId id = new ObjectStateId(object, when);
                 final boolean wasPreviouslyRead = transaction.getObjectStatesRead().containsKey(id);
                 final ObjectState previouslyReadState = transaction.getObjectStatesRead().get(id);
@@ -2947,7 +2968,7 @@ public class UniverseTest {
                     test(DURATION_1, OBJECT_A, ValueHistory.END_OF_TIME);
                 }
 
-                private void test(final Duration historyStart, UUID object, Duration when) {
+                private void test(final Duration historyStart, final UUID object, final Duration when) {
                     final ObjectState objectState = new ObjectStateTest.TestObjectState(1);
                     final ModifiableValueHistory<ObjectState> expectedHistory = new ModifiableValueHistory<>();
 
@@ -2981,7 +3002,7 @@ public class UniverseTest {
                 }
 
                 private void test(final Duration earliestCompleteState, final Duration when1, final Duration when2,
-                        UUID object1, UUID object2) {
+                        final UUID object1, final UUID object2) {
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
                     final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
 
@@ -3017,7 +3038,8 @@ public class UniverseTest {
                     test(DURATION_1, OBJECT_A, DURATION_2, ValueHistory.END_OF_TIME);
                 }
 
-                private void test(final Duration historyStart, UUID object, Duration when1, Duration when2) {
+                private void test(final Duration historyStart, final UUID object, final Duration when1,
+                        final Duration when2) {
                     assert when1.compareTo(when2) < 0;
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
                     final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
@@ -3061,7 +3083,7 @@ public class UniverseTest {
                     test(DURATION_1, OBJECT_A, ValueHistory.END_OF_TIME);
                 }
 
-                private void test(final Duration historyStart, UUID object, Duration when) {
+                private void test(final Duration historyStart, final UUID object, final Duration when) {
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
                     final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
                     final ModifiableValueHistory<ObjectState> expectedHistory = new ModifiableValueHistory<>();
@@ -3142,7 +3164,7 @@ public class UniverseTest {
                     get(futures);
                 }
 
-                private void test(final Duration historyStart, UUID object, Duration when) {
+                private void test(final Duration historyStart, final UUID object, final Duration when) {
                     final ObjectState objectState = new ObjectStateTest.TestObjectState(1);
                     final ModifiableValueHistory<ObjectState> expectedHistory = new ModifiableValueHistory<>();
                     expectedHistory.appendTransition(when, objectState);
@@ -3226,8 +3248,8 @@ public class UniverseTest {
                     test(DURATION_2, DURATION_3, DURATION_4, DURATION_5, DURATION_6, OBJECT_B, OBJECT_A);
                 }
 
-                private void test(final Duration historyStart, Duration when1, Duration when2, Duration when3,
-                        Duration when4, UUID object1, UUID object2) {
+                private void test(final Duration historyStart, final Duration when1, final Duration when2,
+                        final Duration when3, final Duration when4, final UUID object1, final UUID object2) {
                     assert when1.compareTo(when2) < 0;
                     assert when2.compareTo(when3) < 0;
                     assert when3.compareTo(when4) <= 0;
@@ -3269,7 +3291,7 @@ public class UniverseTest {
                 }
 
                 private void test(final Duration earliestCompleteState, final Duration when1, final Duration when2,
-                        final Duration when3, UUID object1, UUID object2, UUID object3) {
+                        final Duration when3, final UUID object1, final UUID object2, final UUID object3) {
                     final ObjectState objectState1 = new ObjectStateTest.TestObjectState(1);
                     final ObjectState objectState2 = new ObjectStateTest.TestObjectState(2);
                     final ObjectState objectState3 = new ObjectStateTest.TestObjectState(3);
@@ -3311,7 +3333,7 @@ public class UniverseTest {
                     final int iObject = i;
                     futures.add(runInOtherThread(ready, () -> {
                         final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
-                        Universe.Transaction transaction = universe.beginTransaction(listener);
+                        final Universe.Transaction transaction = universe.beginTransaction(listener);
                         transactions.put(objects[iObject], new AtomicReference<Universe.Transaction>(transaction));
                         for (int j = 0; j < nThreads; ++j) {
                             final UUID object = objects[j];
@@ -3366,7 +3388,7 @@ public class UniverseTest {
                 }
             }
 
-            private void put(final Universe.Transaction transaction, UUID object, ObjectState state) {
+            private void put(final Universe.Transaction transaction, final UUID object, final ObjectState state) {
                 transaction.put(object, state);
 
                 assertInvariants(transaction);
@@ -3375,7 +3397,7 @@ public class UniverseTest {
             }
         }// class
 
-        public static void assertInvariants(Universe.Transaction transaction) {
+        public static void assertInvariants(final Universe.Transaction transaction) {
             UniverseTest.assertInvariants(transaction);// inherited
 
             assertAll(() -> assertObjectStatesReadInvariants(transaction),
@@ -3383,15 +3405,16 @@ public class UniverseTest {
                     () -> assertOpennessInvariants(transaction));
         }
 
-        public static void assertInvariants(Universe.Transaction transaction1, Universe.Transaction transaction2) {
+        public static void assertInvariants(final Universe.Transaction transaction1,
+                final Universe.Transaction transaction2) {
             UniverseTest.assertInvariants(transaction1, transaction2);// inherited
         }
 
         private static Map<ObjectStateId, ObjectState> assertObjectStatesReadInvariants(
-                Universe.Transaction transaction) {
+                final Universe.Transaction transaction) {
             final Map<ObjectStateId, ObjectState> objectStatesRead = transaction.getObjectStatesRead();
             assertNotNull(objectStatesRead, "Always have a map of object states read.");// guard
-            for (var entry : objectStatesRead.entrySet()) {
+            for (final var entry : objectStatesRead.entrySet()) {
                 final ObjectStateId id = entry.getKey();
                 final ObjectState state = entry.getValue();
                 assertNotNull(id, "The map of object states read does not have a null key.");// guard
@@ -3404,7 +3427,8 @@ public class UniverseTest {
             return objectStatesRead;
         }
 
-        private static Map<UUID, ObjectState> assertObjectStatesWrittenInvariants(Universe.Transaction transaction) {
+        private static Map<UUID, ObjectState> assertObjectStatesWrittenInvariants(
+                final Universe.Transaction transaction) {
             final Duration when = transaction.getWhen();
 
             final Map<UUID, ObjectState> objectStatesWritten = transaction.getObjectStatesWritten();
@@ -3413,7 +3437,7 @@ public class UniverseTest {
             assertFalse(when == null && !objectStatesWritten.isEmpty(),
                     "The map of object states written is empty if this transaction is in read mode.");
 
-            for (var entry : objectStatesWritten.entrySet()) {
+            for (final var entry : objectStatesWritten.entrySet()) {
                 final UUID object = entry.getKey();
                 final ObjectState state = entry.getValue();
                 assertNotNull(object, "The map of object states written does not have a null key.");
@@ -3425,7 +3449,7 @@ public class UniverseTest {
             return objectStatesWritten;
         }
 
-        private static Universe.TransactionOpenness assertOpennessInvariants(Universe.Transaction transaction) {
+        private static Universe.TransactionOpenness assertOpennessInvariants(final Universe.Transaction transaction) {
             final Universe.TransactionOpenness openness = transaction.getOpenness();
             assertNotNull(openness, "openness");
             return openness;
@@ -3558,7 +3582,7 @@ public class UniverseTest {
                         writesDone.countDown();
                         try {
                             beginCommits.await();
-                        } catch (InterruptedException e) {
+                        } catch (final InterruptedException e) {
                             throw new AssertionError(e);
                         }
                         synchronized (transaction.lock) {
@@ -3574,7 +3598,7 @@ public class UniverseTest {
             ready.countDown();
             try {
                 writesDone.await();
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 throw new AssertionError(e);
             }
             beginCommits.countDown();
@@ -3658,7 +3682,7 @@ public class UniverseTest {
                         readsDone.countDown();
                         try {
                             beginWrites.await();
-                        } catch (InterruptedException e) {
+                        } catch (final InterruptedException e) {
                             throw new AssertionError(e);
                         }
                         transaction.beginWrite(when3);
@@ -3674,7 +3698,7 @@ public class UniverseTest {
             ready.countDown();
             try {
                 readsDone.await();
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 throw new AssertionError(e);
             }
             beginWrites.countDown();
@@ -3737,7 +3761,7 @@ public class UniverseTest {
     static final Duration DURATION_8 = Duration.ofSeconds(47);
     static final Duration DURATION_9 = Duration.ofSeconds(53);
 
-    private static boolean assertContainsObjectInvariants(Universe universe, @NonNull UUID object) {
+    private static boolean assertContainsObjectInvariants(final Universe universe, @NonNull final UUID object) {
         final boolean containsObject = universe.containsObject(object);
         assertEquals(universe.getObjectIds().contains(object), containsObject,
                 "This universe contains an object with a given ID if, and only if, "
@@ -3745,7 +3769,7 @@ public class UniverseTest {
         return containsObject;
     }
 
-    private static Duration assertHistoryEndInvariants(Universe universe) {
+    private static Duration assertHistoryEndInvariants(final Universe universe) {
         final Duration historyEnd = universe.getHistoryEnd();
 
         assertNotNull(historyEnd, "Always have a history end time-stamp.");// guard
@@ -3757,35 +3781,35 @@ public class UniverseTest {
         return historyEnd;
     }
 
-    private static Duration assertHistoryStartInvariants(Universe universe) {
+    private static Duration assertHistoryStartInvariants(final Universe universe) {
         final Duration historyStart = universe.getHistoryStart();
 
         assertNotNull(historyStart, "Always have a history start time-stamp.");
         return historyStart;
     }
 
-    public static void assertInvariants(Universe universe) {
+    public static void assertInvariants(final Universe universe) {
         ObjectTest.assertInvariants(universe);// inherited
 
         assertAll(() -> assertHistoryStartInvariants(universe), () -> assertHistoryEndInvariants(universe),
                 () -> assertObjectIdsInvariants(universe));
     }
 
-    public static void assertInvariants(Universe universe1, Universe universe2) {
+    public static void assertInvariants(final Universe universe1, final Universe universe2) {
         ObjectTest.assertInvariants(universe1, universe2);// inherited
     }
 
-    public static void assertInvariants(Universe universe, @NonNull UUID object) {
+    public static void assertInvariants(final Universe universe, @NonNull final UUID object) {
         assertAll(() -> assertObjectStateHistoryInvariants(universe, object),
                 () -> assertLatestCommitInvariants(universe, object),
                 () -> assertContainsObjectInvariants(universe, object));
     }
 
-    public static void assertInvariants(Universe universe, UUID object, Duration when) {
+    public static void assertInvariants(final Universe universe, final UUID object, final Duration when) {
         // Do nothing
     }
 
-    private static void assertInvariants(Universe.Lockable lockable) {
+    private static void assertInvariants(final Universe.Lockable lockable) {
         ObjectTest.assertInvariants(lockable);// inherited
         ComparableTest.assertInvariants(lockable);// inherited
 
@@ -3796,13 +3820,14 @@ public class UniverseTest {
         UniverseTest.assertInvariants(universe);
     }
 
-    private static void assertInvariants(Universe.Lockable lockable1, Universe.Lockable lockable2) {
+    private static void assertInvariants(final Universe.Lockable lockable1, final Universe.Lockable lockable2) {
         ObjectTest.assertInvariants(lockable1, lockable2);// inherited
         ComparableTest.assertInvariants(lockable1, lockable2);// inherited
         ComparableTest.assertComparableConsistentWithEquals(lockable1, lockable2);
     }
 
-    private static @Nullable Duration assertLatestCommitInvariants(@NonNull Universe universe, @NonNull UUID object) {
+    private static @Nullable Duration assertLatestCommitInvariants(@NonNull final Universe universe,
+            @NonNull final UUID object) {
         final boolean containedObject = universe.containsObject(object);
         final SortedSet<Duration> transitionTimes = containedObject
                 ? universe.getObjectStateHistory(object).getTransitionTimes()
@@ -3819,12 +3844,12 @@ public class UniverseTest {
         return latestCommit;
     }
 
-    private static void assertObjectIdsInvariants(Universe universe) {
+    private static void assertObjectIdsInvariants(final Universe universe) {
         final Set<UUID> objectIds = universe.getObjectIds();
 
         assertNotNull(objectIds, "Always have a set of object IDs.");// guard
 
-        for (UUID object : objectIds) {
+        for (final UUID object : objectIds) {
             assertNotNull(object, "The set of object IDs does not have a null element.");// guard
             assertInvariants(universe, object);
             final ValueHistory<ObjectState> objectStateHistory = assertObjectStateHistoryInvariants(universe, object);
@@ -3839,8 +3864,8 @@ public class UniverseTest {
         }
     }
 
-    private static @NonNull ValueHistory<ObjectState> assertObjectStateHistoryInvariants(Universe universe,
-            @NonNull UUID object) {
+    private static @NonNull ValueHistory<ObjectState> assertObjectStateHistoryInvariants(final Universe universe,
+            @NonNull final UUID object) {
         final ValueHistory<ObjectState> history = universe.getObjectStateHistory(object);
 
         assertNotNull(history, "A universe always has an object state history for a given object.");// guard
@@ -3854,7 +3879,7 @@ public class UniverseTest {
         return history;
     }
 
-    private static void assertUnknownObjectInvariants(Universe universe, UUID object) {
+    private static void assertUnknownObjectInvariants(final Universe universe, final UUID object) {
         assertAll(() -> assertThat("Not a known object ID", object, not(isIn(universe.getObjectIds()))),
                 () -> assertTrue(assertObjectStateHistoryInvariants(universe, object).isEmpty(),
                         "unknown objects have an empty state history"),
@@ -3869,23 +3894,22 @@ public class UniverseTest {
     private static void get(final Future<Void> future) {
         try {
             future.get();
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             throw new AssertionError(e);
-        } catch (ExecutionException e) {
+        } catch (final ExecutionException e) {
             final Throwable cause = e.getCause();
-            if (cause instanceof AssertionError) {
+            if (cause instanceof AssertionError)
                 throw (AssertionError) cause;
-            } else if (cause instanceof RuntimeException) {
+            else if (cause instanceof RuntimeException)
                 throw (RuntimeException) cause;
-            } else {
+            else
                 throw new AssertionError(e);
-            }
         }
     }
 
     private static void get(final List<Future<Void>> futures) {
         final List<Throwable> exceptions = new ArrayList<>(futures.size());
-        for (var future : futures) {
+        for (final var future : futures) {
             try {
                 get(future);
             } catch (Exception | AssertionError e) {
@@ -3898,17 +3922,16 @@ public class UniverseTest {
             for (int i = 1; i < nExceptions; ++i) {
                 e.addSuppressed(exceptions.get(i));
             }
-            if (e instanceof AssertionError) {
+            if (e instanceof AssertionError)
                 throw (AssertionError) e;
-            } else if (e instanceof RuntimeException) {
+            else if (e instanceof RuntimeException)
                 throw (RuntimeException) e;
-            } else {
+            else
                 throw new AssertionError(e);
-            }
         }
     }
 
-    static void putAndCommit(final Universe universe, UUID object, Duration when, ObjectState state) {
+    static void putAndCommit(final Universe universe, final UUID object, final Duration when, final ObjectState state) {
         final TransactionListener listener = new TransactionListener() {
 
             @Override
@@ -3922,7 +3945,7 @@ public class UniverseTest {
             }
 
             @Override
-            public void onCreate(@NonNull UUID object) {
+            public void onCreate(@NonNull final UUID object) {
                 // Do nothing
             }
 
@@ -3940,7 +3963,7 @@ public class UniverseTest {
             try {
                 ready.await();
                 operation.run();
-            } catch (Throwable e) {
+            } catch (final Throwable e) {
                 future.completeExceptionally(e);
                 return;
             }

@@ -1,7 +1,7 @@
 package uk.badamson.mc.history;
-/* 
+/*
  * © Copyright Benedict Adamson 2018.
- * 
+ *
  * This file is part of MC-des.
  *
  * MC-des is free software: you can redistribute it and/or modify
@@ -35,7 +35,7 @@ import net.jcip.annotations.NotThreadSafe;
  * The modifiable time-wise variation of a value that changes at discrete points
  * in time.
  * </p>
- * 
+ *
  * @param VALUE
  *            The class of values of this value history. This must be an
  *            {@link Immutable immutable} type.
@@ -44,7 +44,7 @@ import net.jcip.annotations.NotThreadSafe;
 abstract class AbstractValueHistory<VALUE> implements ValueHistory<VALUE> {
 
     @Override
-    public boolean equals(Object that) {
+    public boolean equals(final Object that) {
         if (that == null)
             return false;
         if (this == that)
@@ -54,14 +54,13 @@ abstract class AbstractValueHistory<VALUE> implements ValueHistory<VALUE> {
             final ValueHistory<VALUE> thatValueHistory = (ValueHistory<VALUE>) that;
             return Objects.equals(getFirstValue(), thatValueHistory.getFirstValue())
                     && getTransitions().equals(thatValueHistory.getTransitions());
-        } else {
+        } else
             return false;
-        }
     }
 
     @Override
     public @Nullable Duration getFirstTansitionTime() {
-        var transitions = getTransitions();
+        final var transitions = getTransitions();
         return transitions.isEmpty() ? null : transitions.firstKey();
     }
 
@@ -72,7 +71,7 @@ abstract class AbstractValueHistory<VALUE> implements ValueHistory<VALUE> {
 
     @Override
     public @Nullable Duration getLastTansitionTime() {
-        var transitions = getTransitions();
+        final var transitions = getTransitions();
         return transitions.isEmpty() ? null : transitions.lastKey();
     }
 
@@ -104,7 +103,7 @@ abstract class AbstractValueHistory<VALUE> implements ValueHistory<VALUE> {
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder();
+        final StringBuilder builder = new StringBuilder();
         builder.append(getClass().getSimpleName());
         builder.append(" [");
         builder.append(getFirstValue());
