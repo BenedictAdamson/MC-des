@@ -35,9 +35,11 @@ import net.jcip.annotations.Immutable;
  * through time.
  * </p>
  *
- * @param VALUE
- *            The class of values of this value history. This must be
- *            {@link Immutable immutable}, or have reference semantics.
+ * <dl>
+ * <dt>VALUE</dt>
+ * <dd>The class of values of this value history. This must be {@link Immutable
+ * immutable}, or have reference semantics.</dd>
+ * </dl>
  */
 @Immutable
 public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALUE> {

@@ -32,11 +32,10 @@ import net.jcip.annotations.NotThreadSafe;
  * discrete points in time.
  * </p>
  *
- * @param VALUE
- *            The class of values of this set history. This must be
- *            {@link Immutable immutable}, or have reference semantics.
- *
- * @see ValueHistory
+ * <dl>
+ * <dt>VALUE</dt>
+ * <dd>The class of values of this set history. This must be {@link Immutable
+ * immutable}, or have reference semantics.</dd>
  */
 @NotThreadSafe
 public interface SetHistory<VALUE> extends ValueHistory<Set<VALUE>> {
@@ -87,7 +86,7 @@ public interface SetHistory<VALUE> extends ValueHistory<Set<VALUE>> {
      * sub set} of the universe.</li>
      * </ul>
      *
-     * @return
+     * @return the universe.
      */
     public @NonNull Set<VALUE> getUniverse();
 }

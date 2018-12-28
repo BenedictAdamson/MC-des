@@ -39,9 +39,11 @@ import net.jcip.annotations.NotThreadSafe;
  * in time.
  * </p>
  *
- * @param VALUE
- *            The class of values of this value history. This must be an
- *            {@link Immutable immutable} type.
+ * <dl>
+ * <dt>VALUE</dt>
+ * <dd>The class of values of this value history. This must be {@link Immutable
+ * immutable}, or have reference semantics.</dd>
+ * </dl>
  */
 @NotThreadSafe
 public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VALUE> {
@@ -52,7 +54,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
 
     /**
      * <p>
-     * Construct a value history that is null for all points in time.
+     * Construct a value history that is initially null for all points in time.
      * </p>
      * <ul>
      * <li>This {@linkplain #isEmpty() is empty}.</li>
@@ -66,8 +68,8 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
 
     /**
      * <p>
-     * Construct a value history that has the same given value for all points in
-     * time.
+     * Construct a value history that initially has the same given value for all
+     * points in time.
      * </p>
      * <ul>
      * <li>This {@linkplain #isEmpty() is empty}.</li>
@@ -84,7 +86,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
 
     /**
      * <p>
-     * Construct a value history that is a copy of a given value history
+     * Construct a value history that is initially a copy of a given value history
      * </p>
      * <ul>
      * <li>This {@linkplain #equals(Object) equals} the given value history.</li>
@@ -135,7 +137,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      *             {@linkplain Objects#equals(Object, Object) equal to (or equally
      *             null as)} the {@linkplain #getLastValue() last value}.</li>
      *             </ul>
-     *             This history is unchanged if it throws
+     *             This history is unchanged if the method throws
      *             {@link IllegalStateException}.
      *
      * @see #setValueFrom(Duration, Object)
@@ -227,7 +229,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * method.</li>
      * </ul>
      *
-     * @return the last value.
+     * @return the first value.
      */
     @Override
     public final @Nullable VALUE getFirstValue() {
@@ -349,7 +351,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
 
     /**
      * <p>
-     * Change this value history so {@linkplain #getTransitionTimes() set of
+     * Change this value history so the {@linkplain #getTransitionTimes() set of
      * transitions} has no transitions at or after a given point in time.
      * </p>
      * <ul>
@@ -398,7 +400,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      *            {@code value}, represented as the duration since an (implied)
      *            epoch.
      * @param value
-     *            The value that this history must have at or after teh given point
+     *            The value that this history must have at or after the given point
      *            in time.
      *
      * @throws NullPointerException
