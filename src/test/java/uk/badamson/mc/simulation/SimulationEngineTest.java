@@ -1076,7 +1076,7 @@ public class SimulationEngineTest {
             final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor);
             final Random random = new Random();
             for (int i = 0; i < N_THREADS; ++i) {
-                final Duration when = before.plusMillis(random.nextInt(N_THREADS * 2000));
+                final Duration when = before.plusMillis(1 + random.nextInt(N_THREADS * 2000));
                 assert historyStart.compareTo(when) < 0;
                 assert before.compareTo(when) < 0;
                 futures.add(engine.computeObjectState(object, when));
