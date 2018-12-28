@@ -61,7 +61,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * </ul>
      */
     public ModifiableValueHistory() {
-        this((VALUE) null);
+        firstValue = null;
     }
 
     /**

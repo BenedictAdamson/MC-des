@@ -85,7 +85,7 @@ public class ModifiableValueHistoryTest {
 
             @Test
             public void b() {
-                appendTransition_1(WHEN_2, Integer.MAX_VALUE);
+                appendTransition_1(WHEN_2, Integer.valueOf(Integer.MAX_VALUE));
             }
 
             @Test
@@ -155,7 +155,8 @@ public class ModifiableValueHistoryTest {
 
             @Test
             public void b() {
-                appendTransition_2(WHEN_2, Integer.MIN_VALUE, WHEN_3, Integer.MAX_VALUE);
+                appendTransition_2(WHEN_2, Integer.valueOf(Integer.MIN_VALUE), WHEN_3,
+                        Integer.valueOf(Integer.MAX_VALUE));
             }
         }// class
 
@@ -207,7 +208,7 @@ public class ModifiableValueHistoryTest {
 
             @Test
             public void b() {
-                constructor_1(Integer.MIN_VALUE);
+                constructor_1(Integer.valueOf(Integer.MIN_VALUE));
             }
 
             private <VALUE> void constructor_1(final VALUE value) {
@@ -236,8 +237,8 @@ public class ModifiableValueHistoryTest {
         public class Copy {
             @Test
             public void hasTransition() {
-                final ModifiableValueHistory<Integer> that = new ModifiableValueHistory<Integer>(0);
-                that.appendTransition(WHEN_1, 1);
+                final ModifiableValueHistory<Integer> that = new ModifiableValueHistory<>(Integer.valueOf(0));
+                that.appendTransition(WHEN_1, Integer.valueOf(1));
 
                 constructor(that);
             }
@@ -327,9 +328,9 @@ public class ModifiableValueHistoryTest {
 
             @Test
             public void withBefore() {
-                final ModifiableValueHistory<Integer> history = new ModifiableValueHistory<>(1);
-                history.appendTransition(WHEN_2, 2);
-                history.appendTransition(WHEN_4, 3);
+                final ModifiableValueHistory<Integer> history = new ModifiableValueHistory<>(Integer.valueOf(1));
+                history.appendTransition(WHEN_2, Integer.valueOf(2));
+                history.appendTransition(WHEN_4, Integer.valueOf(3));
 
                 removeTransitionsFrom(history, WHEN_3);
 
@@ -408,7 +409,7 @@ public class ModifiableValueHistoryTest {
 
             @Test
             public void b() {
-                setValueFrom_1(Integer.MIN_VALUE, WHEN_2, Integer.MAX_VALUE);
+                setValueFrom_1(Integer.valueOf(Integer.MIN_VALUE), WHEN_2, Integer.valueOf(Integer.MAX_VALUE));
             }
 
             @Test
@@ -516,7 +517,7 @@ public class ModifiableValueHistoryTest {
 
             @Test
             public void b() {
-                setValueUntil_1(Integer.MIN_VALUE, WHEN_2, Integer.MAX_VALUE);
+                setValueUntil_1(Integer.valueOf(Integer.MIN_VALUE), WHEN_2, Integer.valueOf(Integer.MAX_VALUE));
             }
 
             @Test

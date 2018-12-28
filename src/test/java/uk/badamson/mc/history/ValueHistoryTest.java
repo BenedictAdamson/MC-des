@@ -53,7 +53,7 @@ public class ValueHistoryTest {
     private static <VALUE> boolean assertEmptyInvariants(final ValueHistory<VALUE> history) {
         final boolean empty = history.isEmpty();
 
-        assertEquals(history.getTransitionTimes().isEmpty(), empty,
+        assertTrue(history.getTransitionTimes().isEmpty() == empty,
                 "A value history is empty if, and only if, it has no transitions.");
 
         return empty;

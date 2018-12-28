@@ -3763,7 +3763,7 @@ public class UniverseTest {
 
     private static boolean assertContainsObjectInvariants(final Universe universe, @NonNull final UUID object) {
         final boolean containsObject = universe.containsObject(object);
-        assertEquals(universe.getObjectIds().contains(object), containsObject,
+        assertTrue(universe.getObjectIds().contains(object) == containsObject,
                 "This universe contains an object with a given ID if, and only if, "
                         + "the set of object IDs that this universe contains that object ID.");
         return containsObject;
@@ -3835,7 +3835,7 @@ public class UniverseTest {
 
         final Duration latestCommit = universe.getLatestCommit(object);
 
-        assertEquals(latestCommit != null, containedObject,
+        assertTrue(latestCommit != null == containedObject,
                 "An object has a last committed state time-stamp if, and only if, it is a known object.");
         assertThat(
                 "If an object is known, its last committed state time-stamp is one of the transition times of the state history of that object, or is the start of time, or is the end of time.",

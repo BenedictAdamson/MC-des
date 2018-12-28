@@ -49,7 +49,7 @@ public class ModifiableSetHistoryTest {
 
             @Test
             public void a() {
-                addFrom_1(WHEN_1, Integer.MIN_VALUE);
+                addFrom_1(WHEN_1, Integer.valueOf(Integer.MIN_VALUE));
             }
 
             private <VALUE> void addFrom_1(final Duration when, final VALUE value) {
@@ -147,23 +147,23 @@ public class ModifiableSetHistoryTest {
 
             @Test
             public void sameValue_A() {
-                addFrom_2_sameValue(WHEN_1, WHEN_2, Integer.MIN_VALUE);
+                addFrom_2_sameValue(WHEN_1, WHEN_2, Integer.valueOf(Integer.MIN_VALUE));
             }
 
             @Test
             public void sameValue_B() {
-                addFrom_2_sameValue(WHEN_2, WHEN_3, Integer.MAX_VALUE);
+                addFrom_2_sameValue(WHEN_2, WHEN_3, Integer.valueOf(Integer.MAX_VALUE));
             }
 
             @Test
             public void sameValue_C() {
-                addFrom_2_sameValue(WHEN_2, WHEN_1, Integer.MIN_VALUE);
+                addFrom_2_sameValue(WHEN_2, WHEN_1, Integer.valueOf(Integer.MIN_VALUE));
             }
 
             @Test
             public void sameValue_sameTime() {
                 final Duration when = WHEN_1;
-                addFrom_2_sameValue(when, when, Integer.MIN_VALUE);
+                addFrom_2_sameValue(when, when, Integer.valueOf(Integer.MIN_VALUE));
             }
 
         }// class
@@ -217,7 +217,7 @@ public class ModifiableSetHistoryTest {
 
             @Test
             public void addUntil_1A() {
-                addUntil_1(WHEN_1, Integer.MIN_VALUE);
+                addUntil_1(WHEN_1, Integer.valueOf(Integer.MIN_VALUE));
             }
 
             @Test
@@ -295,23 +295,23 @@ public class ModifiableSetHistoryTest {
 
             @Test
             public void sameValue_A() {
-                addUntil_2_sameValue(WHEN_1, WHEN_2, Integer.MIN_VALUE);
+                addUntil_2_sameValue(WHEN_1, WHEN_2, Integer.valueOf(Integer.MIN_VALUE));
             }
 
             @Test
             public void sameValue_B() {
-                addUntil_2_sameValue(WHEN_2, WHEN_3, Integer.MAX_VALUE);
+                addUntil_2_sameValue(WHEN_2, WHEN_3, Integer.valueOf(Integer.MAX_VALUE));
             }
 
             @Test
             public void sameValue_C() {
-                addUntil_2_sameValue(WHEN_2, WHEN_1, Integer.MIN_VALUE);
+                addUntil_2_sameValue(WHEN_2, WHEN_1, Integer.valueOf(Integer.MIN_VALUE));
             }
 
             @Test
             public void sameValue_sameTime() {
                 final Duration when = WHEN_1;
-                addUntil_2_sameValue(when, when, Integer.MIN_VALUE);
+                addUntil_2_sameValue(when, when, Integer.valueOf(Integer.MIN_VALUE));
             }
         }// class
 
@@ -336,39 +336,39 @@ public class ModifiableSetHistoryTest {
 
         @Test
         public void absentA() {
-            remove_absent(WHEN_1, 1, 2);
+            remove_absent(WHEN_1, Integer.valueOf(1), Integer.valueOf(2));
         }
 
         @Test
         public void absentB() {
-            remove_absent(WHEN_2, 13, 7);
+            remove_absent(WHEN_2, Integer.valueOf(13), Integer.valueOf(7));
         }
 
         @Test
         public void empty() {
             final ModifiableSetHistory<Integer> history = new ModifiableSetHistory<>();
 
-            remove(history, 1);
+            remove(history, Integer.valueOf(1));
         }
 
         @Test
         public void presentFromA() {
-            remove_presentFrom(WHEN_1, 1);
+            remove_presentFrom(WHEN_1, Integer.valueOf(1));
         }
 
         @Test
         public void presentFromB() {
-            remove_presentFrom(WHEN_2, 2);
+            remove_presentFrom(WHEN_2, Integer.valueOf(2));
         }
 
         @Test
         public void presentUntilA() {
-            remove_presentUntil(WHEN_1, 1);
+            remove_presentUntil(WHEN_1, Integer.valueOf(1));
         }
 
         @Test
         public void presentUntilB() {
-            remove_presentUntil(WHEN_2, 2);
+            remove_presentUntil(WHEN_2, Integer.valueOf(2));
         }
 
         private void remove_absent(final Duration when, final Integer value1, final Integer value2) {
@@ -454,6 +454,6 @@ public class ModifiableSetHistoryTest {
         ValueHistoryTest.assertInvariants(history1, WHEN_1);
         ValueHistoryTest.assertInvariants(history1, WHEN_2);
         assertInvariants(history1, (Integer) null);
-        assertInvariants(history1, Integer.MIN_VALUE);
+        assertInvariants(history1, Integer.valueOf(Integer.MIN_VALUE));
     }
 }

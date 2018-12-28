@@ -1,6 +1,6 @@
 package uk.badamson.mc;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /*
  * © Copyright Benedict Adamson 2018.
@@ -30,7 +30,7 @@ public class ComparableTest {
 
     public static <T extends Comparable<T>> void assertComparableConsistentWithEquals(final T object1,
             final T object2) {
-        assertEquals(object1.compareTo(object2) == 0, object1.equals(object2),
+        assertTrue(object1.compareTo(object2) == 0 == object1.equals(object2),
                 "Natural ordering is consistent with equals");
     }
 

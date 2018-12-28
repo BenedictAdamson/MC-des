@@ -188,7 +188,7 @@ public class Universe {
 
         @GuardedBy("lock")
         private boolean rollBackWrite(final Transaction transaction, @NonNull final Duration when) {
-            if (latestCommit.compareTo(when) < 0 && uncommittedWriters.contains(transaction).get(when)) {
+            if (latestCommit.compareTo(when) < 0 && uncommittedWriters.contains(transaction).get(when).booleanValue()) {
                 stateHistory.removeTransitionsFrom(when);
             }
             // else aborting because of an out-of-order write
@@ -860,7 +860,7 @@ public class Universe {
                 assert Thread.holdsLock(od.lock);
                 if (od.rollBackWrite(this, when)) {
                     objectDataMap.remove(object);
-                    lockables.remove(od.lock);
+                    lockables.remove(od.id);
                 }
             }
         }
@@ -1665,7 +1665,7 @@ public class Universe {
     private @NonNull Lockable createLockable(final Function<Long, Lockable> factory) {
         Long id;
         do {
-            id = nextLockableId.getAndIncrement();
+            id = Long.valueOf(nextLockableId.getAndIncrement());
         } while (lockables.putIfAbsent(id, factory.apply(id)) != null);
         return lockables.get(id);
     }

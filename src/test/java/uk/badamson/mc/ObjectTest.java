@@ -21,6 +21,7 @@ package uk.badamson.mc;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -42,7 +43,7 @@ public final class ObjectTest {
         assert object1 != null;
         assert object2 != null;
         final boolean equals = object1.equals(object2);
-        assertAll("equals", () -> assertEquals(equals, object2.equals(object1), "Equality is symmetric"),
+        assertAll("equals", () -> assertTrue(equals == object2.equals(object1), "Equality is symmetric"),
                 () -> assertFalse(equals && object1.hashCode() != object2.hashCode(),
                         "hashCode() is consistent with equals()"));
     }

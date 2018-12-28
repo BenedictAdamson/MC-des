@@ -24,7 +24,6 @@ import static org.hamcrest.core.Every.everyItem;
 import static org.hamcrest.core.IsIterableContaining.hasItem;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsNull.nullValue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -54,7 +53,7 @@ public class SetHistoryTest {
                 transitionTimes, everyItem(in(history.getTransitionTimes())));
         assertUniverseInvariants(history);
         for (final var t : transitionTimes) {
-            assertEquals(history.get(t).contains(value), contains.get(t).booleanValue(),
+            assertTrue(history.get(t).contains(value) == contains.get(t).booleanValue(),
                     "The containment history for a value indicates that the value is present for a point in time if, and only if, that value is contained in the set for which this is a history at that point in time.");
         }
 
@@ -67,7 +66,7 @@ public class SetHistoryTest {
 
     public static <VALUE> void assertInvariants(final SetHistory<VALUE> history, final Duration time) {
         ValueHistoryTest.assertInvariants(history, time);// inherited
-        assertTrue(history.getUniverse().contains(history.get(time)),
+        assertTrue(history.getUniverse().containsAll(history.get(time)),
                 "The value of this time varying set at any point in time is a non-strict sub set of the universe.");
     }
 

@@ -88,7 +88,7 @@ public class ConstantValueHistoryTest {
 
     @Test
     public void constructor_2Equals_B() {
-        constructor_2Equals(Integer.MAX_VALUE);
+        constructor_2Equals(Integer.valueOf(Integer.MAX_VALUE));
     }
 
     @Test
@@ -103,7 +103,7 @@ public class ConstantValueHistoryTest {
 
     @Test
     public void constructor_B() {
-        constructor(Integer.MAX_VALUE);
+        constructor(Integer.valueOf(Integer.MAX_VALUE));
     }
 
     @Test
