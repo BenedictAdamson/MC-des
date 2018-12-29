@@ -31,6 +31,7 @@ import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -223,6 +224,40 @@ public class UniverseTest {
                 assertEquals(history0, universe.getObjectStateHistory(object), "history is unchanged");
             }
         }
+
+        @Nested
+        public class Remove1 {
+
+            @Test
+            public void a() {
+                test(DURATION_1, DURATION_2, DURATION_3, OBJECT_A);
+            }
+
+            @Test
+            public void b() {
+                test(DURATION_2, DURATION_3, DURATION_4, OBJECT_B);
+            }
+
+            @Test
+            public void close() {
+                test(DURATION_1, DURATION_1.plusNanos(1), DURATION_1.plusNanos(2), OBJECT_A);
+            }
+
+            private void test(final Duration when1, final Duration when2, final Duration historyStart,
+                    final UUID object) {
+                assert when1.compareTo(when2) < 0;
+                assert when2.compareTo(historyStart) <= 0;
+                final Universe universe = new Universe(historyStart);
+                putAndCommit(universe, object, when1, new ObjectStateTest.TestObjectState(1));
+                putAndCommit(universe, object, when2, new ObjectStateTest.TestObjectState(2));
+                final ValueHistory<ObjectState> history0 = new ModifiableValueHistory<>(
+                        universe.getObjectStateHistory(object));
+
+                prunePrehistory(universe, object);
+
+                assertNotEquals(history0, universe.getObjectStateHistory(object), "history changed");
+            }
+        }// class
 
         private void prunePrehistory(final Universe universe, @NonNull final UUID object) {
             universe.prunePrehistory(object);

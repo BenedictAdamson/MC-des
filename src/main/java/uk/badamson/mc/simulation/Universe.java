@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -187,6 +188,16 @@ public class Universe {
         private ValueHistory<ObjectState> getStateHistory() {
             synchronized (lock) {
                 return new ModifiableValueHistory<>(stateHistory);
+            }
+        }
+
+        private void prunePrehistory(final Duration when) {
+            synchronized (lock) {
+                final SortedSet<Duration> prehistoricTransitionTimes = stateHistory.getTransitionTimes().headSet(when);
+                if (1 < prehistoricTransitionTimes.size()) {
+                    final Duration removalTime = prehistoricTransitionTimes.last().minusNanos(1);
+                    stateHistory.setValueUntil(removalTime, null);
+                }
             }
         }
 
@@ -2037,7 +2048,10 @@ public class Universe {
      */
     public final void prunePrehistory(@NonNull final UUID object) {
         Objects.requireNonNull(object, "object");
-        // TODO
+        final var od = objectDataMap.get(object);
+        if (od != null) {
+            od.prunePrehistory(getHistoryStart());
+        }
     }
 
     /**
