@@ -172,7 +172,6 @@ public final class SimulationEngine {
                 } catch (Exception | AssertionError e) {
                     // Hard to test: race hazard.
                     completeExceptionally(e);
-                    transaction.beginAbort();
                 }
             }
         }
