@@ -101,4 +101,5 @@ along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
 * Static analysis and testing:
     * [JUnit 5](https://junit.org/junit5/)
     * [Java Hamcrest](http://hamcrest.org/JavaHamcrest/)
+    * [Open Test Alliance for the JVM](https://github.com/ota4j-team/opentest4j)
     * [SpotBugs](https://spotbugs.github.io/)
