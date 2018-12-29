@@ -85,7 +85,8 @@ public class SimulationEngineTest {
                     @NonNull final UUID object) {
                 assert historyStart.compareTo(when) < 0;
                 final Universe universe = new Universe(historyStart);
-                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
+                        uncaughtExceptionHandlerA);
 
                 advanceHistory(engine, object, when);
             }
@@ -118,7 +119,8 @@ public class SimulationEngineTest {
                 final ObjectState state2 = new ObjectStateTest.TestObjectState(2);
                 UniverseTest.putAndCommit(universe, object, before, state1);
                 UniverseTest.putAndCommit(universe, object, after, state2);
-                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
+                        uncaughtExceptionHandlerA);
 
                 advanceHistory(engine, object, when);
             }
@@ -144,7 +146,8 @@ public class SimulationEngineTest {
                 final Universe universe = new Universe(historyStart);
                 final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
                 UniverseTest.putAndCommit(universe, object, before, state0);
-                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
+                        uncaughtExceptionHandlerA);
 
                 advanceHistory(engine, object, when);
 
@@ -177,7 +180,8 @@ public class SimulationEngineTest {
             }
             final CountDownLatch ready = new CountDownLatch(1);
             final List<Future<Void>> futures = new ArrayList<>(N_THREADS);
-            final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor);
+            final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor,
+                    uncaughtExceptionHandlerA);
             for (final UUID object : objects) {
                 futures.add(runInOtherThread(ready, () -> {
                     engine.advanceHistory(object, when);
@@ -205,7 +209,8 @@ public class SimulationEngineTest {
             final Universe universe = new Universe(historyStart);
             final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
             UniverseTest.putAndCommit(universe, object, before, state0);
-            final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor);
+            final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor,
+                    uncaughtExceptionHandlerA);
             threadPoolExecutor.shutdown();
 
             advanceHistory(engine, object, when);
@@ -221,7 +226,8 @@ public class SimulationEngineTest {
             UniverseTest.putAndCommit(universe, object, before, new ObjectStateTest.TestObjectState(1));
             final CountDownLatch ready = new CountDownLatch(1);
             final List<Future<Void>> futures = new ArrayList<>(N_THREADS);
-            final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor);
+            final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor,
+                    uncaughtExceptionHandlerA);
             final Random random = new Random();
             for (int i = 0; i < N_THREADS; ++i) {
                 final Duration when = before.plusMillis(random.nextInt(N_THREADS * 2000));
@@ -271,7 +277,8 @@ public class SimulationEngineTest {
                 final ObjectState state2 = new ObjectStateTest.TestObjectState(2);
                 UniverseTest.putAndCommit(universe, object, before, state1);
                 UniverseTest.putAndCommit(universe, object, after, state2);
-                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
+                        uncaughtExceptionHandlerA);
 
                 advanceHistory(engine, when);
 
@@ -296,7 +303,8 @@ public class SimulationEngineTest {
                     @NonNull final UUID object) {
                 assert historyStart.compareTo(when) < 0;
                 final Universe universe = new Universe(historyStart);
-                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
+                        uncaughtExceptionHandlerA);
 
                 advanceHistory(engine, when);
 
@@ -324,7 +332,8 @@ public class SimulationEngineTest {
                 final Universe universe = new Universe(historyStart);
                 final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
                 UniverseTest.putAndCommit(universe, object, before, state0);
-                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
+                        uncaughtExceptionHandlerA);
 
                 advanceHistory(engine, when);
 
@@ -355,7 +364,8 @@ public class SimulationEngineTest {
                 final Universe universe = new Universe(historyStart);
                 final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
                 UniverseTest.putAndCommit(universe, object, before, state0);
-                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
+                        uncaughtExceptionHandlerA);
                 engine.advanceHistory(when2);
 
                 advanceHistory(engine, when1);
@@ -387,7 +397,8 @@ public class SimulationEngineTest {
                 final Universe universe = new Universe(historyStart);
                 final ObjectState state0 = new ObjectStateTest.SpawningTestObjectState(1, 1000, child);
                 UniverseTest.putAndCommit(universe, parent, before, state0);
-                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
+                        uncaughtExceptionHandlerA);
 
                 advanceHistory(engine, when);
 
@@ -421,7 +432,8 @@ public class SimulationEngineTest {
                 final Universe universe = new Universe(historyStart);
                 final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
                 UniverseTest.putAndCommit(universe, object, before, state0);
-                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
+                        uncaughtExceptionHandlerA);
                 engine.advanceHistory(when1);
 
                 advanceHistory(engine, when2);
@@ -447,7 +459,8 @@ public class SimulationEngineTest {
             final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
             UniverseTest.putAndCommit(universe, object, before, state0);
 
-            final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor);
+            final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor,
+                    uncaughtExceptionHandlerA);
             /*
              * Closely synchronize the crucial method call, to maximise the possibility of
              * race hazards,
@@ -516,7 +529,8 @@ public class SimulationEngineTest {
                 final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
                 UniverseTest.putAndCommit(universe, object, whenExist, state0);
                 UniverseTest.putAndCommit(universe, object, whenDestroyed, null);
-                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
+                        uncaughtExceptionHandlerA);
 
                 final Future<ObjectState> future = computeObjectState(engine, object, when);
 
@@ -550,7 +564,8 @@ public class SimulationEngineTest {
                     @NonNull final UUID object) {
                 assert historyStart.compareTo(when) < 0;
                 final Universe universe = new Universe(historyStart);
-                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
+                        uncaughtExceptionHandlerA);
 
                 final Future<ObjectState> future = computeObjectState(engine, object, when);
 
@@ -594,7 +609,8 @@ public class SimulationEngineTest {
                 final ObjectState state2 = new ObjectStateTest.TestObjectState(2);
                 UniverseTest.putAndCommit(universe, object, before, state1);
                 UniverseTest.putAndCommit(universe, object, after, state2);
-                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
+                        uncaughtExceptionHandlerA);
 
                 final Future<ObjectState> future = computeObjectState(engine, object, when);
 
@@ -634,7 +650,8 @@ public class SimulationEngineTest {
                 final Universe universe = new Universe(historyStart);
                 final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
                 UniverseTest.putAndCommit(universe, object, before, state0);
-                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
+                        uncaughtExceptionHandlerA);
                 engine.computeObjectState(object, whenA);
 
                 final Future<ObjectState> future2 = computeObjectState(engine, object, whenB);
@@ -683,7 +700,8 @@ public class SimulationEngineTest {
                 final Universe universe = new Universe(historyStart);
                 final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
                 UniverseTest.putAndCommit(universe, object, before, state0);
-                final SimulationEngine engine = new SimulationEngine(universe, enqueingExector);
+                final SimulationEngine engine = new SimulationEngine(universe, enqueingExector,
+                        uncaughtExceptionHandlerA);
                 engine.computeObjectState(object, whenA);
 
                 final Future<ObjectState> future2 = computeObjectState(engine, object, whenB);
@@ -730,7 +748,8 @@ public class SimulationEngineTest {
                 final Universe universe = new Universe(historyStart);
                 final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
                 UniverseTest.putAndCommit(universe, object, before, state0);
-                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
+                        uncaughtExceptionHandlerA);
 
                 final Future<ObjectState> future = computeObjectState(engine, object, when);
 
@@ -774,7 +793,8 @@ public class SimulationEngineTest {
                 final Universe universe = new Universe(historyStart);
                 final ObjectState state0 = new ObjectStateTest.TestObjectState(1);
                 UniverseTest.putAndCommit(universe, object, before, state0);
-                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
+                        uncaughtExceptionHandlerA);
 
                 final Future<ObjectState> future = computeObjectState(engine, object, when);
 
@@ -814,7 +834,8 @@ public class SimulationEngineTest {
                 final Universe universe = new Universe(historyStart);
                 final ObjectState state0 = new ObjectStateTest.SelfDestructingObjectState(1);
                 UniverseTest.putAndCommit(universe, object, before, state0);
-                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
+                        uncaughtExceptionHandlerA);
 
                 final Future<ObjectState> future = computeObjectState(engine, object, when);
 
@@ -867,7 +888,8 @@ public class SimulationEngineTest {
                 UniverseTest.putAndCommit(universe, objectB, historyStart, stateB0);
                 final ObjectState stateB1 = new ObjectStateTest.DependentTestObjectState(22, objectA, dependencyDelay);
                 UniverseTest.putAndCommit(universe, objectB, before, stateB1);
-                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
+                        uncaughtExceptionHandlerA);
 
                 final Future<ObjectState> future = computeObjectState(engine, objectB, when);
 
@@ -928,7 +950,8 @@ public class SimulationEngineTest {
                 final ObjectState stateB1 = new ObjectStateTest.DependentTestObjectState(22, objectA, dependencyDelay);
                 UniverseTest.putAndCommit(universe, objectB, before, stateB1);
 
-                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
+                        uncaughtExceptionHandlerA);
                 computeObjectState(engine, objectA, when);
 
                 final Future<ObjectState> future = computeObjectState(engine, objectB, when);
@@ -989,7 +1012,8 @@ public class SimulationEngineTest {
                 UniverseTest.putAndCommit(universe, objectA, before, stateA1);
                 UniverseTest.putAndCommit(universe, objectB, before, stateB1);
 
-                final SimulationEngine engine = new SimulationEngine(universe, directExecutor);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
+                        uncaughtExceptionHandlerA);
 
                 final Future<ObjectState> future = computeObjectState(engine, objectB, when);
 
@@ -1036,7 +1060,8 @@ public class SimulationEngineTest {
                 UniverseTest.putAndCommit(universe, object, before, state0);
             }
             final List<Future<ObjectState>> futures = new ArrayList<>(N_THREADS);
-            final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor);
+            final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor,
+                    uncaughtExceptionHandlerA);
             for (final UUID object : objects) {
                 futures.add(engine.computeObjectState(object, when));
             }
@@ -1073,7 +1098,8 @@ public class SimulationEngineTest {
             final Universe universe = new Universe(historyStart);
             UniverseTest.putAndCommit(universe, object, before, new ObjectStateTest.TestObjectState(1));
             final List<Future<ObjectState>> futures = new ArrayList<>(N_THREADS);
-            final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor);
+            final SimulationEngine engine = new SimulationEngine(universe, threadPoolExecutor,
+                    uncaughtExceptionHandlerA);
             final Random random = new Random();
             for (int i = 0; i < N_THREADS; ++i) {
                 final Duration when = before.plusMillis(1 + random.nextInt(N_THREADS * 2000));
@@ -1109,25 +1135,29 @@ public class SimulationEngineTest {
     public class Constructor {
         @Test
         public void a() {
-            test(WHEN_1, directExecutor);
+            test(WHEN_1, directExecutor, uncaughtExceptionHandlerA);
         }
 
         @Test
         public void b() {
-            test(WHEN_2, enqueingExector);
+            test(WHEN_2, enqueingExector, uncaughtExceptionHandlerB);
         }
 
-        private void test(final Duration historyStart, final Executor executor) {
+        private void test(final Duration historyStart, final Executor executor,
+                final UncaughtExceptionHandler uncaughtExceptionHandler) {
             final Universe universe = new Universe(historyStart);
-            test(universe, executor);
+            test(universe, executor, uncaughtExceptionHandler);
         }
 
-        private void test(final Universe universe, final Executor executor) {
-            final SimulationEngine engine = new SimulationEngine(universe, executor);
+        private void test(final Universe universe, final Executor executor,
+                final UncaughtExceptionHandler uncaughtExceptionHandler) {
+            final SimulationEngine engine = new SimulationEngine(universe, executor, uncaughtExceptionHandler);
 
             assertInvariants(engine);
             assertSame(universe, engine.getUniverse(), "This engine has the given universe as its universe.");
             assertSame(executor, engine.getExecutor(), "This engine has the given executor as its executor.");
+            assertSame(uncaughtExceptionHandler, engine.getUncaughtExceptionHandler(),
+                    "This engine has the given uncaught exception handler as its uncaught exception handler.");
         }
     }// class
 
@@ -1247,10 +1277,20 @@ public class SimulationEngineTest {
 
     private ExecutorService threadPoolExecutor;
 
+    private UncaughtExceptionHandlerTest.RecordingUncaughtExceptionHandler uncaughtExceptionHandlerA;
+
+    private UncaughtExceptionHandlerTest.RecordingUncaughtExceptionHandler uncaughtExceptionHandlerB;
+
     @BeforeEach
     public void setUpExectors() {
         directExecutor = new DirectExecutor();
         enqueingExector = new EnqueingExector();
         threadPoolExecutor = Executors.newFixedThreadPool(N_THREADS);
+    }
+
+    @BeforeEach
+    public void setUpUncaughtExceptionHandlers() {
+        uncaughtExceptionHandlerA = new UncaughtExceptionHandlerTest.RecordingUncaughtExceptionHandler();
+        uncaughtExceptionHandlerB = new UncaughtExceptionHandlerTest.RecordingUncaughtExceptionHandler();
     }
 }

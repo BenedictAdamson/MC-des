@@ -460,6 +460,9 @@ public final class SimulationEngine {
     @NonNull
     private final Executor executor;
 
+    @NonNull
+    private final UncaughtExceptionHandler uncaughtExceptionHandler;
+
     // Hard to test that a concurrent Map.
     private final Map<UUID, Engine1> engines = new ConcurrentHashMap<>();
 
@@ -476,6 +479,8 @@ public final class SimulationEngine {
      * universe}.</li>
      * <li>This engine has the given executor as its {@linkplain #getExecutor()
      * executor}.</li>
+     * <li>This engine has the given uncaught exception handler as its
+     * {@linkplain #getUncaughtExceptionHandler() uncaught exception handler}.</li>
      * </ul>
      *
      * @param universe
@@ -492,15 +497,22 @@ public final class SimulationEngine {
      *            further tasks for execution without blocking or (especially) the
      *            danger of deadlock. In practice, this requires that a fixed thread
      *            pool executor has an unbounded task queue.
+     * @param uncaughtExceptionHandler
+     *            The means this engine uses for reporting or recording an exception
+     *            that was unexpected and thus not caught and handled through normal
+     *            means.
      * @throws NullPointerException
      *             <ul>
      *             <li>If {@code universe} is null.</li>
      *             <li>If {@code executor} is null.</li>
+     *             <li>If {@code uncaughtExceptionHandler} is null.</li>
      *             </ul>
      */
-    public SimulationEngine(@NonNull final Universe universe, @NonNull final Executor executor) {
+    public SimulationEngine(@NonNull final Universe universe, @NonNull final Executor executor,
+            @NonNull final UncaughtExceptionHandler uncaughtExceptionHandler) {
         this.universe = Objects.requireNonNull(universe, "universe");
         this.executor = Objects.requireNonNull(executor, "executor");
+        this.uncaughtExceptionHandler = Objects.requireNonNull(uncaughtExceptionHandler, "uncaughtExceptionHandler");
     }
 
     /**
@@ -644,6 +656,24 @@ public final class SimulationEngine {
     @NonNull
     public final Executor getExecutor() {
         return executor;
+    }
+
+    /**
+     * <p>
+     * The means this engine uses for reporting or recording an exception that was
+     * unexpected and thus not caught and handled through normal means.
+     * </p>
+     * <p>
+     * In particular, this handler will be used for exceptions thrown by
+     * {@linkplain ObjectState#doNextEvent(uk.badamson.mc.simulation.Universe.Transaction, UUID, Duration)}
+     * methods executed by the engine.
+     * </p>
+     *
+     * @return the uncaught exception handler; not null.
+     */
+    @NonNull
+    public final UncaughtExceptionHandler getUncaughtExceptionHandler() {
+        return uncaughtExceptionHandler;
     }
 
     private Duration getUniversalAdvanceTo() {
