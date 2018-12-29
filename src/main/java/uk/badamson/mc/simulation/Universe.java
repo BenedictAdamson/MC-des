@@ -2065,6 +2065,19 @@ public class Universe {
      * is (becomes) {@linkplain Duration#equals(Object) equal to} the given history
      * start time.</li>
      * </ul>
+     * <p>
+     * A {@link Universe} records the full {@linkplain #getObjectStateHistory(UUID)
+     * state history} of all its {@linkplain #getObjectIds() objects} between the
+     * history start time and the {@linkplain #getHistoryEnd() history end time}. To
+     * reduce memory use it is therefore tempting to set the history start time to a
+     * time close to the history end time and then
+     * {@linkplain #prunePrehistory(UUID) prune the prehistory}. However,
+     * transactions will fail (by throwing a {@link PrehistoryException}) if they
+     * attempt to read state information before the history start time. Therefore in
+     * practice the interval between the history start time and history end time
+     * must be kept larger than the furthest back in time that a transaction will
+     * read. That is, larger than the largest message transmission delay.
+     * </p>
      *
      * @param historyStart
      *            the point in time, expressed as the duration since an (implied)

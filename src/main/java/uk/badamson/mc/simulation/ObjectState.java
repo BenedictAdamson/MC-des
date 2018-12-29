@@ -65,7 +65,12 @@ public interface ObjectState {
      * {@linkplain Universe.Transaction#getObjectState(UUID, Duration) read} any
      * object states it needs, other than its own state (which it may access
      * directly, of course). This ensures that the given transaction records the
-     * causality constraints of the event.
+     * causality constraints of the event. Those reads can be interpreted as a
+     * message transmitting information from the other objects to the object for
+     * which this is computing a state. The reads must be for points in time before
+     * the given point in time. The amount by which the reads are before can be
+     * interpreted as the message propagation time or the message transmission
+     * delay.
      * </p>
      * <p>
      * In most cases the new state of the object computed by this method will be
