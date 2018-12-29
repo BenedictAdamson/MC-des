@@ -20,6 +20,7 @@ package uk.badamson.mc.simulation;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -56,6 +57,7 @@ import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import uk.badamson.mc.ObjectTest;
+import uk.badamson.mc.history.ModifiableValueHistory;
 import uk.badamson.mc.history.ValueHistory;
 
 /**
@@ -1215,6 +1217,107 @@ public class SimulationEngineTest {
             }
         }
 
+    }// class
+
+    @Nested
+    public class PrunePrehistory {
+
+        @Nested
+        public class Empty {
+
+            @Test
+            public void a() {
+                test(WHEN_1, OBJECT_A);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_2, OBJECT_B);
+            }
+
+            private void test(final Duration historyStart, final UUID object) {
+                final Universe universe = new Universe(historyStart);
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
+                        uncaughtExceptionHandlerA);
+
+                prunePrehistory(engine);
+            }
+        }// class
+
+        @Nested
+        public class NoOp {
+
+            @Test
+            public void a() {
+                test(WHEN_1, WHEN_2, OBJECT_A);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_2, WHEN_3, OBJECT_B);
+            }
+
+            @Test
+            public void close() {
+                test(WHEN_1, WHEN_1, OBJECT_A);
+            }
+
+            private void test(final Duration when, final Duration historyStart, final UUID object) {
+                assert when.compareTo(historyStart) <= 0;
+                final Universe universe = new Universe(historyStart);
+                UniverseTest.putAndCommit(universe, object, when, new ObjectStateTest.TestObjectState(1));
+                final ValueHistory<ObjectState> history0 = new ModifiableValueHistory<>(
+                        universe.getObjectStateHistory(object));
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
+                        uncaughtExceptionHandlerA);
+
+                prunePrehistory(engine);
+
+                assertEquals(history0, universe.getObjectStateHistory(object), "history is unchanged");
+            }
+        }// class
+
+        @Nested
+        public class Remove1 {
+
+            @Test
+            public void a() {
+                test(WHEN_1, WHEN_2, WHEN_3, OBJECT_A);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_2, WHEN_3, WHEN_4, OBJECT_B);
+            }
+
+            @Test
+            public void close() {
+                test(WHEN_1, WHEN_1.plusNanos(1), WHEN_1.plusNanos(2), OBJECT_A);
+            }
+
+            private void test(final Duration when1, final Duration when2, final Duration historyStart,
+                    final UUID object) {
+                assert when1.compareTo(when2) < 0;
+                assert when2.compareTo(historyStart) <= 0;
+                final Universe universe = new Universe(historyStart);
+                UniverseTest.putAndCommit(universe, object, when1, new ObjectStateTest.TestObjectState(1));
+                UniverseTest.putAndCommit(universe, object, when2, new ObjectStateTest.TestObjectState(2));
+                final ValueHistory<ObjectState> history0 = new ModifiableValueHistory<>(
+                        universe.getObjectStateHistory(object));
+                final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
+                        uncaughtExceptionHandlerA);
+
+                prunePrehistory(engine);
+
+                assertThat("history changed", history0, not(universe.getObjectStateHistory(object)));
+            }
+        }// class
+
+        private void prunePrehistory(final SimulationEngine engine) {
+            engine.prunePrehistory();
+
+            assertInvariants(engine);
+        }
     }// class
 
     private static final Duration WHEN_1 = UniverseTest.DURATION_1;

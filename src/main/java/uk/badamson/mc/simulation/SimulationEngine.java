@@ -722,4 +722,30 @@ public final class SimulationEngine {
         return universe;
     }
 
+    /**
+     * <p>
+     * Schedule removal of unnecessary {@linkplain ObjectState object states} from
+     * the {@linkplain Universe#getObjectStateHistory(UUID) state history} of all
+     * {@linkplain Universe#getObjectIds() objects} times before the
+     * {@linkplain Universe#getHistoryStart() history start time} of the
+     * {@linkplain #getUniverse() universe} that this engine manipulates.
+     * </p>
+     * <p>
+     * The universe needs to record only one object state before the history start
+     * time for each object. If an object has more than one such state, it removes
+     * all except the most recent
+     * </p>
+     * <p>
+     * After scheduling the removals, the method returns immediately, rather than
+     * awaiting completion of the removals.
+     * </p>
+     *
+     * @see Universe#prunePrehistory(UUID)
+     */
+    public final void prunePrehistory() {
+        for (final UUID object : universe.getObjectIds()) {
+            executor.execute(() -> universe.prunePrehistory(object));
+        }
+    }
+
 }
