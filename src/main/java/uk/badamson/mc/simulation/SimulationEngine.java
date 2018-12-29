@@ -172,6 +172,11 @@ public final class SimulationEngine {
                 } catch (Exception | AssertionError e) {
                     // Hard to test: race hazard.
                     completeExceptionally(e);
+                    try {
+                        uncaughtExceptionHandler.uncaughtException​(e);
+                    } catch (final Exception e2) {
+                        // Do nothing; what else can we do?
+                    }
                 }
             }
         }
@@ -525,6 +530,12 @@ public final class SimulationEngine {
      * <ul>
      * <li>After scheduling the computation, the method returns immediately, rather
      * than awaiting completion of the computation.</li>
+     * <li>The method may schedule
+     * {@linkplain ObjectState#doNextEvent(Universe.Transaction, UUID, Duration)
+     * event computations} to advance the history.</li>
+     * <li>If those event computations throw exceptions, this engine passes them to
+     * its {@linkplain #getUncaughtExceptionHandler() uncaught exception handler},
+     * then discards them.</li>
      * </ul>
      * <p>
      * Calling this method establishes an <dfn>optimistic time window</dfn>:
@@ -570,6 +581,12 @@ public final class SimulationEngine {
      * <li>This method is cheaper than {@link #computeObjectState(UUID, Duration)},
      * as it does not need to create and maintain a {@link Future} for recording the
      * computed state.</li>
+     * <li>The method may schedule
+     * {@linkplain ObjectState#doNextEvent(Universe.Transaction, UUID, Duration)
+     * event computations} to advance the history.</li>
+     * <li>If those event computations throw exceptions, this engine passes them to
+     * its {@linkplain #getUncaughtExceptionHandler() uncaught exception handler},
+     * then discards them.</li>
      * <li>After scheduling the computation, the method returns immediately, rather
      * than awaiting completion of the computation.</li>
      * </ul>
@@ -607,6 +624,13 @@ public final class SimulationEngine {
      * {@linkplain Duration#compareTo(Duration) before} the
      * {@linkplain Universe#getHistoryStart() start of history} of the
      * {@linkplain #getUniverse() universe} of this engine.</li>
+     * <li>The method may schedule
+     * {@linkplain ObjectState#doNextEvent(Universe.Transaction, UUID, Duration)
+     * event computations} to advance the history.</li>
+     * <li>If an event computation throws an exception, this engine passes it to its
+     * {@linkplain #getUncaughtExceptionHandler() uncaught exception handler}, and
+     * causes the exception to be the cause of an {@link ExecutionException} thrown
+     * when {@linkplain Future#get() getting} the result of this computation.</li>
      * </ul>
      *
      * @param object

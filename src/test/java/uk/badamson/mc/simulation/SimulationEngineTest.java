@@ -89,6 +89,8 @@ public class SimulationEngineTest {
                         uncaughtExceptionHandlerA);
 
                 advanceHistory(engine, object, when);
+
+                uncaughtExceptionHandlerA.rethrowExceptions();
             }
         }// class
 
@@ -123,6 +125,8 @@ public class SimulationEngineTest {
                         uncaughtExceptionHandlerA);
 
                 advanceHistory(engine, object, when);
+
+                uncaughtExceptionHandlerA.rethrowExceptions();
             }
         }// class
 
@@ -151,6 +155,7 @@ public class SimulationEngineTest {
 
                 advanceHistory(engine, object, when);
 
+                uncaughtExceptionHandlerA.rethrowExceptions();
                 assertThat("Advanced the state history", universe.getLatestCommit(object), greaterThanOrEqualTo(when));
             }
         }// class
@@ -191,6 +196,7 @@ public class SimulationEngineTest {
             ready.countDown();
             get(futures);
 
+            uncaughtExceptionHandlerA.rethrowExceptions();
             for (final var future : futures) {
                 assertAll("future", () -> assertFalse(future.isCancelled(), "Not cancelled"),
                         () -> assertTrue(future.isDone(), "Done"));
@@ -214,6 +220,8 @@ public class SimulationEngineTest {
             threadPoolExecutor.shutdown();
 
             advanceHistory(engine, object, when);
+
+            uncaughtExceptionHandlerA.rethrowExceptions();
         }
 
         @RepeatedTest(32)
@@ -239,6 +247,7 @@ public class SimulationEngineTest {
             ready.countDown();
             get(futures);
 
+            uncaughtExceptionHandlerA.rethrowExceptions();
             for (final var future : futures) {
                 assertAll("future", () -> assertFalse(future.isCancelled(), "Not cancelled"),
                         () -> assertTrue(future.isDone(), "Done"));
@@ -282,6 +291,7 @@ public class SimulationEngineTest {
 
                 advanceHistory(engine, when);
 
+                uncaughtExceptionHandlerA.rethrowExceptions();
                 assertEquals(after, universe.getHistoryEnd(), "History end (unchanged)");
             }
         }// class
@@ -308,6 +318,7 @@ public class SimulationEngineTest {
 
                 advanceHistory(engine, when);
 
+                uncaughtExceptionHandlerA.rethrowExceptions();
                 assertEquals(ValueHistory.END_OF_TIME, universe.getHistoryEnd(), "History end (still)");
             }
         }// class
@@ -337,6 +348,7 @@ public class SimulationEngineTest {
 
                 advanceHistory(engine, when);
 
+                uncaughtExceptionHandlerA.rethrowExceptions();
                 assertThat("Advanced the state history of the sole object.", universe.getLatestCommit(object),
                         greaterThanOrEqualTo(when));
                 assertThat("Advanced the history end.", universe.getHistoryEnd(), greaterThanOrEqualTo(when));
@@ -370,6 +382,7 @@ public class SimulationEngineTest {
 
                 advanceHistory(engine, when1);
 
+                uncaughtExceptionHandlerA.rethrowExceptions();
                 assertThat("Advanced the state history of the sole object.", universe.getLatestCommit(object),
                         greaterThanOrEqualTo(when2));
                 assertThat("Advanced the history end.", universe.getHistoryEnd(), greaterThanOrEqualTo(when2));
@@ -402,6 +415,7 @@ public class SimulationEngineTest {
 
                 advanceHistory(engine, when);
 
+                uncaughtExceptionHandlerA.rethrowExceptions();
                 assertAll("Advanced",
                         () -> assertThat("the state history of the parent.", universe.getLatestCommit(parent),
                                 greaterThanOrEqualTo(when)),
@@ -438,6 +452,7 @@ public class SimulationEngineTest {
 
                 advanceHistory(engine, when2);
 
+                uncaughtExceptionHandlerA.rethrowExceptions();
                 assertThat("Advanced the state history of the sole object.", universe.getLatestCommit(object),
                         greaterThanOrEqualTo(when2));
                 assertThat("Advanced the history end.", universe.getHistoryEnd(), greaterThanOrEqualTo(when2));
@@ -495,6 +510,7 @@ public class SimulationEngineTest {
             }
             assertInvariants(engine);
             UniverseTest.assertInvariants(universe, object);
+            uncaughtExceptionHandlerA.rethrowExceptions();
             assertThat("Advanced the history end.", universe.getHistoryEnd(), greaterThanOrEqualTo(last));
         }
 
@@ -544,6 +560,7 @@ public class SimulationEngineTest {
                     return;// never happens
                 }
                 assertNull(state, "Indicates that object does not exist (anymore).");
+                uncaughtExceptionHandlerA.rethrowExceptions();
             }
         }// class
 
@@ -579,6 +596,7 @@ public class SimulationEngineTest {
                     return;// never happens
                 }
                 assertNull(state, "Object does not exist");
+                uncaughtExceptionHandlerA.rethrowExceptions();
             }
         }// class
 
@@ -624,6 +642,7 @@ public class SimulationEngineTest {
                     return;// never happens
                 }
                 assertSame(state1, state, "Retrieved the existing object state.");
+                uncaughtExceptionHandlerA.rethrowExceptions();
             }
         }// class
 
@@ -669,6 +688,7 @@ public class SimulationEngineTest {
                 ObjectStateTest.assertInvariants(state2);
                 assertThat("Advanced the state history", universe.getLatestCommit(object),
                         greaterThanOrEqualTo(whenLast));
+                uncaughtExceptionHandlerA.rethrowExceptions();
             }
 
             @Test
@@ -720,6 +740,7 @@ public class SimulationEngineTest {
                 ObjectStateTest.assertInvariants(state2);
                 assertThat("Advanced the state history", universe.getLatestCommit(object),
                         greaterThanOrEqualTo(whenLast));
+                uncaughtExceptionHandlerA.rethrowExceptions();
             }
 
             @Test
@@ -765,6 +786,7 @@ public class SimulationEngineTest {
                 assertNotNull(state, "Computed a state");// guard
                 ObjectStateTest.assertInvariants(state);
                 assertThat("Advanced the state history", universe.getLatestCommit(object), greaterThanOrEqualTo(when));
+                uncaughtExceptionHandlerA.rethrowExceptions();
             }
         }// class
 
@@ -810,6 +832,7 @@ public class SimulationEngineTest {
                             instanceOf(PrehistoryException.class));
                     return;
                 }
+                uncaughtExceptionHandlerA.rethrowExceptions();
                 fail("Did not throw exception");
             }
         }// class
@@ -850,6 +873,7 @@ public class SimulationEngineTest {
                 }
                 assertNull(state, "Computed destroyed state");
                 assertThat("Advanced the state history", universe.getLatestCommit(object), greaterThanOrEqualTo(when));
+                uncaughtExceptionHandlerA.rethrowExceptions();
             }
         }// class
 
@@ -910,6 +934,7 @@ public class SimulationEngineTest {
                 }
                 assertNotNull(state, "Computed a state");// guard
                 ObjectStateTest.assertInvariants(state);
+                uncaughtExceptionHandlerA.rethrowExceptions();
             }
         }// class
 
@@ -970,6 +995,7 @@ public class SimulationEngineTest {
                 final Duration latestCommitB = universe.getLatestCommit(objectB);
                 assertAll("Advanced the state history", () -> assertThat("at all", latestCommitB, greaterThan(before)),
                         () -> assertThat("to at least the required time", latestCommitB, greaterThanOrEqualTo(when)));
+                uncaughtExceptionHandlerA.rethrowExceptions();
             }
         }// class
 
@@ -1031,6 +1057,7 @@ public class SimulationEngineTest {
                 final Duration latestCommitB = universe.getLatestCommit(objectB);
                 assertAll("Advanced the state history", () -> assertThat("at all", latestCommitB, greaterThan(before)),
                         () -> assertThat("to at least the required time", latestCommitB, greaterThanOrEqualTo(when)));
+                uncaughtExceptionHandlerA.rethrowExceptions();
             }
         }// class
 
@@ -1087,6 +1114,7 @@ public class SimulationEngineTest {
             for (final UUID object : objects) {
                 assertThat("Advanced the state history", universe.getLatestCommit(object), greaterThanOrEqualTo(when));
             }
+            uncaughtExceptionHandlerA.rethrowExceptions();
         }
 
         @RepeatedTest(32)
@@ -1127,6 +1155,7 @@ public class SimulationEngineTest {
                 assertNotNull(state2, "Computed a state");// guard
                 ObjectStateTest.assertInvariants(state2);
             } // for
+            uncaughtExceptionHandlerA.rethrowExceptions();
         }
 
     }// class
