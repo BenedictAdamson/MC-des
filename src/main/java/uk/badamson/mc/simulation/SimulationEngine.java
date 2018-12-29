@@ -49,7 +49,21 @@ import uk.badamson.mc.history.ValueHistory;
 /**
  * <p>
  * Drives a simulation {@linkplain Universe universe} forward to a desired end
- * state.
+ * state or states.
+ * </p>
+ * <p>
+ * A {@link SimulationEngine} {@linkplain Executor#execute(Runnable) schedules}
+ * {@linkplain Universe.Transaction transactions} for execution to perform
+ * computations. It automatically reschedules transactions that
+ * {@linkplain Universe.TransactionOpenness#ABORTED abort}. It makes use of the
+ * dependency information of transactions to automatically compute needed
+ * dependent states, and to reduce the risk of thrashing when transactions
+ * abort.
+ * </p>
+ * <p>
+ * The {@link SimulationEngine} class is <i>asynchronous</i>: calls to its
+ * methods only <em>start</em> computations, returning immediately rather than
+ * waiting for them to complete.
  * </p>
  */
 @ThreadSafe
@@ -467,10 +481,18 @@ public final class SimulationEngine {
      *
      * @param universe
      *            The collection of simulated objects and their
-     *            {@linkplain ObjectState state} histories that this drives
+     *            {@linkplain ObjectState state} histories that this engine drives
      *            forwards.
      * @param executor
-     *            The object that this uses to execute {@link Runnable} tasks.
+     *            The object that this uses to execute {@linkplain Runnable tasks}.
+     *            The executor should be <dfn>weakly FIFO</dfn>: tasks
+     *            {@linkplain Executor#execute(Runnable) submitted for execution}
+     *            should be start in close to FIFO order. In practice, this is the
+     *            case for all thread pool operations. The executor must allow tasks
+     *            it is executing to {@linkplain Executor#execute(Runnable) submit}
+     *            further tasks for execution without blocking or (especially) the
+     *            danger of deadlock. In practice, this requires that a fixed thread
+     *            pool executor has an unbounded task queue.
      * @throws NullPointerException
      *             <ul>
      *             <li>If {@code universe} is null.</li>
@@ -493,9 +515,19 @@ public final class SimulationEngine {
      * <li>After scheduling the computation, the method returns immediately, rather
      * than awaiting completion of the computation.</li>
      * </ul>
+     * <p>
+     * Calling this method establishes an <dfn>optimistic time window</dfn>:
+     * optimistic computations for each object will not proceed further than one
+     * state beyond the given time. If computing the history far in the future is
+     * wanted, less thrashing (aborting and restarting) of transactions will tend to
+     * occur if the advance is done by a succession of smaller advances, with each
+     * advance being by an about equal to the average interval between state changes
+     * for one object.
+     * </p>
      *
      * @param when
-     *            The point in time of interest.
+     *            The point in time of interest, expressed as the duration since an
+     *            (implied) epoch.
      * @throws NullPointerException
      *             If {@code when} is null.
      */
@@ -534,7 +566,8 @@ public final class SimulationEngine {
      * @param object
      *            The ID of the object of interest.
      * @param when
-     *            The point in time of interest.
+     *            The point in time of interest, expressed as the duration since an
+     *            (implied) epoch.
      * @throws NullPointerException
      *             <ul>
      *             <li>If {@code object} is null.</li>
@@ -568,7 +601,8 @@ public final class SimulationEngine {
      * @param object
      *            The ID of the object of interest.
      * @param when
-     *            The point in time of interest.
+     *            The point in time of interest, expressed as the duration since an
+     *            (implied) epoch.
      * @return The result of the asynchronous computation of the state of the given
      *         object at the given point in time, which can be
      *         {@linkplain Future#get() retrieved} once the computation is complete.
@@ -596,6 +630,14 @@ public final class SimulationEngine {
      * </p>
      * <ul>
      * <li>Always have a (non null) executor.</li>
+     * <li>The executor should be <dfn>weakly FIFO</dfn>: tasks
+     * {@linkplain Executor#execute(Runnable) submitted for execution} should be
+     * start in close to FIFO order. In practice, this is the case for all thread
+     * pool operations.</li>
+     * <li>The executor must allow tasks it is executing to
+     * {@linkplain Executor#execute(Runnable) submit} further tasks for execution
+     * without blocking or (especially) the danger of deadlock. In practice, this
+     * requires that a fixed thread pool executor has an unbounded task queue.</li>
      * </ul>
      *
      * @return the executor

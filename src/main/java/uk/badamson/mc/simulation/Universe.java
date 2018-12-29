@@ -295,6 +295,13 @@ public class Universe {
      * {@link Universe#beginTransaction(TransactionListener)} method to create new
      * transaction objects.
      * </p>
+     * <p>
+     * Although transactions may be used directly, in practice it is better to use a
+     * {@link SimulationEngine} to create transactions. Transactions with
+     * unsatisfied read dependencies will remain uncommitted until some other
+     * transaction(s) satisfy them. And aborted transactions need to be restarted.
+     * The {@link SimulationEngine} takes care of those complications for you.
+     * </p>
      */
     @NotThreadSafe
     public final class Transaction extends Lockable implements AutoCloseable {
