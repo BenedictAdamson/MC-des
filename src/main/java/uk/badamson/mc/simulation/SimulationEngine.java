@@ -19,8 +19,6 @@ package uk.badamson.mc.simulation;
  */
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
@@ -206,24 +204,22 @@ public final class SimulationEngine {
         }
 
         private void completeCommitableReads() {
-            final Collection<FutureObjectState> transactionsToStart;
+            /*
+             * Use a SortedMap so we will complete the reads in time order.
+             */
+            final SortedMap<Duration, FutureObjectState> commitableReads;
             synchronized (this) {
                 latestCommit = universe.getLatestCommit(object);
                 final boolean unknownObject = latestCommit == null;
-                final SortedMap<Duration, FutureObjectState> commitableReads = unknownObject ? steps
-                        : new TreeMap<>(steps.headMap(latestCommit, true));
-                transactionsToStart = new ArrayList<>(commitableReads.size());
-                for (final var future : commitableReads.values()) {
-                    if (!future.isDone()) {
-                        transactionsToStart.add(future);
-                    }
-                }
+                commitableReads = new TreeMap<>(unknownObject ? steps : steps.headMap(latestCommit, true));
                 steps.keySet().removeAll(commitableReads.keySet());
                 assert !(unknownObject && !steps.isEmpty());
             }
 
-            for (final FutureObjectState future : transactionsToStart) {
-                future.startReadTransaction();
+            for (final FutureObjectState future : commitableReads.values()) {
+                if (!future.isDone()) {
+                    future.startReadTransaction();
+                }
                 assert future.isDone();
             }
         }
