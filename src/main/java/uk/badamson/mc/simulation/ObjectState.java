@@ -68,6 +68,13 @@ public interface ObjectState {
      * causality constraints of the event.
      * </p>
      * <p>
+     * In most cases the new state of the object computed by this method will be
+     * similar to this object state. In most cases this object state will be
+     * composed from other objects that are also {@linkplain Immutable immutable}.
+     * The method should take reasonable steps to conserve memory by reusing
+     * component immutable objects from its own state in the new state.
+     * </p>
+     * <p>
      * This computation may be expensive; recomputing events should be avoided.
      * </p>
      * <ul>
@@ -77,6 +84,9 @@ public interface ObjectState {
      * <li>The method must change the given transaction
      * {@linkplain Universe.Transaction#beginWrite(Duration) into write mode}, with
      * a write time-stamp in the future (after the given point in time).</li>
+     * <li>The method must must not {@linkplain Universe.Transaction#beginCommit()
+     * begin committing} or {@linkplain Universe.Transaction#beginAbort() begin
+     * aborting} the given transaction.</li>
      * <li>The method must {@linkplain Universe.Transaction#put(UUID, ObjectState)
      * write (put)}, using the given transaction, one new state for the given object
      * ID.</li>
@@ -106,10 +116,15 @@ public interface ObjectState {
      *             <li>If {@code when} is null.</li>
      *             </ul>
      * @throws IllegalArgumentException
-     *             If the {@linkplain Universe.Transaction#getObjectStatesRead()
+     *             <ul>
+     *             <li>If {@code transaction} is not
+     *             {@linkplain Universe.Transaction#getOpenness() in}
+     *             {@linkplain Universe.TransactionOpenness#READING read mode}.</li>
+     *             <li>If the {@linkplain Universe.Transaction#getObjectStatesRead()
      *             object states read} for the {@code transaction} consists of other
      *             than an entry for this state with the given object ID and
-     *             time-stamp.
+     *             time-stamp.</li>
+     *             </ul>
      */
     public abstract void doNextEvent(@NonNull Universe.Transaction transaction, @NonNull UUID object,
             @NonNull Duration when);
