@@ -54,6 +54,9 @@ import uk.badamson.mc.history.ValueHistory;
  * histories.
  * </p>
  * <p>
+ * The state histories of the objects may be <dfn>asynchronous</dfn>: different
+ * objects may have state transitions at different times.</li>
+ * <p>
  * This collection is modifiable: the state histories of the simulated objects
  * may be appended to. This collection enforces constraints that ensure that the
  * object state histories are <dfn>consistent</dfn>. Consistency means that if a
@@ -63,7 +66,8 @@ import uk.badamson.mc.history.ValueHistory;
  * </p>
  * <p>
  * This collection enables safe multi-threaded modification by using
- * {@linkplain Universe.Transaction transactions}.
+ * {@linkplain Universe.Transaction transactions}. Each transaction corresponds
+ * to one event of the simulated system.
  * </p>
  */
 @ThreadSafe
@@ -255,11 +259,18 @@ public class Universe {
      * A transaction for changing the state of a {@link Universe}.
      * </p>
      * <p>
-     * That is, a record of a set of reads of and writes to the state histories of
-     * the Universe that can be committed as an atomic operation. A transaction may
-     * read (fetch) and write (put) values. A transaction however may not interleave
-     * reads and writes. All its writes must be after any reads, after having
-     * entered <i>write mode</i>.
+     * A transaction is a record of a {@linkplain #getObjectStatesRead() collection
+     * of reads of} and {@linkplain #getObjectStatesWritten() writes to} the state
+     * histories of the Universe that can be committed as an atomic operation. A
+     * transaction however may not interleave reads and writes. All its writes must
+     * be after any reads, after having {@linkplain #beginWrite(Duration) entered}
+     * <i>write mode</i>.
+     * </p>
+     * <p>
+     * Each transaction corresponds to one event of the simulated system. The writes
+     * of the transaction are the state changes that occur as a result of the event.
+     * The reads of the transaction establish the causality constraints of the
+     * event.
      * </p>
      * <p>
      * These transactions are <i>optimistic</i>: a transaction is allowed to perform
@@ -268,7 +279,7 @@ public class Universe {
      * it will be {@linkplain Universe.TransactionOpenness#ABORTED aborted}.
      * </p>
      * <p>
-     * These transactions are <i>asynchronous</i>: a client indicating that it wants
+     * These transactions are <i>non-blocking</i>: a client indicating that it wants
      * to commit a transaction (by calling {@link #beginCommit()}) does not block in
      * that method call until the transaction has
      * {@linkplain Universe.TransactionOpenness#COMMITTED committed} (or
@@ -1758,6 +1769,10 @@ public class Universe {
      * The last point in time for which this universe has a known, correct and
      * {@linkplain TransactionOpenness#COMMITTED committed} {@linkplain ObjectState
      * state} for {@linkplain #getObjectIds() all the objects} in the universe.
+     * </p>
+     * <p>
+     * This corresponds to the <dfn>Global Virtual Time</dfn> value of the <i>Time
+     * Warp</i> Parallel Discrete Event Simulation algorithm.
      * </p>
      * <ul>
      * <li>Always have a (non null) history end.</li>

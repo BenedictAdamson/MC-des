@@ -151,7 +151,7 @@ public final class SimulationEngine {
                      * If this transaction aborts, because it depends on states that have be
                      * overwritten, the dependency information is unreliable. However, in that case
                      * the dependency information is probably partially or approximately correct, so
-                     * using it is a good heuristic.
+                     * using it is a good heuristic to prevent thrashing.
                      */
                     addDependencies(new TreeSet<>(transaction.getObjectStatesRead().keySet()));
                     transaction.beginCommit();
