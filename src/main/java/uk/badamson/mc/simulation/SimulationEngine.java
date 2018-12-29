@@ -220,7 +220,13 @@ public final class SimulationEngine {
                 if (!future.isDone()) {
                     future.startReadTransaction();
                 }
-                assert future.isDone();
+                /*
+                 * The transaction should now be committed or in the process of being committed.
+                 * When the onCommit call-back completes, future.isDone() will be true. However,
+                 * at this point it is possible that a different thread is executing the
+                 * call-back but has not finished the call-back, so it can (briefly) be the case
+                 * that !future.isDone().
+                 */
             }
         }
 
