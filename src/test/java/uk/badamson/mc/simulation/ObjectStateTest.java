@@ -50,8 +50,7 @@ public class ObjectStateTest {
         }
 
         @Override
-        public void putNextStateTransition(final Universe.Transaction transaction, final UUID object,
-                final Duration when) {
+        public void doNextEvent(final Universe.Transaction transaction, final UUID object, final Duration when) {
             requirePutNextStateTransitionPreconditions(this, transaction, object, when);
 
             final TestObjectState nextState = new TestObjectState(i + 1);
@@ -68,8 +67,7 @@ public class ObjectStateTest {
         }
 
         @Override
-        public void putNextStateTransition(final Universe.Transaction transaction, final UUID object,
-                final Duration when) {
+        public void doNextEvent(final Universe.Transaction transaction, final UUID object, final Duration when) {
             requirePutNextStateTransitionPreconditions(this, transaction, object, when);
 
             final ObjectState nextState = null;
@@ -89,8 +87,7 @@ public class ObjectStateTest {
         }
 
         @Override
-        public void putNextStateTransition(final Universe.Transaction transaction, final UUID object,
-                final Duration when) {
+        public void doNextEvent(final Universe.Transaction transaction, final UUID object, final Duration when) {
             requirePutNextStateTransitionPreconditions(this, transaction, object, when);
 
             final TestObjectState nextState = new TestObjectState(i + 1);
@@ -109,6 +106,15 @@ public class ObjectStateTest {
         }
 
         @Override
+        public void doNextEvent(final Universe.Transaction transaction, final UUID object, final Duration when) {
+            requirePutNextStateTransitionPreconditions(this, transaction, object, when);
+
+            final TestObjectState nextState = new TestObjectState(i + 1);
+            transaction.beginWrite(when.plusSeconds(1));
+            transaction.put(object, nextState);
+        }
+
+        @Override
         public final boolean equals(final Object obj) {
             if (this == obj)
                 return true;
@@ -123,16 +129,6 @@ public class ObjectStateTest {
         @Override
         public final int hashCode() {
             return i;
-        }
-
-        @Override
-        public void putNextStateTransition(final Universe.Transaction transaction, final UUID object,
-                final Duration when) {
-            requirePutNextStateTransitionPreconditions(this, transaction, object, when);
-
-            final TestObjectState nextState = new TestObjectState(i + 1);
-            transaction.beginWrite(when.plusSeconds(1));
-            transaction.put(object, nextState);
         }
 
         @Override
@@ -155,9 +151,9 @@ public class ObjectStateTest {
         // Do nothing
     }
 
-    public static void putNextStateTransition(final ObjectState state, final Universe.Transaction transaction,
-            final UUID object, final Duration when) {
-        state.putNextStateTransition(transaction, object, when);
+    public static void doNextEvent(final ObjectState state, final Universe.Transaction transaction, final UUID object,
+            final Duration when) {
+        state.doNextEvent(transaction, object, when);
 
         assertInvariants(state);
         UniverseTest.TransactionTest.assertInvariants(transaction);

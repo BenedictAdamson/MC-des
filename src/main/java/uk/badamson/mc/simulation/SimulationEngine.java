@@ -301,7 +301,7 @@ public final class SimulationEngine {
         private void putNextStateTransition(@NonNull final ObjectState state0,
                 @NonNull final Universe.Transaction transaction, @NonNull final Duration when) {
             try {
-                state0.putNextStateTransition(transaction, object, when);
+                state0.doNextEvent(transaction, object, when);
 
                 final var objectStatesReadAtOrAfter = transaction.getObjectStatesRead().keySet().stream()
                         .filter(id -> (when.compareTo(id.getWhen()) < 0
