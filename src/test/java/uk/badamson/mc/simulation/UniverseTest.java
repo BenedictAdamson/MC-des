@@ -27,6 +27,7 @@ import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsSame.sameInstance;
 import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
+import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -166,6 +167,71 @@ public class UniverseTest {
             final Universe universe = new Universe(historyStart);
 
             assertPostconditions(universe, historyStart);
+        }
+    }// class
+
+    @Nested
+    public class PrunePrehistory {
+
+        @Nested
+        public class Empty {
+
+            @Test
+            public void a() {
+                test(DURATION_1, OBJECT_A);
+            }
+
+            @Test
+            public void b() {
+                test(DURATION_2, OBJECT_B);
+            }
+
+            private void test(final Duration historyStart, final UUID object) {
+                final Universe universe = new Universe(historyStart);
+
+                prunePrehistory(universe, object);
+            }
+        }// class
+
+        @Nested
+        public class NoOp {
+
+            @Test
+            public void a() {
+                test(DURATION_1, DURATION_2, OBJECT_A);
+            }
+
+            @Test
+            public void b() {
+                test(DURATION_2, DURATION_3, OBJECT_B);
+            }
+
+            @Test
+            public void close() {
+                test(DURATION_1, DURATION_1, OBJECT_A);
+            }
+
+            private void test(final Duration when, final Duration historyStart, final UUID object) {
+                assert when.compareTo(historyStart) <= 0;
+                final Universe universe = new Universe(historyStart);
+                putAndCommit(universe, object, when, new ObjectStateTest.TestObjectState(1));
+                final ValueHistory<ObjectState> history0 = new ModifiableValueHistory<>(
+                        universe.getObjectStateHistory(object));
+
+                prunePrehistory(universe, object);
+
+                assertEquals(history0, universe.getObjectStateHistory(object), "history is unchanged");
+            }
+        }
+
+        private void prunePrehistory(final Universe universe, @NonNull final UUID object) {
+            universe.prunePrehistory(object);
+
+            assertInvariants(universe);
+            final SortedSet<Duration> prehistoryTransitionTimes = universe.getObjectStateHistory(object)
+                    .getTransitionTimes().headSet(universe.getHistoryStart());
+            assertThat("No more than 1 prehistory state", Integer.valueOf(prehistoryTransitionTimes.size()),
+                    lessThanOrEqualTo(Integer.valueOf(1)));
         }
     }// class
 

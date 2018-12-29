@@ -1845,6 +1845,8 @@ public class Universe {
      * @return The time-stamp of the last committed state time-stamp of the object
      *         with {@code object} as its ID, or null if {@code object} is not a
      *         {@linkplain #getObjectIds() known object ID}.
+     * @throws NullPointerException
+     *             If {@code object} is null
      */
     public final @Nullable Duration getLatestCommit(@NonNull final UUID object) {
         Objects.requireNonNull(object, "object");
@@ -2009,9 +2011,33 @@ public class Universe {
      * @return The time-stamp of the first event of the object with {@code object}
      *         as its ID, or null if {@code object} is not a
      *         {@linkplain #getObjectIds() known object ID}.
+     * @throws NullPointerException
+     *             If {@code object} is null
      */
     public final @Nullable Duration getWhenFirstState(@NonNull final UUID object) {
         return getObjectStateHistory(object).getFirstTansitionTime();
+    }
+
+    /**
+     * <p>
+     * Remove unnecessary {@linkplain ObjectState object states} from the
+     * {@linkplain #getObjectStateHistory(UUID) state history} of a given object for
+     * times before the {@linkplain #getHistoryStart() history start time}.
+     * </p>
+     * <p>
+     * The universe needs to record only one object state before the history start
+     * time. If the given object has more than one such state, it removes all except
+     * the most recent
+     * </p>
+     *
+     * @param object
+     *            The ID of the object of interest.
+     * @throws NullPointerException
+     *             If {@code object} is null
+     */
+    public final void prunePrehistory(@NonNull final UUID object) {
+        Objects.requireNonNull(object, "object");
+        // TODO
     }
 
     /**
