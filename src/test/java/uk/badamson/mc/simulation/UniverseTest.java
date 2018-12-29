@@ -223,7 +223,7 @@ public class UniverseTest {
 
                 assertEquals(history0, universe.getObjectStateHistory(object), "history is unchanged");
             }
-        }
+        }// class
 
         @Nested
         public class Remove1 {
