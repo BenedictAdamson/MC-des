@@ -1,7 +1,7 @@
 package uk.badamson.mc.history;
-/* 
+/*
  * © Copyright Benedict Adamson 2018.
- * 
+ *
  * This file is part of MC-des.
  *
  * MC-des is free software: you can redistribute it and/or modify
@@ -36,10 +36,18 @@ import net.jcip.annotations.NotThreadSafe;
  * <p>
  * The time-wise variation of a value that changes at discrete points in time.
  * </p>
- * 
- * @param VALUE
- *            The class of values of this value history. This must be
- *            {@link Immutable immutable}, or have reference semantics.
+ * <p>
+ * The class encapsulates a {@linkplain #get(Duration) mapping from points in
+ * time to the value at that point in time}, with that mapping defined for all
+ * points in time. Points in time are represented as the {@linkplain Duration
+ * duration} since an (implied) epoch.
+ * </p>
+ *
+ * <dl>
+ * <dt>VALUE</dt>
+ * <dd>The class of values of this value history. This must be {@link Immutable
+ * immutable}, or have reference semantics.</dd>
+ * </dl>
  */
 @NotThreadSafe
 public interface ValueHistory<VALUE> {
@@ -59,19 +67,19 @@ public interface ValueHistory<VALUE> {
 
     /**
      * <p>
-     * Whether this value history is <dfn>equal</dfn> another object.
+     * Whether this value history <dfn>equals</dfn> another object.
      * </p>
      * <p>
-     * The {@link ValueHistory} class has <i>value semantics</i>: for this to be
-     * equal to another object, the other object must also be a
-     * {@link ValueHistory}, and the two value histories must have
-     * {@linkplain Objects#equals(Object) equal (or equally null)}
-     * {@linkplain #get(Duration) values} at all points in time. The latter is
-     * equivalent to having the their {@linkplain #getFirstValue() first values}
-     * equal (or equally null) and having {@linkplain SortedMap#equals(Object)
-     * equal} {@linkplain #getTransitions() transitions}.
+     * The {@link ValueHistory} class has <i>value semantics</i>: for this to equal
+     * another object, the other object must also be a {@link ValueHistory}, and the
+     * two value histories must have {@linkplain Objects#equals(Object) equal (or
+     * equally null)} {@linkplain #get(Duration) values} at all points in time. The
+     * latter is equivalent to having their {@linkplain #getFirstValue() first
+     * values} equal (or equally null) and having
+     * {@linkplain SortedMap#equals(Object) equal} {@linkplain #getTransitions()
+     * transitions}.
      * </p>
-     * 
+     *
      * @param that
      *            The other object
      * @return Whether equal.
@@ -83,15 +91,15 @@ public interface ValueHistory<VALUE> {
      * <p>
      * Get the value at a given point in time.
      * </p>
-     * 
+     *
      * @param when
      *            The point in time of interest, expressed as a duration since an
-     *            epoch.
+     *            (implied) epoch.
      * @return The value at the given point in time.
      * @throws NullPointerException
      *             If {@code when} is null.
      */
-    public @Nullable VALUE get(@NonNull Duration t);
+    public @Nullable VALUE get(@NonNull Duration when);
 
     /**
      * <p>
@@ -108,7 +116,7 @@ public interface ValueHistory<VALUE> {
      * <li>This method is typically more efficient than using the
      * {@link #getTransitionTimes()} method.</li>
      * </ul>
-     * 
+     *
      * @return the first transition time.
      */
     public @Nullable Duration getFirstTansitionTime();
@@ -125,7 +133,7 @@ public interface ValueHistory<VALUE> {
      * <li>This method is typically more efficient than using the
      * {@link #get(Duration)} method.</li>
      * </ul>
-     * 
+     *
      * @return the last value.
      */
     public @Nullable VALUE getFirstValue();
@@ -145,7 +153,7 @@ public interface ValueHistory<VALUE> {
      * <li>This method is typically more efficient than using the
      * {@link #getTransitionTimes()} method.</li>
      * </ul>
-     * 
+     *
      * @return the last transition time.
      */
     public @Nullable Duration getLastTansitionTime();
@@ -168,7 +176,7 @@ public interface ValueHistory<VALUE> {
      * <li>This method is typically more efficient than using the
      * {@link #getTransitionTimes()} and {@link #get(Duration)} methods.</li>
      * </ul>
-     * 
+     *
      * @return the last value.
      */
     public @Nullable VALUE getLastValue();
@@ -188,13 +196,13 @@ public interface ValueHistory<VALUE> {
      * <li>A (non null) transition time at or after the given time
      * {@linkplain SortedSet#contains(Object) is one of} the
      * {@linkplain #getTransitionTimes() transition times}.</li>
-     * <li>This method is more efficient than using the
+     * <li>This method is typically more efficient than using the
      * {@link #getTransitionTimes()} method.</li>
      * </ul>
-     * 
+     *
      * @param when
      *            The point in time of interest, expressed as a duration since an
-     *            epoch.
+     *            (implied) epoch.
      * @return the transition time at or after the given time.
      * @throws NullPointerException
      *             if {@code when} is null.
@@ -211,7 +219,7 @@ public interface ValueHistory<VALUE> {
      * {@linkplain SortedSet#equals(Object) equal} to the
      * {@linkplain #getTransitionTimes() transition times}.</li>
      * <li>The {@linkplain SortedMap#get(Object) values} of the transition map are
-     * {@linkplain Objects#equals(Object, Object) equal (or equally null)} of the
+     * {@linkplain Objects#equals(Object, Object) equal to (or equally null as)} the
      * {@linkplain #get(Duration) value} of this history at the time of their
      * corresponding {@linkplain Map.Entry#getKey() key}.</li>
      * <li>The transitions map may be
@@ -221,7 +229,7 @@ public interface ValueHistory<VALUE> {
      * modifying it will not change this value history (it might be a newly
      * constructed object).</li>
      * </ul>
-     * 
+     *
      * @return a map of the transitions.
      */
     public @NonNull SortedMap<Duration, VALUE> getTransitions();
@@ -254,7 +262,7 @@ public interface ValueHistory<VALUE> {
      * <li>This method is typically more efficient that using the
      * {@linkplain #getTransitions() transitions map}.</li>
      * </ul>
-     * 
+     *
      * @return the transition times
      */
     public @NonNull SortedSet<Duration> getTransitionTimes();
@@ -269,7 +277,7 @@ public interface ValueHistory<VALUE> {
      * value is null) plus the {@linkplain Map#hashCode() hash code} of the
      * {@linkplain #getTransitions() transitions}.
      * </p>
-     * 
+     *
      * @return the hash code
      */
     @Override
@@ -283,10 +291,10 @@ public interface ValueHistory<VALUE> {
      * <li>A value history is empty if, and only if, it
      * {@linkplain SortedSet#isEmpty() has no} {@linkplain #getTransitionTimes()
      * transitions}.</li>
-     * <li>This method is more efficient than using the
+     * <li>This method is typically more efficient than using the
      * {@link #getTransitionTimes()} method.</li>
      * </ul>
-     * 
+     *
      */
     public boolean isEmpty();
 
@@ -304,7 +312,7 @@ public interface ValueHistory<VALUE> {
      * the {@linkplain #getTransitions() transitions map} and then creating a stream
      * from its entries.</li>
      * </ul>
-     * 
+     *
      * @return a stream of the transitions.
      */
     public @NonNull Stream<Map.Entry<Duration, VALUE>> streamOfTransitions();

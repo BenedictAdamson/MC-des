@@ -1,7 +1,7 @@
 package uk.badamson.mc.history;
-/* 
+/*
  * © Copyright Benedict Adamson 2018.
- * 
+ *
  * This file is part of MC-des.
  *
  * MC-des is free software: you can redistribute it and/or modify
@@ -44,11 +44,13 @@ import net.jcip.annotations.NotThreadSafe;
  * The modifiable time-wise variation of a set of value that changes at discrete
  * points in time.
  * </p>
- * 
- * @param VALUE
- *            The class of values of this value history. This must be an
- *            {@link Immutable immutable} type.
- * 
+ *
+ * <dl>
+ * <dt>VALUE</dt>
+ * <dd>The class of values of this set history. This must be {@link Immutable
+ * immutable}, or have reference semantics.</dd>
+ * </dl>
+ *
  * @see ModifiableValueHistory
  */
 @NotThreadSafe
@@ -61,7 +63,8 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
 
     /**
      * <p>
-     * Construct an set value history that is unknown (null) for all points in time.
+     * Construct a set value history that is initially {@linkplain Set#isEmpty()
+     * empty} for all points in time.
      * </p>
      * <ul>
      * <li>This {@linkplain #isEmpty() is empty}.</li>
@@ -90,7 +93,7 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
      * has its {@linkplain ValueHistory#getLastTansitionTime() last transition time}
      * is at or before the given time.</li>
      * </ul>
-     * 
+     *
      * @param when
      *            The point in time from which this set history must have the
      *            {@code value} as one of the values of the set, represented as the
@@ -98,14 +101,14 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
      * @param value
      *            The value that this set history must have as one of the values of
      *            the set at or after the given point in time.
-     * 
+     *
      * @throws NullPointerException
      *             If {@code when} is null.
-     * 
+     *
      * @see ModifiableValueHistory#setValueFrom(Duration, Object)
      * @see Set#add(Object)
      */
-    public final void addFrom(@NonNull Duration when, @Nullable VALUE value) {
+    public final void addFrom(@NonNull final Duration when, @Nullable final VALUE value) {
         Objects.requireNonNull(when, "when");
         var c = containsMap.get(value);
         if (c == null) {
@@ -134,7 +137,7 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
      * has its {@linkplain ValueHistory#getFirstTansitionTime() first transition
      * time} after the given time.</li>
      * </ul>
-     * 
+     *
      * @param when
      *            The point in time until which this set history must have the
      *            {@code value} as one of the values of the set, represented as the
@@ -142,14 +145,14 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
      * @param value
      *            The value that this set history must have as one of the values of
      *            the set at or before the given point in time.
-     * 
+     *
      * @throws NullPointerException
      *             If {@code when} is null.
-     * 
+     *
      * @see ModifiableValueHistory#setValueUntil(Duration, Object)
      * @see Set#add(Object)
      */
-    public final void addUntil(@NonNull Duration when, @Nullable VALUE value) {
+    public final void addUntil(@NonNull final Duration when, @Nullable final VALUE value) {
         Objects.requireNonNull(when, "when");
         var c = containsMap.get(value);
         if (c == null) {
@@ -161,13 +164,13 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
     }
 
     @Override
-    public final @NonNull ValueHistory<Boolean> contains(@Nullable VALUE value) {
+    public final @NonNull ValueHistory<Boolean> contains(@Nullable final VALUE value) {
         final var c = containsMap.get(value);
         return c == null ? ABSENT : c;
     }
 
     @Override
-    public final boolean equals(Object that) {
+    public final boolean equals(final Object that) {
         if (that == null)
             return false;
         if (this == that)
@@ -176,15 +179,20 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
             @SuppressWarnings("unchecked")
             final ModifiableSetHistory<VALUE> thatValueHistory = (ModifiableSetHistory<VALUE>) that;
             return firstValue.equals(thatValueHistory.firstValue) && containsMap.equals(thatValueHistory.containsMap);
-        } else {
+        } else
             return super.equals(that);
-        }
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @throws NullPointerException
+     *             {@inheritDoc}
+     */
     @Override
-    public final @NonNull Set<VALUE> get(@NonNull Duration t) {
-        Objects.requireNonNull(t, "t");
-        Set<VALUE> result = containsMap.entrySet().stream().filter(e -> e.getValue().get(t).booleanValue())
+    public final @NonNull Set<VALUE> get(@NonNull final Duration when) {
+        Objects.requireNonNull(when, "when");
+        final Set<VALUE> result = containsMap.entrySet().stream().filter(e -> e.getValue().get(when).booleanValue())
                 .map(e -> e.getKey()).collect(Collectors.toSet());
         return result;
     }
@@ -216,7 +224,7 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
     @Override
     public final @NonNull SortedMap<Duration, Set<VALUE>> getTransitions() {
         final SortedMap<Duration, Set<VALUE>> transitions = new TreeMap<>();
-        for (var t : getTransitionTimes()) {
+        for (final var t : getTransitionTimes()) {
             transitions.put(t, get(t));
         }
         return transitions;
@@ -255,13 +263,13 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
      * <li>The {@linkplain #getUniverse() universe} of this time varying set does
      * not {@linkplain Set#contains(Object) contain} the given value.</li>
      * </ul>
-     * 
+     *
      * @param value
      *            The value to remove
-     * 
+     *
      * @see Set#remove(Object)
      */
-    public final void remove(@Nullable VALUE value) {
+    public final void remove(@Nullable final VALUE value) {
         containsMap.remove(value);
         firstValue.remove(value);
     }

@@ -1,7 +1,7 @@
 package uk.badamson.mc.simulation;
-/* 
+/*
  * © Copyright Benedict Adamson 2018.
- * 
+ *
  * This file is part of MC-des.
  *
  * MC-des is free software: you can redistribute it and/or modify
@@ -41,17 +41,16 @@ public class ObjectStateTest {
         private final UUID dependent;
         private final Duration dependencyDelay;
 
-        DependentTestObjectState(int i, UUID dependent, Duration dependencyDelay) {
+        DependentTestObjectState(final int i, final UUID dependent, final Duration dependencyDelay) {
             super(i);
             this.dependent = Objects.requireNonNull(dependent, "dependent");
             this.dependencyDelay = Objects.requireNonNull(dependencyDelay, "dependencyDelay");
-            if (dependencyDelay.isNegative() || dependencyDelay.isZero()) {
+            if (dependencyDelay.isNegative() || dependencyDelay.isZero())
                 throw new IllegalArgumentException("dependencyDelay" + dependencyDelay);
-            }
         }
 
         @Override
-        public void putNextStateTransition(Universe.Transaction transaction, UUID object, Duration when) {
+        public void doNextEvent(final Universe.Transaction transaction, final UUID object, final Duration when) {
             requirePutNextStateTransitionPreconditions(this, transaction, object, when);
 
             final TestObjectState nextState = new TestObjectState(i + 1);
@@ -63,12 +62,12 @@ public class ObjectStateTest {
 
     static final class SelfDestructingObjectState extends TestObjectState {
 
-        SelfDestructingObjectState(int i) {
+        SelfDestructingObjectState(final int i) {
             super(i);
         }
 
         @Override
-        public void putNextStateTransition(Universe.Transaction transaction, UUID object, Duration when) {
+        public void doNextEvent(final Universe.Transaction transaction, final UUID object, final Duration when) {
             requirePutNextStateTransitionPreconditions(this, transaction, object, when);
 
             final ObjectState nextState = null;
@@ -81,14 +80,14 @@ public class ObjectStateTest {
         private final UUID child;
         private final int childId;
 
-        SpawningTestObjectState(int i, int childId, UUID child) {
+        SpawningTestObjectState(final int i, final int childId, final UUID child) {
             super(i);
             this.child = Objects.requireNonNull(child, "child");
             this.childId = childId;
         }
 
         @Override
-        public void putNextStateTransition(Universe.Transaction transaction, UUID object, Duration when) {
+        public void doNextEvent(final Universe.Transaction transaction, final UUID object, final Duration when) {
             requirePutNextStateTransitionPreconditions(this, transaction, object, when);
 
             final TestObjectState nextState = new TestObjectState(i + 1);
@@ -102,34 +101,34 @@ public class ObjectStateTest {
     static class TestObjectState implements ObjectState {
         protected final int i;
 
-        public TestObjectState(int i) {
+        public TestObjectState(final int i) {
             this.i = i;
         }
 
         @Override
-        public final boolean equals(Object obj) {
+        public void doNextEvent(final Universe.Transaction transaction, final UUID object, final Duration when) {
+            requirePutNextStateTransitionPreconditions(this, transaction, object, when);
+
+            final TestObjectState nextState = new TestObjectState(i + 1);
+            transaction.beginWrite(when.plusSeconds(1));
+            transaction.put(object, nextState);
+        }
+
+        @Override
+        public final boolean equals(final Object obj) {
             if (this == obj)
                 return true;
             if (obj == null)
                 return false;
             if (!(obj instanceof TestObjectState))
                 return false;
-            TestObjectState other = (TestObjectState) obj;
+            final TestObjectState other = (TestObjectState) obj;
             return i == other.i;
         }
 
         @Override
         public final int hashCode() {
             return i;
-        }
-
-        @Override
-        public void putNextStateTransition(Universe.Transaction transaction, UUID object, Duration when) {
-            requirePutNextStateTransitionPreconditions(this, transaction, object, when);
-
-            final TestObjectState nextState = new TestObjectState(i + 1);
-            transaction.beginWrite(when.plusSeconds(1));
-            transaction.put(object, nextState);
         }
 
         @Override
@@ -144,17 +143,17 @@ public class ObjectStateTest {
     static final Duration WHEN_1 = Duration.ofSeconds(13);
     static final Duration WHEN_2 = Duration.ofSeconds(23);
 
-    public static void assertInvariants(ObjectState state) {
+    public static void assertInvariants(final ObjectState state) {
         // Do nothing
     }
 
-    public static void assertInvariants(ObjectState state1, ObjectState state2) {
+    public static void assertInvariants(final ObjectState state1, final ObjectState state2) {
         // Do nothing
     }
 
-    public static void putNextStateTransition(ObjectState state, Universe.Transaction transaction, UUID object,
-            Duration when) {
-        state.putNextStateTransition(transaction, object, when);
+    public static void doNextEvent(final ObjectState state, final Universe.Transaction transaction, final UUID object,
+            final Duration when) {
+        state.doNextEvent(transaction, object, when);
 
         assertInvariants(state);
         UniverseTest.TransactionTest.assertInvariants(transaction);
@@ -162,7 +161,7 @@ public class ObjectStateTest {
         final Duration transactionWhen = transaction.getWhen();
         assertThat("The method puts the given transaction into write mode with a write time-stamp in the future.",
                 transactionWhen, greaterThan(when));
-        for (var dependencyEntry : transaction.getObjectStatesRead().entrySet()) {
+        for (final var dependencyEntry : transaction.getObjectStatesRead().entrySet()) {
             final ObjectStateId dependencyId = dependencyEntry.getKey();
             final UUID dependencyObject = dependencyId.getObject();
             final Duration dependencyWhen = dependencyId.getWhen();
@@ -173,14 +172,12 @@ public class ObjectStateTest {
         }
     }
 
-    private static void requirePutNextStateTransitionPreconditions(ObjectState state, Universe.Transaction transaction,
-            UUID object, Duration when) {
+    private static void requirePutNextStateTransitionPreconditions(final ObjectState state,
+            final Universe.Transaction transaction, final UUID object, final Duration when) {
         Objects.requireNonNull(transaction, "transaction");
         Objects.requireNonNull(object, "object");
         Objects.requireNonNull(when, "when");
-        if (!Collections.singletonMap(new ObjectStateId(object, when), state)
-                .equals(transaction.getObjectStatesRead())) {
+        if (!Collections.singletonMap(new ObjectStateId(object, when), state).equals(transaction.getObjectStatesRead()))
             throw new IllegalArgumentException("objectStatesRead does not consists of only this state");
-        }
     }
 }

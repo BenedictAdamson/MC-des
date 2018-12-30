@@ -1,7 +1,7 @@
 package uk.badamson.mc;
-/* 
+/*
  * © Copyright Benedict Adamson 2018.
- * 
+ *
  * This file is part of MC-des.
  *
  * MC-des is free software: you can redistribute it and/or modify
@@ -21,6 +21,7 @@ package uk.badamson.mc;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -32,17 +33,17 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
 public final class ObjectTest {
 
-    public static void assertInvariants(Object object) {
+    public static void assertInvariants(final Object object) {
         assert object != null;
         assertAll("equals", () -> assertEquals(object, object, "An object is always equivalent to itself"),
                 () -> assertFalse(object.equals(null), "An object is never equivalent to null"));
     }
 
-    public static void assertInvariants(Object object1, Object object2) {
+    public static void assertInvariants(final Object object1, final Object object2) {
         assert object1 != null;
         assert object2 != null;
         final boolean equals = object1.equals(object2);
-        assertAll("equals", () -> assertEquals(equals, object2.equals(object1), "Equality is symmetric"),
+        assertAll("equals", () -> assertTrue(equals == object2.equals(object1), "Equality is symmetric"),
                 () -> assertFalse(equals && object1.hashCode() != object2.hashCode(),
                         "hashCode() is consistent with equals()"));
     }

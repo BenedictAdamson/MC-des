@@ -1,7 +1,7 @@
 package uk.badamson.mc.simulation;
-/* 
+/*
  * © Copyright Benedict Adamson 2018.
- * 
+ *
  * This file is part of MC-des.
  *
  * MC-des is free software: you can redistribute it and/or modify
@@ -46,20 +46,22 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
      * <li>The {@linkplain #getWhen() time-stamp} of this ID is the given
      * time-stamp.</li>
      * </ul>
-     * 
+     *
      * @param object
      *            The unique ID of the object for which the {@link ObjectState} this
      *            identifies is a state.
      * @param when
      *            The point in time that the {@linkplain #getObject() object} has
-     *            the state identified by this ID.
+     *            the state identified by this ID, expressed as a duration since an
+     *            (implied) epoch. All {@link ObjectState} objects in a simulation
+     *            should use the same epoch.
      * @throws NullPointerException
      *             <ul>
      *             <li>If {@code object} is null.</li>
      *             <li>If {@code when} is null.</li>
      *             </ul>
      */
-    public ObjectStateId(@NonNull UUID object, @NonNull Duration when) {
+    public ObjectStateId(@NonNull final UUID object, @NonNull final Duration when) {
         this.object = Objects.requireNonNull(object, "object");
         this.when = Objects.requireNonNull(when, "when");
     }
@@ -79,7 +81,7 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
      * {@linkplain Duration#equals(Object) equal} time-stamps, their ordering is
      * equivalent to the ordering of their object IDs.</li>
      * </ul>
-     * 
+     *
      * @param that
      *            The other ID to compare with this ID.
      * @return a value that has a sign or zeroness that indicates the order of this
@@ -88,7 +90,7 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
      *             If {@code that} is null.
      */
     @Override
-    public final int compareTo(ObjectStateId that) {
+    public final int compareTo(final ObjectStateId that) {
         Objects.requireNonNull(that, "that");
         int c = when.compareTo(that.when);
         if (c == 0) {
@@ -106,20 +108,20 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
      * if, and only if, they have equivalent {@linkplain #getObject() object IDs}
      * and {@linkplain #getWhen() time-stamps}.
      * </p>
-     * 
+     *
      * @param that
      *            The object to compare with this object.
      * @return whether this object is equivalent to {@code that} object.
      */
     @Override
-    public final boolean equals(Object that) {
+    public final boolean equals(final Object that) {
         if (this == that)
             return true;
         if (that == null)
             return false;
         if (getClass() != that.getClass())
             return false;
-        ObjectStateId other = (ObjectStateId) that;
+        final ObjectStateId other = (ObjectStateId) that;
         return when.equals(other.when) && object.equals(other.object);
     }
 
@@ -128,7 +130,7 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
      * The unique ID of the object for which the {@link ObjectState} this identifies
      * is a state.
      * </p>
-     * 
+     *
      * @return The object ID; not null.
      */
     public final @NonNull UUID getObject() {
@@ -141,10 +143,10 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
      * identified by this ID.
      * </p>
      * <p>
-     * Expressed as the duration since an epoch. All {@link ObjectState} objects in
-     * a simulation should use the same epoch.
+     * Expressed as the duration since an (implied) epoch. All {@link ObjectState}
+     * objects in a simulation should use the same epoch.
      * </p>
-     * 
+     *
      * @return the amount of time since the epoch; not null.
      */
     public final @NonNull Duration getWhen() {

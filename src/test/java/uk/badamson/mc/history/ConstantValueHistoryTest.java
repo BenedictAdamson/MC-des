@@ -1,7 +1,7 @@
 package uk.badamson.mc.history;
-/* 
+/*
  * © Copyright Benedict Adamson 2018.
- * 
+ *
  * This file is part of MC-des.
  *
  * MC-des is free software: you can redistribute it and/or modify
@@ -39,7 +39,7 @@ import uk.badamson.mc.ObjectTest;
  */
 public class ConstantValueHistoryTest {
 
-    public static <VALUE> void assertInvariants(ConstantValueHistory<VALUE> history) {
+    public static <VALUE> void assertInvariants(final ConstantValueHistory<VALUE> history) {
         ObjectTest.assertInvariants(history);// inherited
         ValueHistoryTest.assertInvariants(history);// inherited
 
@@ -53,19 +53,19 @@ public class ConstantValueHistoryTest {
                 () -> assertNull(history.getLastTansitionTime(), "The  last transition time is null."));
     }
 
-    public static <VALUE> void assertInvariants(ConstantValueHistory<VALUE> history1,
-            ConstantValueHistory<VALUE> history2) {
+    public static <VALUE> void assertInvariants(final ConstantValueHistory<VALUE> history1,
+            final ConstantValueHistory<VALUE> history2) {
         ObjectTest.assertInvariants(history1, history2);// inherited
         ValueHistoryTest.assertInvariants(history1, history2);// inherited
     }
 
-    public static <VALUE> void assertInvariants(ValueHistory<VALUE> history, Duration time) {
+    public static <VALUE> void assertInvariants(final ValueHistory<VALUE> history, final Duration time) {
         ValueHistoryTest.assertInvariants(history, time);// inherited
 
         assertNull(history.getTansitionTimeAtOrAfter(time), "The transition time at or after all given times is null");
     }
 
-    private <VALUE> void constructor(@Nullable VALUE value) {
+    private <VALUE> void constructor(@Nullable final VALUE value) {
         final ConstantValueHistory<VALUE> history = new ConstantValueHistory<>(value);
 
         assertInvariants(history);
@@ -73,7 +73,7 @@ public class ConstantValueHistoryTest {
                 () -> assertSame(value, history.getLastValue(), "The last value is the given value."));
     }
 
-    private <VALUE> void constructor_2Equals(@Nullable VALUE value) {
+    private <VALUE> void constructor_2Equals(@Nullable final VALUE value) {
         final ConstantValueHistory<VALUE> history1 = new ConstantValueHistory<>(value);
         final ConstantValueHistory<VALUE> history2 = new ConstantValueHistory<>(value);
 
@@ -88,7 +88,7 @@ public class ConstantValueHistoryTest {
 
     @Test
     public void constructor_2Equals_B() {
-        constructor_2Equals(Integer.MAX_VALUE);
+        constructor_2Equals(Integer.valueOf(Integer.MAX_VALUE));
     }
 
     @Test
@@ -103,7 +103,7 @@ public class ConstantValueHistoryTest {
 
     @Test
     public void constructor_B() {
-        constructor(Integer.MAX_VALUE);
+        constructor(Integer.valueOf(Integer.MAX_VALUE));
     }
 
     @Test
