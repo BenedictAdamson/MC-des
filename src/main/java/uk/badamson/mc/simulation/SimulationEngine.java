@@ -315,18 +315,21 @@ public final class SimulationEngine {
                         .collect(Collectors.toSet());
                 final Duration whenWritten = transaction.getWhen();
                 final Map<UUID, ObjectState> objectStatesWritten = transaction.getObjectStatesWritten();
-                if (!objectStatesReadAtOrAfter.isEmpty())
+                if (!objectStatesReadAtOrAfter.isEmpty()) {
                     throw new IllegalStateException(
                             "Read object states at or after the given time " + objectStatesReadAtOrAfter);
-                if (whenWritten == null)
+                }
+                if (whenWritten == null) {
                     throw new IllegalStateException("Did not put the transaction into write mode.");
-                else if (whenWritten.compareTo(when) <= 0)
+                } else if (whenWritten.compareTo(when) <= 0) {
                     throw new IllegalStateException("when is not after the given point in time");
+                }
                 final ObjectState nextState = objectStatesWritten.get(object);
-                if (nextState == null && !objectStatesWritten.containsKey(object))
+                if (nextState == null && !objectStatesWritten.containsKey(object)) {
                     throw new IllegalStateException("Did not put() a state for the given object");
-                else if (Objects.equals(state0, nextState))
+                } else if (Objects.equals(state0, nextState)) {
                     throw new IllegalStateException("put() a state equal to itself");
+                }
             } catch (final RuntimeException e) {
                 throw new RuntimeException(createPutNextStateTransitionFailureMessage(state0, object, when), e);
             } catch (final AssertionError e) {

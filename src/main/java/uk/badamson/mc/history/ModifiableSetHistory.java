@@ -171,16 +171,19 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
 
     @Override
     public final boolean equals(final Object that) {
-        if (that == null)
+        if (that == null) {
             return false;
-        if (this == that)
+        }
+        if (this == that) {
             return true;
+        }
         if (that instanceof ModifiableSetHistory) {
             @SuppressWarnings("unchecked")
             final ModifiableSetHistory<VALUE> thatValueHistory = (ModifiableSetHistory<VALUE>) that;
             return firstValue.equals(thatValueHistory.firstValue) && containsMap.equals(thatValueHistory.containsMap);
-        } else
+        } else {
             return super.equals(that);
+        }
     }
 
     /**

@@ -45,17 +45,20 @@ abstract class AbstractValueHistory<VALUE> implements ValueHistory<VALUE> {
 
     @Override
     public boolean equals(final Object that) {
-        if (that == null)
+        if (that == null) {
             return false;
-        if (this == that)
+        }
+        if (this == that) {
             return true;
+        }
         if (that instanceof ValueHistory) {
             @SuppressWarnings("unchecked")
             final ValueHistory<VALUE> thatValueHistory = (ValueHistory<VALUE>) that;
             return Objects.equals(getFirstValue(), thatValueHistory.getFirstValue())
                     && getTransitions().equals(thatValueHistory.getTransitions());
-        } else
+        } else {
             return false;
+        }
     }
 
     @Override

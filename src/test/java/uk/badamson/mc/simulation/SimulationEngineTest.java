@@ -1351,12 +1351,13 @@ public class SimulationEngineTest {
             throw new AssertionError(e);
         } catch (final ExecutionException e) {
             final Throwable cause = e.getCause();
-            if (cause instanceof AssertionError)
+            if (cause instanceof AssertionError) {
                 throw (AssertionError) cause;
-            else if (cause instanceof RuntimeException)
+            } else if (cause instanceof RuntimeException) {
                 throw (RuntimeException) cause;
-            else
+            } else {
                 throw new AssertionError(e);
+            }
         }
     }
 
@@ -1378,12 +1379,13 @@ public class SimulationEngineTest {
                     e.addSuppressed(exception);
                 }
             }
-            if (e instanceof AssertionError)
+            if (e instanceof AssertionError) {
                 throw (AssertionError) e;
-            else if (e instanceof RuntimeException)
+            } else if (e instanceof RuntimeException) {
                 throw (RuntimeException) e;
-            else
+            } else {
                 throw new AssertionError(e);
+            }
         }
     }
 

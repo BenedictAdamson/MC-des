@@ -115,12 +115,15 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
      */
     @Override
     public final boolean equals(final Object that) {
-        if (this == that)
+        if (this == that) {
             return true;
-        if (that == null)
+        }
+        if (that == null) {
             return false;
-        if (getClass() != that.getClass())
+        }
+        if (getClass() != that.getClass()) {
             return false;
+        }
         final ObjectStateId other = (ObjectStateId) that;
         return when.equals(other.when) && object.equals(other.object);
     }
