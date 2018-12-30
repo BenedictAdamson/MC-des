@@ -52,7 +52,7 @@ public interface ObjectState {
      * for the object using the transaction. If the event creates new objects, the
      * method also writes the initial states of those new objects. The point in time
      * for which the method {@linkplain Universe.Transaction#beginWrite(Duration)
-     * writes} those states is taken to be the point in time that the even occurs.
+     * writes} those states is taken to be the point in time that the event occurs.
      * </p>
      * <p>
      * Events computed by this method respect causality: the effect of the event
