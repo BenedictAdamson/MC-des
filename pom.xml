@@ -14,4 +14,15 @@
 		<developerConnection>scm:git:git@github.com:BenedictAdamson/MC-des.git</developerConnection>
 		<url>https://github.com/BenedictAdamson/MC-des</url>
 	</scm>
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<argLine>--add-opens
+						uk.badamson.mc.simulation/uk.badamson.mc.simulation=ALL-UNNAMED</argLine>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
 </project>

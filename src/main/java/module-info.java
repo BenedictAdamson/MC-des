@@ -85,7 +85,4 @@ module uk.badamson.mc.simulation {
 
     // Automatic modules:
     requires static jcip.annotations;
-
-    // Work-arounds for testing
-    opens uk.badamson.mc.simulation;
 }
