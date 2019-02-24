@@ -45,8 +45,9 @@ public class ObjectStateTest {
             super(i);
             this.dependent = Objects.requireNonNull(dependent, "dependent");
             this.dependencyDelay = Objects.requireNonNull(dependencyDelay, "dependencyDelay");
-            if (dependencyDelay.isNegative() || dependencyDelay.isZero())
+            if (dependencyDelay.isNegative() || dependencyDelay.isZero()) {
                 throw new IllegalArgumentException("dependencyDelay" + dependencyDelay);
+            }
         }
 
         @Override
@@ -116,12 +117,15 @@ public class ObjectStateTest {
 
         @Override
         public final boolean equals(final Object obj) {
-            if (this == obj)
+            if (this == obj) {
                 return true;
-            if (obj == null)
+            }
+            if (obj == null) {
                 return false;
-            if (!(obj instanceof TestObjectState))
+            }
+            if (!(obj instanceof TestObjectState)) {
                 return false;
+            }
             final TestObjectState other = (TestObjectState) obj;
             return i == other.i;
         }
@@ -177,7 +181,9 @@ public class ObjectStateTest {
         Objects.requireNonNull(transaction, "transaction");
         Objects.requireNonNull(object, "object");
         Objects.requireNonNull(when, "when");
-        if (!Collections.singletonMap(new ObjectStateId(object, when), state).equals(transaction.getObjectStatesRead()))
+        if (!Collections.singletonMap(new ObjectStateId(object, when), state)
+                .equals(transaction.getObjectStatesRead())) {
             throw new IllegalArgumentException("objectStatesRead does not consists of only this state");
+        }
     }
 }

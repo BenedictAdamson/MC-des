@@ -3998,12 +3998,13 @@ public class UniverseTest {
             throw new AssertionError(e);
         } catch (final ExecutionException e) {
             final Throwable cause = e.getCause();
-            if (cause instanceof AssertionError)
+            if (cause instanceof AssertionError) {
                 throw (AssertionError) cause;
-            else if (cause instanceof RuntimeException)
+            } else if (cause instanceof RuntimeException) {
                 throw (RuntimeException) cause;
-            else
+            } else {
                 throw new AssertionError(e);
+            }
         }
     }
 
@@ -4022,12 +4023,13 @@ public class UniverseTest {
             for (int i = 1; i < nExceptions; ++i) {
                 e.addSuppressed(exceptions.get(i));
             }
-            if (e instanceof AssertionError)
+            if (e instanceof AssertionError) {
                 throw (AssertionError) e;
-            else if (e instanceof RuntimeException)
+            } else if (e instanceof RuntimeException) {
                 throw (RuntimeException) e;
-            else
+            } else {
                 throw new AssertionError(e);
+            }
         }
     }
 

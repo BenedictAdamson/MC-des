@@ -145,12 +145,13 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
     public void appendTransition(@NonNull final Duration when, final VALUE value) throws IllegalStateException {
         Objects.requireNonNull(when, "when");
         final var lastTransition = transitions.lastEntry();
-        if (lastTransition != null && when.compareTo(lastTransition.getKey()) <= 0)
+        if (lastTransition != null && when.compareTo(lastTransition.getKey()) <= 0) {
             throw new IllegalStateException("Timestamp out of order");
-        else if (lastTransition != null && Objects.equals(value, lastTransition.getValue()))
+        } else if (lastTransition != null && Objects.equals(value, lastTransition.getValue())) {
             throw new IllegalStateException("Equal values");
-        else if (lastTransition == null && Objects.equals(firstValue, value))
+        } else if (lastTransition == null && Objects.equals(firstValue, value)) {
             throw new IllegalStateException("First appended value equals value at start of time");
+        }
         transitions.put(when, value);
     }
 
@@ -161,18 +162,21 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
 
     @Override
     public final boolean equals(final Object that) {
-        if (that == null)
+        if (that == null) {
             return false;
-        if (this == that)
+        }
+        if (this == that) {
             return true;
+        }
         if (that instanceof ModifiableValueHistory) {
             // Optimisation
             @SuppressWarnings("unchecked")
             final ModifiableValueHistory<VALUE> thatValueHistory = (ModifiableValueHistory<VALUE>) that;
             return Objects.equals(firstValue, thatValueHistory.firstValue)
                     && transitions.equals(thatValueHistory.transitions);
-        } else
+        } else {
             return super.equals(that);
+        }
     }
 
     /**

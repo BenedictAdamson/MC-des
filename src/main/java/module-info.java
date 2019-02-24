@@ -84,8 +84,5 @@ module uk.badamson.mc.simulation {
     requires com.github.spotbugs.annotations;
 
     // Automatic modules:
-    requires jcip.annotations;
-
-    // Work-arounds for testing
-    opens uk.badamson.mc.simulation;
+    requires static jcip.annotations;
 }

@@ -65,13 +65,16 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
 
     @Override
     public final boolean equals(final Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
+        }
         // FIXME
-        if (!(obj instanceof ConstantValueHistory))
+        if (!(obj instanceof ConstantValueHistory)) {
             return false;
+        }
         @SuppressWarnings("unchecked")
         final ConstantValueHistory<VALUE> other = (ConstantValueHistory<VALUE>) obj;
         return Objects.equals(value, other.value);
