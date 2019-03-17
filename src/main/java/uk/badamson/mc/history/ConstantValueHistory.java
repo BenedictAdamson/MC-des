@@ -71,7 +71,6 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
         if (obj == null) {
             return false;
         }
-        // FIXME
         if (!(obj instanceof ConstantValueHistory)) {
             return false;
         }
