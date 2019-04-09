@@ -1,5 +1,5 @@
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018-19.
  *
  * This file is part of MC-des.
  *
@@ -82,7 +82,5 @@ module uk.badamson.mc.simulation {
     exports uk.badamson.mc.simulation;
 
     requires com.github.spotbugs.annotations;
-
-    // Automatic modules:
-    requires static jcip.annotations;
+    requires static org.icroco.jcip.annotations;
 }
