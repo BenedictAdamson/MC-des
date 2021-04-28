@@ -43,6 +43,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.ThreadSafe;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import uk.badamson.mc.history.ValueHistory;
 
 /**
@@ -145,29 +146,11 @@ public final class SimulationEngine {
             objectDependencies.add(objectDependency);
         }
 
+        @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification = "SpotBugs 4.2.3 gives false positive")
         private void advance1() {
             try (Universe.Transaction transaction = universe.beginTransaction(this)) {
                 try {
-                    final Duration when = universe.getLatestCommit(object);
-                    assert when != null;
-                    assert when.compareTo(ValueHistory.END_OF_TIME) < 0;
-                    synchronized (this) {
-                        latestCommit = when;
-                        creating.clear();
-                    }
-                    final ObjectState state0 = transaction.getObjectState(object, when);
-                    assert state0 != null;
-                    putNextStateTransition(state0, transaction, when);
-                    /*
-                     * Before this transaction can be committed, any object states it depends on
-                     * must be committed. Ensure those object states will be (eventually) committed.
-                     * If this transaction aborts, because it depends on states that have be
-                     * overwritten, the dependency information is unreliable. However, in that case
-                     * the dependency information is probably partially or approximately correct, so
-                     * using it is a good heuristic to prevent thrashing.
-                     */
-                    addDependencies(new TreeSet<>(transaction.getObjectStatesRead().keySet()));
-                    transaction.beginCommit();
+                    advance1(transaction);
                 } catch (Exception | AssertionError e) {
                     // Hard to test: race hazard.
                     try {
@@ -178,6 +161,29 @@ public final class SimulationEngine {
                     completeExceptionally(e);
                 }
             }
+        }
+
+        private void advance1(@Nonnull Universe.Transaction transaction) {
+            final Duration when = universe.getLatestCommit(object);
+            assert when != null;
+            assert when.compareTo(ValueHistory.END_OF_TIME) < 0;
+            synchronized (this) {
+                latestCommit = when;
+                creating.clear();
+            }
+            final ObjectState state0 = transaction.getObjectState(object, when);
+            assert state0 != null;
+            putNextStateTransition(state0, transaction, when);
+            /*
+             * Before this transaction can be committed, any object states it depends on
+             * must be committed. Ensure those object states will be (eventually) committed.
+             * If this transaction aborts, because it depends on states that have be
+             * overwritten, the dependency information is unreliable. However, in that case
+             * the dependency information is probably partially or approximately correct, so
+             * using it is a good heuristic to prevent thrashing.
+             */
+            addDependencies(new TreeSet<>(transaction.getObjectStatesRead().keySet()));
+            transaction.beginCommit();
         }
 
         private void advanceHistory(@Nonnull final Duration when, @Nullable final UUID dependent) {
@@ -442,6 +448,7 @@ public final class SimulationEngine {
             }
         }
 
+        @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification = "SpotBugs 4.2.3 gives false positive")
         private void startReadTransaction() {
             try (Universe.Transaction transaction = createReadTransaction();) {
                 try {
