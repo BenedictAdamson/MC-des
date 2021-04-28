@@ -170,7 +170,7 @@ public final class SimulationEngine {
                 } catch (Exception | AssertionError e) {
                     // Hard to test: race hazard.
                     try {
-                        uncaughtExceptionHandler.uncaughtException​(e);
+                        uncaughtExceptionHandler.uncaughtException(e);
                     } catch (final Exception e2) {
                         e.addSuppressed(e2);
                     }

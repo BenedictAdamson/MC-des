@@ -8,7 +8,7 @@ import org.opentest4j.MultipleFailuresError;
 import net.jcip.annotations.GuardedBy;
 
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -55,7 +55,7 @@ public class UncaughtExceptionHandlerTest {
         }
 
         @Override
-        public void uncaughtException​(final Throwable e) {
+        public void uncaughtException(final Throwable e) {
             synchronized (exceptions) {
                 exceptions.add(e);
             }
@@ -73,7 +73,7 @@ public class UncaughtExceptionHandlerTest {
 
     public static void uncaughtException​(final UncaughtExceptionHandler handler, final Throwable e) {
         try {
-            handler.uncaughtException​(e);
+            handler.uncaughtException(e);
         } catch (final AssertionError e2) {
             throw e2;
         } catch (final Throwable e2) {
