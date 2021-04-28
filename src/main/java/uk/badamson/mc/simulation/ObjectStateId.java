@@ -23,8 +23,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import javax.annotation.Nonnull;
-
-import net.jcip.annotations.Immutable;
+import javax.annotation.concurrent.Immutable;
 
 /**
  * <p>

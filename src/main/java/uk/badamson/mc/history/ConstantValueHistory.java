@@ -26,8 +26,8 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.stream.Stream;
 
-import edu.umd.cs.findbugs.annotations.Nullable;
-import net.jcip.annotations.Immutable;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 /**
  * <p>

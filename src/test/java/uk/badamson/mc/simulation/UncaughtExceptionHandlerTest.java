@@ -1,12 +1,4 @@
 package uk.badamson.mc.simulation;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import org.opentest4j.MultipleFailuresError;
-
-import net.jcip.annotations.GuardedBy;
-
 /*
  * © Copyright Benedict Adamson 2018,2021.
  *
@@ -25,6 +17,13 @@ import net.jcip.annotations.GuardedBy;
  * You should have received a copy of the GNU General Public License
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.annotation.concurrent.GuardedBy;
+
+import org.opentest4j.MultipleFailuresError;
 
 /**
  * <p>

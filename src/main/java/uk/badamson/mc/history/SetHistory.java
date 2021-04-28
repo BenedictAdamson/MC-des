@@ -23,9 +23,8 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import net.jcip.annotations.Immutable;
-import net.jcip.annotations.NotThreadSafe;
+import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  * <p>

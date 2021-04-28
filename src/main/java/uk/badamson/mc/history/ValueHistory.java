@@ -29,9 +29,8 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import net.jcip.annotations.Immutable;
-import net.jcip.annotations.NotThreadSafe;
+import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  * <p>
@@ -100,7 +99,8 @@ public interface ValueHistory<VALUE> {
      * @throws NullPointerException
      *             If {@code when} is null.
      */
-    @Nullable VALUE get(@Nonnull Duration when);
+    @Nullable
+    VALUE get(@Nonnull Duration when);
 
     /**
      * <p>
@@ -120,7 +120,8 @@ public interface ValueHistory<VALUE> {
      *
      * @return the first transition time.
      */
-    @Nullable Duration getFirstTansitionTime();
+    @Nullable
+    Duration getFirstTansitionTime();
 
     /**
      * <p>
@@ -137,7 +138,8 @@ public interface ValueHistory<VALUE> {
      *
      * @return the last value.
      */
-    @Nullable VALUE getFirstValue();
+    @Nullable
+    VALUE getFirstValue();
 
     /**
      * <p>
@@ -157,7 +159,8 @@ public interface ValueHistory<VALUE> {
      *
      * @return the last transition time.
      */
-    @Nullable Duration getLastTansitionTime();
+    @Nullable
+    Duration getLastTansitionTime();
 
     /**
      * <p>
@@ -180,7 +183,8 @@ public interface ValueHistory<VALUE> {
      *
      * @return the last value.
      */
-    @Nullable VALUE getLastValue();
+    @Nullable
+    VALUE getLastValue();
 
     /**
      * <p>
@@ -208,7 +212,8 @@ public interface ValueHistory<VALUE> {
      * @throws NullPointerException
      *             if {@code when} is null.
      */
-    @Nullable Duration getTansitionTimeAtOrAfter(@Nonnull Duration when);
+    @Nullable
+    Duration getTansitionTimeAtOrAfter(@Nonnull Duration when);
 
     /**
      * <p>
@@ -233,7 +238,8 @@ public interface ValueHistory<VALUE> {
      *
      * @return a map of the transitions.
      */
-    @Nonnull SortedMap<Duration, VALUE> getTransitions();
+    @Nonnull
+    SortedMap<Duration, VALUE> getTransitions();
 
     /**
      * <p>
@@ -266,7 +272,8 @@ public interface ValueHistory<VALUE> {
      *
      * @return the transition times
      */
-    @Nonnull SortedSet<Duration> getTransitionTimes();
+    @Nonnull
+    SortedSet<Duration> getTransitionTimes();
 
     /**
      * <p>
@@ -316,6 +323,7 @@ public interface ValueHistory<VALUE> {
      *
      * @return a stream of the transitions.
      */
-    @Nonnull Stream<Map.Entry<Duration, VALUE>> streamOfTransitions();
+    @Nonnull
+    Stream<Map.Entry<Duration, VALUE>> streamOfTransitions();
 
 }

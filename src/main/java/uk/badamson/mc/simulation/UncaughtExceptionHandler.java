@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation;
 
-import net.jcip.annotations.ThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
 
 /*
  * © Copyright Benedict Adamson 2018,2021.

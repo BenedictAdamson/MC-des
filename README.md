@@ -82,8 +82,7 @@ along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
 
 * [Java 10](https://docs.oracle.com/javase/10/)
 * Annotations:
-    * [JCIP annotations](http://jcip.net/annotations/doc/net/jcip/annotations/package-summary.html)
-    * [SpotBugs annotations](https://javadoc.io/doc/com.github.spotbugs/spotbugs-annotations/3.1.8)
+    * [SpotBugs annotations](https://javadoc.io/doc/com.github.spotbugs/spotbugs-annotations)
 * Development environment:
     * [Eclipse IDE](https://www.eclipse.org/ide/)
     * [Jenkins Editor](https://github.com/de-jcup/eclipse-jenkins-editor)

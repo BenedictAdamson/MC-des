@@ -21,8 +21,7 @@ package uk.badamson.mc.simulation;
 import java.util.UUID;
 
 import javax.annotation.Nonnull;
-
-import net.jcip.annotations.ThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
 
 /**
  * <p>
