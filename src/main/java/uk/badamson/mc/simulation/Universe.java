@@ -221,9 +221,8 @@ public class Universe {
         }
 
         @GuardedBy("lock")
-        private boolean tryToAppendToHistory(final Transaction transaction, final UUID object,
-                @NonNull final Duration when, @Nullable final ObjectState state,
-                @NonNull final Set<Transaction> transactionsToAbort,
+        private boolean tryToAppendToHistory(final Transaction transaction, @NonNull final Duration when,
+                @Nullable final ObjectState state, @NonNull final Set<Transaction> transactionsToAbort,
                 @NonNull final Set<Transaction> pastTheEndReadersToEscalateToSuccessors) throws IllegalStateException {
             assert when != null;
             assert transactionsToAbort != null;
@@ -416,7 +415,7 @@ public class Universe {
          *             request to {@linkplain #beginCommit() begin committing} this
          *             transaction.
          */
-        public final void beginAbort() {
+        public void beginAbort() {
             withLockedTransactionChain(() -> openness.beginAbort(this));
             executeAwaitingAbortCallbacks();
         }
@@ -441,7 +440,7 @@ public class Universe {
          * @throws IllegalStateException
          *             If committing this transaction has already begun.
          */
-        public final void beginCommit() {
+        public void beginCommit() {
             withLockedTransactionChain(() -> openness.beginCommit(this));
             executeAwaitingCommitCallbacks();
             executeAwaitingAbortCallbacks();
@@ -479,7 +478,7 @@ public class Universe {
          *             this method has already been called for this transaction.</li>
          *             </ul>
          */
-        public final void beginWrite(@NonNull final Duration when) {
+        public void beginWrite(@NonNull final Duration when) {
             Objects.requireNonNull(when, "when");
             if (ValueHistory.START_OF_TIME.equals(when)) {
                 throw new IllegalArgumentException("May not write at the start of time");
@@ -517,7 +516,7 @@ public class Universe {
          * </ul>
          */
         @Override
-        public final void close() {
+        public void close() {
             withLockedTransactionChain(() -> openness.close(this));
             executeAwaitingAbortCallbacks();
         }
@@ -602,7 +601,7 @@ public class Universe {
          *             object states already read}.</li>
          *             </ul>
          */
-        public final @Nullable ObjectState getObjectState(@NonNull final UUID object, @NonNull final Duration when) {
+        public @Nullable ObjectState getObjectState(@NonNull final UUID object, @NonNull final Duration when) {
             final ObjectStateId id = new ObjectStateId(object, when);
             @Nullable
             ObjectState objectState;
@@ -649,7 +648,7 @@ public class Universe {
          * @return the object states read.
          * @see Universe#getObjectState(UUID, Duration)
          */
-        public final @NonNull Map<ObjectStateId, ObjectState> getObjectStatesRead() {
+        public @NonNull Map<ObjectStateId, ObjectState> getObjectStatesRead() {
             synchronized (lock) {
                 return new HashMap<>(objectStatesRead);
             }
@@ -679,7 +678,7 @@ public class Universe {
          *
          * @see Universe#getObjectState(UUID, Duration)
          */
-        public final @NonNull Map<UUID, ObjectState> getObjectStatesWritten() {
+        public @NonNull Map<UUID, ObjectState> getObjectStatesWritten() {
             synchronized (lock) {
                 return new HashMap<>(objectStatesWritten);
             }
@@ -693,7 +692,7 @@ public class Universe {
          * @return the degree of openness; not null.
          */
         @NonNull
-        public final TransactionOpenness getOpenness() {
+        public TransactionOpenness getOpenness() {
             synchronized (lock) {
                 return openness;
             }
@@ -709,7 +708,7 @@ public class Universe {
          * @return the time-stamp, or null if this transaction has not (yet) entered
          *         write mode.
          */
-        public final @Nullable Duration getWhen() {
+        public @Nullable Duration getWhen() {
             synchronized (lock) {
                 return when;
             }
@@ -769,7 +768,7 @@ public class Universe {
          *             {@link #beginCommit()} method has been called).</li>
          *             </ul>
          */
-        public final void put(@NonNull final UUID object, @Nullable final ObjectState state) {
+        public void put(@NonNull final UUID object, @Nullable final ObjectState state) {
             Objects.requireNonNull(object, "object");
             if (getOpenness().put(this, object, state)) {
                 listener.onCreate(object);
@@ -956,7 +955,7 @@ public class Universe {
         }
 
         @Override
-        public final String toString() {
+        public String toString() {
             return "Transaction [" + id + "," + getOpenness() + "]";
         }
 
@@ -976,7 +975,6 @@ public class Universe {
             })) {
                 // try again
             }
-            ;
             return result.get();
         }
 
@@ -990,7 +988,7 @@ public class Universe {
             assert Thread.holdsLock(od.lock);
             final boolean created;
             try {
-                created = od.tryToAppendToHistory(this, object, when, state, transactionsToAbort,
+                created = od.tryToAppendToHistory(this, when, state, transactionsToAbort,
                         pastTheEndReadersToEscalateToSuccessors);
             } catch (final IllegalStateException e) {
                 openness = TransactionOpenness.ABORTING;
@@ -1105,7 +1103,7 @@ public class Universe {
         }
 
         @GuardedBy("transaction chain")
-        private final void beginAbort() {
+        private void beginAbort() {
             assert Thread.holdsLock(lock);
             for (final var predecessor : predecessors) {
                 assert Thread.holdsLock(predecessor.lock);
@@ -1188,7 +1186,7 @@ public class Universe {
         }
 
         @Override
-        public final String toString() {
+        public String toString() {
             return "TransactionCoordinator [" + id + "]";
         }
     }// class

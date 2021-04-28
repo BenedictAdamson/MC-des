@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,21.
  *
  * This file is part of MC-des.
  *
@@ -67,7 +67,7 @@ public interface SetHistory<VALUE> extends ValueHistory<Set<VALUE>> {
      *
      * @see Set#contains(Object)
      */
-    public @NonNull ValueHistory<Boolean> contains(@Nullable VALUE value);
+    @NonNull ValueHistory<Boolean> contains(@Nullable VALUE value);
 
     /**
      * <p>
@@ -89,5 +89,5 @@ public interface SetHistory<VALUE> extends ValueHistory<Set<VALUE>> {
      *
      * @return the universe.
      */
-    public @NonNull Set<VALUE> getUniverse();
+    @NonNull Set<VALUE> getUniverse();
 }

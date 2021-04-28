@@ -42,7 +42,7 @@ public interface TransactionListener {
      * The action to perform when (if) a transaction aborts its commit operation.
      * </p>
      */
-    public void onAbort();
+    void onAbort();
 
     /**
      * <p>
@@ -50,7 +50,7 @@ public interface TransactionListener {
      * commit operation.
      * </p>
      */
-    public void onCommit();
+    void onCommit();
 
     /**
      * <p>
@@ -68,6 +68,6 @@ public interface TransactionListener {
      *             (Optionally) if this method of listener has previously been
      *             called for the same transaction and object.
      */
-    public void onCreate(@NonNull UUID object);
+    void onCreate(@NonNull UUID object);
 
 }// interface

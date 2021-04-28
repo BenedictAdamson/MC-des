@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -161,7 +161,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
     }
 
     @Override
-    public final boolean equals(final Object that) {
+    public boolean equals(final Object that) {
         if (that == null) {
             return false;
         }
@@ -186,7 +186,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      *             {@inheritDoc}
      */
     @Override
-    public final @Nullable VALUE get(@NonNull final Duration when) {
+    public @Nullable VALUE get(@NonNull final Duration when) {
         Objects.requireNonNull(when, "when");
         final var previousTransition = transitions.floorEntry(when);
         return previousTransition == null ? firstValue : previousTransition.getValue();
@@ -211,7 +211,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @return the first transition time.
      */
     @Override
-    public final @Nullable Duration getFirstTansitionTime() {
+    public @Nullable Duration getFirstTansitionTime() {
         return transitions.isEmpty() ? null : transitions.firstKey();
     }
 
@@ -230,7 +230,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @return the first value.
      */
     @Override
-    public final @Nullable VALUE getFirstValue() {
+    public @Nullable VALUE getFirstValue() {
         return firstValue;
     }
 
@@ -253,7 +253,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @return the last transition time.
      */
     @Override
-    public final @Nullable Duration getLastTansitionTime() {
+    public @Nullable Duration getLastTansitionTime() {
         return transitions.isEmpty() ? null : transitions.lastKey();
     }
 
@@ -278,19 +278,19 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @return the last value.
      */
     @Override
-    public final @Nullable VALUE getLastValue() {
+    public @Nullable VALUE getLastValue() {
         final var lastTransition = transitions.lastEntry();
         return lastTransition == null ? firstValue : lastTransition.getValue();
     }
 
     @Override
-    public final Duration getTansitionTimeAtOrAfter(@NonNull final Duration when) {
+    public Duration getTansitionTimeAtOrAfter(@NonNull final Duration when) {
         Objects.requireNonNull(when, "when");
         return transitions.ceilingKey(when);
     }
 
     @Override
-    public final @NonNull SortedMap<Duration, VALUE> getTransitions() {
+    public @NonNull SortedMap<Duration, VALUE> getTransitions() {
         return new TreeMap<>(transitions);
     }
 
@@ -320,12 +320,12 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @return the transition times
      */
     @Override
-    public final @NonNull SortedSet<Duration> getTransitionTimes() {
+    public @NonNull SortedSet<Duration> getTransitionTimes() {
         return Collections.unmodifiableSortedSet(transitions.navigableKeySet());
     }
 
     @Override
-    public final int hashCode() {
+    public int hashCode() {
         return (firstValue == null ? 0 : firstValue.hashCode()) + transitions.hashCode();
     }
 
@@ -343,7 +343,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      *
      */
     @Override
-    public final boolean isEmpty() {
+    public boolean isEmpty() {
         return transitions.isEmpty();
     }
 
@@ -371,7 +371,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      *
      * @see #appendTransition(Duration, Object)
      */
-    public final void removeTransitionsFrom(@NonNull final Duration when) {
+    public void removeTransitionsFrom(@NonNull final Duration when) {
         Objects.requireNonNull(when, "when");
         transitions.keySet().removeIf(t -> when.compareTo(t) <= 0);
     }
@@ -407,7 +407,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @see #appendTransition(Duration, Object)
      * @see #setValueUntil(Duration, Object)
      */
-    public final void setValueFrom(@NonNull final Duration when, @Nullable final VALUE value) {
+    public void setValueFrom(@NonNull final Duration when, @Nullable final VALUE value) {
         Objects.requireNonNull(when, "when");
         if (when.equals(START_OF_TIME)) {
             clear(value);
@@ -449,7 +449,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      *
      * @see #setValueFrom(Duration, Object)
      */
-    public final void setValueUntil(@NonNull final Duration when, @Nullable final VALUE value) {
+    public void setValueUntil(@NonNull final Duration when, @Nullable final VALUE value) {
         Objects.requireNonNull(when, "when");
         if (when.equals(END_OF_TIME)) {
             clear(value);
@@ -464,7 +464,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
     }
 
     @Override
-    public final @NonNull Stream<Entry<Duration, VALUE>> streamOfTransitions() {
+    public @NonNull Stream<Entry<Duration, VALUE>> streamOfTransitions() {
         return transitions.entrySet().stream();
     }
 

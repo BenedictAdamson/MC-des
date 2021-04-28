@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -131,6 +131,6 @@ public interface ObjectState {
      *             time-stamp.</li>
      *             </ul>
      */
-    public abstract void doNextEvent(@NonNull Universe.Transaction transaction, @NonNull UUID object,
+    void doNextEvent(@NonNull Universe.Transaction transaction, @NonNull UUID object,
             @NonNull Duration when);
 }

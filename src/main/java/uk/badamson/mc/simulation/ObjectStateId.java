@@ -90,7 +90,7 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
      *             If {@code that} is null.
      */
     @Override
-    public final int compareTo(final ObjectStateId that) {
+    public int compareTo(final ObjectStateId that) {
         Objects.requireNonNull(that, "that");
         int c = when.compareTo(that.when);
         if (c == 0) {
@@ -114,7 +114,7 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
      * @return whether this object is equivalent to {@code that} object.
      */
     @Override
-    public final boolean equals(final Object that) {
+    public boolean equals(final Object that) {
         if (this == that) {
             return true;
         }
@@ -136,7 +136,7 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
      *
      * @return The object ID; not null.
      */
-    public final @NonNull UUID getObject() {
+    public @NonNull UUID getObject() {
         return object;
     }
 
@@ -152,12 +152,12 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
      *
      * @return the amount of time since the epoch; not null.
      */
-    public final @NonNull Duration getWhen() {
+    public @NonNull Duration getWhen() {
         return when;
     }
 
     @Override
-    public final int hashCode() {
+    public int hashCode() {
         final int prime = 31;
         int result = 1;
         result = prime * result + object.hashCode();
