@@ -43,7 +43,7 @@ pipeline {
     stages {
         stage('Clean') { 
             steps {
-               sh 'rm -rf target'
+               sh 'rm -rf "$WORKSPACE/target"'
             }
         }
         stage('Build and verify') {
