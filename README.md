@@ -1,7 +1,7 @@
 # MC-des
 Multi-threaded Parallel Discrete Event Simulation (PDES) engine
 
-* This module provides a framework for performing simulations of systems on
+* This provides a framework for performing simulations of systems on
 a shared-memory computer using multiple threads. It is therefore suitable
 only for systems that can record a complete snapshot of their state in the
 RAM of a practical computer.

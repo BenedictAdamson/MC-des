@@ -164,8 +164,6 @@
                <excludes>
                   <exclude />
                </excludes>
-               <argLine>--add-opens
-                  uk.badamson.mc.simulation/uk.badamson.mc.simulation=ALL-UNNAMED</argLine>
             </configuration>
             <!-- For running unit tests. -->
          </plugin>
