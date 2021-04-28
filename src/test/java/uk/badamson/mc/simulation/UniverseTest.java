@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -2554,8 +2554,8 @@ public class UniverseTest {
                 get(futures);
 
                 UniverseTest.assertInvariants(universe);
-                final Universe.TransactionCoordinator coordinator0 = transactions.get(objects[0])
-                        .get().transactionCoordinator;
+                final var transaction0 = transactions.get(objects[0]).get();
+                final Universe.TransactionCoordinator coordinator0 = transaction0.transactionCoordinator;
                 UniverseTest.assertInvariants(coordinator0);
                 synchronized (coordinator0.lock) {
                     assertTrue(coordinator0.predecessors.isEmpty(), "TransactionCoordinator has no predecessors");
@@ -3455,8 +3455,8 @@ public class UniverseTest {
                 ready.countDown();
                 get(futures);
                 UniverseTest.assertInvariants(universe);
-                final Universe.TransactionCoordinator coordinator0 = transactions.get(objects[0])
-                        .get().transactionCoordinator;
+                final var transaction0 = transactions.get(objects[0]).get();
+                final Universe.TransactionCoordinator coordinator0 = transaction0.transactionCoordinator;
                 UniverseTest.assertInvariants(coordinator0);
                 synchronized (coordinator0.lock) {
                     assertTrue(coordinator0.predecessors.isEmpty(), "TransactionCoordinator has no predecessors");
@@ -3603,8 +3603,8 @@ public class UniverseTest {
             ready.countDown();
             get(futures);
             UniverseTest.assertInvariants(universe);
-            final Universe.TransactionCoordinator coordinator0 = transactions.get(objects[0])
-                    .get().transactionCoordinator;
+            final var transaction0 = transactions.get(objects[0]).get();
+            final Universe.TransactionCoordinator coordinator0 = transaction0.transactionCoordinator;
             UniverseTest.assertInvariants(coordinator0);
             synchronized (coordinator0.lock) {
                 assertTrue(coordinator0.predecessors.isEmpty(), "TransactionCoordinator has no predecessors");
@@ -3707,8 +3707,8 @@ public class UniverseTest {
             get(futures);
 
             UniverseTest.assertInvariants(universe);
-            final Universe.TransactionCoordinator coordinator0 = transactions.get(objects[0])
-                    .get().transactionCoordinator;
+            final var transaction0 = transactions.get(objects[0]).get();
+            final Universe.TransactionCoordinator coordinator0 = transaction0.transactionCoordinator;
             UniverseTest.assertInvariants(coordinator0);
             synchronized (coordinator0.lock) {
                 assertTrue(coordinator0.predecessors.isEmpty(), "TransactionCoordinator has no predecessors");
@@ -3806,8 +3806,8 @@ public class UniverseTest {
             get(futures);
 
             UniverseTest.assertInvariants(universe);
-            final Universe.TransactionCoordinator coordinator0 = transactions.get(objects[0])
-                    .get().transactionCoordinator;
+            final var transaction0 = transactions.get(objects[0]).get();
+            final Universe.TransactionCoordinator coordinator0 = transaction0.transactionCoordinator;
             UniverseTest.assertInvariants(coordinator0);
             synchronized (coordinator0.lock) {
                 assertTrue(coordinator0.predecessors.isEmpty(), "TransactionCoordinator has no predecessors");
