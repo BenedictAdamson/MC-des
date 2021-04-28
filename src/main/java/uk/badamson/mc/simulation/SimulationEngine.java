@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -78,7 +78,7 @@ public final class SimulationEngine {
         private final UUID object;
 
         @GuardedBy("this")
-        @NonNull
+        @Nullable
         private Duration latestCommit = ValueHistory.START_OF_TIME;
 
         // steps has no null values
@@ -169,12 +169,12 @@ public final class SimulationEngine {
                     transaction.beginCommit();
                 } catch (Exception | AssertionError e) {
                     // Hard to test: race hazard.
-                    completeExceptionally(e);
                     try {
                         uncaughtExceptionHandler.uncaughtException​(e);
                     } catch (final Exception e2) {
-                        // Do nothing; what else can we do?
+                        e.addSuppressed(e2);
                     }
+                    completeExceptionally(e);
                 }
             }
         }
