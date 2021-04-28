@@ -44,5 +44,5 @@ public interface UncaughtExceptionHandler {
      * @param e
      *            The exception; not null.
      */
-    public void uncaughtException(Throwable e);
+    void uncaughtException(Throwable e);
 }

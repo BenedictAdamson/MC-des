@@ -145,7 +145,7 @@ public final class SimulationEngine {
         }
 
         private void advance1() {
-            try (final Universe.Transaction transaction = universe.beginTransaction(this)) {
+            try (Universe.Transaction transaction = universe.beginTransaction(this)) {
                 try {
                     final Duration when = universe.getLatestCommit(object);
                     assert when != null;
@@ -310,8 +310,8 @@ public final class SimulationEngine {
                 state0.doNextEvent(transaction, object, when);
 
                 final var objectStatesReadAtOrAfter = transaction.getObjectStatesRead().keySet().stream()
-                        .filter(id -> (when.compareTo(id.getWhen()) < 0
-                                || when.equals(id.getWhen()) && !object.equals(id.getObject())))
+                        .filter(id -> when.compareTo(id.getWhen()) < 0
+                                || when.equals(id.getWhen()) && !object.equals(id.getObject()))
                         .collect(Collectors.toSet());
                 final Duration whenWritten = transaction.getWhen();
                 final Map<UUID, ObjectState> objectStatesWritten = transaction.getObjectStatesWritten();
@@ -366,12 +366,13 @@ public final class SimulationEngine {
             return future;
         }
 
-        private void tryToScheduleAdvance1() {
+        private boolean tryToScheduleAdvance1() {
             assert universe.containsObject(object);
             try {
                 executor.execute(this);
+                return true;
             } catch (final RejectedExecutionException e) {
-                // Do nothing. Ok to fail because only need to try.
+                return false;
             }
         }
 
@@ -441,7 +442,7 @@ public final class SimulationEngine {
         }
 
         private void startReadTransaction() {
-            try (final Universe.Transaction transaction = createReadTransaction();) {
+            try (Universe.Transaction transaction = createReadTransaction();) {
                 try {
                     setState(transaction.getObjectState(id.getObject(), id.getWhen()));
                     transaction.beginCommit();
@@ -558,7 +559,7 @@ public final class SimulationEngine {
      * @throws NullPointerException
      *             If {@code when} is null.
      */
-    public final void advanceHistory(@NonNull final Duration when) {
+    public void advanceHistory(@NonNull final Duration when) {
         Objects.requireNonNull(when, "when");
         final Set<UUID> objectsToAdvance;
         synchronized (lock) {
@@ -607,7 +608,7 @@ public final class SimulationEngine {
      *             <li>If {@code when} is null.</li>
      *             </ul>
      */
-    public final @NonNull void advanceHistory(@NonNull final UUID object, @NonNull final Duration when) {
+    public @NonNull void advanceHistory(@NonNull final UUID object, @NonNull final Duration when) {
         Objects.requireNonNull(object, "object");
         Objects.requireNonNull(when, "when");
         getEngine1(object).advanceHistory(when, null);
@@ -653,8 +654,7 @@ public final class SimulationEngine {
      *             </ul>
      * @see Universe#getObjectState(UUID, Duration)
      */
-    public final @NonNull Future<ObjectState> computeObjectState(@NonNull final UUID object,
-            @NonNull final Duration when) {
+    public @NonNull Future<ObjectState> computeObjectState(@NonNull final UUID object, @NonNull final Duration when) {
         final ObjectStateId id = new ObjectStateId(object, when);
         return getEngine1(object).schedule(id, null);
     }
@@ -683,7 +683,7 @@ public final class SimulationEngine {
      * @return the executor
      */
     @NonNull
-    public final Executor getExecutor() {
+    public Executor getExecutor() {
         return executor;
     }
 
@@ -701,7 +701,7 @@ public final class SimulationEngine {
      * @return the uncaught exception handler; not null.
      */
     @NonNull
-    public final UncaughtExceptionHandler getUncaughtExceptionHandler() {
+    public UncaughtExceptionHandler getUncaughtExceptionHandler() {
         return uncaughtExceptionHandler;
     }
 
@@ -723,7 +723,7 @@ public final class SimulationEngine {
      * @return the universe;
      */
     @NonNull
-    public final Universe getUniverse() {
+    public Universe getUniverse() {
         return universe;
     }
 
@@ -747,7 +747,7 @@ public final class SimulationEngine {
      *
      * @see Universe#prunePrehistory(UUID)
      */
-    public final void prunePrehistory() {
+    public void prunePrehistory() {
         for (final UUID object : universe.getObjectIds()) {
             executor.execute(() -> universe.prunePrehistory(object));
         }
