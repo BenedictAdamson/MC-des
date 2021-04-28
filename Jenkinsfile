@@ -43,9 +43,7 @@ pipeline {
     stages {
         stage('Clean') { 
             steps {
-                configFileProvider([configFile(fileId: 'maven-settings', variable: 'MAVEN_SETTINGS')]){ 
-                    sh 'mvn -B -s $MAVEN_SETTINGS clean'
-                }
+               sh 'rm -rf target'
             }
         }
         stage('Build and verify') {
