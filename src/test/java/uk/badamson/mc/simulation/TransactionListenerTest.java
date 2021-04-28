@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -25,7 +25,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
+import javax.annotation.Nonnull;
 
 /**
  * <p>
@@ -70,7 +70,7 @@ public class TransactionListenerTest {
         }
 
         @Override
-        public synchronized void onCreate(@NonNull final UUID object) {
+        public synchronized void onCreate(@Nonnull final UUID object) {
             assertNotNull(object, "object");
             created.add(object);
         }

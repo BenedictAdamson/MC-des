@@ -25,8 +25,9 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Stream;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.Nullable;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import net.jcip.annotations.Immutable;
 import net.jcip.annotations.NotThreadSafe;
 
@@ -84,7 +85,7 @@ abstract class AbstractValueHistory<VALUE> implements ValueHistory<VALUE> {
     }
 
     @Override
-    public @NonNull SortedSet<Duration> getTransitionTimes() {
+    public @Nonnull SortedSet<Duration> getTransitionTimes() {
         return new TreeSet<>(getTransitions().keySet());
     }
 
@@ -100,7 +101,7 @@ abstract class AbstractValueHistory<VALUE> implements ValueHistory<VALUE> {
     }
 
     @Override
-    public @NonNull Stream<Entry<Duration, VALUE>> streamOfTransitions() {
+    public @Nonnull Stream<Entry<Duration, VALUE>> streamOfTransitions() {
         return getTransitions().entrySet().stream();
     }
 

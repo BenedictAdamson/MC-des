@@ -27,8 +27,9 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.stream.Stream;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.Nullable;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import net.jcip.annotations.Immutable;
 import net.jcip.annotations.NotThreadSafe;
 
@@ -99,7 +100,7 @@ public interface ValueHistory<VALUE> {
      * @throws NullPointerException
      *             If {@code when} is null.
      */
-    @Nullable VALUE get(@NonNull Duration when);
+    @Nullable VALUE get(@Nonnull Duration when);
 
     /**
      * <p>
@@ -207,7 +208,7 @@ public interface ValueHistory<VALUE> {
      * @throws NullPointerException
      *             if {@code when} is null.
      */
-    @Nullable Duration getTansitionTimeAtOrAfter(@NonNull Duration when);
+    @Nullable Duration getTansitionTimeAtOrAfter(@Nonnull Duration when);
 
     /**
      * <p>
@@ -232,7 +233,7 @@ public interface ValueHistory<VALUE> {
      *
      * @return a map of the transitions.
      */
-    @NonNull SortedMap<Duration, VALUE> getTransitions();
+    @Nonnull SortedMap<Duration, VALUE> getTransitions();
 
     /**
      * <p>
@@ -265,7 +266,7 @@ public interface ValueHistory<VALUE> {
      *
      * @return the transition times
      */
-    @NonNull SortedSet<Duration> getTransitionTimes();
+    @Nonnull SortedSet<Duration> getTransitionTimes();
 
     /**
      * <p>
@@ -315,6 +316,6 @@ public interface ValueHistory<VALUE> {
      *
      * @return a stream of the transitions.
      */
-    @NonNull Stream<Map.Entry<Duration, VALUE>> streamOfTransitions();
+    @Nonnull Stream<Map.Entry<Duration, VALUE>> streamOfTransitions();
 
 }

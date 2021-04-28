@@ -28,8 +28,9 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.stream.Stream;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.Nullable;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import net.jcip.annotations.Immutable;
 import net.jcip.annotations.NotThreadSafe;
 
@@ -97,7 +98,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @throws NullPointerException
      *             If {@code that} is null
      */
-    public ModifiableValueHistory(@NonNull final ValueHistory<VALUE> that) {
+    public ModifiableValueHistory(@Nonnull final ValueHistory<VALUE> that) {
         Objects.requireNonNull(that, "that");
         firstValue = that.getFirstValue();
         that.streamOfTransitions().sequential().forEach(entry -> transitions.put(entry.getKey(), entry.getValue()));
@@ -142,7 +143,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      *
      * @see #setValueFrom(Duration, Object)
      */
-    public void appendTransition(@NonNull final Duration when, final VALUE value) throws IllegalStateException {
+    public void appendTransition(@Nonnull final Duration when, final VALUE value) throws IllegalStateException {
         Objects.requireNonNull(when, "when");
         final var lastTransition = transitions.lastEntry();
         if (lastTransition != null && when.compareTo(lastTransition.getKey()) <= 0) {
@@ -186,7 +187,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      *             {@inheritDoc}
      */
     @Override
-    public @Nullable VALUE get(@NonNull final Duration when) {
+    public @Nullable VALUE get(@Nonnull final Duration when) {
         Objects.requireNonNull(when, "when");
         final var previousTransition = transitions.floorEntry(when);
         return previousTransition == null ? firstValue : previousTransition.getValue();
@@ -284,13 +285,13 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
     }
 
     @Override
-    public Duration getTansitionTimeAtOrAfter(@NonNull final Duration when) {
+    public Duration getTansitionTimeAtOrAfter(@Nonnull final Duration when) {
         Objects.requireNonNull(when, "when");
         return transitions.ceilingKey(when);
     }
 
     @Override
-    public @NonNull SortedMap<Duration, VALUE> getTransitions() {
+    public @Nonnull SortedMap<Duration, VALUE> getTransitions() {
         return new TreeMap<>(transitions);
     }
 
@@ -320,7 +321,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @return the transition times
      */
     @Override
-    public @NonNull SortedSet<Duration> getTransitionTimes() {
+    public @Nonnull SortedSet<Duration> getTransitionTimes() {
         return Collections.unmodifiableSortedSet(transitions.navigableKeySet());
     }
 
@@ -371,7 +372,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      *
      * @see #appendTransition(Duration, Object)
      */
-    public void removeTransitionsFrom(@NonNull final Duration when) {
+    public void removeTransitionsFrom(@Nonnull final Duration when) {
         Objects.requireNonNull(when, "when");
         transitions.keySet().removeIf(t -> when.compareTo(t) <= 0);
     }
@@ -407,7 +408,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @see #appendTransition(Duration, Object)
      * @see #setValueUntil(Duration, Object)
      */
-    public void setValueFrom(@NonNull final Duration when, @Nullable final VALUE value) {
+    public void setValueFrom(@Nonnull final Duration when, @Nullable final VALUE value) {
         Objects.requireNonNull(when, "when");
         if (when.equals(START_OF_TIME)) {
             clear(value);
@@ -449,7 +450,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      *
      * @see #setValueFrom(Duration, Object)
      */
-    public void setValueUntil(@NonNull final Duration when, @Nullable final VALUE value) {
+    public void setValueUntil(@Nonnull final Duration when, @Nullable final VALUE value) {
         Objects.requireNonNull(when, "when");
         if (when.equals(END_OF_TIME)) {
             clear(value);
@@ -464,7 +465,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
     }
 
     @Override
-    public @NonNull Stream<Entry<Duration, VALUE>> streamOfTransitions() {
+    public @Nonnull Stream<Entry<Duration, VALUE>> streamOfTransitions() {
         return transitions.entrySet().stream();
     }
 

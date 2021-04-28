@@ -34,8 +34,9 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.Nullable;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import net.jcip.annotations.Immutable;
 import net.jcip.annotations.NotThreadSafe;
 
@@ -108,7 +109,7 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
      * @see ModifiableValueHistory#setValueFrom(Duration, Object)
      * @see Set#add(Object)
      */
-    public void addFrom(@NonNull final Duration when, @Nullable final VALUE value) {
+    public void addFrom(@Nonnull final Duration when, @Nullable final VALUE value) {
         Objects.requireNonNull(when, "when");
         var c = containsMap.get(value);
         if (c == null) {
@@ -152,7 +153,7 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
      * @see ModifiableValueHistory#setValueUntil(Duration, Object)
      * @see Set#add(Object)
      */
-    public void addUntil(@NonNull final Duration when, @Nullable final VALUE value) {
+    public void addUntil(@Nonnull final Duration when, @Nullable final VALUE value) {
         Objects.requireNonNull(when, "when");
         var c = containsMap.get(value);
         if (c == null) {
@@ -164,7 +165,7 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
     }
 
     @Override
-    public @NonNull ValueHistory<Boolean> contains(@Nullable final VALUE value) {
+    public @Nonnull ValueHistory<Boolean> contains(@Nullable final VALUE value) {
         final var c = containsMap.get(value);
         return c == null ? ABSENT : c;
     }
@@ -193,7 +194,7 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
      *             {@inheritDoc}
      */
     @Override
-    public @NonNull Set<VALUE> get(@NonNull final Duration when) {
+    public @Nonnull Set<VALUE> get(@Nonnull final Duration when) {
         Objects.requireNonNull(when, "when");
         final Set<VALUE> result = containsMap.entrySet().stream().filter(e -> e.getValue().get(when).booleanValue())
                 .map(e -> e.getKey()).collect(Collectors.toSet());
@@ -207,7 +208,7 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
     }
 
     @Override
-    public @NonNull Set<VALUE> getFirstValue() {
+    public @Nonnull Set<VALUE> getFirstValue() {
         return Collections.unmodifiableSet(firstValue);
     }
 
@@ -218,14 +219,14 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
     }
 
     @Override
-    public Duration getTansitionTimeAtOrAfter(@NonNull final Duration when) {
+    public Duration getTansitionTimeAtOrAfter(@Nonnull final Duration when) {
         Objects.requireNonNull(when, "when");
         return streamOfTransitionTimes().filter(t -> when.compareTo(t) <= 0).min(Comparator.naturalOrder())
                 .orElse(null);
     }
 
     @Override
-    public @NonNull SortedMap<Duration, Set<VALUE>> getTransitions() {
+    public @Nonnull SortedMap<Duration, Set<VALUE>> getTransitions() {
         final SortedMap<Duration, Set<VALUE>> transitions = new TreeMap<>();
         for (final var t : getTransitionTimes()) {
             transitions.put(t, get(t));
@@ -234,7 +235,7 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
     }
 
     @Override
-    public @NonNull SortedSet<Duration> getTransitionTimes() {
+    public @Nonnull SortedSet<Duration> getTransitionTimes() {
         return new TreeSet<>(streamOfTransitionTimes().collect(Collectors.toSet()));
     }
 
@@ -278,7 +279,7 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
     }
 
     @Override
-    public @NonNull Stream<Map.Entry<Duration, Set<VALUE>>> streamOfTransitions() {
+    public @Nonnull Stream<Map.Entry<Duration, Set<VALUE>>> streamOfTransitions() {
         return streamOfTransitionTimes().distinct().map(t -> new AbstractMap.SimpleImmutableEntry<>(t, get(t)));
     }
 

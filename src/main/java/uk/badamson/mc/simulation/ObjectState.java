@@ -21,7 +21,8 @@ package uk.badamson.mc.simulation;
 import java.time.Duration;
 import java.util.UUID;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
+import javax.annotation.Nonnull;
+
 import net.jcip.annotations.Immutable;
 
 /**
@@ -131,6 +132,5 @@ public interface ObjectState {
      *             time-stamp.</li>
      *             </ul>
      */
-    void doNextEvent(@NonNull Universe.Transaction transaction, @NonNull UUID object,
-            @NonNull Duration when);
+    void doNextEvent(@Nonnull Universe.Transaction transaction, @Nonnull UUID object, @Nonnull Duration when);
 }

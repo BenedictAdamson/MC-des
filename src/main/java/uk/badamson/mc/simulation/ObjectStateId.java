@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -22,7 +22,8 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.UUID;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
+import javax.annotation.Nonnull;
+
 import net.jcip.annotations.Immutable;
 
 /**
@@ -61,7 +62,7 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
      *             <li>If {@code when} is null.</li>
      *             </ul>
      */
-    public ObjectStateId(@NonNull final UUID object, @NonNull final Duration when) {
+    public ObjectStateId(@Nonnull final UUID object, @Nonnull final Duration when) {
         this.object = Objects.requireNonNull(object, "object");
         this.when = Objects.requireNonNull(when, "when");
     }
@@ -136,7 +137,7 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
      *
      * @return The object ID; not null.
      */
-    public @NonNull UUID getObject() {
+    public @Nonnull UUID getObject() {
         return object;
     }
 
@@ -152,7 +153,7 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
      *
      * @return the amount of time since the epoch; not null.
      */
-    public @NonNull Duration getWhen() {
+    public @Nonnull Duration getWhen() {
         return when;
     }
 
