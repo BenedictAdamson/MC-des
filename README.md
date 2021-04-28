@@ -59,7 +59,7 @@ required.
 
 ## License
 
-© Copyright Benedict Adamson 2018.
+© Copyright Benedict Adamson 2018,2021.
  
 ![GPLV3](https://www.gnu.org/graphics/gplv3-with-text-136x68.png)
 
@@ -87,7 +87,6 @@ along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
 * Development environment:
     * [Eclipse IDE](https://www.eclipse.org/ide/)
     * [Jenkins Editor](https://github.com/de-jcup/eclipse-jenkins-editor)
-    * [Eclipse Docker Tooling](https://marketplace.eclipse.org/content/eclipse-docker-tooling)
     * [SpotBugs Eclipse plugin](https://marketplace.eclipse.org/content/spotbugs-eclipse-plugin)
 * Software configuration management:
      * [Git](https://git-scm.com/)
@@ -96,8 +95,7 @@ along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
     * [Maven](https://maven.apache.org/)
     * [SpotBugs Maven plugin](https://spotbugs.github.io/spotbugs-maven-plugin/index.html)
     * [Jenkins](https://jenkins.io/)
-    * [Docker](https://www.docker.com/)
-    * [Ubuntu 18.04](http://releases.ubuntu.com/18.04/)
+    * [Ubuntu](http://ubuntu.com)
 * Static analysis and testing:
     * [JUnit 5](https://junit.org/junit5/)
     * [Java Hamcrest](http://hamcrest.org/JavaHamcrest/)
