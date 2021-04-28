@@ -221,7 +221,7 @@ public interface ValueHistory<VALUE> {
      * <li>The {@linkplain SortedMap#get(Object) values} of the transition map are
      * {@linkplain Objects#equals(Object, Object) equal to (or equally null as)} the
      * {@linkplain #get(Duration) value} of this history at the time of their
-     * corresponding {@linkplain Map.Entry#getKey() key}.</li>
+     * corresponding key.</li>
      * <li>The transitions map may be
      * {@linkplain Collections#unmodifiableSortedMap(SortedMap) unmodifiable}.</li>
      * <li>If the transitions map is

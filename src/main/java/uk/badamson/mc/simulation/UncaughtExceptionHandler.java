@@ -3,7 +3,7 @@ package uk.badamson.mc.simulation;
 import net.jcip.annotations.ThreadSafe;
 
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -27,8 +27,6 @@ import net.jcip.annotations.ThreadSafe;
  * reporting or recording an exception that was unexpected and thus not caught
  * and handled through normal means.
  * </p>
- *
- * @see Thread.UncaughtExceptionHandler
  */
 @FunctionalInterface
 @ThreadSafe

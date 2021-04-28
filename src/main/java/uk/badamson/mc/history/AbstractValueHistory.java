@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -36,7 +36,7 @@ import net.jcip.annotations.NotThreadSafe;
  * in time.
  * </p>
  *
- * @param VALUE
+ * @param <VALUE>
  *            The class of values of this value history. This must be an
  *            {@link Immutable immutable} type.
  */
