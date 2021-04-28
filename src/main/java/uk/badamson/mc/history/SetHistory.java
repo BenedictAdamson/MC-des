@@ -67,7 +67,8 @@ public interface SetHistory<VALUE> extends ValueHistory<Set<VALUE>> {
      *
      * @see Set#contains(Object)
      */
-    @Nonnull ValueHistory<Boolean> contains(@Nullable VALUE value);
+    @Nonnull
+    ValueHistory<Boolean> contains(@Nullable VALUE value);
 
     /**
      * <p>
@@ -89,5 +90,6 @@ public interface SetHistory<VALUE> extends ValueHistory<Set<VALUE>> {
      *
      * @return the universe.
      */
-    @Nonnull Set<VALUE> getUniverse();
+    @Nonnull
+    Set<VALUE> getUniverse();
 }

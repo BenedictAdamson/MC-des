@@ -3,10 +3,10 @@
  * A Multi-threaded Parallel Discrete Event Simulation (PDES) engine.
  * </p>
  * <ul>
- * <li>This provides a framework for performing simulations of systems on
- * a shared-memory computer using multiple threads. It is therefore suitable
- * only for systems that can record a complete snapshot of their state in the
- * RAM of a practical computer.</li>
+ * <li>This provides a framework for performing simulations of systems on a
+ * shared-memory computer using multiple threads. It is therefore suitable only
+ * for systems that can record a complete snapshot of their state in the RAM of
+ * a practical computer.</li>
  * <li>It is for simulating <dfn>asynchronous</dfn> systems, for which the times
  * of events are widely scattered, so advancement of the simulated state using a
  * global clock is inefficient.</li>
