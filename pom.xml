@@ -32,7 +32,7 @@
    </scm>
    <properties>
       <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-      <spotbugs.version>4.2.0</spotbugs.version>
+      <spotbugs.version>4.2.3</spotbugs.version>
    </properties>
    <dependencyManagement>
       <dependencies>
