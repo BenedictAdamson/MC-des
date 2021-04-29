@@ -40,6 +40,11 @@ import javax.annotation.concurrent.ThreadSafe;
 public final class ObjectHistory<STATE> {
 
     @Nonnull
+    private final UUID object;
+    @Nonnull
+    private final Duration start;
+
+    @Nonnull
     private final Event<STATE> lastEvent;
 
     /**
@@ -59,6 +64,8 @@ public final class ObjectHistory<STATE> {
      */
     public ObjectHistory(@Nonnull final Event<STATE> event) {
         this.lastEvent = Objects.requireNonNull(event, "event");
+        this.object = lastEvent.getObject();
+        this.start = lastEvent.getWhen();
     }
 
     /**
@@ -89,7 +96,7 @@ public final class ObjectHistory<STATE> {
      */
     @Nonnull
     public UUID getObject() {
-        return lastEvent.getObject();
+        return object;
     }
 
     /**
@@ -107,7 +114,7 @@ public final class ObjectHistory<STATE> {
      */
     @Nonnull
     public final Duration getStart() {
-        return lastEvent.getWhen();
+        return start;
     }
 
 }
