@@ -45,6 +45,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import uk.badamson.mc.ComparableTest;
 import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.simulation.ObjectStateId;
+import uk.badamson.mc.simulation.ObjectStateIdTest;
 
 /**
  * <p>
@@ -119,7 +120,7 @@ public class EventTest {
         }
     }// class
 
-    private static final class TestEvent extends Event<Integer> {
+    static final class TestEvent extends Event<Integer> {
 
         public TestEvent(final ObjectStateId id, final Integer state, final Map<UUID, Duration> nextEventDependencies) {
             super(id, state, nextEventDependencies);
@@ -151,10 +152,11 @@ public class EventTest {
         final var object = event.getObject();
         final var state = event.getState();
         final var when = event.getWhen();
-        assertAll("Not null", () -> assertNotNull(id, "id"),
+        assertAll("Not null", () -> assertNotNull(id, "id"), // guard
                 () -> assertNotNull(nextEventDependencies, "nextEventDependencies"),
                 () -> assertNotNull(object, "object"), () -> assertNotNull(state, "state"),
                 () -> assertNotNull(when, "when"));
+        ObjectStateIdTest.assertInvariants(id);
         assertAll(
                 () -> assertAll("Delgates", () -> assertSame(id.getObject(), object, "object"),
                         () -> assertSame(id.getWhen(), when, "when")),
