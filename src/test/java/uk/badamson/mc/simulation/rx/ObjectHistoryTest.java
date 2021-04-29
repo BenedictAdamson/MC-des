@@ -18,6 +18,8 @@ package uk.badamson.mc.simulation.rx;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -57,6 +59,7 @@ public class ObjectHistoryTest {
 
             assertInvariants(history);
             assertSame(firstEvent, history.getFirstEvent(), "firstEvent");
+            assertSame(firstEvent, history.getLastEvent(), "lastEvent");
         }
 
         private void test(final UUID object, final Duration start, final Integer state,
@@ -79,15 +82,22 @@ public class ObjectHistoryTest {
         final var object = history.getObject();
         final var start = history.getStart();
         final var firstEvent = history.getFirstEvent();
+        final var lastEvent = history.getLastEvent();
 
-        assertAll("Not null", () -> assertNotNull(object, "object"), () -> assertNotNull(start, "start"),
-                () -> assertNotNull(firstEvent, "firstEvent")// guard
+        assertAll("Not null", () -> assertNotNull(object, "object"), () -> assertNotNull(start, "start"), // guard
+                () -> assertNotNull(firstEvent, "firstEvent"), // guard
+                () -> assertNotNull(lastEvent, "lastEvent")// guard
         );
         EventTest.assertInvariants(firstEvent);
+        EventTest.assertInvariants(lastEvent);
         assertAll(
                 () -> assertSame(firstEvent.getObject(), object,
                         "The object ID is the same as the object of the first event."),
-                () -> assertSame(firstEvent.getWhen(), start, "The start is the same as the time of the first event."));
+                () -> assertSame(firstEvent.getWhen(), start, "The start is the same as the time of the first event."),
+                () -> assertSame(object, firstEvent.getObject(),
+                        "The object of the last event is the same has the object of this history."),
+                () -> assertThat("The time of the last event is at or after the start of this history.",
+                        lastEvent.getWhen(), greaterThanOrEqualTo(start)));
     }
 
     public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history1,

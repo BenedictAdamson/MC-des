@@ -48,7 +48,9 @@ public final class ObjectHistory<STATE> {
      * </p>
      * <ul>
      * <li>The {@linkplain #getFirstEvent() first event} of this history is the
-     * given {@code firstEvent};
+     * given {@code firstEvent}.</li>
+     * <li>The {@linkplain #getLastEvent() last event} of this history is the given
+     * {@code firstEvent}.</li>
      * </ul>
      *
      * @param firstEvent
@@ -73,6 +75,24 @@ public final class ObjectHistory<STATE> {
     @Nonnull
     public Event<STATE> getFirstEvent() {
         return firstEvent;
+    }
+
+    /**
+     * <p>
+     * The last (known) state transition of the {@linkplain #getObject() object}.
+     * </p>
+     * <ul>
+     * <li>Always have a (non null) last event.</li>
+     * <li>The {@linkplain Event#getObject() object} of the last event is the same
+     * has the {@linkplain #getObject() object} of this history.</li>
+     * <li>The {@linkplain Event#getWhen() time} of the last event is
+     * {@linkplain Duration#compareTo(Duration) at or after} the
+     * {@linkplain #getStart() start} of this history.</li>
+     * </ul>
+     */
+    @Nonnull
+    public Event<STATE> getLastEvent() {
+        return firstEvent;// TODO
     }
 
     /**
