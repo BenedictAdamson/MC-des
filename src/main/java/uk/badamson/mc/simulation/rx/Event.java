@@ -40,7 +40,7 @@ import uk.badamson.mc.simulation.ObjectStateId;
  *            that is not required.
  */
 @Immutable
-public abstract class Event<STATE> {
+public abstract class Event<STATE> implements Comparable<Event<STATE>> {
     private static Map<UUID, Duration> requireValidNextEventDependencies(
             final Map<UUID, Duration> nextEventDependencies, @Nonnull final ObjectStateId id) {
         Objects.requireNonNull(nextEventDependencies, "nextEventDependencies");
@@ -98,6 +98,24 @@ public abstract class Event<STATE> {
         this.id = Objects.requireNonNull(id, "id");
         this.state = Objects.requireNonNull(state, "state");
         this.nextEventDependencies = requireValidNextEventDependencies(nextEventDependencies, id);
+    }
+
+    /**
+     * <p>
+     * The natural ordering of {@link Event}s.
+     * </p>
+     * <ul>
+     * <li>The <i>natural ordering</i> of {@link Event} is the
+     * {@linkplain ObjectStateId#compareTo(ObjectStateId) natural ordering} of the
+     * {@linkplain #getId() IDs} of the events.</li>
+     * <li>Hence the <i>natural ordering</i> of {@link Event} is consistent with
+     * {@linkplain #equals(Object) equals}.</li>
+     * </ul>
+     */
+    @Override
+    public final int compareTo(@Nullable final Event<STATE> that) {
+        Objects.requireNonNull(that, "that");
+        return id.compareTo(that.getId());
     }
 
     /**
