@@ -262,4 +262,9 @@ public abstract class Event<STATE> implements Comparable<Event<STATE>> {
         return id.hashCode();
     }
 
+    @Override
+    public String toString() {
+        return "Event [" + id + "]";
+    }
+
 }
