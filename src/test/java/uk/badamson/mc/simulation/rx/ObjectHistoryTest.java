@@ -1,0 +1,98 @@
+package uk.badamson.mc.simulation.rx;
+/*
+ * © Copyright Benedict Adamson 2021.
+ *
+ * This file is part of MC-des.
+ *
+ * MC-des is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * MC-des is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+
+import java.time.Duration;
+import java.util.Map;
+import java.util.UUID;
+
+import javax.annotation.Nonnull;
+
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import uk.badamson.mc.ObjectTest;
+import uk.badamson.mc.simulation.ObjectStateId;
+import uk.badamson.mc.simulation.rx.EventTest.TestEvent;
+
+@SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
+public class ObjectHistoryTest {
+
+    @Nested
+    public class Constructor {
+
+        @Test
+        public void a() {
+            test(OBJECT_A, START_A, Integer.valueOf(0), Map.of());
+        }
+
+        @Test
+        public void B() {
+            test(OBJECT_B, START_B, Integer.valueOf(1), Map.of(OBJECT_A, START_B.minusMillis(10)));
+        }
+
+        private <STATE> void test(@Nonnull final Event<STATE> firstEvent) {
+            final var history = new ObjectHistory<>(firstEvent);
+
+            assertInvariants(history);
+            assertSame(firstEvent, history.getFirstEvent(), "firstEvent");
+        }
+
+        private void test(final UUID object, final Duration start, final Integer state,
+                final Map<UUID, Duration> nextEventDependencies) {
+            final var firstEvent = new TestEvent(new ObjectStateId(object, start), state, nextEventDependencies);
+            test(firstEvent);
+        }
+
+    }// class
+
+    private static final UUID OBJECT_A = UUID.randomUUID();
+    private static final UUID OBJECT_B = UUID.randomUUID();
+    private static final Duration START_A = Duration.ofMillis(0);
+
+    private static final Duration START_B = Duration.ofMillis(5000);
+
+    public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history) {
+        ObjectTest.assertInvariants(history);// inherited
+
+        final var object = history.getObject();
+        final var start = history.getStart();
+        final var firstEvent = history.getFirstEvent();
+
+        assertAll("Not null", () -> assertNotNull(object, "object"), () -> assertNotNull(start, "start"),
+                () -> assertNotNull(firstEvent, "firstEvent")// guard
+        );
+        EventTest.assertInvariants(firstEvent);
+        assertAll(
+                () -> assertSame(firstEvent.getObject(), object,
+                        "The object ID is the same as the object of the first event."),
+                () -> assertSame(firstEvent.getWhen(), start, "The start is the same as the time of the first event."));
+    }
+
+    public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history1,
+            @Nonnull final ObjectHistory<STATE> history2) {
+        ObjectTest.assertInvariants(history1, history2);// inherited
+    }
+
+}
