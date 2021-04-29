@@ -23,9 +23,11 @@ import static org.hamcrest.Matchers.lessThan;
  */
 
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -53,6 +55,43 @@ public class EventTest {
 
     @Nested
     public class Constructor {
+
+        @Nested
+        public class Two {
+
+            @Test
+            public void different() {
+                // Tough test: same attributes and aggregates
+                final Integer state = Integer.valueOf(0);
+                final Map<UUID, Duration> nextEventDependencies = Map.of();
+
+                final var eventA = new TestEvent(ID_A, state, nextEventDependencies);
+                final var eventB = new TestEvent(ID_B, state, nextEventDependencies);
+
+                assertInvariants(eventA, eventB);
+                assertNotEquals(eventA, eventB);
+            }
+
+            @Test
+            public void equivalent() {
+                final Integer stateA = Integer.valueOf(0);
+                final Integer stateB = Integer.valueOf(Integer.MAX_VALUE);
+                final Map<UUID, Duration> nextEventDependenciesA = Map.of();
+                final Map<UUID, Duration> nextEventDependenciesB = Map.of(OBJECT_B, Duration.ofMillis(-100));
+                assert !stateA.equals(stateB);// tough test
+                assert !nextEventDependenciesA.equals(nextEventDependenciesB);// tough test
+                final ObjectStateId idA = ID_A;
+                final ObjectStateId idB = new ObjectStateId(ID_A.getObject(), ID_A.getWhen());
+                assert idA.equals(idB);
+                assert idA != idB;// tough test
+
+                final var eventA = new TestEvent(idA, stateA, nextEventDependenciesA);
+                final var eventB = new TestEvent(idB, stateB, nextEventDependenciesB);
+
+                assertInvariants(eventA, eventB);
+                assertEquals(eventA, eventB);
+            }
+        }// class
 
         @Test
         public void a() {
@@ -124,6 +163,9 @@ public class EventTest {
     public static <STATE> void assertInvariants(@Nonnull final Event<STATE> event1,
             @Nonnull final Event<STATE> event2) {
         ObjectTest.assertInvariants(event1, event2);// inherited
+
+        assertTrue(event1.getId().equals(event2.getId()) == event1.equals(event2),
+                "entity semantics with ID as the unique ID");
     }
 
     private static Stream<Executable> createNextEventDependenciesAssertions(

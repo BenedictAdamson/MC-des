@@ -60,7 +60,6 @@ public abstract class Event<STATE> {
 
     private final ObjectStateId id;
     private final STATE state;
-
     private final Map<UUID, Duration> nextEventDependencies;
 
     /**
@@ -120,6 +119,30 @@ public abstract class Event<STATE> {
      */
     @Nonnull
     public abstract Event<STATE> computeNextEvent(Map<UUID, STATE> dependentStates);
+
+    /**
+     * <p>
+     * Whether this object is <dfn>equivalent</dfn> to a given object.
+     * </p>
+     * <p>
+     * The Event class has <i>entity semantics</i> with the {@linkplain #getId() ID}
+     * acting as the unique ID: this object is equivalent to another object if, and
+     * only if, the other object is also an Event and the two have
+     * {@linkplain ObjectStateId#equals(Object) equivalent} IDs.
+     * </p>
+     */
+    @Override
+    public boolean equals(final Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof Event)) {
+            return false;
+        }
+        @SuppressWarnings("unchecked")
+        final Event<STATE> other = (Event<STATE>) obj;
+        return id.equals(other.id);
+    }
 
     /**
      * <p>
@@ -214,6 +237,11 @@ public abstract class Event<STATE> {
     @Nonnull
     public final Duration getWhen() {
         return id.getWhen();
+    }
+
+    @Override
+    public int hashCode() {
+        return id.hashCode();
     }
 
 }
