@@ -150,7 +150,7 @@ public abstract class Event<STATE> implements Comparable<Event<STATE>> {
      * </p>
      */
     @Override
-    public boolean equals(final Object obj) {
+    public final boolean equals(final Object obj) {
         if (this == obj) {
             return true;
         }
@@ -258,7 +258,7 @@ public abstract class Event<STATE> implements Comparable<Event<STATE>> {
     }
 
     @Override
-    public int hashCode() {
+    public final int hashCode() {
         return id.hashCode();
     }
 
