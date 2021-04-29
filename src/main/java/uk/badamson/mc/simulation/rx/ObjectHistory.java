@@ -113,7 +113,7 @@ public final class ObjectHistory<STATE> {
      * </ul>
      */
     @Nonnull
-    public final Duration getStart() {
+    public Duration getStart() {
         return start;
     }
 
