@@ -27,7 +27,7 @@ import javax.annotation.concurrent.Immutable;
 
 /**
  * <p>
- * An identifier (unique key) for an {@link ObjectState}.
+ * An identifier (unique key) for the state of a simulated object.
  * </p>
  */
 @Immutable
@@ -53,8 +53,8 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
      * @param when
      *            The point in time that the {@linkplain #getObject() object} has
      *            the state identified by this ID, expressed as a duration since an
-     *            (implied) epoch. All {@link ObjectState} objects in a simulation
-     *            should use the same epoch.
+     *            (implied) epoch. All objects in a simulation should use the same
+     *            epoch.
      * @throws NullPointerException
      *             <ul>
      *             <li>If {@code object} is null.</li>
@@ -108,10 +108,6 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
      * if, and only if, they have equivalent {@linkplain #getObject() object IDs}
      * and {@linkplain #getWhen() time-stamps}.
      * </p>
-     *
-     * @param that
-     *            The object to compare with this object.
-     * @return whether this object is equivalent to {@code that} object.
      */
     @Override
     public boolean equals(final Object that) {
@@ -130,13 +126,13 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
 
     /**
      * <p>
-     * The unique ID of the object for which the {@link ObjectState} this identifies
-     * is a state.
+     * The unique ID of the object for which this identifies a state.
      * </p>
      *
      * @return The object ID; not null.
      */
-    public @Nonnull UUID getObject() {
+    @Nonnull
+    public UUID getObject() {
         return object;
     }
 
@@ -146,13 +142,14 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
      * identified by this ID.
      * </p>
      * <p>
-     * Expressed as the duration since an (implied) epoch. All {@link ObjectState}
-     * objects in a simulation should use the same epoch.
+     * Expressed as the duration since an (implied) epoch. All objects in a
+     * simulation should use the same epoch.
      * </p>
      *
      * @return the amount of time since the epoch; not null.
      */
-    public @Nonnull Duration getWhen() {
+    @Nonnull
+    public Duration getWhen() {
         return when;
     }
 
