@@ -42,16 +42,70 @@ import uk.badamson.mc.simulation.rx.EventTest.TestEvent;
 public class ObjectHistoryTest {
 
     @Nested
+    public class Append {
+
+        @Nested
+        public class One {
+
+            @Test
+            public void a() {
+                test(OBJECT_A, WHEN_A, Integer.valueOf(0), WHEN_A.plusMillis(10), Integer.valueOf(1));
+            }
+
+            @Test
+            public void b() {
+                test(OBJECT_B, WHEN_B, Integer.valueOf(3), WHEN_B.plusMillis(1500), Integer.valueOf(2));
+            }
+
+            private void test(final UUID object, final Duration when0, final Integer state0, final Duration when1,
+                    final Integer state1) {
+                final var event0 = new TestEvent(new ObjectStateId(object, when0), state0, Map.of());
+                final var event1 = new TestEvent(new ObjectStateId(object, when1), state1, Map.of());
+                final var history = new ObjectHistory<>(event0);
+
+                Append.this.test(history, event1);
+            }
+
+        }// class
+
+        private <STATE> void test(@Nonnull final ObjectHistory<STATE> history, @Nonnull final Event<STATE> event) {
+            final var object0 = history.getObject();
+            final var start0 = history.getStart();
+
+            history.append(event);
+
+            assertInvariants(history);
+            assertAll("Does not change constants", () -> assertSame(object0, history.getObject(), "object"),
+                    () -> assertSame(start0, history.getStart(), "start"));
+            assertSame(event, history.getLastEvent(), "lastEvent");
+        }
+
+        @Test
+        public void two() {
+            final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A), Integer.valueOf(0), Map.of());
+            final var event1 = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A.plusMillis(1)), Integer.valueOf(1),
+                    Map.of());
+            final var event2 = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A.plusMillis(2)), Integer.valueOf(2),
+                    Map.of());
+            final var history = new ObjectHistory<>(event0);
+            history.append(event1);
+
+            Append.this.test(history, event2);
+        }
+
+    }// class
+
+    @Nested
     public class Constructor {
 
         @Test
         public void a() {
-            test(OBJECT_A, START_A, Integer.valueOf(0), Map.of());
+            test(OBJECT_A, WHEN_A, Integer.valueOf(0), Map.of());
         }
 
         @Test
         public void B() {
-            test(OBJECT_B, START_B, Integer.valueOf(1), Map.of(OBJECT_A, START_B.minusMillis(10)));
+            test(OBJECT_B, WHEN_B, Integer.valueOf(1), Map.of(OBJECT_A, WHEN_B.minusMillis(10)));
         }
 
         private <STATE> void test(@Nonnull final Event<STATE> event) {
@@ -71,8 +125,8 @@ public class ObjectHistoryTest {
 
     private static final UUID OBJECT_A = UUID.randomUUID();
     private static final UUID OBJECT_B = UUID.randomUUID();
-    private static final Duration START_A = Duration.ofMillis(0);
-    private static final Duration START_B = Duration.ofMillis(5000);
+    private static final Duration WHEN_A = Duration.ofMillis(0);
+    private static final Duration WHEN_B = Duration.ofMillis(5000);
 
     public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history) {
         ObjectTest.assertInvariants(history);// inherited
