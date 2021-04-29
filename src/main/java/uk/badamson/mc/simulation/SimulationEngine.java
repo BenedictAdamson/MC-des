@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -38,10 +38,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.stream.Collectors;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.Nullable;
-import net.jcip.annotations.GuardedBy;
-import net.jcip.annotations.ThreadSafe;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.GuardedBy;
+import javax.annotation.concurrent.ThreadSafe;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import uk.badamson.mc.history.ValueHistory;
 
 /**
@@ -74,18 +76,18 @@ public final class SimulationEngine {
         @GuardedBy("this")
         private boolean running = false;
 
-        @NonNull
+        @Nonnull
         private final UUID object;
 
         @GuardedBy("this")
-        @NonNull
+        @Nullable
         private Duration latestCommit = ValueHistory.START_OF_TIME;
 
         // steps has no null values
         @GuardedBy("this")
         private final NavigableMap<Duration, FutureObjectState> steps = new TreeMap<>();
 
-        @NonNull
+        @Nonnull
         @GuardedBy("this")
         private Duration advanceTo = ValueHistory.START_OF_TIME;
 
@@ -109,7 +111,7 @@ public final class SimulationEngine {
         @GuardedBy("this")
         private final Set<UUID> creating = new HashSet<>();
 
-        private Engine1(@NonNull final UUID object) {
+        private Engine1(@Nonnull final UUID object) {
             assert object != null;
             this.object = object;
             synchronized (this) {
@@ -124,7 +126,7 @@ public final class SimulationEngine {
          * to the number of objects, so the performance to advance the universe to a
          * given point in time should remain O(N).
          */
-        private void addDependencies(@NonNull final SortedSet<ObjectStateId> dependencyIds) {
+        private void addDependencies(@Nonnull final SortedSet<ObjectStateId> dependencyIds) {
             for (final ObjectStateId dependencyId : dependencyIds) {
                 final UUID objectDependency = dependencyId.getObject();
                 final Duration dependencyWhen = dependencyId.getWhen();
@@ -144,42 +146,47 @@ public final class SimulationEngine {
             objectDependencies.add(objectDependency);
         }
 
+        @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification = "SpotBugs 4.2.3 gives false positive")
         private void advance1() {
-            try (final Universe.Transaction transaction = universe.beginTransaction(this)) {
+            try (Universe.Transaction transaction = universe.beginTransaction(this)) {
                 try {
-                    final Duration when = universe.getLatestCommit(object);
-                    assert when != null;
-                    assert when.compareTo(ValueHistory.END_OF_TIME) < 0;
-                    synchronized (this) {
-                        latestCommit = when;
-                        creating.clear();
-                    }
-                    final ObjectState state0 = transaction.getObjectState(object, when);
-                    assert state0 != null;
-                    putNextStateTransition(state0, transaction, when);
-                    /*
-                     * Before this transaction can be committed, any object states it depends on
-                     * must be committed. Ensure those object states will be (eventually) committed.
-                     * If this transaction aborts, because it depends on states that have be
-                     * overwritten, the dependency information is unreliable. However, in that case
-                     * the dependency information is probably partially or approximately correct, so
-                     * using it is a good heuristic to prevent thrashing.
-                     */
-                    addDependencies(new TreeSet<>(transaction.getObjectStatesRead().keySet()));
-                    transaction.beginCommit();
+                    advance1(transaction);
                 } catch (Exception | AssertionError e) {
                     // Hard to test: race hazard.
-                    completeExceptionally(e);
                     try {
-                        uncaughtExceptionHandler.uncaughtException​(e);
+                        uncaughtExceptionHandler.uncaughtException(e);
                     } catch (final Exception e2) {
-                        // Do nothing; what else can we do?
+                        e.addSuppressed(e2);
                     }
+                    completeExceptionally(e);
                 }
             }
         }
 
-        private void advanceHistory(@NonNull final Duration when, @Nullable final UUID dependent) {
+        private void advance1(@Nonnull Universe.Transaction transaction) {
+            final Duration when = universe.getLatestCommit(object);
+            assert when != null;
+            assert when.compareTo(ValueHistory.END_OF_TIME) < 0;
+            synchronized (this) {
+                latestCommit = when;
+                creating.clear();
+            }
+            final ObjectState state0 = transaction.getObjectState(object, when);
+            assert state0 != null;
+            putNextStateTransition(state0, transaction, when);
+            /*
+             * Before this transaction can be committed, any object states it depends on
+             * must be committed. Ensure those object states will be (eventually) committed.
+             * If this transaction aborts, because it depends on states that have be
+             * overwritten, the dependency information is unreliable. However, in that case
+             * the dependency information is probably partially or approximately correct, so
+             * using it is a good heuristic to prevent thrashing.
+             */
+            addDependencies(new TreeSet<>(transaction.getObjectStatesRead().keySet()));
+            transaction.beginCommit();
+        }
+
+        private void advanceHistory(@Nonnull final Duration when, @Nullable final UUID dependent) {
             assert when != null;
             assert !object.equals(dependent);
 
@@ -298,20 +305,20 @@ public final class SimulationEngine {
         }
 
         @Override
-        public void onCreate(@NonNull final UUID createdObject) {
+        public void onCreate(@Nonnull final UUID createdObject) {
             synchronized (this) {
                 creating.add(createdObject);
             }
         }
 
-        private void putNextStateTransition(@NonNull final ObjectState state0,
-                @NonNull final Universe.Transaction transaction, @NonNull final Duration when) {
+        private void putNextStateTransition(@Nonnull final ObjectState state0,
+                @Nonnull final Universe.Transaction transaction, @Nonnull final Duration when) {
             try {
                 state0.doNextEvent(transaction, object, when);
 
                 final var objectStatesReadAtOrAfter = transaction.getObjectStatesRead().keySet().stream()
-                        .filter(id -> (when.compareTo(id.getWhen()) < 0
-                                || when.equals(id.getWhen()) && !object.equals(id.getObject())))
+                        .filter(id -> when.compareTo(id.getWhen()) < 0
+                                || when.equals(id.getWhen()) && !object.equals(id.getObject()))
                         .collect(Collectors.toSet());
                 final Duration whenWritten = transaction.getWhen();
                 final Map<UUID, ObjectState> objectStatesWritten = transaction.getObjectStatesWritten();
@@ -366,12 +373,13 @@ public final class SimulationEngine {
             return future;
         }
 
-        private void tryToScheduleAdvance1() {
+        private boolean tryToScheduleAdvance1() {
             assert universe.containsObject(object);
             try {
                 executor.execute(this);
+                return true;
             } catch (final RejectedExecutionException e) {
-                // Do nothing. Ok to fail because only need to try.
+                return false;
             }
         }
 
@@ -394,14 +402,14 @@ public final class SimulationEngine {
     private final class FutureObjectState extends EngineFuture<ObjectState> {
         private final Object lock = new Object();
 
-        @NonNull
+        @Nonnull
         private final ObjectStateId id;
 
         @Nullable
         @GuardedBy("lock")
         private ObjectState state;
 
-        private FutureObjectState(@NonNull final ObjectStateId id) {
+        private FutureObjectState(@Nonnull final ObjectStateId id) {
             assert id != null;
             this.id = id;
         }
@@ -440,8 +448,9 @@ public final class SimulationEngine {
             }
         }
 
+        @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification = "SpotBugs 4.2.3 gives false positive")
         private void startReadTransaction() {
-            try (final Universe.Transaction transaction = createReadTransaction();) {
+            try (Universe.Transaction transaction = createReadTransaction();) {
                 try {
                     setState(transaction.getObjectState(id.getObject(), id.getWhen()));
                     transaction.beginCommit();
@@ -464,19 +473,19 @@ public final class SimulationEngine {
 
     private final Object lock = new Object();
 
-    @NonNull
+    @Nonnull
     private final Universe universe;
 
-    @NonNull
+    @Nonnull
     private final Executor executor;
 
-    @NonNull
+    @Nonnull
     private final UncaughtExceptionHandler uncaughtExceptionHandler;
 
     // Hard to test that a concurrent Map.
     private final Map<UUID, Engine1> engines = new ConcurrentHashMap<>();
 
-    @NonNull
+    @Nonnull
     @GuardedBy("lock")
     private Duration universalAdvanceTo = ValueHistory.START_OF_TIME;
 
@@ -518,8 +527,8 @@ public final class SimulationEngine {
      *             <li>If {@code uncaughtExceptionHandler} is null.</li>
      *             </ul>
      */
-    public SimulationEngine(@NonNull final Universe universe, @NonNull final Executor executor,
-            @NonNull final UncaughtExceptionHandler uncaughtExceptionHandler) {
+    public SimulationEngine(@Nonnull final Universe universe, @Nonnull final Executor executor,
+            @Nonnull final UncaughtExceptionHandler uncaughtExceptionHandler) {
         this.universe = Objects.requireNonNull(universe, "universe");
         this.executor = Objects.requireNonNull(executor, "executor");
         this.uncaughtExceptionHandler = Objects.requireNonNull(uncaughtExceptionHandler, "uncaughtExceptionHandler");
@@ -558,7 +567,7 @@ public final class SimulationEngine {
      * @throws NullPointerException
      *             If {@code when} is null.
      */
-    public final void advanceHistory(@NonNull final Duration when) {
+    public void advanceHistory(@Nonnull final Duration when) {
         Objects.requireNonNull(when, "when");
         final Set<UUID> objectsToAdvance;
         synchronized (lock) {
@@ -607,7 +616,7 @@ public final class SimulationEngine {
      *             <li>If {@code when} is null.</li>
      *             </ul>
      */
-    public final @NonNull void advanceHistory(@NonNull final UUID object, @NonNull final Duration when) {
+    public @Nonnull void advanceHistory(@Nonnull final UUID object, @Nonnull final Duration when) {
         Objects.requireNonNull(object, "object");
         Objects.requireNonNull(when, "when");
         getEngine1(object).advanceHistory(when, null);
@@ -653,8 +662,7 @@ public final class SimulationEngine {
      *             </ul>
      * @see Universe#getObjectState(UUID, Duration)
      */
-    public final @NonNull Future<ObjectState> computeObjectState(@NonNull final UUID object,
-            @NonNull final Duration when) {
+    public @Nonnull Future<ObjectState> computeObjectState(@Nonnull final UUID object, @Nonnull final Duration when) {
         final ObjectStateId id = new ObjectStateId(object, when);
         return getEngine1(object).schedule(id, null);
     }
@@ -682,8 +690,8 @@ public final class SimulationEngine {
      *
      * @return the executor
      */
-    @NonNull
-    public final Executor getExecutor() {
+    @Nonnull
+    public Executor getExecutor() {
         return executor;
     }
 
@@ -700,8 +708,8 @@ public final class SimulationEngine {
      *
      * @return the uncaught exception handler; not null.
      */
-    @NonNull
-    public final UncaughtExceptionHandler getUncaughtExceptionHandler() {
+    @Nonnull
+    public UncaughtExceptionHandler getUncaughtExceptionHandler() {
         return uncaughtExceptionHandler;
     }
 
@@ -722,8 +730,8 @@ public final class SimulationEngine {
      *
      * @return the universe;
      */
-    @NonNull
-    public final Universe getUniverse() {
+    @Nonnull
+    public Universe getUniverse() {
         return universe;
     }
 
@@ -747,7 +755,7 @@ public final class SimulationEngine {
      *
      * @see Universe#prunePrehistory(UUID)
      */
-    public final void prunePrehistory() {
+    public void prunePrehistory() {
         for (final UUID object : universe.getObjectIds()) {
             executor.execute(() -> universe.prunePrehistory(object));
         }

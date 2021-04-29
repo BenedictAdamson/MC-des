@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -34,10 +34,10 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.Nullable;
-import net.jcip.annotations.Immutable;
-import net.jcip.annotations.NotThreadSafe;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  * <p>
@@ -108,7 +108,7 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
      * @see ModifiableValueHistory#setValueFrom(Duration, Object)
      * @see Set#add(Object)
      */
-    public final void addFrom(@NonNull final Duration when, @Nullable final VALUE value) {
+    public void addFrom(@Nonnull final Duration when, @Nullable final VALUE value) {
         Objects.requireNonNull(when, "when");
         var c = containsMap.get(value);
         if (c == null) {
@@ -152,7 +152,7 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
      * @see ModifiableValueHistory#setValueUntil(Duration, Object)
      * @see Set#add(Object)
      */
-    public final void addUntil(@NonNull final Duration when, @Nullable final VALUE value) {
+    public void addUntil(@Nonnull final Duration when, @Nullable final VALUE value) {
         Objects.requireNonNull(when, "when");
         var c = containsMap.get(value);
         if (c == null) {
@@ -164,13 +164,13 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
     }
 
     @Override
-    public final @NonNull ValueHistory<Boolean> contains(@Nullable final VALUE value) {
+    public @Nonnull ValueHistory<Boolean> contains(@Nullable final VALUE value) {
         final var c = containsMap.get(value);
         return c == null ? ABSENT : c;
     }
 
     @Override
-    public final boolean equals(final Object that) {
+    public boolean equals(final Object that) {
         if (that == null) {
             return false;
         }
@@ -193,7 +193,7 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
      *             {@inheritDoc}
      */
     @Override
-    public final @NonNull Set<VALUE> get(@NonNull final Duration when) {
+    public @Nonnull Set<VALUE> get(@Nonnull final Duration when) {
         Objects.requireNonNull(when, "when");
         final Set<VALUE> result = containsMap.entrySet().stream().filter(e -> e.getValue().get(when).booleanValue())
                 .map(e -> e.getKey()).collect(Collectors.toSet());
@@ -201,31 +201,31 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
     }
 
     @Override
-    public final @Nullable Duration getFirstTansitionTime() {
+    public @Nullable Duration getFirstTansitionTime() {
         return containsMap.values().stream().map(contains -> contains.getFirstTansitionTime())
                 .min((t1, t2) -> t1.compareTo(t2)).orElse(null);
     }
 
     @Override
-    public final @NonNull Set<VALUE> getFirstValue() {
+    public @Nonnull Set<VALUE> getFirstValue() {
         return Collections.unmodifiableSet(firstValue);
     }
 
     @Override
-    public final @Nullable Duration getLastTansitionTime() {
+    public @Nullable Duration getLastTansitionTime() {
         return containsMap.values().stream().map(contains -> contains.getLastTansitionTime())
                 .max((t1, t2) -> t1.compareTo(t2)).orElse(null);
     }
 
     @Override
-    public final Duration getTansitionTimeAtOrAfter(@NonNull final Duration when) {
+    public Duration getTansitionTimeAtOrAfter(@Nonnull final Duration when) {
         Objects.requireNonNull(when, "when");
         return streamOfTransitionTimes().filter(t -> when.compareTo(t) <= 0).min(Comparator.naturalOrder())
                 .orElse(null);
     }
 
     @Override
-    public final @NonNull SortedMap<Duration, Set<VALUE>> getTransitions() {
+    public @Nonnull SortedMap<Duration, Set<VALUE>> getTransitions() {
         final SortedMap<Duration, Set<VALUE>> transitions = new TreeMap<>();
         for (final var t : getTransitionTimes()) {
             transitions.put(t, get(t));
@@ -234,22 +234,22 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
     }
 
     @Override
-    public final @NonNull SortedSet<Duration> getTransitionTimes() {
+    public @Nonnull SortedSet<Duration> getTransitionTimes() {
         return new TreeSet<>(streamOfTransitionTimes().collect(Collectors.toSet()));
     }
 
     @Override
-    public final Set<VALUE> getUniverse() {
+    public Set<VALUE> getUniverse() {
         return new HashSet<>(containsMap.keySet());
     }
 
     @Override
-    public final int hashCode() {
+    public int hashCode() {
         return getFirstValue().hashCode() + streamOfTransitions().mapToInt(entry -> entry.hashCode()).sum();
     }
 
     @Override
-    public final boolean isEmpty() {
+    public boolean isEmpty() {
         return containsMap.isEmpty();
     }
 
@@ -272,13 +272,13 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
      *
      * @see Set#remove(Object)
      */
-    public final void remove(@Nullable final VALUE value) {
+    public void remove(@Nullable final VALUE value) {
         containsMap.remove(value);
         firstValue.remove(value);
     }
 
     @Override
-    public final @NonNull Stream<Map.Entry<Duration, Set<VALUE>>> streamOfTransitions() {
+    public @Nonnull Stream<Map.Entry<Duration, Set<VALUE>>> streamOfTransitions() {
         return streamOfTransitionTimes().distinct().map(t -> new AbstractMap.SimpleImmutableEntry<>(t, get(t)));
     }
 

@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -50,12 +50,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nonnull;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
 import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.history.ModifiableValueHistory;
 import uk.badamson.mc.history.ValueHistory;
@@ -83,8 +84,8 @@ public class SimulationEngineTest {
                 test(WHEN_2, WHEN_3, OBJECT_B);
             }
 
-            private void test(@NonNull final Duration historyStart, @NonNull final Duration when,
-                    @NonNull final UUID object) {
+            private void test(@Nonnull final Duration historyStart, @Nonnull final Duration when,
+                    @Nonnull final UUID object) {
                 assert historyStart.compareTo(when) < 0;
                 final Universe universe = new Universe(historyStart);
                 final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
@@ -114,8 +115,8 @@ public class SimulationEngineTest {
                 test(WHEN_1, ValueHistory.START_OF_TIME.plusNanos(1L), WHEN_3, ValueHistory.END_OF_TIME, OBJECT_A);
             }
 
-            private void test(@NonNull final Duration historyStart, @NonNull final Duration before,
-                    @NonNull final Duration when, @NonNull final Duration after, @NonNull final UUID object) {
+            private void test(@Nonnull final Duration historyStart, @Nonnull final Duration before,
+                    @Nonnull final Duration when, @Nonnull final Duration after, @Nonnull final UUID object) {
                 assert before.compareTo(when) <= 0;
                 assert when.compareTo(after) < 0;
                 final Universe universe = new Universe(historyStart);
@@ -145,8 +146,8 @@ public class SimulationEngineTest {
                 test(WHEN_2, WHEN_3, WHEN_4, OBJECT_B);
             }
 
-            private void test(@NonNull final Duration historyStart, @NonNull final Duration before,
-                    @NonNull final Duration when, @NonNull final UUID object) {
+            private void test(@Nonnull final Duration historyStart, @Nonnull final Duration before,
+                    @Nonnull final Duration when, @Nonnull final UUID object) {
                 assert historyStart.compareTo(when) < 0;
                 assert before.compareTo(when) < 0;
                 final Universe universe = new Universe(historyStart);
@@ -162,8 +163,8 @@ public class SimulationEngineTest {
             }
         }// class
 
-        private void advanceHistory(final SimulationEngine engine, @NonNull final UUID object,
-                @NonNull final Duration when) {
+        private void advanceHistory(final SimulationEngine engine, @Nonnull final UUID object,
+                @Nonnull final Duration when) {
             engine.advanceHistory(object, when);
 
             assertInvariants(engine);
@@ -279,8 +280,8 @@ public class SimulationEngineTest {
                 test(WHEN_1, ValueHistory.START_OF_TIME.plusNanos(1L), WHEN_3, ValueHistory.END_OF_TIME, OBJECT_A);
             }
 
-            private void test(@NonNull final Duration historyStart, @NonNull final Duration before,
-                    @NonNull final Duration when, @NonNull final Duration after, @NonNull final UUID object) {
+            private void test(@Nonnull final Duration historyStart, @Nonnull final Duration before,
+                    @Nonnull final Duration when, @Nonnull final Duration after, @Nonnull final UUID object) {
                 assert before.compareTo(when) <= 0;
                 assert when.compareTo(after) < 0;
                 final Universe universe = new Universe(historyStart);
@@ -311,8 +312,8 @@ public class SimulationEngineTest {
                 test(WHEN_2, WHEN_3, OBJECT_B);
             }
 
-            private void test(@NonNull final Duration historyStart, @NonNull final Duration when,
-                    @NonNull final UUID object) {
+            private void test(@Nonnull final Duration historyStart, @Nonnull final Duration when,
+                    @Nonnull final UUID object) {
                 assert historyStart.compareTo(when) < 0;
                 final Universe universe = new Universe(historyStart);
                 final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
@@ -338,8 +339,8 @@ public class SimulationEngineTest {
                 test(WHEN_2, WHEN_3, WHEN_4, OBJECT_B);
             }
 
-            private void test(@NonNull final Duration historyStart, @NonNull final Duration before,
-                    @NonNull final Duration when, @NonNull final UUID object) {
+            private void test(@Nonnull final Duration historyStart, @Nonnull final Duration before,
+                    @Nonnull final Duration when, @Nonnull final UUID object) {
                 assert historyStart.compareTo(when) < 0;
                 assert before.compareTo(when) < 0;
                 final Universe universe = new Universe(historyStart);
@@ -370,8 +371,8 @@ public class SimulationEngineTest {
                 test(WHEN_2, WHEN_3, WHEN_4, WHEN_5, OBJECT_B);
             }
 
-            private void test(@NonNull final Duration historyStart, @NonNull final Duration before,
-                    @NonNull final Duration when1, @NonNull final Duration when2, @NonNull final UUID object) {
+            private void test(@Nonnull final Duration historyStart, @Nonnull final Duration before,
+                    @Nonnull final Duration when1, @Nonnull final Duration when2, @Nonnull final UUID object) {
                 assert historyStart.compareTo(when1) < 0;
                 assert before.compareTo(when1) < 0;
                 assert when1.compareTo(when2) < 0;
@@ -404,8 +405,8 @@ public class SimulationEngineTest {
                 test(WHEN_2, WHEN_3, WHEN_4, OBJECT_B, OBJECT_A);
             }
 
-            private void test(@NonNull final Duration historyStart, @NonNull final Duration before,
-                    @NonNull final Duration when, @NonNull final UUID parent, @NonNull final UUID child) {
+            private void test(@Nonnull final Duration historyStart, @Nonnull final Duration before,
+                    @Nonnull final Duration when, @Nonnull final UUID parent, @Nonnull final UUID child) {
                 assert historyStart.compareTo(before) < 0;
                 assert before.compareTo(when) < 0;
                 assert !parent.equals(child);
@@ -440,8 +441,8 @@ public class SimulationEngineTest {
                 test(WHEN_2, WHEN_3, WHEN_4, WHEN_5, OBJECT_B);
             }
 
-            private void test(@NonNull final Duration historyStart, @NonNull final Duration before,
-                    @NonNull final Duration when1, @NonNull final Duration when2, @NonNull final UUID object) {
+            private void test(@Nonnull final Duration historyStart, @Nonnull final Duration before,
+                    @Nonnull final Duration when1, @Nonnull final Duration when2, @Nonnull final UUID object) {
                 assert historyStart.compareTo(when1) < 0;
                 assert before.compareTo(when1) < 0;
                 assert when1.compareTo(when2) < 0;
@@ -461,7 +462,7 @@ public class SimulationEngineTest {
             }
         }// class
 
-        private void advanceHistory(final SimulationEngine engine, @NonNull final Duration when) {
+        private void advanceHistory(final SimulationEngine engine, @Nonnull final Duration when) {
             engine.advanceHistory(when);
 
             assertInvariants(engine);
@@ -539,8 +540,8 @@ public class SimulationEngineTest {
                 test(WHEN_2, WHEN_3, WHEN_4, WHEN_5, OBJECT_B);
             }
 
-            private void test(@NonNull final Duration historyStart, @NonNull final Duration whenExist,
-                    @NonNull final Duration whenDestroyed, @NonNull final Duration when, @NonNull final UUID object) {
+            private void test(@Nonnull final Duration historyStart, @Nonnull final Duration whenExist,
+                    @Nonnull final Duration whenDestroyed, @Nonnull final Duration when, @Nonnull final UUID object) {
                 assert whenExist.compareTo(whenDestroyed) < 0;
                 assert whenDestroyed.compareTo(when) <= 0;
                 final Universe universe = new Universe(historyStart);
@@ -579,8 +580,8 @@ public class SimulationEngineTest {
                 test(WHEN_2, WHEN_3, OBJECT_B);
             }
 
-            private void test(@NonNull final Duration historyStart, @NonNull final Duration when,
-                    @NonNull final UUID object) {
+            private void test(@Nonnull final Duration historyStart, @Nonnull final Duration when,
+                    @Nonnull final UUID object) {
                 assert historyStart.compareTo(when) < 0;
                 final Universe universe = new Universe(historyStart);
                 final SimulationEngine engine = new SimulationEngine(universe, directExecutor,
@@ -620,8 +621,8 @@ public class SimulationEngineTest {
                 test(WHEN_1, ValueHistory.START_OF_TIME.plusNanos(1L), WHEN_3, ValueHistory.END_OF_TIME, OBJECT_A);
             }
 
-            private void test(@NonNull final Duration historyStart, @NonNull final Duration before,
-                    @NonNull final Duration when, @NonNull final Duration after, @NonNull final UUID object) {
+            private void test(@Nonnull final Duration historyStart, @Nonnull final Duration before,
+                    @Nonnull final Duration when, @Nonnull final Duration after, @Nonnull final UUID object) {
                 assert before.compareTo(when) <= 0;
                 assert when.compareTo(after) < 0;
                 final Universe universe = new Universe(historyStart);
@@ -661,8 +662,8 @@ public class SimulationEngineTest {
                 test(WHEN_2, WHEN_3, WHEN_4, WHEN_5, OBJECT_B);
             }
 
-            private void test(@NonNull final Duration historyStart, @NonNull final Duration before,
-                    @NonNull final Duration whenA, @NonNull final Duration whenB, @NonNull final UUID object) {
+            private void test(@Nonnull final Duration historyStart, @Nonnull final Duration before,
+                    @Nonnull final Duration whenA, @Nonnull final Duration whenB, @Nonnull final UUID object) {
                 assert historyStart.compareTo(whenA) < 0;
                 assert historyStart.compareTo(whenB) < 0;
                 assert before.compareTo(whenA) < 0;
@@ -712,8 +713,8 @@ public class SimulationEngineTest {
                 test(WHEN_2, WHEN_3, WHEN_4, WHEN_5, OBJECT_B);
             }
 
-            private void test(@NonNull final Duration historyStart, @NonNull final Duration before,
-                    @NonNull final Duration whenA, @NonNull final Duration whenB, @NonNull final UUID object) {
+            private void test(@Nonnull final Duration historyStart, @Nonnull final Duration before,
+                    @Nonnull final Duration whenA, @Nonnull final Duration whenB, @Nonnull final UUID object) {
                 assert historyStart.compareTo(whenA) < 0;
                 assert historyStart.compareTo(whenB) < 0;
                 assert before.compareTo(whenA) < 0;
@@ -764,8 +765,8 @@ public class SimulationEngineTest {
                 test(WHEN_2, WHEN_3, WHEN_4, OBJECT_B);
             }
 
-            private void test(@NonNull final Duration historyStart, @NonNull final Duration before,
-                    @NonNull final Duration when, @NonNull final UUID object) {
+            private void test(@Nonnull final Duration historyStart, @Nonnull final Duration before,
+                    @Nonnull final Duration when, @Nonnull final UUID object) {
                 assert historyStart.compareTo(when) < 0;
                 assert before.compareTo(when) < 0;
                 final Universe universe = new Universe(historyStart);
@@ -810,8 +811,8 @@ public class SimulationEngineTest {
                 test(WHEN_1, WHEN_2, WHEN_2.plusNanos(1), OBJECT_A);
             }
 
-            private void test(@NonNull final Duration before, @NonNull final Duration when,
-                    @NonNull final Duration historyStart, @NonNull final UUID object) {
+            private void test(@Nonnull final Duration before, @Nonnull final Duration when,
+                    @Nonnull final Duration historyStart, @Nonnull final UUID object) {
                 assert when.compareTo(historyStart) < 0;
                 assert before.compareTo(when) < 0;
                 final Universe universe = new Universe(historyStart);
@@ -852,8 +853,8 @@ public class SimulationEngineTest {
                 test(WHEN_2, WHEN_3, WHEN_4, OBJECT_B);
             }
 
-            private void test(@NonNull final Duration historyStart, @NonNull final Duration before,
-                    @NonNull final Duration when, @NonNull final UUID object) {
+            private void test(@Nonnull final Duration historyStart, @Nonnull final Duration before,
+                    @Nonnull final Duration when, @Nonnull final UUID object) {
                 assert historyStart.compareTo(when) < 0;
                 assert before.compareTo(when) < 0;
                 final Universe universe = new Universe(historyStart);
@@ -900,9 +901,9 @@ public class SimulationEngineTest {
                 test(historyStart, before, when, OBJECT_A, OBJECT_B, dependencyDelay);
             }
 
-            private void test(@NonNull final Duration historyStart, @NonNull final Duration before,
-                    @NonNull final Duration when, @NonNull final UUID objectA, @NonNull final UUID objectB,
-                    @NonNull final Duration dependencyDelay) {
+            private void test(@Nonnull final Duration historyStart, @Nonnull final Duration before,
+                    @Nonnull final Duration when, @Nonnull final UUID objectA, @Nonnull final UUID objectB,
+                    @Nonnull final Duration dependencyDelay) {
                 assert historyStart.compareTo(when) < 0;
                 assert before.compareTo(when) < 0;
                 assert historyStart.compareTo(before) < 0;
@@ -961,9 +962,9 @@ public class SimulationEngineTest {
                 test(historyStart, before, when, OBJECT_A, OBJECT_B, dependencyDelay);
             }
 
-            private void test(@NonNull final Duration historyStart, @NonNull final Duration before,
-                    @NonNull final Duration when, @NonNull final UUID objectA, @NonNull final UUID objectB,
-                    @NonNull final Duration dependencyDelay) {
+            private void test(@Nonnull final Duration historyStart, @Nonnull final Duration before,
+                    @Nonnull final Duration when, @Nonnull final UUID objectA, @Nonnull final UUID objectB,
+                    @Nonnull final Duration dependencyDelay) {
                 assert historyStart.compareTo(when) < 0;
                 assert before.compareTo(when) < 0;
                 assert historyStart.compareTo(before) < 0;
@@ -1022,9 +1023,9 @@ public class SimulationEngineTest {
                 test(WHEN_1, WHEN_2, WHEN_3, OBJECT_A, OBJECT_B, dependencyDelay);
             }
 
-            private void test(@NonNull final Duration historyStart, @NonNull final Duration before,
-                    @NonNull final Duration when, @NonNull final UUID objectA, @NonNull final UUID objectB,
-                    @NonNull final Duration dependencyDelay) {
+            private void test(@Nonnull final Duration historyStart, @Nonnull final Duration before,
+                    @Nonnull final Duration when, @Nonnull final UUID objectA, @Nonnull final UUID objectB,
+                    @Nonnull final Duration dependencyDelay) {
                 assert historyStart.compareTo(when) < 0;
                 assert before.compareTo(when) < 0;
                 assert historyStart.compareTo(before) < 0;
@@ -1063,8 +1064,8 @@ public class SimulationEngineTest {
             }
         }// class
 
-        private Future<ObjectState> computeObjectState(final SimulationEngine engine, @NonNull final UUID object,
-                @NonNull final Duration when) {
+        private Future<ObjectState> computeObjectState(final SimulationEngine engine, @Nonnull final UUID object,
+                @Nonnull final Duration when) {
             final Future<ObjectState> future = engine.computeObjectState(object, when);
 
             assertInvariants(engine);

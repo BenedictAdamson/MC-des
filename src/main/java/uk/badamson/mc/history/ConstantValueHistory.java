@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -26,8 +26,8 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.stream.Stream;
 
-import edu.umd.cs.findbugs.annotations.Nullable;
-import net.jcip.annotations.Immutable;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 /**
  * <p>
@@ -64,14 +64,13 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
     }
 
     @Override
-    public final boolean equals(final Object obj) {
+    public boolean equals(final Object obj) {
         if (this == obj) {
             return true;
         }
         if (obj == null) {
             return false;
         }
-        // FIXME
         if (!(obj instanceof ConstantValueHistory)) {
             return false;
         }
@@ -87,7 +86,7 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      *             {@inheritDoc}
      */
     @Override
-    public final VALUE get(final Duration t) {
+    public VALUE get(final Duration t) {
         Objects.requireNonNull(t, "t");
         return value;
     }
@@ -106,12 +105,12 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * @return the first transition time.
      */
     @Override
-    public final Duration getFirstTansitionTime() {
+    public Duration getFirstTansitionTime() {
         return null;
     }
 
     @Override
-    public final VALUE getFirstValue() {
+    public VALUE getFirstValue() {
         return value;
     }
 
@@ -129,12 +128,12 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * @return the last transition time.
      */
     @Override
-    public final Duration getLastTansitionTime() {
+    public Duration getLastTansitionTime() {
         return null;
     }
 
     @Override
-    public final VALUE getLastValue() {
+    public VALUE getLastValue() {
         return value;
     }
 
@@ -158,7 +157,7 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      *             if {@code when} is null.
      */
     @Override
-    public final Duration getTansitionTimeAtOrAfter(final Duration when) {
+    public Duration getTansitionTimeAtOrAfter(final Duration when) {
         Objects.requireNonNull(when, "when");
         return null;
     }
@@ -177,7 +176,7 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * @return a map of the transitions.
      */
     @Override
-    public final SortedMap<Duration, VALUE> getTransitions() {
+    public SortedMap<Duration, VALUE> getTransitions() {
         return Collections.emptySortedMap();
     }
 
@@ -201,12 +200,12 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * @return the transition times
      */
     @Override
-    public final SortedSet<Duration> getTransitionTimes() {
+    public SortedSet<Duration> getTransitionTimes() {
         return Collections.emptySortedSet();
     }
 
     @Override
-    public final int hashCode() {
+    public int hashCode() {
         return value == null ? 0 : value.hashCode();
     }
 
@@ -222,7 +221,7 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      *
      */
     @Override
-    public final boolean isEmpty() {
+    public boolean isEmpty() {
         return true;
     }
 
@@ -242,7 +241,7 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * @return a stream of the transitions.
      */
     @Override
-    public final Stream<Entry<Duration, VALUE>> streamOfTransitions() {
+    public Stream<Entry<Duration, VALUE>> streamOfTransitions() {
         return Stream.empty();
     }
 

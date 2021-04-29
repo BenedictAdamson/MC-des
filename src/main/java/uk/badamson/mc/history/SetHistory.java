@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,21.
  *
  * This file is part of MC-des.
  *
@@ -21,10 +21,10 @@ package uk.badamson.mc.history;
 import java.time.Duration;
 import java.util.Set;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.Nullable;
-import net.jcip.annotations.Immutable;
-import net.jcip.annotations.NotThreadSafe;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  * <p>
@@ -67,7 +67,8 @@ public interface SetHistory<VALUE> extends ValueHistory<Set<VALUE>> {
      *
      * @see Set#contains(Object)
      */
-    public @NonNull ValueHistory<Boolean> contains(@Nullable VALUE value);
+    @Nonnull
+    ValueHistory<Boolean> contains(@Nullable VALUE value);
 
     /**
      * <p>
@@ -89,5 +90,6 @@ public interface SetHistory<VALUE> extends ValueHistory<Set<VALUE>> {
      *
      * @return the universe.
      */
-    public @NonNull Set<VALUE> getUniverse();
+    @Nonnull
+    Set<VALUE> getUniverse();
 }

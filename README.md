@@ -1,7 +1,7 @@
 # MC-des
 Multi-threaded Parallel Discrete Event Simulation (PDES) engine
 
-* This module provides a framework for performing simulations of systems on
+* This provides a framework for performing simulations of systems on
 a shared-memory computer using multiple threads. It is therefore suitable
 only for systems that can record a complete snapshot of their state in the
 RAM of a practical computer.
@@ -59,7 +59,7 @@ required.
 
 ## License
 
-© Copyright Benedict Adamson 2018.
+© Copyright Benedict Adamson 2018,2021.
  
 ![GPLV3](https://www.gnu.org/graphics/gplv3-with-text-136x68.png)
 
@@ -82,12 +82,10 @@ along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
 
 * [Java 10](https://docs.oracle.com/javase/10/)
 * Annotations:
-    * [JCIP annotations](http://jcip.net/annotations/doc/net/jcip/annotations/package-summary.html)
-    * [SpotBugs annotations](https://javadoc.io/doc/com.github.spotbugs/spotbugs-annotations/3.1.8)
+    * [SpotBugs annotations](https://javadoc.io/doc/com.github.spotbugs/spotbugs-annotations)
 * Development environment:
     * [Eclipse IDE](https://www.eclipse.org/ide/)
     * [Jenkins Editor](https://github.com/de-jcup/eclipse-jenkins-editor)
-    * [Eclipse Docker Tooling](https://marketplace.eclipse.org/content/eclipse-docker-tooling)
     * [SpotBugs Eclipse plugin](https://marketplace.eclipse.org/content/spotbugs-eclipse-plugin)
 * Software configuration management:
      * [Git](https://git-scm.com/)
@@ -96,8 +94,7 @@ along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
     * [Maven](https://maven.apache.org/)
     * [SpotBugs Maven plugin](https://spotbugs.github.io/spotbugs-maven-plugin/index.html)
     * [Jenkins](https://jenkins.io/)
-    * [Docker](https://www.docker.com/)
-    * [Ubuntu 18.04](http://releases.ubuntu.com/18.04/)
+    * [Ubuntu](http://ubuntu.com)
 * Static analysis and testing:
     * [JUnit 5](https://junit.org/junit5/)
     * [Java Hamcrest](http://hamcrest.org/JavaHamcrest/)

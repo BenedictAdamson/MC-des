@@ -1,14 +1,6 @@
 package uk.badamson.mc.simulation;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import org.opentest4j.MultipleFailuresError;
-
-import net.jcip.annotations.GuardedBy;
-
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -25,6 +17,13 @@ import net.jcip.annotations.GuardedBy;
  * You should have received a copy of the GNU General Public License
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.annotation.concurrent.GuardedBy;
+
+import org.opentest4j.MultipleFailuresError;
 
 /**
  * <p>
@@ -55,7 +54,7 @@ public class UncaughtExceptionHandlerTest {
         }
 
         @Override
-        public void uncaughtException​(final Throwable e) {
+        public void uncaughtException(final Throwable e) {
             synchronized (exceptions) {
                 exceptions.add(e);
             }
@@ -73,7 +72,7 @@ public class UncaughtExceptionHandlerTest {
 
     public static void uncaughtException​(final UncaughtExceptionHandler handler, final Throwable e) {
         try {
-            handler.uncaughtException​(e);
+            handler.uncaughtException(e);
         } catch (final AssertionError e2) {
             throw e2;
         } catch (final Throwable e2) {

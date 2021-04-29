@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -21,8 +21,8 @@ package uk.badamson.mc.simulation;
 import java.time.Duration;
 import java.util.UUID;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-import net.jcip.annotations.Immutable;
+import javax.annotation.Nonnull;
+import javax.annotation.concurrent.Immutable;
 
 /**
  * <p>
@@ -131,6 +131,5 @@ public interface ObjectState {
      *             time-stamp.</li>
      *             </ul>
      */
-    public abstract void doNextEvent(@NonNull Universe.Transaction transaction, @NonNull UUID object,
-            @NonNull Duration when);
+    void doNextEvent(@Nonnull Universe.Transaction transaction, @Nonnull UUID object, @Nonnull Duration when);
 }

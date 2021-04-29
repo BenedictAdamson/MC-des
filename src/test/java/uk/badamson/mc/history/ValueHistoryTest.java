@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -41,7 +41,7 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.stream.Stream;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
+import javax.annotation.Nonnull;
 
 /**
  * <p>
@@ -177,7 +177,7 @@ public class ValueHistoryTest {
     }
 
     private static <VALUE> Duration assertTansitionTimeAtOrAfterInvariants(final ValueHistory<VALUE> history,
-            @NonNull final Duration when) {
+            @Nonnull final Duration when) {
         final Duration transitionTime = history.getTansitionTimeAtOrAfter(when);
 
         assertAll(

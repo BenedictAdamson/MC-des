@@ -1,7 +1,7 @@
 // Jenkinsfile for the MC-des project
 
 /* 
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018-21.
  * 
  * This file is part of MC-des.
  *
@@ -34,41 +34,37 @@ pipeline {
             args '-v $HOME/.m2:/root/.m2 --network="host"'
         }
     }
+    triggers {
+        pollSCM('H */4 * * *')
+    }
     environment {
         JAVA_HOME = '/usr/lib/jvm/java-11-openjdk-amd64'
     }
     stages {
-        stage('Build') { 
+        stage('Clean') { 
+            steps {
+               sh 'rm -rf "$WORKSPACE/target"'
+            }
+        }
+        stage('Build and verify') {
+            when{
+                not{
+                    branch 'master'
+                }
+            } 
             steps {
                 configFileProvider([configFile(fileId: 'maven-settings', variable: 'MAVEN_SETTINGS')]){ 
-                    sh 'mvn -s $MAVEN_SETTINGS -DskipTests=true clean package'
+                    sh 'mvn -B -s $MAVEN_SETTINGS verify'
                 }
             }
         }
-        stage('Check') { 
-            steps {
-                configFileProvider([configFile(fileId: 'maven-settings', variable: 'MAVEN_SETTINGS')]){  
-                    sh 'mvn -s $MAVEN_SETTINGS spotbugs:spotbugs'
-                }
-            }
-        }
-        stage('Test') { 
-            steps {
-               configFileProvider([configFile(fileId: 'maven-settings', variable: 'MAVEN_SETTINGS')]){   
-                   sh 'mvn -s $MAVEN_SETTINGS test'
-               }
-            }
-        }
-        stage('Deploy') {
-            when {
-                anyOf{
-                    branch 'develop';
-                    branch 'master';
-                }
-            }
+        stage('Build, verify and deploy') {
+            when{
+                 branch 'master'
+            } 
             steps {
                 configFileProvider([configFile(fileId: 'maven-settings', variable: 'MAVEN_SETTINGS')]){ 
-                    sh 'mvn -s $MAVEN_SETTINGS -DskipTests=true deploy'
+                    sh 'mvn -B -s $MAVEN_SETTINGS deploy'
                 }
             }
         }
@@ -76,10 +72,15 @@ pipeline {
     post {
         always {// We ESPECIALLY want the reports on failure
             script {
-                def spotbugs = scanForIssues tool: [$class: 'SpotBugs'], pattern: 'target/spotbugsXml.xml'
-                publishIssues issues:[spotbugs]
+                recordIssues tools: [
+                	java(),
+                	javaDoc(),
+                	mavenConsole(),
+                	pmdParser(pattern: '**/target/pmd.xml'),
+					spotBugs(pattern: '**/target/spotbugsXml.xml')
+					]
             }
-            junit 'target/surefire-reports/**/*.xml' 
+            junit 'target/*-reports/**/TEST-*.xml' 
         }
         success {
             archiveArtifacts artifacts: 'target/MC-des-*.jar', fingerprint: true

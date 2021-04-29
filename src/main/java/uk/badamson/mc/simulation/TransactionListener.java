@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -20,8 +20,8 @@ package uk.badamson.mc.simulation;
 
 import java.util.UUID;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-import net.jcip.annotations.ThreadSafe;
+import javax.annotation.Nonnull;
+import javax.annotation.concurrent.ThreadSafe;
 
 /**
  * <p>
@@ -42,7 +42,7 @@ public interface TransactionListener {
      * The action to perform when (if) a transaction aborts its commit operation.
      * </p>
      */
-    public void onAbort();
+    void onAbort();
 
     /**
      * <p>
@@ -50,7 +50,7 @@ public interface TransactionListener {
      * commit operation.
      * </p>
      */
-    public void onCommit();
+    void onCommit();
 
     /**
      * <p>
@@ -68,6 +68,6 @@ public interface TransactionListener {
      *             (Optionally) if this method of listener has previously been
      *             called for the same transaction and object.
      */
-    public void onCreate(@NonNull UUID object);
+    void onCreate(@Nonnull UUID object);
 
 }// interface

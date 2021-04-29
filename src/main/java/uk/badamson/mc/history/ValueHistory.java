@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -27,10 +27,10 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.stream.Stream;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.Nullable;
-import net.jcip.annotations.Immutable;
-import net.jcip.annotations.NotThreadSafe;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  * <p>
@@ -56,14 +56,14 @@ public interface ValueHistory<VALUE> {
      * The smallest (most negative) {@link Duration} value.
      * </p>
      */
-    public static final Duration START_OF_TIME = Duration.ofSeconds(Long.MIN_VALUE);
+    Duration START_OF_TIME = Duration.ofSeconds(Long.MIN_VALUE);
 
     /**
      * <p>
      * The largest (most positive) {@link Duration} value.
      * </p>
      */
-    public static final Duration END_OF_TIME = Duration.ofSeconds(Long.MAX_VALUE, 999_999_999);
+    Duration END_OF_TIME = Duration.ofSeconds(Long.MAX_VALUE, 999_999_999);
 
     /**
      * <p>
@@ -85,7 +85,7 @@ public interface ValueHistory<VALUE> {
      * @return Whether equal.
      */
     @Override
-    public boolean equals(Object that);
+    boolean equals(Object that);
 
     /**
      * <p>
@@ -99,7 +99,8 @@ public interface ValueHistory<VALUE> {
      * @throws NullPointerException
      *             If {@code when} is null.
      */
-    public @Nullable VALUE get(@NonNull Duration when);
+    @Nullable
+    VALUE get(@Nonnull Duration when);
 
     /**
      * <p>
@@ -119,7 +120,8 @@ public interface ValueHistory<VALUE> {
      *
      * @return the first transition time.
      */
-    public @Nullable Duration getFirstTansitionTime();
+    @Nullable
+    Duration getFirstTansitionTime();
 
     /**
      * <p>
@@ -136,7 +138,8 @@ public interface ValueHistory<VALUE> {
      *
      * @return the last value.
      */
-    public @Nullable VALUE getFirstValue();
+    @Nullable
+    VALUE getFirstValue();
 
     /**
      * <p>
@@ -156,7 +159,8 @@ public interface ValueHistory<VALUE> {
      *
      * @return the last transition time.
      */
-    public @Nullable Duration getLastTansitionTime();
+    @Nullable
+    Duration getLastTansitionTime();
 
     /**
      * <p>
@@ -179,7 +183,8 @@ public interface ValueHistory<VALUE> {
      *
      * @return the last value.
      */
-    public @Nullable VALUE getLastValue();
+    @Nullable
+    VALUE getLastValue();
 
     /**
      * <p>
@@ -207,7 +212,8 @@ public interface ValueHistory<VALUE> {
      * @throws NullPointerException
      *             if {@code when} is null.
      */
-    public @Nullable Duration getTansitionTimeAtOrAfter(@NonNull Duration when);
+    @Nullable
+    Duration getTansitionTimeAtOrAfter(@Nonnull Duration when);
 
     /**
      * <p>
@@ -221,7 +227,7 @@ public interface ValueHistory<VALUE> {
      * <li>The {@linkplain SortedMap#get(Object) values} of the transition map are
      * {@linkplain Objects#equals(Object, Object) equal to (or equally null as)} the
      * {@linkplain #get(Duration) value} of this history at the time of their
-     * corresponding {@linkplain Map.Entry#getKey() key}.</li>
+     * corresponding key.</li>
      * <li>The transitions map may be
      * {@linkplain Collections#unmodifiableSortedMap(SortedMap) unmodifiable}.</li>
      * <li>If the transitions map is
@@ -232,7 +238,8 @@ public interface ValueHistory<VALUE> {
      *
      * @return a map of the transitions.
      */
-    public @NonNull SortedMap<Duration, VALUE> getTransitions();
+    @Nonnull
+    SortedMap<Duration, VALUE> getTransitions();
 
     /**
      * <p>
@@ -265,7 +272,8 @@ public interface ValueHistory<VALUE> {
      *
      * @return the transition times
      */
-    public @NonNull SortedSet<Duration> getTransitionTimes();
+    @Nonnull
+    SortedSet<Duration> getTransitionTimes();
 
     /**
      * <p>
@@ -281,7 +289,7 @@ public interface ValueHistory<VALUE> {
      * @return the hash code
      */
     @Override
-    public int hashCode();
+    int hashCode();
 
     /**
      * <p>
@@ -296,7 +304,7 @@ public interface ValueHistory<VALUE> {
      * </ul>
      *
      */
-    public boolean isEmpty();
+    boolean isEmpty();
 
     /**
      * <p>
@@ -315,6 +323,7 @@ public interface ValueHistory<VALUE> {
      *
      * @return a stream of the transitions.
      */
-    public @NonNull Stream<Map.Entry<Duration, VALUE>> streamOfTransitions();
+    @Nonnull
+    Stream<Map.Entry<Duration, VALUE>> streamOfTransitions();
 
 }

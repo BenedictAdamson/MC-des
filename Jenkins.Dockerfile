@@ -1,7 +1,7 @@
 # Dockerfile for the use in the Jenkinsfile for the MC-des project,
 # to set up the build environment for Jenkins to use.
 
-# © Copyright Benedict Adamson 2018.
+# © Copyright Benedict Adamson 2018-21.
 # 
 # This file is part of MC-des.
 #
@@ -19,7 +19,7 @@
 # along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-FROM ubuntu:18.04
+FROM debian:10
 RUN apt-get -y update && apt-get -y install \
    maven \
    openjdk-11-jdk-headless

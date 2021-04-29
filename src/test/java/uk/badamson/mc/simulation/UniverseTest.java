@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -56,12 +56,13 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.Nullable;
 import uk.badamson.mc.ComparableTest;
 import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.history.ModifiableValueHistory;
@@ -259,7 +260,7 @@ public class UniverseTest {
             }
         }// class
 
-        private void prunePrehistory(final Universe universe, @NonNull final UUID object) {
+        private void prunePrehistory(final Universe universe, @Nonnull final UUID object) {
             universe.prunePrehistory(object);
 
             assertInvariants(universe);
@@ -369,7 +370,7 @@ public class UniverseTest {
                     "The history start time of this universe is equal to the given history start time.");
         }
 
-        private void setHistoryStart(final Universe universe, @NonNull final Duration historyStart) {
+        private void setHistoryStart(final Universe universe, @Nonnull final Duration historyStart) {
             universe.setHistoryStart(historyStart);
 
             assertPostconditions(universe, historyStart);
@@ -2554,8 +2555,8 @@ public class UniverseTest {
                 get(futures);
 
                 UniverseTest.assertInvariants(universe);
-                final Universe.TransactionCoordinator coordinator0 = transactions.get(objects[0])
-                        .get().transactionCoordinator;
+                final var transaction0 = transactions.get(objects[0]).get();
+                final Universe.TransactionCoordinator coordinator0 = transaction0.transactionCoordinator;
                 UniverseTest.assertInvariants(coordinator0);
                 synchronized (coordinator0.lock) {
                     assertTrue(coordinator0.predecessors.isEmpty(), "TransactionCoordinator has no predecessors");
@@ -3455,8 +3456,8 @@ public class UniverseTest {
                 ready.countDown();
                 get(futures);
                 UniverseTest.assertInvariants(universe);
-                final Universe.TransactionCoordinator coordinator0 = transactions.get(objects[0])
-                        .get().transactionCoordinator;
+                final var transaction0 = transactions.get(objects[0]).get();
+                final Universe.TransactionCoordinator coordinator0 = transaction0.transactionCoordinator;
                 UniverseTest.assertInvariants(coordinator0);
                 synchronized (coordinator0.lock) {
                     assertTrue(coordinator0.predecessors.isEmpty(), "TransactionCoordinator has no predecessors");
@@ -3603,8 +3604,8 @@ public class UniverseTest {
             ready.countDown();
             get(futures);
             UniverseTest.assertInvariants(universe);
-            final Universe.TransactionCoordinator coordinator0 = transactions.get(objects[0])
-                    .get().transactionCoordinator;
+            final var transaction0 = transactions.get(objects[0]).get();
+            final Universe.TransactionCoordinator coordinator0 = transaction0.transactionCoordinator;
             UniverseTest.assertInvariants(coordinator0);
             synchronized (coordinator0.lock) {
                 assertTrue(coordinator0.predecessors.isEmpty(), "TransactionCoordinator has no predecessors");
@@ -3707,8 +3708,8 @@ public class UniverseTest {
             get(futures);
 
             UniverseTest.assertInvariants(universe);
-            final Universe.TransactionCoordinator coordinator0 = transactions.get(objects[0])
-                    .get().transactionCoordinator;
+            final var transaction0 = transactions.get(objects[0]).get();
+            final Universe.TransactionCoordinator coordinator0 = transaction0.transactionCoordinator;
             UniverseTest.assertInvariants(coordinator0);
             synchronized (coordinator0.lock) {
                 assertTrue(coordinator0.predecessors.isEmpty(), "TransactionCoordinator has no predecessors");
@@ -3806,8 +3807,8 @@ public class UniverseTest {
             get(futures);
 
             UniverseTest.assertInvariants(universe);
-            final Universe.TransactionCoordinator coordinator0 = transactions.get(objects[0])
-                    .get().transactionCoordinator;
+            final var transaction0 = transactions.get(objects[0]).get();
+            final Universe.TransactionCoordinator coordinator0 = transaction0.transactionCoordinator;
             UniverseTest.assertInvariants(coordinator0);
             synchronized (coordinator0.lock) {
                 assertTrue(coordinator0.predecessors.isEmpty(), "TransactionCoordinator has no predecessors");
@@ -3861,7 +3862,7 @@ public class UniverseTest {
     static final Duration DURATION_8 = Duration.ofSeconds(47);
     static final Duration DURATION_9 = Duration.ofSeconds(53);
 
-    private static boolean assertContainsObjectInvariants(final Universe universe, @NonNull final UUID object) {
+    private static boolean assertContainsObjectInvariants(final Universe universe, @Nonnull final UUID object) {
         final boolean containsObject = universe.containsObject(object);
         assertTrue(universe.getObjectIds().contains(object) == containsObject,
                 "This universe contains an object with a given ID if, and only if, "
@@ -3899,7 +3900,7 @@ public class UniverseTest {
         ObjectTest.assertInvariants(universe1, universe2);// inherited
     }
 
-    public static void assertInvariants(final Universe universe, @NonNull final UUID object) {
+    public static void assertInvariants(final Universe universe, @Nonnull final UUID object) {
         assertAll(() -> assertObjectStateHistoryInvariants(universe, object),
                 () -> assertLatestCommitInvariants(universe, object),
                 () -> assertContainsObjectInvariants(universe, object));
@@ -3926,8 +3927,8 @@ public class UniverseTest {
         ComparableTest.assertComparableConsistentWithEquals(lockable1, lockable2);
     }
 
-    private static @Nullable Duration assertLatestCommitInvariants(@NonNull final Universe universe,
-            @NonNull final UUID object) {
+    private static @Nullable Duration assertLatestCommitInvariants(@Nonnull final Universe universe,
+            @Nonnull final UUID object) {
         final boolean containedObject = universe.containsObject(object);
         final SortedSet<Duration> transitionTimes = containedObject
                 ? universe.getObjectStateHistory(object).getTransitionTimes()
@@ -3964,8 +3965,8 @@ public class UniverseTest {
         }
     }
 
-    private static @NonNull ValueHistory<ObjectState> assertObjectStateHistoryInvariants(final Universe universe,
-            @NonNull final UUID object) {
+    private static @Nonnull ValueHistory<ObjectState> assertObjectStateHistoryInvariants(final Universe universe,
+            @Nonnull final UUID object) {
         final ValueHistory<ObjectState> history = universe.getObjectStateHistory(object);
 
         assertNotNull(history, "A universe always has an object state history for a given object.");// guard
@@ -4047,7 +4048,7 @@ public class UniverseTest {
             }
 
             @Override
-            public void onCreate(@NonNull final UUID object) {
+            public void onCreate(@Nonnull final UUID object) {
                 // Do nothing
             }
 

@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -25,10 +25,10 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Stream;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.Nullable;
-import net.jcip.annotations.Immutable;
-import net.jcip.annotations.NotThreadSafe;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  * <p>
@@ -36,7 +36,7 @@ import net.jcip.annotations.NotThreadSafe;
  * in time.
  * </p>
  *
- * @param VALUE
+ * @param <VALUE>
  *            The class of values of this value history. This must be an
  *            {@link Immutable immutable} type.
  */
@@ -84,7 +84,7 @@ abstract class AbstractValueHistory<VALUE> implements ValueHistory<VALUE> {
     }
 
     @Override
-    public @NonNull SortedSet<Duration> getTransitionTimes() {
+    public @Nonnull SortedSet<Duration> getTransitionTimes() {
         return new TreeSet<>(getTransitions().keySet());
     }
 
@@ -100,7 +100,7 @@ abstract class AbstractValueHistory<VALUE> implements ValueHistory<VALUE> {
     }
 
     @Override
-    public @NonNull Stream<Entry<Duration, VALUE>> streamOfTransitions() {
+    public @Nonnull Stream<Entry<Duration, VALUE>> streamOfTransitions() {
         return getTransitions().entrySet().stream();
     }
 

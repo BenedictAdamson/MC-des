@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -39,11 +39,12 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.Nullable;
-import net.jcip.annotations.GuardedBy;
-import net.jcip.annotations.NotThreadSafe;
-import net.jcip.annotations.ThreadSafe;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.GuardedBy;
+import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
+
 import uk.badamson.mc.history.ConstantValueHistory;
 import uk.badamson.mc.history.ModifiableSetHistory;
 import uk.badamson.mc.history.ModifiableValueHistory;
@@ -81,12 +82,12 @@ public class Universe {
          * acquired in the natural ordering of the objects. That is, in ascending order
          * of their ids.
          */
-        @NonNull
+        @Nonnull
         final Long id;
 
         final Object lock = new Object();
 
-        protected Lockable(@NonNull final Long id) {
+        protected Lockable(@Nonnull final Long id) {
             assert id != null;
             this.id = id;
         }
@@ -113,7 +114,7 @@ public class Universe {
             return getUniverse().equals(other.getUniverse()) && id.equals(other.id);
         }
 
-        final @NonNull Universe getUniverse() {
+        final @Nonnull Universe getUniverse() {
             return Universe.this;
         }
 
@@ -134,7 +135,7 @@ public class Universe {
         @GuardedBy("lock")
         private final ModifiableSetHistory<Transaction> uncommittedWriters;
 
-        @NonNull
+        @Nonnull
         @GuardedBy("lock")
         private Duration latestCommit;
 
@@ -168,7 +169,7 @@ public class Universe {
             // else infinite recursion possible
         }
 
-        private void commit1Writer(final Transaction transaction, @NonNull final Duration when,
+        private void commit1Writer(final Transaction transaction, @Nonnull final Duration when,
                 final ObjectState state) {
             synchronized (lock) {
                 assert latestCommit.compareTo(when) < 0;
@@ -211,7 +212,7 @@ public class Universe {
         }
 
         @GuardedBy("lock")
-        private boolean rollBackWrite(final Transaction transaction, @NonNull final Duration when) {
+        private boolean rollBackWrite(final Transaction transaction, @Nonnull final Duration when) {
             if (latestCommit.compareTo(when) < 0 && uncommittedWriters.contains(transaction).get(when).booleanValue()) {
                 stateHistory.removeTransitionsFrom(when);
             }
@@ -221,10 +222,9 @@ public class Universe {
         }
 
         @GuardedBy("lock")
-        private boolean tryToAppendToHistory(final Transaction transaction, final UUID object,
-                @NonNull final Duration when, @Nullable final ObjectState state,
-                @NonNull final Set<Transaction> transactionsToAbort,
-                @NonNull final Set<Transaction> pastTheEndReadersToEscalateToSuccessors) throws IllegalStateException {
+        private boolean tryToAppendToHistory(final Transaction transaction, @Nonnull final Duration when,
+                @Nullable final ObjectState state, @Nonnull final Set<Transaction> transactionsToAbort,
+                @Nonnull final Set<Transaction> pastTheEndReadersToEscalateToSuccessors) throws IllegalStateException {
             assert when != null;
             assert transactionsToAbort != null;
             assert pastTheEndReadersToEscalateToSuccessors != null;
@@ -261,7 +261,7 @@ public class Universe {
                  * not at the end of time, so we can compute a point in time just after
                  * lastTransition0 without danger of overflow.
                  */
-                @NonNull
+                @Nonnull
                 final Duration justAfterPreviousTransition = lastTransition0.plusNanos(1);
                 pastTheEndReadersToEscalateToSuccessors.addAll(uncommittedReaders.get(justAfterPreviousTransition));
             }
@@ -322,20 +322,20 @@ public class Universe {
     @NotThreadSafe
     public final class Transaction extends Lockable implements AutoCloseable {
 
-        @NonNull
+        @Nonnull
         private final TransactionListener listener;
 
         @GuardedBy("lock")
-        @NonNull
+        @Nonnull
         private final Map<ObjectStateId, ObjectState> objectStatesRead;
 
         @GuardedBy("lock")
-        @NonNull
+        @Nonnull
         private final Map<UUID, ObjectState> objectStatesWritten;
 
         // Must be appended to and committed before this transaction.
         @GuardedBy("lock")
-        @NonNull
+        @Nonnull
         final Map<UUID, ObjectData> pastTheEndReads;
 
         @Nullable
@@ -345,15 +345,15 @@ public class Universe {
         /*
          * assert transactionCoordinator.mutualTransactions.contains(this)
          */
-        @NonNull
+        @Nonnull
         @GuardedBy("lock")
         TransactionCoordinator transactionCoordinator;
 
-        @NonNull
+        @Nonnull
         @GuardedBy("lock")
         private TransactionOpenness openness;
 
-        private Transaction(@NonNull final Long id, @NonNull final TransactionListener listener) {
+        private Transaction(@Nonnull final Long id, @Nonnull final TransactionListener listener) {
             super(id);
             this.listener = Objects.requireNonNull(listener, "listener");
             synchronized (lock) {
@@ -416,7 +416,7 @@ public class Universe {
          *             request to {@linkplain #beginCommit() begin committing} this
          *             transaction.
          */
-        public final void beginAbort() {
+        public void beginAbort() {
             withLockedTransactionChain(() -> openness.beginAbort(this));
             executeAwaitingAbortCallbacks();
         }
@@ -441,7 +441,7 @@ public class Universe {
          * @throws IllegalStateException
          *             If committing this transaction has already begun.
          */
-        public final void beginCommit() {
+        public void beginCommit() {
             withLockedTransactionChain(() -> openness.beginCommit(this));
             executeAwaitingCommitCallbacks();
             executeAwaitingAbortCallbacks();
@@ -479,7 +479,7 @@ public class Universe {
          *             this method has already been called for this transaction.</li>
          *             </ul>
          */
-        public final void beginWrite(@NonNull final Duration when) {
+        public void beginWrite(@Nonnull final Duration when) {
             Objects.requireNonNull(when, "when");
             if (ValueHistory.START_OF_TIME.equals(when)) {
                 throw new IllegalArgumentException("May not write at the start of time");
@@ -517,7 +517,7 @@ public class Universe {
          * </ul>
          */
         @Override
-        public final void close() {
+        public void close() {
             withLockedTransactionChain(() -> openness.close(this));
             executeAwaitingAbortCallbacks();
         }
@@ -602,7 +602,7 @@ public class Universe {
          *             object states already read}.</li>
          *             </ul>
          */
-        public final @Nullable ObjectState getObjectState(@NonNull final UUID object, @NonNull final Duration when) {
+        public @Nullable ObjectState getObjectState(@Nonnull final UUID object, @Nonnull final Duration when) {
             final ObjectStateId id = new ObjectStateId(object, when);
             @Nullable
             ObjectState objectState;
@@ -649,7 +649,7 @@ public class Universe {
          * @return the object states read.
          * @see Universe#getObjectState(UUID, Duration)
          */
-        public final @NonNull Map<ObjectStateId, ObjectState> getObjectStatesRead() {
+        public @Nonnull Map<ObjectStateId, ObjectState> getObjectStatesRead() {
             synchronized (lock) {
                 return new HashMap<>(objectStatesRead);
             }
@@ -679,7 +679,7 @@ public class Universe {
          *
          * @see Universe#getObjectState(UUID, Duration)
          */
-        public final @NonNull Map<UUID, ObjectState> getObjectStatesWritten() {
+        public @Nonnull Map<UUID, ObjectState> getObjectStatesWritten() {
             synchronized (lock) {
                 return new HashMap<>(objectStatesWritten);
             }
@@ -692,8 +692,8 @@ public class Universe {
          *
          * @return the degree of openness; not null.
          */
-        @NonNull
-        public final TransactionOpenness getOpenness() {
+        @Nonnull
+        public TransactionOpenness getOpenness() {
             synchronized (lock) {
                 return openness;
             }
@@ -709,7 +709,7 @@ public class Universe {
          * @return the time-stamp, or null if this transaction has not (yet) entered
          *         write mode.
          */
-        public final @Nullable Duration getWhen() {
+        public @Nullable Duration getWhen() {
             synchronized (lock) {
                 return when;
             }
@@ -769,7 +769,7 @@ public class Universe {
          *             {@link #beginCommit()} method has been called).</li>
          *             </ul>
          */
-        public final void put(@NonNull final UUID object, @Nullable final ObjectState state) {
+        public void put(@Nonnull final UUID object, @Nullable final ObjectState state) {
             Objects.requireNonNull(object, "object");
             if (getOpenness().put(this, object, state)) {
                 listener.onCreate(object);
@@ -820,7 +820,7 @@ public class Universe {
             transactionCoordinator.commitIfPossible();
         }
 
-        private void reallyBeginWrite(@NonNull final Duration when) {
+        private void reallyBeginWrite(@Nonnull final Duration when) {
             synchronized (lock) {
                 if (objectStatesRead.keySet().stream().map(id -> id.getWhen()).filter(t -> 0 <= t.compareTo(when))
                         .findAny().orElse(null) != null) {
@@ -831,7 +831,7 @@ public class Universe {
             }
         }
 
-        private @Nullable ObjectState reallyReadUncachedObjectStateWhileAborting(@NonNull final ObjectStateId id) {
+        private @Nullable ObjectState reallyReadUncachedObjectStateWhileAborting(@Nonnull final ObjectStateId id) {
             final UUID object = id.getObject();
             final Duration when = id.getWhen();
 
@@ -857,7 +857,7 @@ public class Universe {
             return objectState;
         }
 
-        private @Nullable ObjectState reallyReadUncachedObjectStateWhileReading(@NonNull final ObjectStateId id) {
+        private @Nullable ObjectState reallyReadUncachedObjectStateWhileReading(@Nonnull final ObjectStateId id) {
             final UUID object = id.getObject();
             final Duration when = id.getWhen();
             if (when.compareTo(getHistoryStart()) < 0) {
@@ -880,8 +880,8 @@ public class Universe {
         }
 
         @GuardedBy("trasaction chain of this")
-        private @Nullable ObjectState reallyReadUncachedObjectStateWhileReading1(@NonNull final ObjectStateId id,
-                @NonNull final ObjectData od) {
+        private @Nullable ObjectState reallyReadUncachedObjectStateWhileReading1(@Nonnull final ObjectStateId id,
+                @Nonnull final ObjectData od) {
             assert Thread.holdsLock(lock);
             assert Thread.holdsLock(od.lock);
             assert openness == TransactionOpenness.READING;
@@ -896,7 +896,7 @@ public class Universe {
                 if (od.stateHistory.getLastTansitionTime().compareTo(when) < 0) {
                     isPastTheEndRead = true;
                 } else {
-                    @NonNull
+                    @Nonnull
                     final Duration nextWrite = od.stateHistory.getTansitionTimeAtOrAfter(when);
                     additionalPredecessors.addAll(od.uncommittedWriters.get(nextWrite));
                 }
@@ -956,7 +956,7 @@ public class Universe {
         }
 
         @Override
-        public final String toString() {
+        public String toString() {
             return "Transaction [" + id + "," + getOpenness() + "]";
         }
 
@@ -976,7 +976,6 @@ public class Universe {
             })) {
                 // try again
             }
-            ;
             return result.get();
         }
 
@@ -990,7 +989,7 @@ public class Universe {
             assert Thread.holdsLock(od.lock);
             final boolean created;
             try {
-                created = od.tryToAppendToHistory(this, object, when, state, transactionsToAbort,
+                created = od.tryToAppendToHistory(this, when, state, transactionsToAbort,
                         pastTheEndReadersToEscalateToSuccessors);
             } catch (final IllegalStateException e) {
                 openness = TransactionOpenness.ABORTING;
@@ -1051,14 +1050,14 @@ public class Universe {
          * assert !(predecesors.contains(p1) && p1.predecessors.contains(p2) &&
          * !predecessors.contains(p2));
          */
-        @NonNull
+        @Nonnull
         @GuardedBy("lock")
         final Set<TransactionCoordinator> predecessors;
 
         /*
          * assert !(mutualTransactions.contains(t) && t.transactionCoordiantor != this);
          */
-        @NonNull
+        @Nonnull
         @GuardedBy("lock")
         final Set<Transaction> mutualTransactions;
 
@@ -1069,11 +1068,11 @@ public class Universe {
          * assert !(successors.contains(s1) && s1.successors.contains(sp2) &&
          * !successors.contains(s2));
          */
-        @NonNull
+        @Nonnull
         @GuardedBy("lock")
         final Set<TransactionCoordinator> successors;
 
-        private TransactionCoordinator(@NonNull final Long id, @NonNull final Transaction transaction) {
+        private TransactionCoordinator(@Nonnull final Long id, @Nonnull final Transaction transaction) {
             super(id);
             synchronized (lock) {
                 predecessors = new HashSet<>();
@@ -1105,7 +1104,7 @@ public class Universe {
         }
 
         @GuardedBy("transaction chain")
-        private final void beginAbort() {
+        private void beginAbort() {
             assert Thread.holdsLock(lock);
             for (final var predecessor : predecessors) {
                 assert Thread.holdsLock(predecessor.lock);
@@ -1188,7 +1187,7 @@ public class Universe {
         }
 
         @Override
-        public final String toString() {
+        public String toString() {
             return "TransactionCoordinator [" + id + "]";
         }
     }// class
@@ -1227,7 +1226,7 @@ public class Universe {
             }
 
             @Override
-            void beginWrite(final Transaction transaction, @NonNull final Duration when) {
+            void beginWrite(final Transaction transaction, @Nonnull final Duration when) {
                 transaction.reallyBeginWrite(when);
             }
 
@@ -1238,7 +1237,7 @@ public class Universe {
             }
 
             @Override
-            boolean put(final Transaction transaction, @NonNull final UUID object, @Nullable final ObjectState state) {
+            boolean put(final Transaction transaction, @Nonnull final UUID object, @Nullable final ObjectState state) {
                 throw new IllegalStateException("Not in writing mode");
             }
 
@@ -1275,7 +1274,7 @@ public class Universe {
             }
 
             @Override
-            void beginWrite(final Transaction transaction, @NonNull final Duration when) {
+            void beginWrite(final Transaction transaction, @Nonnull final Duration when) {
                 throw new IllegalStateException("Already writing");
             }
 
@@ -1286,7 +1285,7 @@ public class Universe {
             }
 
             @Override
-            boolean put(final Transaction transaction, @NonNull final UUID object, @Nullable final ObjectState state) {
+            boolean put(final Transaction transaction, @Nonnull final UUID object, @Nullable final ObjectState state) {
                 transaction.recordObjectStateWritten(object, state);
                 return transaction.tryToAppendToHistory(object, state);
             }
@@ -1316,7 +1315,7 @@ public class Universe {
             }
 
             @Override
-            void beginWrite(final Transaction transaction, @NonNull final Duration when) {
+            void beginWrite(final Transaction transaction, @Nonnull final Duration when) {
                 throw new IllegalStateException("Already committing");
             }
 
@@ -1326,7 +1325,7 @@ public class Universe {
             }
 
             @Override
-            boolean put(final Transaction transaction, @NonNull final UUID object, @Nullable final ObjectState state) {
+            boolean put(final Transaction transaction, @Nonnull final UUID object, @Nullable final ObjectState state) {
                 throw new IllegalStateException("Commiting");
             }
 
@@ -1355,7 +1354,7 @@ public class Universe {
             }
 
             @Override
-            void beginWrite(final Transaction transaction, @NonNull final Duration when) {
+            void beginWrite(final Transaction transaction, @Nonnull final Duration when) {
                 // Do nothing
             }
 
@@ -1366,7 +1365,7 @@ public class Universe {
             }
 
             @Override
-            boolean put(final Transaction transaction, @NonNull final UUID object, @Nullable final ObjectState state) {
+            boolean put(final Transaction transaction, @Nonnull final UUID object, @Nullable final ObjectState state) {
                 transaction.recordObjectStateWritten(object, state);
                 // Do not change the object state history, however.
                 return false;
@@ -1405,7 +1404,7 @@ public class Universe {
             }
 
             @Override
-            void beginWrite(final Transaction transaction, @NonNull final Duration when) {
+            void beginWrite(final Transaction transaction, @Nonnull final Duration when) {
                 throw new IllegalStateException("Committed");
             }
 
@@ -1415,7 +1414,7 @@ public class Universe {
             }
 
             @Override
-            boolean put(final Transaction transaction, @NonNull final UUID object, @Nullable final ObjectState state) {
+            boolean put(final Transaction transaction, @Nonnull final UUID object, @Nullable final ObjectState state) {
                 throw new IllegalStateException("Committed");
             }
 
@@ -1449,7 +1448,7 @@ public class Universe {
             }
 
             @Override
-            void beginWrite(final Transaction transaction, @NonNull final Duration when) {
+            void beginWrite(final Transaction transaction, @Nonnull final Duration when) {
                 throw new IllegalStateException("Aborted");
             }
 
@@ -1459,7 +1458,7 @@ public class Universe {
             }
 
             @Override
-            boolean put(final Transaction transaction, @NonNull final UUID object, @Nullable final ObjectState state) {
+            boolean put(final Transaction transaction, @Nonnull final UUID object, @Nullable final ObjectState state) {
                 throw new IllegalStateException("Aborted");
             }
 
@@ -1476,7 +1475,7 @@ public class Universe {
         @GuardedBy("transaction chain of transaction")
         abstract void beginCommit(Universe.Transaction transaction);
 
-        abstract void beginWrite(Transaction transaction, @NonNull Duration when);
+        abstract void beginWrite(Transaction transaction, @Nonnull Duration when);
 
         @GuardedBy("transaction chain of transaction")
         abstract void close(Universe.Transaction transaction);
@@ -1484,7 +1483,7 @@ public class Universe {
         /*
          * @returns Whether object created.
          */
-        abstract boolean put(Transaction transaction, @NonNull UUID object, @Nullable ObjectState state);
+        abstract boolean put(Transaction transaction, @Nonnull UUID object, @Nullable ObjectState state);
 
         abstract @Nullable ObjectState readUncachedObjectState(Universe.Transaction transaction, ObjectStateId id);
     }// enum
@@ -1493,8 +1492,8 @@ public class Universe {
             (ObjectState) null);
 
     @GuardedBy("predecessor transaction chain, successor transaction chain")
-    private static void addPredecessor(@NonNull final TransactionCoordinator predecessor,
-            @NonNull final TransactionCoordinator successor) {
+    private static void addPredecessor(@Nonnull final TransactionCoordinator predecessor,
+            @Nonnull final TransactionCoordinator successor) {
         assert Thread.holdsLock(predecessor.lock);
         assert Thread.holdsLock(successor.lock);
 
@@ -1658,7 +1657,7 @@ public class Universe {
 
     private final Object historyLock = new Object();
 
-    @NonNull
+    @Nonnull
     @GuardedBy("historyLock")
     private Duration historyStart;
 
@@ -1688,7 +1687,7 @@ public class Universe {
      * @throws NullPointerException
      *             If {@code historyStart} is null
      */
-    public Universe(final @NonNull Duration historyStart) {
+    public Universe(final @Nonnull Duration historyStart) {
         Objects.requireNonNull(historyStart, "historyStart");
         synchronized (historyLock) {
             this.historyStart = historyStart;
@@ -1725,7 +1724,7 @@ public class Universe {
      * @throws NullPointerException
      *             If {@code listener} is null
      */
-    public final @NonNull Transaction beginTransaction(@NonNull final TransactionListener listener) {
+    public final @Nonnull Transaction beginTransaction(@Nonnull final TransactionListener listener) {
         Objects.requireNonNull(listener, "listener");
         return (Transaction) createLockable((id) -> new Transaction(id, listener));
     }
@@ -1757,7 +1756,7 @@ public class Universe {
         return objectDataMap.containsKey(object);
     }
 
-    private @NonNull Lockable createLockable(final Function<Long, Lockable> factory) {
+    private @Nonnull Lockable createLockable(final Function<Long, Lockable> factory) {
         Long id;
         do {
             id = Long.valueOf(nextLockableId.getAndIncrement());
@@ -1765,15 +1764,15 @@ public class Universe {
         return lockables.get(id);
     }
 
-    private @NonNull ObjectData createObjectData(@NonNull final Duration whenCreated,
-            @NonNull final ObjectState createdState, @NonNull final Transaction creator) {
+    private @Nonnull ObjectData createObjectData(@Nonnull final Duration whenCreated,
+            @Nonnull final ObjectState createdState, @Nonnull final Transaction creator) {
         assert whenCreated != null;
         assert createdState != null;
         assert creator != null;
         return (ObjectData) createLockable((id) -> new ObjectData(id, whenCreated, createdState, creator));
     }
 
-    private @NonNull TransactionCoordinator createTransactionCoordinator(@NonNull final Transaction transaction) {
+    private @Nonnull TransactionCoordinator createTransactionCoordinator(@Nonnull final Transaction transaction) {
         assert transaction != null;
         return (TransactionCoordinator) createLockable((id) -> new TransactionCoordinator(id, transaction));
     }
@@ -1816,7 +1815,7 @@ public class Universe {
      * @return the point in time, expressed as the duration since an (implied)
      *         epoch; not null.
      */
-    public final @NonNull Duration getHistoryEnd() {
+    public final @Nonnull Duration getHistoryEnd() {
         Duration historyEnd = ValueHistory.END_OF_TIME;
         for (final var od : objectDataMap.values()) {
             final Duration lastCommmit = od.getLastCommit();
@@ -1841,7 +1840,7 @@ public class Universe {
      * @return the point in time, expressed as the duration since an (implied)
      *         epoch; not null.
      */
-    public final @NonNull Duration getHistoryStart() {
+    public final @Nonnull Duration getHistoryStart() {
         synchronized (historyLock) {
             return historyStart;
         }
@@ -1871,7 +1870,7 @@ public class Universe {
      * @throws NullPointerException
      *             If {@code object} is null
      */
-    public final @Nullable Duration getLatestCommit(@NonNull final UUID object) {
+    public final @Nullable Duration getLatestCommit(@Nonnull final UUID object) {
         Objects.requireNonNull(object, "object");
         final var od = objectDataMap.get(object);
         if (od == null) {
@@ -1899,7 +1898,7 @@ public class Universe {
      *
      * @return the object IDs.
      */
-    public final @NonNull Set<UUID> getObjectIds() {
+    public final @Nonnull Set<UUID> getObjectIds() {
         return Collections.unmodifiableSet(objectDataMap.keySet());
     }
 
@@ -1948,7 +1947,7 @@ public class Universe {
      *             <li>If {@code when} is null.</li>
      *             </ul>
      */
-    public final @Nullable ObjectState getObjectState(@NonNull final UUID object, @NonNull final Duration when) {
+    public final @Nullable ObjectState getObjectState(@Nonnull final UUID object, @Nonnull final Duration when) {
         Objects.requireNonNull(when, "when");
         return getObjectStateHistory(object).get(when);
     }
@@ -2007,7 +2006,7 @@ public class Universe {
      * @see #getLatestCommit(UUID)
      * @see #getObjectState(UUID, Duration)
      */
-    public final @NonNull ValueHistory<ObjectState> getObjectStateHistory(@NonNull final UUID object) {
+    public final @Nonnull ValueHistory<ObjectState> getObjectStateHistory(@Nonnull final UUID object) {
         Objects.requireNonNull(object, "object");
         final var od = objectDataMap.get(object);
         if (od == null) {
@@ -2039,7 +2038,7 @@ public class Universe {
      * @throws NullPointerException
      *             If {@code object} is null
      */
-    public final @Nullable Duration getWhenFirstState(@NonNull final UUID object) {
+    public final @Nullable Duration getWhenFirstState(@Nonnull final UUID object) {
         return getObjectStateHistory(object).getFirstTansitionTime();
     }
 
@@ -2060,7 +2059,7 @@ public class Universe {
      * @throws NullPointerException
      *             If {@code object} is null
      */
-    public final void prunePrehistory(@NonNull final UUID object) {
+    public final void prunePrehistory(@Nonnull final UUID object) {
         Objects.requireNonNull(object, "object");
         final var od = objectDataMap.get(object);
         if (od != null) {
@@ -2106,7 +2105,7 @@ public class Universe {
      *             If {@code historyStart} is after {@linkplain #getHistoryEnd() the
      *             history end time}.
      */
-    public final void setHistoryStart(@NonNull final Duration historyStart) {
+    public final void setHistoryStart(@Nonnull final Duration historyStart) {
         Objects.requireNonNull(historyStart, "historyStart");
         synchronized (historyLock) {
             if (historyStart.compareTo(this.historyStart) < 0) {
