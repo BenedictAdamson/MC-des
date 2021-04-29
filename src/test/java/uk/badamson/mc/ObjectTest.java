@@ -1,6 +1,6 @@
 package uk.badamson.mc;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -23,6 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import javax.annotation.Nonnull;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
@@ -33,13 +35,13 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
 public final class ObjectTest {
 
-    public static void assertInvariants(final Object object) {
+    public static void assertInvariants(@Nonnull final Object object) {
         assert object != null;
         assertAll("equals", () -> assertEquals(object, object, "An object is always equivalent to itself"),
                 () -> assertFalse(object.equals(null), "An object is never equivalent to null"));
     }
 
-    public static void assertInvariants(final Object object1, final Object object2) {
+    public static void assertInvariants(@Nonnull final Object object1, @Nonnull final Object object2) {
         assert object1 != null;
         assert object2 != null;
         final boolean equals = object1.equals(object2);
