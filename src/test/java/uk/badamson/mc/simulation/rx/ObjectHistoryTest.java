@@ -54,18 +54,17 @@ public class ObjectHistoryTest {
             test(OBJECT_B, START_B, Integer.valueOf(1), Map.of(OBJECT_A, START_B.minusMillis(10)));
         }
 
-        private <STATE> void test(@Nonnull final Event<STATE> firstEvent) {
-            final var history = new ObjectHistory<>(firstEvent);
+        private <STATE> void test(@Nonnull final Event<STATE> event) {
+            final var history = new ObjectHistory<>(event);
 
             assertInvariants(history);
-            assertSame(firstEvent, history.getFirstEvent(), "firstEvent");
-            assertSame(firstEvent, history.getLastEvent(), "lastEvent");
+            assertSame(event, history.getLastEvent(), "lastEvent");
         }
 
         private void test(final UUID object, final Duration start, final Integer state,
                 final Map<UUID, Duration> nextEventDependencies) {
-            final var firstEvent = new TestEvent(new ObjectStateId(object, start), state, nextEventDependencies);
-            test(firstEvent);
+            final var event = new TestEvent(new ObjectStateId(object, start), state, nextEventDependencies);
+            test(event);
         }
 
     }// class
@@ -73,7 +72,6 @@ public class ObjectHistoryTest {
     private static final UUID OBJECT_A = UUID.randomUUID();
     private static final UUID OBJECT_B = UUID.randomUUID();
     private static final Duration START_A = Duration.ofMillis(0);
-
     private static final Duration START_B = Duration.ofMillis(5000);
 
     public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history) {
@@ -81,20 +79,14 @@ public class ObjectHistoryTest {
 
         final var object = history.getObject();
         final var start = history.getStart();
-        final var firstEvent = history.getFirstEvent();
         final var lastEvent = history.getLastEvent();
 
         assertAll("Not null", () -> assertNotNull(object, "object"), () -> assertNotNull(start, "start"), // guard
-                () -> assertNotNull(firstEvent, "firstEvent"), // guard
                 () -> assertNotNull(lastEvent, "lastEvent")// guard
         );
-        EventTest.assertInvariants(firstEvent);
         EventTest.assertInvariants(lastEvent);
         assertAll(
-                () -> assertSame(firstEvent.getObject(), object,
-                        "The object ID is the same as the object of the first event."),
-                () -> assertSame(firstEvent.getWhen(), start, "The start is the same as the time of the first event."),
-                () -> assertSame(object, firstEvent.getObject(),
+                () -> assertSame(object, lastEvent.getObject(),
                         "The object of the last event is the same has the object of this history."),
                 () -> assertThat("The time of the last event is at or after the start of this history.",
                         lastEvent.getWhen(), greaterThanOrEqualTo(start)));

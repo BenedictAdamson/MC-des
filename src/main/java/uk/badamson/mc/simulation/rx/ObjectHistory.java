@@ -40,41 +40,25 @@ import javax.annotation.concurrent.ThreadSafe;
 public final class ObjectHistory<STATE> {
 
     @Nonnull
-    private final Event<STATE> firstEvent;
+    private final Event<STATE> lastEvent;
 
     /**
      * <p>
      * Construct an object history with given start information.
      * </p>
      * <ul>
-     * <li>The {@linkplain #getFirstEvent() first event} of this history is the
-     * given {@code firstEvent}.</li>
      * <li>The {@linkplain #getLastEvent() last event} of this history is the given
-     * {@code firstEvent}.</li>
+     * {@code event}.</li>
      * </ul>
      *
-     * @param firstEvent
+     * @param event
      *            The first (known) state transition of the {@linkplain #getObject()
      *            object}.
      * @throws NullPointerException
      *             If {@code firstEvent} is null
      */
-    public ObjectHistory(@Nonnull final Event<STATE> firstEvent) {
-        this.firstEvent = Objects.requireNonNull(firstEvent, "firstEvent");
-    }
-
-    /**
-     * <p>
-     * The first (known) state transition of the {@linkplain #getObject() object}.
-     * </p>
-     * <ul>
-     * <li>Always have a (non null) first event.</li>
-     * <li>Constant: the history always returns the same first event object.</li>
-     * </ul>
-     */
-    @Nonnull
-    public Event<STATE> getFirstEvent() {
-        return firstEvent;
+    public ObjectHistory(@Nonnull final Event<STATE> event) {
+        this.lastEvent = Objects.requireNonNull(event, "event");
     }
 
     /**
@@ -84,7 +68,7 @@ public final class ObjectHistory<STATE> {
      * <ul>
      * <li>Always have a (non null) last event.</li>
      * <li>The {@linkplain Event#getObject() object} of the last event is the same
-     * has the {@linkplain #getObject() object} of this history.</li>
+     * as the {@linkplain #getObject() object} of this history.</li>
      * <li>The {@linkplain Event#getWhen() time} of the last event is
      * {@linkplain Duration#compareTo(Duration) at or after} the
      * {@linkplain #getStart() start} of this history.</li>
@@ -92,7 +76,7 @@ public final class ObjectHistory<STATE> {
      */
     @Nonnull
     public Event<STATE> getLastEvent() {
-        return firstEvent;// TODO
+        return lastEvent;
     }
 
     /**
@@ -101,13 +85,11 @@ public final class ObjectHistory<STATE> {
      * </p>
      * <ul>
      * <li>Constant: the history always returns the same object ID.</li>
-     * <li>The object ID is the same as the {@linkplain Event#getObject() object} of
-     * the {@linkplain #getFirstEvent() first event}.</li>
      * </ul>
      */
     @Nonnull
     public UUID getObject() {
-        return firstEvent.getObject();
+        return lastEvent.getObject();
     }
 
     /**
@@ -120,13 +102,12 @@ public final class ObjectHistory<STATE> {
      * simulation should use the same epoch.
      * </p>
      * <ul>
-     * <li>The start is the same as the {@linkplain Event#getWhen() time} of the
-     * {@linkplain #getFirstEvent() first event}.</li>
+     * <li>Constant: the history always returns the same start time.</li>
      * </ul>
      */
     @Nonnull
     public final Duration getStart() {
-        return firstEvent.getWhen();
+        return lastEvent.getWhen();
     }
 
 }
