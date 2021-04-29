@@ -1,9 +1,6 @@
 package uk.badamson.mc;
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -21,6 +18,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import javax.annotation.Nonnull;
+
 /**
  * <p>
  * Auxiliary test code for classes that implement the {@link Comparable}
@@ -28,18 +30,25 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class ComparableTest {
 
-    public static <T extends Comparable<T>> void assertComparableConsistentWithEquals(final T object1,
-            final T object2) {
+    public static <T extends Comparable<T>> void assertComparableConsistentWithEquals(@Nonnull final T object1,
+            @Nonnull final T object2) {
         assertTrue(object1.compareTo(object2) == 0 == object1.equals(object2),
                 "Natural ordering is consistent with equals");
     }
 
-    public static <T extends Comparable<T>> void assertInvariants(final T object) {
+    public static <T extends Comparable<T>> void assertInvariants(@Nonnull final T object) {
         assertInvariants(object, object);
+
+        assertThrows(NullPointerException.class, () -> object.compareTo(null),
+                "compareTo(null) throws NullPointerException");
     }
 
-    public static <T extends Comparable<T>> void assertInvariants(final T object1, final T object2) {
-        object1.compareTo(object2);// require only that it does not throw an exception
+    public static <T extends Comparable<T>> void assertInvariants(@Nonnull final T object1, @Nonnull final T object2) {
+        try {
+            object1.compareTo(object2);// require only that it does not throw an exception
+        } catch (final Exception e) {
+            throw new AssertionError("Does not throw exceptions");
+        }
     }
 
 }
