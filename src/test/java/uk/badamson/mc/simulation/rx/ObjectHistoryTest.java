@@ -173,6 +173,69 @@ public class ObjectHistoryTest {
     }// class
 
     @Nested
+    public class ObserveEvents {
+
+        @Nested
+        public class AfterAppend {
+
+            @Test
+            public void a() {
+                test(OBJECT_A, WHEN_A, Integer.valueOf(0), WHEN_A.plusMillis(10), Integer.valueOf(1));
+            }
+
+            @Test
+            public void b() {
+                test(OBJECT_B, WHEN_B, Integer.valueOf(3), WHEN_B.plusMillis(1500), Integer.valueOf(2));
+            }
+
+            private void test(final UUID object, final Duration when0, final Integer state0, final Duration when1,
+                    final Integer state1) {
+                final var event0 = new TestEvent(new ObjectStateId(object, when0), state0, Map.of());
+                final var event1 = new TestEvent(new ObjectStateId(object, when1), state1, Map.of());
+                final var history = new ObjectHistory<>(event0);
+                history.append(event1);
+
+                final var flux = ObserveEvents.this.test(history);
+
+                StepVerifier.create(flux).expectNext(event1).expectTimeout(Duration.ofMillis(100)).verify();
+            }
+
+        }// class
+
+        @Nested
+        public class AfterConstructor {
+
+            @Test
+            public void a() {
+                test(OBJECT_A, WHEN_A, Integer.valueOf(0));
+            }
+
+            @Test
+            public void b() {
+                test(OBJECT_B, WHEN_B, Integer.valueOf(1));
+            }
+
+            private void test(final UUID object, final Duration start, final Integer state) {
+                final var event = new TestEvent(new ObjectStateId(object, start), state, Map.of());
+                final var history = new ObjectHistory<>(event);
+
+                final var flux = ObserveEvents.this.test(history);
+
+                StepVerifier.create(flux).expectNext(event).expectTimeout(Duration.ofMillis(100)).verify();
+            }
+
+        }// class
+
+        private <STATE> Flux<Event<STATE>> test(@Nonnull final ObjectHistory<STATE> history) {
+            final var flux = history.observeEvents();
+
+            assertInvariants(history);
+            assertNotNull(flux, "Not null, result");
+            return flux;
+        }
+    }// class
+
+    @Nested
     public class ObserveStateTransitions {
 
         @Nested

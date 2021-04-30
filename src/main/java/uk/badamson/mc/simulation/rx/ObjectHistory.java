@@ -143,6 +143,7 @@ public final class ObjectHistory<STATE> {
     @Nonnull
     private final Duration start;
     private final Object lock = new Object();
+    private final Sinks.Many<Event<STATE>> events = Sinks.many().replay().latest();
     private final Sinks.Many<TimestampedState<STATE>> stateTransitions = Sinks.many().replay().latest();
 
     @Nonnull
@@ -165,10 +166,10 @@ public final class ObjectHistory<STATE> {
      *             If {@code firstEvent} is null
      */
     public ObjectHistory(@Nonnull final Event<STATE> event) {
-        this.lastEvent = Objects.requireNonNull(event, "event");
-        this.object = lastEvent.getObject();
-        this.start = lastEvent.getWhen();
-        appendStateTransition(new TimestampedState<>(start, event.getState()));
+        Objects.requireNonNull(event, "event");
+        this.object = event.getObject();
+        this.start = event.getWhen();
+        append1(event);
     }
 
     /**
@@ -211,21 +212,21 @@ public final class ObjectHistory<STATE> {
         if (object != event.getObject()) {
             throw new IllegalArgumentException("event.getObject");
         }
-        final var eventWhen = event.getWhen();
-        final var stateTransition = new TimestampedState<>(eventWhen, event.getState());
         synchronized (lock) {
-            if (0 <= lastEvent.getWhen().compareTo(eventWhen)) {
+            if (0 <= lastEvent.getWhen().compareTo(event.getWhen())) {
                 throw new IllegalStateException("event.getWhen");
             }
-            lastEvent = event;
-            appendStateTransition(stateTransition);
+            append1(event);
         }
     }
 
-    private void appendStateTransition(final TimestampedState<STATE> stateTransition) {
-        final var result = stateTransitions.tryEmitNext(stateTransition);
-        // The sink is reliable, so should always succeed.
-        assert result == Sinks.EmitResult.OK;
+    private void append1(final Event<STATE> event) {
+        lastEvent = event;
+        final var result1 = events.tryEmitNext(event);
+        final var result2 = stateTransitions.tryEmitNext(new TimestampedState<>(event.getWhen(), event.getState()));
+        // The sink are reliable, so should always succeed.
+        assert result1 == Sinks.EmitResult.OK;
+        assert result2 == Sinks.EmitResult.OK;
     }
 
     /**
@@ -281,6 +282,30 @@ public final class ObjectHistory<STATE> {
 
     /**
      * <p>
+     * Provide the sequence of {@linkplain Event events} that cause
+     * {@linkplain #observeStateTransitions() state transitions} of the
+     * {@linkplain #getObject() simulated object}.
+     * </p>
+     * <ul>
+     * <li>The sequence of events is infinite. However, the simulated object may
+     * enter a state that it never leaves, resulting in no more events. In
+     * particular, destruction of the object is typically not followed by any other
+     * events.</li>
+     * <li>The sequence of events has no null events.</li>
+     * <li>The sequence of events are in {@linkplain Duration#compareTo(Duration)
+     * ascending} {@linkplain Event#getWhen() time-stamp} order.</li>
+     * <li>The sequence of events does not include old events; the first event
+     * published to a subscriber will be the current {@linkplain #getLastEvent()
+     * last event} at the time of subscription.</li>
+     * </ul>
+     */
+    @Nonnull
+    public Flux<Event<STATE>> observeEvents() {
+        return events.asFlux();
+    }
+
+    /**
+     * <p>
      * Provide the sequence of state transitions of the {@linkplain #getObject()
      * simulated object}.
      * </p>
@@ -288,7 +313,7 @@ public final class ObjectHistory<STATE> {
      * <li>The sequence of state transitions is infinite. However, the simulated
      * object may enter a state that it never leaves, resulting in no more state
      * transitions. In particular, destruction of the object (the transition to a
-     * null state) is a state never left.</li>
+     * null state) is a state typically never left.</li>
      * <li>Each state transition is represented by a {@linkplain TimestampedState
      * time-stamped state}: the state that the simulated object transitioned to, and
      * the time that the simulated object entered that state.</li>
