@@ -313,8 +313,9 @@ public final class ObjectHistory<STATE> {
      */
     @Nonnull
     public ValueHistory<STATE> getStateHistory() {
-        return new ModifiableValueHistory<>(stateHistory);
-        // TODO thread safety
+        synchronized (lock) {// hard to test
+            return new ModifiableValueHistory<>(stateHistory);
+        }
     }
 
     /**
