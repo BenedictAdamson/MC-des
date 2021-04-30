@@ -86,15 +86,14 @@ public final class ObjectHistory<STATE> {
      * @throws NullPointerException
      *             If {@code event} is null
      * @throws IllegalArgumentException
-     *             <ul>
-     *             <li>If the {@linkplain Event#getObject() object} of the
-     *             {@code event} is not the same as the {@linkplain #getObject()
-     *             object} of this history.</li>
-     *             <li>If the {@linkplain Event#getWhen() time} of the {@code event}
-     *             is not {@linkplain Duration#compareTo(Duration) after} the time
-     *             of the {@linkplain #getLastEvent() last event} of this
-     *             history.</li>
-     *             </ul>
+     *             If the {@linkplain Event#getObject() object} of the {@code event}
+     *             is not the same as the {@linkplain #getObject() object} of this
+     *             history.
+     * @throws IllegalStateException
+     *             If the {@linkplain Event#getWhen() time} of the {@code event} is
+     *             not {@linkplain Duration#compareTo(Duration) after} the time of
+     *             the {@linkplain #getLastEvent() last event} of this history. That
+     *             can happen if a different thread appended an event.
      */
     public void append(@Nonnull final Event<STATE> event) {
         Objects.requireNonNull(event, "event");
@@ -104,7 +103,7 @@ public final class ObjectHistory<STATE> {
         final var eventWhen = event.getWhen();
         synchronized (lock) {
             if (0 <= lastEvent.getWhen().compareTo(eventWhen)) {
-                throw new IllegalArgumentException("event.getWhen");
+                throw new IllegalStateException("event.getWhen");
             }
             lastEvent = event;
         }

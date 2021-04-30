@@ -106,18 +106,18 @@ public class ObjectHistoryTest {
         private Future<Void> testInOtherThread(final ObjectHistory<Integer> history, final TestEvent event,
                 final CountDownLatch ready) {
             return ThreadTest.runInOtherThread(ready, () -> {
+                final var object0 = history.getObject();
+                final var start0 = history.getStart();
+
                 try {
-                    final var object0 = history.getObject();
-                    final var start0 = history.getStart();
-
                     history.append(event);
-
-                    assertInvariants(history);
-                    assertAll("Does not change constants", () -> assertSame(object0, history.getObject(), "object"),
-                            () -> assertSame(start0, history.getStart(), "start"));
-                } catch (final IllegalArgumentException e) {
+                } catch (final IllegalStateException e) {
                     // Can happen because of the data race
                 }
+
+                assertInvariants(history);
+                assertAll("Does not change constants", () -> assertSame(object0, history.getObject(), "object"),
+                        () -> assertSame(start0, history.getStart(), "start"));
             });
         }
 
