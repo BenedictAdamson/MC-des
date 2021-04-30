@@ -168,10 +168,17 @@ public final class ObjectHistory<STATE> {
      *            The first (known) state transition of the {@linkplain #getObject()
      *            object}.
      * @throws NullPointerException
-     *             If {@code firstEvent} is null
+     *             <ul>
+     *             <li>If {@code event} is null</li>
+     *             <li>if the {@linkplain Event#getState() state} of {@code event}
+     *             is null. That is, if the first event is the destruction or
+     *             removal of the {@linkplain #getObject() simulated object}.</li>
+     *             </ul>
      */
     public ObjectHistory(@Nonnull final Event<STATE> event) {
         Objects.requireNonNull(event, "event");
+        Objects.requireNonNull(event.getState(), "event.state");
+
         this.object = event.getObject();
         this.start = event.getWhen();
         append1(event);
