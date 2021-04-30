@@ -43,11 +43,9 @@ import javax.annotation.concurrent.NotThreadSafe;
  * duration} since an (implied) epoch.
  * </p>
  *
- * <dl>
- * <dt>VALUE</dt>
- * <dd>The class of values of this value history. This must be {@link Immutable
- * immutable}, or have reference semantics.</dd>
- * </dl>
+ * @param <VALUE>
+ *            The class of values of this value history. This must be
+ *            {@link Immutable immutable}, or have reference semantics.
  */
 @NotThreadSafe
 public interface ValueHistory<VALUE> {
