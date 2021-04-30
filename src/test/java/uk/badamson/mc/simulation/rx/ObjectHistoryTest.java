@@ -72,6 +72,11 @@ public class ObjectHistoryTest {
                 test(OBJECT_B, WHEN_B, Integer.valueOf(3), WHEN_B.plusMillis(1500), Integer.valueOf(2));
             }
 
+            @Test
+            public void destruction() {
+                test(OBJECT_A, WHEN_A, Integer.valueOf(0), WHEN_A.plusMillis(10), null);
+            }
+
             private void test(final UUID object, final Duration when0, final Integer state0, final Duration when1,
                     final Integer state1) {
                 final var event0 = new TestEvent(new ObjectStateId(object, when0), state0, Map.of());
@@ -191,6 +196,11 @@ public class ObjectHistoryTest {
                 test(OBJECT_B, WHEN_B, Integer.valueOf(3), WHEN_B.plusMillis(1500), Integer.valueOf(2));
             }
 
+            @Test
+            public void destruction() {
+                test(OBJECT_A, WHEN_A, Integer.valueOf(0), WHEN_A.plusMillis(10), null);
+            }
+
             private void test(final UUID object, final Duration when0, final Integer state0, final Duration when1,
                     final Integer state1) {
                 final var event0 = new TestEvent(new ObjectStateId(object, when0), state0, Map.of());
@@ -252,6 +262,11 @@ public class ObjectHistoryTest {
             @Test
             public void b() {
                 test(OBJECT_B, WHEN_B, Integer.valueOf(3), WHEN_B.plusMillis(1500), Integer.valueOf(2));
+            }
+
+            @Test
+            public void destruction() {
+                test(OBJECT_A, WHEN_A, Integer.valueOf(0), WHEN_A.plusMillis(10), null);
             }
 
             private void test(final UUID object, final Duration when0, final Integer state0, final Duration when1,

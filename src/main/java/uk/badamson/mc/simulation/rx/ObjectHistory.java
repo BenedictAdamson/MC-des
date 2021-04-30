@@ -207,10 +207,15 @@ public final class ObjectHistory<STATE> {
      *             is not the same as the {@linkplain #getObject() object} of this
      *             history.
      * @throws IllegalStateException
-     *             If the {@linkplain Event#getWhen() time} of the {@code event} is
-     *             not {@linkplain Duration#compareTo(Duration) after} the time of
-     *             the {@linkplain #getLastEvent() last event} of this history. That
-     *             can happen if a different thread appended an event.
+     *             <li>If the {@linkplain Event#getWhen() time} of the {@code event}
+     *             is not {@linkplain Duration#compareTo(Duration) after} the time
+     *             of the {@linkplain #getLastEvent() last event} of this history.
+     *             That can happen if a different thread appended an event.</li>
+     *             <li>If the {@linkplain Event#getState() state} of the current
+     *             {@linkplain #getLastEvent() last event} is null. That is, if the
+     *             current last event was the destruction or removal of the
+     *             {@linkplain #getObject() simulated object}: destroyed objects may
+     *             not be resurrected.
      */
     public void append(@Nonnull final Event<STATE> event) {
         Objects.requireNonNull(event, "event");
@@ -220,6 +225,9 @@ public final class ObjectHistory<STATE> {
         synchronized (lock) {
             if (0 <= lastEvent.getWhen().compareTo(event.getWhen())) {
                 throw new IllegalStateException("event.getWhen");
+            }
+            if (lastEvent.getState() == null) {
+                throw new IllegalStateException("resurrection attempted");
             }
             append1(event);
         }
@@ -325,11 +333,11 @@ public final class ObjectHistory<STATE> {
      * {@linkplain #getObject() simulated object}.
      * </p>
      * <ul>
-     * <li>The sequence of events is infinite. However, the simulated object may
-     * enter a state that it never leaves, resulting in no more events. In
-     * particular, destruction of the object is typically not followed by any other
-     * events.</li>
      * <li>The sequence of events has no null events.</li>
+     * <li>The sequence of events can be infinite.</li>
+     * <li>The sequence of events can be finite. In that case, the last event is the
+     * destruction of the object: a transition to a null
+     * {@linkplain Event#getState() state}.</li>
      * <li>The sequence of events are in {@linkplain Duration#compareTo(Duration)
      * ascending} {@linkplain Event#getWhen() time-stamp} order.</li>
      * <li>Always have a (non null) last event.</li>
@@ -356,14 +364,14 @@ public final class ObjectHistory<STATE> {
      * simulated object}.
      * </p>
      * <ul>
-     * <li>The sequence of state transitions is infinite. However, the simulated
-     * object may enter a state that it never leaves, resulting in no more state
-     * transitions. In particular, destruction of the object (the transition to a
-     * null state) is a state typically never left.</li>
      * <li>Each state transition is represented by a {@linkplain TimestampedState
      * time-stamped state}: the state that the simulated object transitioned to, and
      * the time that the simulated object entered that state.</li>
      * <li>The sequence of state transitions has no null transitions.</li>
+     * <li>The sequence of state transitions can be infinite.</li>
+     * <li>The sequence of state transitions can be finite. In that case, the last
+     * state transition is the destruction of the object: a transition to a null
+     * {@linkplain TimestampedState#getState() state}.</li>
      * <li>The sequence of state transitions are in
      * {@linkplain Duration#compareTo(Duration) ascending}
      * {@linkplain TimestampedState#getWhen() time-stamp} order.</li>
