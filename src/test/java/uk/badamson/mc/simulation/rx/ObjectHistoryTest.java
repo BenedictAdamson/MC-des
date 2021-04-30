@@ -42,10 +42,13 @@ import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.ThreadTest;
 import uk.badamson.mc.simulation.ObjectStateId;
 import uk.badamson.mc.simulation.rx.EventTest.TestEvent;
+import uk.badamson.mc.simulation.rx.ObjectHistory.TimestampedState;
 
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
 public class ObjectHistoryTest {
@@ -167,6 +170,44 @@ public class ObjectHistoryTest {
             test(event);
         }
 
+    }// class
+
+    @Nested
+    public class ObserveStateTransitions {
+
+        @Nested
+        public class AfterConstructor {
+
+            @Test
+            public void a() {
+                test(OBJECT_A, WHEN_A, Integer.valueOf(0));
+            }
+
+            @Test
+            public void b() {
+                test(OBJECT_B, WHEN_B, Integer.valueOf(1));
+            }
+
+            private void test(final UUID object, final Duration start, final Integer state) {
+                final var event = new TestEvent(new ObjectStateId(object, start), state, Map.of());
+                final var expectedStateTransition = new ObjectHistory.TimestampedState<>(start, state);
+                final var history = new ObjectHistory<>(event);
+
+                final var flux = ObserveStateTransitions.this.test(history);
+
+                StepVerifier.create(flux).expectNext(expectedStateTransition).expectTimeout(Duration.ofMillis(100))
+                        .verify();
+            }
+
+        }// class
+
+        private <STATE> Flux<TimestampedState<STATE>> test(@Nonnull final ObjectHistory<STATE> history) {
+            final var flux = history.observeStateTransitions();
+
+            assertInvariants(history);
+            assertNotNull(flux, "Not null, result");
+            return flux;
+        }
     }// class
 
     public static class TimestampedStateTest {

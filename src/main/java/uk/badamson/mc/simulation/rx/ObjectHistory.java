@@ -28,6 +28,9 @@ import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Sinks;
+
 /**
  * <p>
  * The sequence of state transitions of a simulated object.
@@ -140,6 +143,7 @@ public final class ObjectHistory<STATE> {
     @Nonnull
     private final Duration start;
     private final Object lock = new Object();
+    private final Sinks.Many<TimestampedState<STATE>> stateTransitions = Sinks.many().replay().latest();
 
     @Nonnull
     @GuardedBy("lock")
@@ -164,6 +168,10 @@ public final class ObjectHistory<STATE> {
         this.lastEvent = Objects.requireNonNull(event, "event");
         this.object = lastEvent.getObject();
         this.start = lastEvent.getWhen();
+        if (stateTransitions.tryEmitNext(new TimestampedState<>(start, event.getState())) != Sinks.EmitResult.OK) {
+            // Never happens
+            throw new IllegalStateException("Failed to add first state transition to stateTrainsitions");
+        }
     }
 
     /**
@@ -174,6 +182,17 @@ public final class ObjectHistory<STATE> {
      * <ul>
      * <li>The {@linkplain #getLastEvent() last event} becomes the same as the given
      * {@code event}.</li>
+     * <li>Any subscribers to the {@linkplain #observeStateTransitions() sequence of
+     * state transitions} will receive a new state transition corresponding the the
+     * {@code event}:
+     * <ul>
+     * <li>The {@linkplain TimestampedState#getWhen() time} of the state transition
+     * will be the same as the {@linkplain Event#getWhen() time} of the
+     * {@code event}.</li>
+     * <li>The {@linkplain TimestampedState#getState() state} of the state
+     * transition will be the same as the {@linkplain Event#getState() state} of the
+     * {@code event}.</li>
+     * </ul>
      * </ul>
      *
      * @param event
@@ -253,6 +272,34 @@ public final class ObjectHistory<STATE> {
     @Nonnull
     public Duration getStart() {
         return start;
+    }
+
+    /**
+     * <p>
+     * Provide the sequence of state transitions of the {@linkplain #getObject()
+     * simulated object}.
+     * </p>
+     * <ul>
+     * <li>The sequence of state transitions is infinite. However, the simulated
+     * object may enter a state that it never leaves, resulting in no more state
+     * transitions. In particular, destruction of the object (the transition to a
+     * null state) is a state never left.</li>
+     * <li>Each state transition is represented by a {@linkplain TimestampedState
+     * time-stamped state}: the state that the simulated object transitioned to, and
+     * the time that the simulated object entered that state.</li>
+     * <li>The sequence of state transitions has no null transitions.</li>
+     * <li>The sequence of state transitions are in
+     * {@linkplain Duration#compareTo(Duration) ascending}
+     * {@linkplain TimestampedState#getWhen() time-stamp} order.</li>
+     * <li>The sequence of state transitions does not include old state transitions;
+     * the first state transition published to a subscriber will correspond to the
+     * current {@linkplain #getLastEvent() last event} at the time of
+     * subscription.</li>
+     * </ul>
+     */
+    @Nonnull
+    public Flux<TimestampedState<STATE>> observeStateTransitions() {
+        return stateTransitions.asFlux();
     }
 
 }
