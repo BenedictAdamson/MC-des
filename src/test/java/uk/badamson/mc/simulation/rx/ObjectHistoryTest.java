@@ -21,16 +21,21 @@ package uk.badamson.mc.simulation.rx;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.RepeatedTest;
@@ -166,6 +171,81 @@ public class ObjectHistoryTest {
 
     public static class TimestampedStateTest {
 
+        @Nested
+        public class Constructor {
+
+            @Nested
+            public class Two {
+
+                @Test
+                public void differentState() {
+                    final String stateA = "A";
+                    final String stateB = "B";
+
+                    final var timestampedA = new ObjectHistory.TimestampedState<>(WHEN_A, stateA);
+                    final var timestampedB = new ObjectHistory.TimestampedState<>(WHEN_A, stateB);
+
+                    assertInvariants(timestampedA, timestampedB);
+                    assertNotEquals(timestampedA, timestampedB);
+                }
+
+                @Test
+                public void differentWhen() {
+                    final Duration whenA = Duration.ofMillis(1000);
+                    final Duration whenB = Duration.ofMillis(2000);
+                    final String state = "State";
+
+                    final var timestampedA = new ObjectHistory.TimestampedState<>(whenA, state);
+                    final var timestampedB = new ObjectHistory.TimestampedState<>(whenB, state);
+
+                    assertInvariants(timestampedA, timestampedB);
+                    assertNotEquals(timestampedA, timestampedB);
+                }
+
+                @Test
+                public void equivalent() {
+                    final Duration whenA = Duration.ofMillis(1000);
+                    final Duration whenB = Duration.ofMillis(1000);
+                    final String stateA = "State";
+                    final String stateB = new String(stateA);
+                    assert whenA.equals(whenB);
+                    assert stateA.equals(stateB);
+                    assert whenA != whenB;// tough test
+                    assert stateA != stateB;// tough test
+
+                    final var timestampedA = new ObjectHistory.TimestampedState<>(whenA, stateA);
+                    final var timestampedB = new ObjectHistory.TimestampedState<>(whenB, stateB);
+
+                    assertInvariants(timestampedA, timestampedB);
+                    assertEquals(timestampedA, timestampedB);
+                }
+            }// class
+
+            @Test
+            public void a() {
+                test(WHEN_A, "State");
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_B, Integer.valueOf(0));
+            }
+
+            @Test
+            public void nullState() {
+                test(WHEN_A, (Integer) null);
+            }
+
+            private <STATE> void test(@Nonnull final Duration when, @Nullable final STATE state) {
+                final var timestamped = new ObjectHistory.TimestampedState<>(when, state);
+
+                assertInvariants(timestamped);
+                assertAll(() -> assertSame(when, timestamped.getWhen(), "when"),
+                        () -> assertSame(state, timestamped.getState(), "state"));
+            }
+
+        }// class
+
         public static <STATE> void assertInvariants(@Nonnull final ObjectHistory.TimestampedState<STATE> timestamped) {
             ObjectTest.assertInvariants(timestamped);// inherited
 
@@ -181,6 +261,8 @@ public class ObjectHistoryTest {
             if (state1 != null && state2 != null) {
                 ObjectTest.assertInvariants(state1, state2);
             }
+            assertTrue(timestamped1.equals(timestamped2) == (timestamped1.getWhen().equals(timestamped2.getWhen())
+                    && Objects.equals(state1, state2)), "equals has value semantics");
         }
     }// class
 

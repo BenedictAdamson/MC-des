@@ -54,6 +54,7 @@ public final class ObjectHistory<STATE> {
      */
     @Immutable
     public static final class TimestampedState<STATE> {
+
         @Nonnull
         private final Duration when;
         @Nullable
@@ -68,6 +69,29 @@ public final class ObjectHistory<STATE> {
         public TimestampedState(@Nonnull final Duration when, @Nullable final STATE state) {
             this.when = Objects.requireNonNull(when, "when");
             this.state = state;
+        }
+
+        /**
+         * <p>
+         * Whether this object is <dfn>equivalent</dfn> to a given other object.
+         * </p>
+         * <p>
+         * The TimestampedState class has <i>value semantics</i>: the object is
+         * equivalent to another object if, and only if, the other object is also a
+         * TimestampedState and the two have equivalent attribute values.
+         * </p>
+         */
+        @Override
+        public boolean equals(final Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (!(obj instanceof TimestampedState)) {
+                return false;
+            }
+            @SuppressWarnings("unchecked")
+            final TimestampedState<STATE> other = (TimestampedState<STATE>) obj;
+            return when.equals(other.when) && Objects.equals(state, other.state);
         }
 
         /**
@@ -96,6 +120,11 @@ public final class ObjectHistory<STATE> {
         @Nonnull
         public Duration getWhen() {
             return when;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(state, when);
         }
 
         @Nonnull
