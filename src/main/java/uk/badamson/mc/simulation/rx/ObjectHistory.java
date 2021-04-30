@@ -23,6 +23,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
@@ -39,6 +40,71 @@ import javax.annotation.concurrent.ThreadSafe;
  */
 @ThreadSafe
 public final class ObjectHistory<STATE> {
+
+    /**
+     * <p>
+     * The state of a simulated object, with a time-stamp indicating one of the
+     * points in time when the simulated object was in that state.
+     * </p>
+     *
+     * @param <STATE>
+     *            The class of states of the simulated object. This must be
+     *            {@link Immutable immutable}. It ought to have value semantics, but
+     *            that is not required.
+     */
+    @Immutable
+    public static final class TimestampedState<STATE> {
+        @Nonnull
+        private final Duration when;
+        @Nullable
+        private final STATE state;
+
+        /**
+         * Constructs a value with given attribute values.
+         *
+         * @throws NullPointerException
+         *             If {@code when} is null
+         */
+        public TimestampedState(@Nonnull final Duration when, @Nullable final STATE state) {
+            this.when = Objects.requireNonNull(when, "when");
+            this.state = state;
+        }
+
+        /**
+         * <p>
+         * A state of the simulated object at the {@linkplain #getWhen() time}
+         * </p>
+         * <ul>
+         * <li>Null if the object does not exist at that time.</li>
+         * </ul>
+         */
+        @Nullable
+        public STATE getState() {
+            return state;
+        }
+
+        /**
+         * <p>
+         * The point in time that the simulated object is in the {@linkplain #getState()
+         * state}
+         * </p>
+         * <p>
+         * Expressed as the duration since an (implied) epoch. All objects in a
+         * simulation should use the same epoch.
+         * </p>
+         */
+        @Nonnull
+        public Duration getWhen() {
+            return when;
+        }
+
+        @Nonnull
+        @Override
+        public String toString() {
+            return "TimestampedState [@" + when + ", " + state + "]";
+        }
+
+    }// class
 
     @Nonnull
     private final UUID object;

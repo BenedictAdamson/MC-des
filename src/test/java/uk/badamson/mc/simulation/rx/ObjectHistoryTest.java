@@ -164,8 +164,29 @@ public class ObjectHistoryTest {
 
     }// class
 
+    public static class TimestampedStateTest {
+
+        public static <STATE> void assertInvariants(@Nonnull final ObjectHistory.TimestampedState<STATE> timestamped) {
+            ObjectTest.assertInvariants(timestamped);// inherited
+
+            assertNotNull(timestamped.getWhen(), "Not null, when");
+        }
+
+        public static <STATE> void assertInvariants(@Nonnull final ObjectHistory.TimestampedState<STATE> timestamped1,
+                @Nonnull final ObjectHistory.TimestampedState<STATE> timestamped2) {
+            ObjectTest.assertInvariants(timestamped1, timestamped2);// inherited
+
+            final var state1 = timestamped1.getState();
+            final var state2 = timestamped2.getState();
+            if (state1 != null && state2 != null) {
+                ObjectTest.assertInvariants(state1, state2);
+            }
+        }
+    }// class
+
     private static final UUID OBJECT_A = UUID.randomUUID();
     private static final UUID OBJECT_B = UUID.randomUUID();
+
     private static final Duration WHEN_A = Duration.ofMillis(0);
     private static final Duration WHEN_B = Duration.ofMillis(5000);
 
@@ -191,5 +212,4 @@ public class ObjectHistoryTest {
             @Nonnull final ObjectHistory<STATE> history2) {
         ObjectTest.assertInvariants(history1, history2);// inherited
     }
-
 }
