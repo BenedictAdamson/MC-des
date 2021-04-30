@@ -188,21 +188,29 @@ public class ObjectHistoryTest {
 
             @Test
             public void a() {
-                test(OBJECT_A, WHEN_A, Integer.valueOf(0), WHEN_A.plusMillis(10), Integer.valueOf(1));
+                testNonDestruction(OBJECT_A, WHEN_A, Integer.valueOf(0), WHEN_A.plusMillis(10), Integer.valueOf(1));
             }
 
             @Test
             public void b() {
-                test(OBJECT_B, WHEN_B, Integer.valueOf(3), WHEN_B.plusMillis(1500), Integer.valueOf(2));
+                testNonDestruction(OBJECT_B, WHEN_B, Integer.valueOf(3), WHEN_B.plusMillis(1500), Integer.valueOf(2));
             }
 
             @Test
             public void destruction() {
-                test(OBJECT_A, WHEN_A, Integer.valueOf(0), WHEN_A.plusMillis(10), null);
+                final UUID object = OBJECT_A;
+                final var event0 = new TestEvent(new ObjectStateId(object, WHEN_A), Integer.valueOf(0), Map.of());
+                final var event1 = new TestEvent(new ObjectStateId(object, WHEN_A.plusMillis(10)), null, Map.of());
+                final var history = new ObjectHistory<>(event0);
+                history.append(event1);
+
+                final var flux = ObserveEvents.this.test(history);
+
+                StepVerifier.create(flux).expectNext(event1).expectComplete().verify(Duration.ofMillis(100));
             }
 
-            private void test(final UUID object, final Duration when0, final Integer state0, final Duration when1,
-                    final Integer state1) {
+            private void testNonDestruction(final UUID object, final Duration when0, final Integer state0,
+                    final Duration when1, final Integer state1) {
                 final var event0 = new TestEvent(new ObjectStateId(object, when0), state0, Map.of());
                 final var event1 = new TestEvent(new ObjectStateId(object, when1), state1, Map.of());
                 final var history = new ObjectHistory<>(event0);
@@ -256,21 +264,34 @@ public class ObjectHistoryTest {
 
             @Test
             public void a() {
-                test(OBJECT_A, WHEN_A, Integer.valueOf(0), WHEN_A.plusMillis(10), Integer.valueOf(1));
+                testNonDestruction(OBJECT_A, WHEN_A, Integer.valueOf(0), WHEN_A.plusMillis(10), Integer.valueOf(1));
             }
 
             @Test
             public void b() {
-                test(OBJECT_B, WHEN_B, Integer.valueOf(3), WHEN_B.plusMillis(1500), Integer.valueOf(2));
+                testNonDestruction(OBJECT_B, WHEN_B, Integer.valueOf(3), WHEN_B.plusMillis(1500), Integer.valueOf(2));
             }
 
             @Test
             public void destruction() {
-                test(OBJECT_A, WHEN_A, Integer.valueOf(0), WHEN_A.plusMillis(10), null);
+                final var object = OBJECT_A;
+                final var when1 = WHEN_A;
+                final Integer state1 = null;// critical
+                final var expectedStateTransition = new ObjectHistory.TimestampedState<>(when1, state1);
+                final var event0 = new TestEvent(new ObjectStateId(object, when1.minusMillis(10)), Integer.valueOf(0),
+                        Map.of());
+                final var event1 = new TestEvent(new ObjectStateId(object, when1), state1, Map.of());
+                final var history = new ObjectHistory<>(event0);
+                history.append(event1);
+
+                final var flux = ObserveStateTransitions.this.test(history);
+
+                StepVerifier.create(flux).expectNext(expectedStateTransition).expectComplete()
+                        .verify(Duration.ofMillis(100));
             }
 
-            private void test(final UUID object, final Duration when0, final Integer state0, final Duration when1,
-                    final Integer state1) {
+            private void testNonDestruction(final UUID object, final Duration when0, final Integer state0,
+                    final Duration when1, final Integer state1) {
                 final var expectedStateTransition = new ObjectHistory.TimestampedState<>(when1, state1);
                 final var event0 = new TestEvent(new ObjectStateId(object, when0), state0, Map.of());
                 final var event1 = new TestEvent(new ObjectStateId(object, when1), state1, Map.of());

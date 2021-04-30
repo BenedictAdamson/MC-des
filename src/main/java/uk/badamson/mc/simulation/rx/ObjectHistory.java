@@ -242,12 +242,20 @@ public final class ObjectHistory<STATE> {
 
     private void append1(final Event<STATE> event) {
         lastEvent = event;
-        stateHistory.appendTransition(event.getWhen(), event.getState());
+        final var when = event.getWhen();
+        final var state = event.getState();
+        stateHistory.appendTransition(when, state);
         final var result1 = events.tryEmitNext(event);
-        final var result2 = stateTransitions.tryEmitNext(new TimestampedState<>(event.getWhen(), event.getState()));
+        final var result2 = stateTransitions.tryEmitNext(new TimestampedState<>(when, state));
         // The sink are reliable, so should always succeed.
         assert result1 == Sinks.EmitResult.OK;
         assert result2 == Sinks.EmitResult.OK;
+        if (state == null) {// destruction
+            final var result3 = events.tryEmitComplete();
+            final var result4 = stateTransitions.tryEmitComplete();
+            assert result3 == Sinks.EmitResult.OK;
+            assert result4 == Sinks.EmitResult.OK;
+        }
     }
 
     /**
