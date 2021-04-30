@@ -101,8 +101,9 @@ public final class ObjectHistory<STATE> {
         if (object != event.getObject()) {
             throw new IllegalArgumentException("event.getObject");
         }
+        final var eventWhen = event.getWhen();
         synchronized (lock) {
-            if (0 <= lastEvent.getWhen().compareTo(event.getWhen())) {
+            if (0 <= lastEvent.getWhen().compareTo(eventWhen)) {
                 throw new IllegalArgumentException("event.getWhen");
             }
             lastEvent = event;
