@@ -48,10 +48,8 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicReference;
@@ -65,6 +63,7 @@ import org.junit.jupiter.api.Test;
 
 import uk.badamson.mc.ComparableTest;
 import uk.badamson.mc.ObjectTest;
+import uk.badamson.mc.ThreadTest;
 import uk.badamson.mc.history.ModifiableValueHistory;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.history.ValueHistoryTest;
@@ -157,12 +156,12 @@ public class UniverseTest {
              * Start the other thread while the universe object is not constructed, so the
              * safe publication at Thread.start() does not publish the constructed state.
              */
-            final var future = runInOtherThread(ready, () -> assertPostconditions(universe, historyStart));
+            final var future = ThreadTest.runInOtherThread(ready, () -> assertPostconditions(universe, historyStart));
 
             universe.set(new Universe(historyStart));
 
             ready.countDown();
-            get(future);
+            ThreadTest.get(future);
         }
 
         private void test(final Duration historyStart) {
@@ -326,7 +325,8 @@ public class UniverseTest {
                  * Start the other thread while the universe object is not constructed, so the
                  * safe publication at Thread.start() does not publish the constructed state.
                  */
-                final var future = runInOtherThread(ready, () -> assertPostconditions(universeAR, historyStart));
+                final var future = ThreadTest.runInOtherThread(ready,
+                        () -> assertPostconditions(universeAR, historyStart));
 
                 final Universe universe = new Universe(historyStart0);
                 final ObjectState objectState = new ObjectStateTest.TestObjectState(1);
@@ -336,7 +336,7 @@ public class UniverseTest {
 
                 universeAR.set(universe);
                 ready.countDown();
-                get(future);
+                ThreadTest.get(future);
             }
 
             @Test
@@ -952,7 +952,7 @@ public class UniverseTest {
                      */
                     final List<Future<Void>> futures = new ArrayList<>(nThreads);
                     for (int i = 0; i < nThreads; ++i) {
-                        futures.add(runInOtherThread(ready, () -> {
+                        futures.add(ThreadTest.runInOtherThread(ready, () -> {
                             final Universe universe = universeAR.get();
                             final ThreadLocalRandom random = ThreadLocalRandom.current();
                             final UUID object = UUID.randomUUID();
@@ -972,7 +972,7 @@ public class UniverseTest {
                     universeAR.set(new Universe(historyStart0));
                     ready.countDown();
 
-                    get(futures);
+                    ThreadTest.get(futures);
 
                     UniverseTest.assertInvariants(universeAR.get());
                     for (final var entry : transactions.entrySet()) {
@@ -2506,7 +2506,7 @@ public class UniverseTest {
                 final List<Future<Void>> futures = new ArrayList<>(nThreads);
                 for (int i = 0; i < nThreads; ++i) {
                     final int iObject = i;
-                    futures.add(runInOtherThread(readyToStart, () -> {
+                    futures.add(ThreadTest.runInOtherThread(readyToStart, () -> {
                         final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                         try (final Universe.Transaction transaction = universe.beginTransaction(listener);) {
                             transactions.put(objects[iObject], new AtomicReference<Universe.Transaction>(transaction));
@@ -2552,7 +2552,7 @@ public class UniverseTest {
                 }
                 readyToCommit.countDown();
 
-                get(futures);
+                ThreadTest.get(futures);
 
                 UniverseTest.assertInvariants(universe);
                 final var transaction0 = transactions.get(objects[0]).get();
@@ -2883,10 +2883,10 @@ public class UniverseTest {
                      * Start the other thread while the universe object is not constructed, so the
                      * safe publication at Thread.start() does not publish the constructed state.
                      */
-                    final var future = runInOtherThread(ready, () -> doTransaction(when1, universeAR.get()));
+                    final var future = ThreadTest.runInOtherThread(ready, () -> doTransaction(when1, universeAR.get()));
                     universeAR.set(new Universe(historyStart));
                     ready.countDown();
-                    get(future);
+                    ThreadTest.get(future);
                 }
 
                 @Test
@@ -3241,7 +3241,7 @@ public class UniverseTest {
                      */
                     final List<Future<Void>> futures = new ArrayList<>(nThreads);
                     for (int i = 0; i < nThreads; ++i) {
-                        futures.add(runInOtherThread(ready, () -> {
+                        futures.add(ThreadTest.runInOtherThread(ready, () -> {
                             final Universe universe = universeAR.get();
                             final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                             final ObjectState objectState = new ObjectStateTest.TestObjectState(1);
@@ -3263,7 +3263,7 @@ public class UniverseTest {
 
                     universeAR.set(new Universe(historyStart));
                     ready.countDown();
-                    get(futures);
+                    ThreadTest.get(futures);
                 }
 
                 private void test(final Duration historyStart, final UUID object, final Duration when) {
@@ -3433,7 +3433,7 @@ public class UniverseTest {
                 final List<Future<Void>> futures = new ArrayList<>(nThreads);
                 for (int i = 0; i < nThreads; ++i) {
                     final int iObject = i;
-                    futures.add(runInOtherThread(ready, () -> {
+                    futures.add(ThreadTest.runInOtherThread(ready, () -> {
                         final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                         final Universe.Transaction transaction = universe.beginTransaction(listener);
                         transactions.put(objects[iObject], new AtomicReference<Universe.Transaction>(transaction));
@@ -3454,7 +3454,7 @@ public class UniverseTest {
                 }
 
                 ready.countDown();
-                get(futures);
+                ThreadTest.get(futures);
                 UniverseTest.assertInvariants(universe);
                 final var transaction0 = transactions.get(objects[0]).get();
                 final Universe.TransactionCoordinator coordinator0 = transaction0.transactionCoordinator;
@@ -3578,7 +3578,7 @@ public class UniverseTest {
             final List<Future<Void>> futures = new ArrayList<>(nThreads);
             for (int i = 0; i < nThreads; ++i) {
                 final int iObject = i;
-                futures.add(runInOtherThread(ready, () -> {
+                futures.add(ThreadTest.runInOtherThread(ready, () -> {
                     final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     try (final Universe.Transaction transaction = universe.beginTransaction(listener);) {
                         transactions.put(objects[iObject], new AtomicReference<Universe.Transaction>(transaction));
@@ -3602,7 +3602,7 @@ public class UniverseTest {
             }
 
             ready.countDown();
-            get(futures);
+            ThreadTest.get(futures);
             UniverseTest.assertInvariants(universe);
             final var transaction0 = transactions.get(objects[0]).get();
             final Universe.TransactionCoordinator coordinator0 = transaction0.transactionCoordinator;
@@ -3664,7 +3664,7 @@ public class UniverseTest {
             final List<Future<Void>> futures = new ArrayList<>(nThreads);
             for (int i = 0; i < nThreads; ++i) {
                 final int iObject = i;
-                futures.add(runInOtherThread(ready, () -> {
+                futures.add(ThreadTest.runInOtherThread(ready, () -> {
                     final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     try (final Universe.Transaction transaction = universe.beginTransaction(listener);) {
                         transactions.put(objects[iObject], new AtomicReference<Universe.Transaction>(transaction));
@@ -3705,7 +3705,7 @@ public class UniverseTest {
             }
             beginCommits.countDown();
 
-            get(futures);
+            ThreadTest.get(futures);
 
             UniverseTest.assertInvariants(universe);
             final var transaction0 = transactions.get(objects[0]).get();
@@ -3768,7 +3768,7 @@ public class UniverseTest {
             final List<Future<Void>> futures = new ArrayList<>(nThreads);
             for (int i = 0; i < nThreads; ++i) {
                 final int iObject = i;
-                futures.add(runInOtherThread(ready, () -> {
+                futures.add(ThreadTest.runInOtherThread(ready, () -> {
                     final TransactionListenerTest.CountingTransactionListener listener = new TransactionListenerTest.CountingTransactionListener();
                     try (final Universe.Transaction transaction = universe.beginTransaction(listener);) {
                         transactions.put(objects[iObject], new AtomicReference<Universe.Transaction>(transaction));
@@ -3804,7 +3804,7 @@ public class UniverseTest {
             }
             beginWrites.countDown();
 
-            get(futures);
+            ThreadTest.get(futures);
 
             UniverseTest.assertInvariants(universe);
             final var transaction0 = transactions.get(objects[0]).get();
@@ -3992,48 +3992,6 @@ public class UniverseTest {
                         "Unknown objects have an unknown state for all points in time."));
     }
 
-    private static void get(final Future<Void> future) {
-        try {
-            future.get();
-        } catch (final InterruptedException e) {
-            throw new AssertionError(e);
-        } catch (final ExecutionException e) {
-            final Throwable cause = e.getCause();
-            if (cause instanceof AssertionError) {
-                throw (AssertionError) cause;
-            } else if (cause instanceof RuntimeException) {
-                throw (RuntimeException) cause;
-            } else {
-                throw new AssertionError(e);
-            }
-        }
-    }
-
-    private static void get(final List<Future<Void>> futures) {
-        final List<Throwable> exceptions = new ArrayList<>(futures.size());
-        for (final var future : futures) {
-            try {
-                get(future);
-            } catch (Exception | AssertionError e) {
-                exceptions.add(e);
-            }
-        }
-        final int nExceptions = exceptions.size();
-        if (0 < nExceptions) {
-            final Throwable e = exceptions.get(0);
-            for (int i = 1; i < nExceptions; ++i) {
-                e.addSuppressed(exceptions.get(i));
-            }
-            if (e instanceof AssertionError) {
-                throw (AssertionError) e;
-            } else if (e instanceof RuntimeException) {
-                throw (RuntimeException) e;
-            } else {
-                throw new AssertionError(e);
-            }
-        }
-    }
-
     static void putAndCommit(final Universe universe, final UUID object, final Duration when, final ObjectState state) {
         final TransactionListener listener = new TransactionListener() {
 
@@ -4058,22 +4016,6 @@ public class UniverseTest {
             transaction.put(object, state);
             transaction.beginCommit();
         }
-    }
-
-    private static Future<Void> runInOtherThread(final CountDownLatch ready, final Runnable operation) {
-        final CompletableFuture<Void> future = new CompletableFuture<Void>();
-        final Thread thread = new Thread(() -> {
-            try {
-                ready.await();
-                operation.run();
-            } catch (final Throwable e) {
-                future.completeExceptionally(e);
-                return;
-            }
-            future.complete(null);
-        });
-        thread.start();
-        return future;
     }
 
 }
