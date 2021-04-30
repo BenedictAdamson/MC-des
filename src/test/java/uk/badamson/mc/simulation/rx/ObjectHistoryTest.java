@@ -22,8 +22,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -46,6 +48,7 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.ThreadTest;
+import uk.badamson.mc.history.ValueHistoryTest;
 import uk.badamson.mc.simulation.ObjectStateId;
 import uk.badamson.mc.simulation.rx.EventTest.TestEvent;
 import uk.badamson.mc.simulation.rx.ObjectHistory.TimestampedState;
@@ -96,6 +99,7 @@ public class ObjectHistoryTest {
             ThreadTest.get(future1);
             ThreadTest.get(future2);
 
+            assertInvariants(history);
             assertSame(event2, history.getLastEvent(), "lastEvent");
         }
 
@@ -123,7 +127,6 @@ public class ObjectHistoryTest {
                     // Can happen because of the data race
                 }
 
-                assertInvariants(history);
                 assertAll("Does not change constants", () -> assertSame(object0, history.getObject(), "object"),
                         () -> assertSame(start0, history.getStart(), "start"));
             });
@@ -153,7 +156,7 @@ public class ObjectHistoryTest {
         }
 
         @Test
-        public void B() {
+        public void b() {
             test(OBJECT_B, WHEN_B, Integer.valueOf(1), Map.of(OBJECT_A, WHEN_B.minusMillis(10)));
         }
 
@@ -411,16 +414,28 @@ public class ObjectHistoryTest {
         final var object = history.getObject();
         final var start = history.getStart();
         final var lastEvent = history.getLastEvent();
+        final var stateHistory = history.getStateHistory();
 
         assertAll("Not null", () -> assertNotNull(object, "object"), () -> assertNotNull(start, "start"), // guard
-                () -> assertNotNull(lastEvent, "lastEvent")// guard
+                () -> assertNotNull(lastEvent, "lastEvent"), // guard
+                () -> assertNotNull(stateHistory, "stateHistory")// guard
         );
-        EventTest.assertInvariants(lastEvent);
-        assertAll(
+        assertAll("Maintains invariants of attributes and aggregates", () -> EventTest.assertInvariants(lastEvent),
+                () -> ValueHistoryTest.assertInvariants(stateHistory));
+        assertAll("lastEvent",
                 () -> assertSame(object, lastEvent.getObject(),
                         "The object of the last event is the same has the object of this history."),
                 () -> assertThat("The time of the last event is at or after the start of this history.",
                         lastEvent.getWhen(), greaterThanOrEqualTo(start)));
+        assertAll("stateHistory", () -> assertSame(start, stateHistory.getFirstTansitionTime(),
+                "The first transition time of the state history is the same as the start time of this history."),
+                () -> assertNull(stateHistory.getFirstValue(),
+                        "The state at the start of time of the state history is null."),
+                () -> assertSame(lastEvent.getWhen(), stateHistory.getLastTansitionTime(),
+                        "The last transition time of the state history is the same as the time of the last event of this history."),
+                () -> assertSame(lastEvent.getState(), stateHistory.getLastValue(),
+                        "The state at the end of time of the state history is the same as the the last event of this history."),
+                () -> assertFalse(stateHistory.isEmpty(), "The state history is never empty."));
     }
 
     public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history1,

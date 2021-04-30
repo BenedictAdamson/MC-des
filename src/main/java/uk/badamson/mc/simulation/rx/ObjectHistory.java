@@ -30,6 +30,8 @@ import javax.annotation.concurrent.ThreadSafe;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
+import uk.badamson.mc.history.ModifiableValueHistory;
+import uk.badamson.mc.history.ValueHistory;
 
 /**
  * <p>
@@ -146,6 +148,9 @@ public final class ObjectHistory<STATE> {
     private final Sinks.Many<Event<STATE>> events = Sinks.many().replay().latest();
     private final Sinks.Many<TimestampedState<STATE>> stateTransitions = Sinks.many().replay().latest();
 
+    @GuardedBy("lock")
+    private final ModifiableValueHistory<STATE> stateHistory = new ModifiableValueHistory<>();
+
     @Nonnull
     @GuardedBy("lock")
     private Event<STATE> lastEvent;
@@ -222,6 +227,7 @@ public final class ObjectHistory<STATE> {
 
     private void append1(final Event<STATE> event) {
         lastEvent = event;
+        stateHistory.appendTransition(event.getWhen(), event.getState());
         final var result1 = events.tryEmitNext(event);
         final var result2 = stateTransitions.tryEmitNext(new TimestampedState<>(event.getWhen(), event.getState()));
         // The sink are reliable, so should always succeed.
@@ -241,7 +247,7 @@ public final class ObjectHistory<STATE> {
      * {@linkplain Duration#compareTo(Duration) at or after} the
      * {@linkplain #getStart() start} of this history.</li>
      * </ul>
-     * 
+     *
      * @see #observeEvents()
      */
     @Nonnull
@@ -284,6 +290,35 @@ public final class ObjectHistory<STATE> {
 
     /**
      * <p>
+     * Get a snapshot of the history of states that the {@linkplain #getObject()
+     * simulated object} has passed through.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain ValueHistory#getFirstTansitionTime() first transition
+     * time} of the state history is the same as the {@linkplain #getStart() start}
+     * time of this history.</li>
+     * <li>The {@linkplain ValueHistory#getFirstValue() state at the start of time}
+     * of the state history is null.</li>
+     * <li>The {@linkplain ValueHistory#getLastTansitionTime() last transition time}
+     * of the state history is the same as the {@linkplain Event#getWhen() time} of
+     * the {@linkplain #getLastEvent() last event} of this history.</li>
+     * <li>The {@linkplain ValueHistory#getLastValue() state at the end of time} of
+     * the state history is the same as the {@linkplain Event#getState() state} of
+     * the {@linkplain #getLastEvent() last event} of this history.</li>
+     * <li>The state history is never {@linkplain ValueHistory#isEmpty()
+     * empty}.</li>
+     * <li>The returned state history is a snapshot: a copy of data, it is not
+     * updated when events are {@linkplain #append(Event) appended}.</li>
+     * </ul>
+     */
+    @Nonnull
+    public ValueHistory<STATE> getStateHistory() {
+        return new ModifiableValueHistory<>(stateHistory);
+        // TODO thread safety
+    }
+
+    /**
+     * <p>
      * Provide the sequence of {@linkplain Event events} that cause
      * {@linkplain #observeStateTransitions() state transitions} of the
      * {@linkplain #getObject() simulated object}.
@@ -306,7 +341,7 @@ public final class ObjectHistory<STATE> {
      * published to a subscriber will be the current {@linkplain #getLastEvent()
      * last event} at the time of subscription.</li>
      * </ul>
-     * 
+     *
      * @see #getLastEvent()
      */
     @Nonnull
