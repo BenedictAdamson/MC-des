@@ -33,6 +33,7 @@
    <properties>
       <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
       <spotbugs.version>4.2.3</spotbugs.version>
+      <reactor.version>3.4.5</reactor.version>
    </properties>
    <dependencyManagement>
       <dependencies>
@@ -194,6 +195,23 @@
          <groupId>com.github.spotbugs</groupId>
          <artifactId>spotbugs-annotations</artifactId>
          <version>${spotbugs.version}</version>
+      </dependency>
+      <dependency>
+         <groupId>io.projectreactor</groupId>
+         <artifactId>reactor-core</artifactId>
+         <version>${reactor.version}</version>
+      </dependency>
+      <dependency>
+         <groupId>io.projectreactor</groupId>
+         <artifactId>reactor-test</artifactId>
+         <version>${reactor.version}</version>
+         <scope>test</scope>
+      </dependency>
+      <dependency>
+         <groupId>io.projectreactor</groupId>
+         <artifactId>reactor-tools</artifactId>
+         <version>${reactor.version}</version>
+         <scope>test</scope>
       </dependency>
       <dependency>
          <groupId>org.hamcrest</groupId>
