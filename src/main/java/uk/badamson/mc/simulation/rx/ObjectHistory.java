@@ -241,6 +241,8 @@ public final class ObjectHistory<STATE> {
      * {@linkplain Duration#compareTo(Duration) at or after} the
      * {@linkplain #getStart() start} of this history.</li>
      * </ul>
+     * 
+     * @see #observeEvents()
      */
     @Nonnull
     public Event<STATE> getLastEvent() {
@@ -294,10 +296,18 @@ public final class ObjectHistory<STATE> {
      * <li>The sequence of events has no null events.</li>
      * <li>The sequence of events are in {@linkplain Duration#compareTo(Duration)
      * ascending} {@linkplain Event#getWhen() time-stamp} order.</li>
+     * <li>Always have a (non null) last event.</li>
+     * <li>The {@linkplain Event#getObject() object} of each event is the same as
+     * the {@linkplain #getObject() object} of this history.</li>
+     * <li>The {@linkplain Event#getWhen() time} of each event is
+     * {@linkplain Duration#compareTo(Duration) at or after} the
+     * {@linkplain #getStart() start} of this history.</li>
      * <li>The sequence of events does not include old events; the first event
      * published to a subscriber will be the current {@linkplain #getLastEvent()
      * last event} at the time of subscription.</li>
      * </ul>
+     * 
+     * @see #getLastEvent()
      */
     @Nonnull
     public Flux<Event<STATE>> observeEvents() {
