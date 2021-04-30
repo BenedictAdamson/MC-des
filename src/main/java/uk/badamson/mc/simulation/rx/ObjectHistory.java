@@ -168,10 +168,7 @@ public final class ObjectHistory<STATE> {
         this.lastEvent = Objects.requireNonNull(event, "event");
         this.object = lastEvent.getObject();
         this.start = lastEvent.getWhen();
-        if (stateTransitions.tryEmitNext(new TimestampedState<>(start, event.getState())) != Sinks.EmitResult.OK) {
-            // Never happens
-            throw new IllegalStateException("Failed to add first state transition to stateTrainsitions");
-        }
+        appendStateTransition(new TimestampedState<>(start, event.getState()));
     }
 
     /**
@@ -215,12 +212,20 @@ public final class ObjectHistory<STATE> {
             throw new IllegalArgumentException("event.getObject");
         }
         final var eventWhen = event.getWhen();
+        final var stateTransition = new TimestampedState<>(eventWhen, event.getState());
         synchronized (lock) {
             if (0 <= lastEvent.getWhen().compareTo(eventWhen)) {
                 throw new IllegalStateException("event.getWhen");
             }
             lastEvent = event;
+            appendStateTransition(stateTransition);
         }
+    }
+
+    private void appendStateTransition(final TimestampedState<STATE> stateTransition) {
+        final var result = stateTransitions.tryEmitNext(stateTransition);
+        // The sink is reliable, so should always succeed.
+        assert result == Sinks.EmitResult.OK;
     }
 
     /**
