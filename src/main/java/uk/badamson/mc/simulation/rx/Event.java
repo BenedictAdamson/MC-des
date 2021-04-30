@@ -111,11 +111,17 @@ public abstract class Event<STATE> implements Comparable<Event<STATE>> {
      * <li>Hence the <i>natural ordering</i> of {@link Event} is consistent with
      * {@linkplain #equals(Object) equals}.</li>
      * </ul>
+     * 
+     * @throws NullPointerException
+     *             If {@code that} is null
      */
     @Override
-    public final int compareTo(@Nullable final Event<STATE> that) {
-        Objects.requireNonNull(that, "that");
-        return id.compareTo(that.getId());
+    public final int compareTo(@Nullable final Event<STATE> that) throws NullPointerException {
+        if (that != null) {
+            return id.compareTo(that.getId());
+        } else {
+            throw new NullPointerException("that");
+        }
     }
 
     /**
