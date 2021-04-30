@@ -23,6 +23,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import javax.annotation.Nonnull;
+import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -43,8 +44,10 @@ public final class ObjectHistory<STATE> {
     private final UUID object;
     @Nonnull
     private final Duration start;
+    private final Object lock = new Object();
 
     @Nonnull
+    @GuardedBy("lock")
     private Event<STATE> lastEvent;
 
     /**
@@ -70,6 +73,44 @@ public final class ObjectHistory<STATE> {
 
     /**
      * <p>
+     * Append an event to this history.
+     * </p>
+     *
+     * <ul>
+     * <li>The {@linkplain #getLastEvent() last event} becomes the same as the given
+     * {@code event}.</li>
+     * </ul>
+     *
+     * @param event
+     *            The event to append.
+     * @throws NullPointerException
+     *             If {@code event} is null
+     * @throws IllegalArgumentException
+     *             <ul>
+     *             <li>If the {@linkplain Event#getObject() object} of the
+     *             {@code event} is not the same as the {@linkplain #getObject()
+     *             object} of this history.</li>
+     *             <li>If the {@linkplain Event#getWhen() time} of the {@code event}
+     *             is not {@linkplain Duration#compareTo(Duration) after} the time
+     *             of the {@linkplain #getLastEvent() last event} of this
+     *             history.</li>
+     *             </ul>
+     */
+    public void append(@Nonnull final Event<STATE> event) {
+        Objects.requireNonNull(event, "event");
+        if (object != event.getObject()) {
+            throw new IllegalArgumentException("event.getObject");
+        }
+        synchronized (lock) {
+            if (0 <= lastEvent.getWhen().compareTo(event.getWhen())) {
+                throw new IllegalArgumentException("event.getWhen");
+            }
+            lastEvent = event;
+        }
+    }
+
+    /**
+     * <p>
      * The last (known) state transition of the {@linkplain #getObject() object}.
      * </p>
      * <ul>
@@ -83,7 +124,9 @@ public final class ObjectHistory<STATE> {
      */
     @Nonnull
     public Event<STATE> getLastEvent() {
-        return lastEvent;
+        synchronized (lock) {
+            return lastEvent;
+        }
     }
 
     /**
@@ -115,43 +158,6 @@ public final class ObjectHistory<STATE> {
     @Nonnull
     public Duration getStart() {
         return start;
-    }
-
-    /**
-     * <p>
-     * Append an event to this history.
-     * </p>
-     * 
-     * <ul>
-     * <li>The {@linkplain #getLastEvent() last event} becomes the same as the given
-     * {@code event}.</li>
-     * </ul>
-     * 
-     * @param event
-     *            The event to append.
-     * @throws NullPointerException
-     *             If {@code event} is null
-     * @throws IllegalArgumentException
-     *             <ul>
-     *             <li>If the {@linkplain Event#getObject() object} of the
-     *             {@code event} is not the same as the {@linkplain #getObject()
-     *             object} of this history.</li>
-     *             <li>If the {@linkplain Event#getWhen() time} of the {@code event}
-     *             is not {@linkplain Duration#compareTo(Duration) after} the time
-     *             of the {@linkplain #getLastEvent() last event} of this
-     *             history.</li>
-     *             </ul>
-     */
-    public void append(@Nonnull Event<STATE> event) {
-        Objects.requireNonNull(event, "event");
-        if (object != event.getObject()) {
-            throw new IllegalArgumentException("event.getObject");
-        }
-        if (0 <= lastEvent.getWhen().compareTo(event.getWhen())) {
-            throw new IllegalArgumentException("event.getWhen");
-        }
-        lastEvent = event;
-        // TODO thread safety
     }
 
 }

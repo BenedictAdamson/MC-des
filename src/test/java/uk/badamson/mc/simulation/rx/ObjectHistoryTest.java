@@ -27,14 +27,18 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
 
 import javax.annotation.Nonnull;
 
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import uk.badamson.mc.ObjectTest;
+import uk.badamson.mc.ThreadTest;
 import uk.badamson.mc.simulation.ObjectStateId;
 import uk.badamson.mc.simulation.rx.EventTest.TestEvent;
 
@@ -68,6 +72,25 @@ public class ObjectHistoryTest {
 
         }// class
 
+        @RepeatedTest(32)
+        public void multiThreaded() {
+            final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A), Integer.valueOf(0), Map.of());
+            final var event1 = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A.plusMillis(1)), Integer.valueOf(1),
+                    Map.of());
+            final var event2 = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A.plusMillis(2)), Integer.valueOf(2),
+                    Map.of());
+            final var history = new ObjectHistory<>(event0);
+
+            final CountDownLatch ready = new CountDownLatch(1);
+            final var future1 = testInOtherThread(history, event1, ready);
+            final var future2 = testInOtherThread(history, event2, ready);
+            ready.countDown();
+            ThreadTest.get(future1);
+            ThreadTest.get(future2);
+
+            assertSame(event2, history.getLastEvent(), "lastEvent");
+        }
+
         private <STATE> void test(@Nonnull final ObjectHistory<STATE> history, @Nonnull final Event<STATE> event) {
             final var object0 = history.getObject();
             final var start0 = history.getStart();
@@ -80,6 +103,24 @@ public class ObjectHistoryTest {
             assertSame(event, history.getLastEvent(), "lastEvent");
         }
 
+        private Future<Void> testInOtherThread(final ObjectHistory<Integer> history, final TestEvent event,
+                final CountDownLatch ready) {
+            return ThreadTest.runInOtherThread(ready, () -> {
+                try {
+                    final var object0 = history.getObject();
+                    final var start0 = history.getStart();
+
+                    history.append(event);
+
+                    assertInvariants(history);
+                    assertAll("Does not change constants", () -> assertSame(object0, history.getObject(), "object"),
+                            () -> assertSame(start0, history.getStart(), "start"));
+                } catch (final IllegalArgumentException e) {
+                    // Can happen because of the data race
+                }
+            });
+        }
+
         @Test
         public void two() {
             final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A), Integer.valueOf(0), Map.of());
@@ -90,7 +131,7 @@ public class ObjectHistoryTest {
             final var history = new ObjectHistory<>(event0);
             history.append(event1);
 
-            Append.this.test(history, event2);
+            test(history, event2);
         }
 
     }// class
