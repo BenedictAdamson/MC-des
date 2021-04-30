@@ -41,8 +41,9 @@ import uk.badamson.mc.simulation.ObjectStateId;
  */
 @Immutable
 public abstract class Event<STATE> implements Comparable<Event<STATE>> {
-    private static Map<UUID, Duration> requireValidNextEventDependencies(
-            final Map<UUID, Duration> nextEventDependencies, @Nonnull final ObjectStateId id) {
+
+    private static <STATE> Map<UUID, Duration> requireValidNextEventDependencies(
+            final Map<UUID, Duration> nextEventDependencies, @Nonnull final ObjectStateId id, STATE state) {
         Objects.requireNonNull(nextEventDependencies, "nextEventDependencies");
         final var object = id.getObject();
         final var when = id.getWhen();
@@ -53,6 +54,9 @@ public abstract class Event<STATE> implements Comparable<Event<STATE>> {
         if (nextEventDependencies.entrySet().stream()
                 .anyMatch(entry -> object.equals(entry.getKey()) || when.compareTo(entry.getValue()) <= 0)) {
             throw new IllegalArgumentException("nextEventDependencies " + nextEventDependencies + " for " + id);
+        }
+        if (state == null && !nextEventDependencies.isEmpty()) {
+            throw new IllegalArgumentException("destruction events must have no nextEventDependencies");
         }
 
         return nextEventDependencies;
@@ -73,6 +77,8 @@ public abstract class Event<STATE> implements Comparable<Event<STATE>> {
      *            event.
      * @param state
      *            The state that the simulated object has as a result of this event.
+     *            Null state if the object ceases to exist as a result of this
+     *            event. That is, if this event is the destruction of the object.
      * @param nextEventDependencies
      *            The identities of other object states that influence what the next
      *            event (after this event) of the simulated object will be. The
@@ -81,7 +87,6 @@ public abstract class Event<STATE> implements Comparable<Event<STATE>> {
      * @throws NullPointerException
      *             <ul>
      *             <li>If {@code id} is null.</li>
-     *             <li>If {@code state} is null.</li>
      *             <li>If {@code nextEventDependencies} is null.</li>
      *             <li>If {@code nextEventDependencies} has a null
      *             {@linkplain Map#keySet() key}.</li>
@@ -89,15 +94,20 @@ public abstract class Event<STATE> implements Comparable<Event<STATE>> {
      *             {@linkplain Map#values() value}.</li>
      *             </ul>
      * @throws IllegalArgumentException
-     *             If {@code nextEventDependencies} has a {@linkplain Map#values()
-     *             value} {@linkplain Duration#compareTo(Duration) at or after}
-     *             {@code when}.
+     *             <ul>
+     *             <li>If {@code nextEventDependencies} has a
+     *             {@linkplain Map#values() value}
+     *             {@linkplain Duration#compareTo(Duration) at or after}
+     *             {@code when}.</li>
+     *             <li>If {@code state} is null and {@code nextEventDependencies} is
+     *             not {@linkplain Map#isEmpty() empty}.</li>
+     *             </ul>
      */
-    protected Event(@Nonnull final ObjectStateId id, @Nonnull final STATE state,
+    protected Event(@Nonnull final ObjectStateId id, @Nullable final STATE state,
             @Nonnull final Map<UUID, Duration> nextEventDependencies) {
         this.id = Objects.requireNonNull(id, "id");
-        this.state = Objects.requireNonNull(state, "state");
-        this.nextEventDependencies = requireValidNextEventDependencies(nextEventDependencies, id);
+        this.state = state;
+        this.nextEventDependencies = requireValidNextEventDependencies(nextEventDependencies, id, state);
     }
 
     /**
@@ -140,6 +150,12 @@ public abstract class Event<STATE> implements Comparable<Event<STATE>> {
      * <li>The computation typically also makes use of the {@linkplain #getState()
      * state} of the simulated object just before the next event.</li>
      * </ul>
+     * 
+     * @throws IllegalStateException
+     *             If the {@linkplain #getState() state} transitioned to due to this
+     *             event was null. That is, if this event was the destruction or
+     *             removal of the {@linkplain #getObject() simulated object}:
+     *             destroyed objects may not be resurrected.
      */
     @Nonnull
     public abstract Event<STATE> computeNextEvent(Map<UUID, STATE> dependentStates);
@@ -206,7 +222,10 @@ public abstract class Event<STATE> implements Comparable<Event<STATE>> {
      * <li>None of the object IDs (keys) are equal to the {@linkplain #getObject()
      * object ID} of this event. Computation of the next event is always implicitly
      * dependent on the current state of that object.</li>
-     * <li>The map may be empty.</li>
+     * <li>The collection of next event dependencies may be
+     * {@linkplain Map#isEmpty() empty}.</li>
+     * <li>If this event is a destruction event (the {@link #getState() state} after
+     * this event is null), the collection of next event dependencies is empty.</li>
      * </ul>
      */
     @Nonnull

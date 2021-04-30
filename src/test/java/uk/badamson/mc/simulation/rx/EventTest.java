@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.lessThan;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -106,6 +107,11 @@ public class EventTest {
         }
 
         @Test
+        public void destruction() {
+            test(ID_A, null, Map.of());
+        }
+
+        @Test
         public void noDependencies() {
             test(ID_A, Integer.valueOf(0), Map.of());
         }
@@ -154,14 +160,15 @@ public class EventTest {
         final var when = event.getWhen();
         assertAll("Not null", () -> assertNotNull(id, "id"), // guard
                 () -> assertNotNull(nextEventDependencies, "nextEventDependencies"),
-                () -> assertNotNull(object, "object"), () -> assertNotNull(state, "state"),
-                () -> assertNotNull(when, "when"));
+                () -> assertNotNull(object, "object"), () -> assertNotNull(when, "when"));
         ObjectStateIdTest.assertInvariants(id);
         assertAll(
                 () -> assertAll("Delgates", () -> assertSame(id.getObject(), object, "object"),
                         () -> assertSame(id.getWhen(), when, "when")),
                 () -> assertAll("nextEventDependencies",
-                        createNextEventDependenciesAssertions(nextEventDependencies, object, when)));
+                        createNextEventDependenciesAssertions(nextEventDependencies, object, when)),
+                () -> assertFalse(state == null && !nextEventDependencies.isEmpty(),
+                        "If this event is a destruction event the collection of next event dependencies is empty."));
     }
 
     public static <STATE> void assertInvariants(@Nonnull final Event<STATE> event1,
