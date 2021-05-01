@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -36,7 +37,9 @@ import javax.annotation.Nonnull;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.reactivestreams.Publisher;
 
+import reactor.test.StepVerifier;
 import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.simulation.ObjectStateId;
 import uk.badamson.mc.simulation.rx.EventTest.TestEvent;
@@ -89,6 +92,46 @@ public class UniverseTest {
 
             test(universe, EVENT_B);
         }
+    }// class
+
+    @Nested
+    public class ObserveState {
+
+        @Nested
+        public class InitialState {
+
+            @Test
+            public void a() {
+                test(EVENT_A);
+            }
+
+            @Test
+            public void b() {
+                test(EVENT_B);
+            }
+
+            private <STATE> void test(@Nonnull final Event<STATE> event) {
+                final var state = event.getState();
+                assert state != null;
+                final Universe<STATE> universe = new Universe<>();
+                universe.addObject(event);
+
+                final var states = ObserveState.this.test(universe, event.getObject(), event.getWhen());
+
+                StepVerifier.create(states).expectNext(Optional.of(state)).expectComplete();
+            }
+        }// class
+
+        private <STATE> Publisher<Optional<STATE>> test(@Nonnull final Universe<STATE> universe,
+                @Nonnull final UUID object, @Nonnull final Duration when) {
+            final var states = universe.observeState(object, when);
+
+            assertInvariants(universe);
+            assertNotNull(states, "Not null, result");
+
+            return states;
+        }
+
     }// class
 
     private static final UUID OBJECT_A = UUID.randomUUID();

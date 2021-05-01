@@ -18,8 +18,10 @@ package uk.badamson.mc.simulation.rx;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,6 +29,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
+
+import org.reactivestreams.Publisher;
 
 /**
  * <p>
@@ -87,6 +91,10 @@ public final class Universe<STATE> {
      * {@linkplain Set#contains(Object) contains} the {@linkplain Event#getObject()
      * object} of the {@code event}.</li>
      * <li>Adds one object to the set of objects.</li>
+     * <li>The {@linkplain #observeState(UUID, Duration) observable state} of the
+     * object of the {@code event} at the {@linkplain Event#getWhen() time} of the
+     * event is an immediately completing sequence holding only the
+     * {@linkplain Event#getState() state} of the event.</li>
      * </ul>
      *
      * @param event
@@ -133,4 +141,51 @@ public final class Universe<STATE> {
         return Set.copyOf(objectHistories.keySet());
     }
 
+    /**
+     * <p>
+     * Provide the state of a simulated object at a given point in time.
+     * </p>
+     * <ul>
+     * <li>Because {@link Publisher} can not provide null values, the sequence uses
+     * {@link Optional}, with null states (that is, the state of not existing)
+     * indicated by an {@linkplain Optional#isEmpty() empty} Optional.</li>
+     * <li>The sequence of states is finite.</li>
+     * <li>The last state of the sequence of states is the state at the given point
+     * in time.</li>
+     * <li>The last state of the sequence of states may be proceeded may
+     * <i>provisional</i> values for the state at the given point in time. These
+     * provisional values will typically be approximations of the correct value,
+     * with successive values being closer to the correct value.</li>
+     * <li>The sequence of states does not contain successive duplicates.</li>
+     * <li>The time between publication of the last state of the sequence and
+     * completion of the sequence there can be a large. That is, the process of
+     * providing a value and then concluding that it is the correct value rather
+     * than a provisional value can be time consuming.</li>
+     * </ul>
+     *
+     * @param object
+     *            The unique ID of the object for which the state is wanted.
+     * @param when
+     *            The point in time of interest, expressed as the duration since an
+     *            (implied) epoch. All objects in this universe should use the same
+     *            epoch.
+     * @throws NullPointerException
+     *             <ul>
+     *             <li>If {@code object} is null.</li>
+     *             <li>If {@code when} is null.</li>
+     *             </ul>
+     * @throws IllegalArgumentException
+     *             If the {@code object} is not one of the {@linkplain #getObjects()
+     *             objects} in this universe.
+     */
+    @Nonnull
+    public Publisher<Optional<STATE>> observeState(@Nonnull final UUID object, @Nonnull final Duration when) {
+        Objects.requireNonNull(object, "object");
+        Objects.requireNonNull(when, "when");
+        final var objectHistory = objectHistories.get(object);
+        if (objectHistory == null) {
+            throw new IllegalArgumentException("Not an object of this universe");
+        }
+        return objectHistory.observeState(when);
+    }
 }
