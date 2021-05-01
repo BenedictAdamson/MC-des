@@ -32,6 +32,8 @@ import javax.annotation.concurrent.ThreadSafe;
 
 import org.reactivestreams.Publisher;
 
+import reactor.core.publisher.Mono;
+
 /**
  * <p>
  * A collection of simulated objects and their {@linkplain ObjectHistory
@@ -143,6 +145,61 @@ public final class Universe<STATE> {
 
     /**
      * <p>
+     * Provide the next event after a given event for an {@linkplain #getObjects()
+     * object} in this universe.
+     * </p>
+     *
+     * <ul>
+     * <li>The sequence of next events is finite.</li>
+     * <li>Events in the sequence of next events are for the same object as the
+     * {@linkplain Event#getObject() object} of the given event.</li>
+     * <li>Events in the sequence of next events are for a time after the
+     * {@linkplain Event#getWhen() time} of the given event.</li>
+     * <li>The sequence of next events is {@linkplain Event#computeNextEvent(Map)
+     * computed} using the given event and the
+     * {@linkplain #observeState(UUID, Duration) states} of the
+     * {@linkplain Event#getNextEventDependencies() dependencies} of the event.</li>
+     * <li>The last event of the sequence of next events is the correct next event
+     * for the given event, computed using the given event and the correct states of
+     * the dependencies.</li>
+     * <li>The last event of the sequence of next events may be proceeded may
+     * <i>provisional</i> values for the next event. The provisional values will
+     * have been computed using provisional values for the states of the
+     * dependencies. These provisional values will typically be approximations of
+     * the correct value, with successive values being closer to the correct
+     * value.</li>
+     * <li>The time between publication of the last event of the sequence and
+     * completion of the sequence can be a large. That is, the process of providing
+     * a value and then concluding that it is the correct value rather than a
+     * provisional value can be time consuming.</li>
+     * </ul>
+     *
+     * @param event
+     *            The event for which to provide the next event. The
+     *            {@linkplain Event#getObject() simulated object} is typically one
+     *            of the {@linkplain #getObjects() objects} in this universe, and
+     *            the event will typically be the latest event of that object, but
+     *            that is not required.
+     * @throws NullPointerException
+     *             <ul>
+     *             <li>If {@code event} is null</li>
+     *             <li>If the {@linkplain Event#getState() state} transitioned to
+     *             due to the {@code event} is null. That is, if {@code event} was
+     *             the destruction or removal of the {@linkplain Event#getObject()
+     *             simulated object}: destroyed objects may not be resurrected.</li>
+     *             </ul>
+     */
+    @Nonnull
+    public Publisher<Event<STATE>> observeNextEvent(@Nonnull final Event<STATE> event) {
+        Objects.requireNonNull(event, "event");
+        Objects.requireNonNull(event.getState(), "event.state");
+
+        // TODO handle dependencies
+        return Mono.just(event.computeNextEvent(Map.of()));
+    }
+
+    /**
+     * <p>
      * Provide the state of a simulated object at a given point in time.
      * </p>
      * <ul>
@@ -158,9 +215,9 @@ public final class Universe<STATE> {
      * with successive values being closer to the correct value.</li>
      * <li>The sequence of states does not contain successive duplicates.</li>
      * <li>The time between publication of the last state of the sequence and
-     * completion of the sequence there can be a large. That is, the process of
-     * providing a value and then concluding that it is the correct value rather
-     * than a provisional value can be time consuming.</li>
+     * completion of the sequence can be a large. That is, the process of providing
+     * a value and then concluding that it is the correct value rather than a
+     * provisional value can be time consuming.</li>
      * </ul>
      *
      * @param object

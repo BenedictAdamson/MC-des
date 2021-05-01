@@ -95,6 +95,45 @@ public class UniverseTest {
     }// class
 
     @Nested
+    public class ObserveNextEvent {
+
+        @Nested
+        public class NoDependencies {
+
+            @Test
+            public void a() {
+                test(OBJECT_STATE_ID_A, Integer.valueOf(0));
+            }
+
+            @Test
+            public void b() {
+                test(OBJECT_STATE_ID_B, Integer.valueOf(1));
+            }
+
+            private void test(@Nonnull final ObjectStateId id, @Nonnull final Integer state) {
+                final var event = new TestEvent(id, state, Map.of());
+                final var expectedNextEvent = event.computeNextEvent(Map.of());
+                final Universe<Integer> universe = new Universe<>();
+                universe.addObject(event);
+
+                final var events = ObserveNextEvent.this.test(universe, event);
+
+                StepVerifier.create(events).expectNext(expectedNextEvent).expectComplete();
+            }
+        }// class
+
+        private <STATE> Publisher<Event<STATE>> test(@Nonnull final Universe<STATE> universe,
+                @Nonnull final Event<STATE> event) {
+            final var events = universe.observeNextEvent(event);
+
+            assertInvariants(universe);
+            assertNotNull(events, "Not null, result");
+            return events;
+        }
+
+    }// class
+
+    @Nested
     public class ObserveState {
 
         @Nested
@@ -140,10 +179,11 @@ public class UniverseTest {
     private static final Duration WHEN_A = Duration.ofMillis(0);
     private static final Duration WHEN_B = Duration.ofMillis(5000);
 
-    private static final TestEvent EVENT_A = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A), Integer.valueOf(0),
-            Map.of());
-    private static final TestEvent EVENT_B = new TestEvent(new ObjectStateId(OBJECT_B, WHEN_B), Integer.valueOf(1),
-            Map.of());
+    private static final ObjectStateId OBJECT_STATE_ID_A = new ObjectStateId(OBJECT_A, WHEN_A);
+    private static final ObjectStateId OBJECT_STATE_ID_B = new ObjectStateId(OBJECT_B, WHEN_B);
+
+    private static final TestEvent EVENT_A = new TestEvent(OBJECT_STATE_ID_A, Integer.valueOf(0), Map.of());
+    private static final TestEvent EVENT_B = new TestEvent(OBJECT_STATE_ID_B, Integer.valueOf(1), Map.of());
 
     public static <STATE> void assertInvariants(@Nonnull final Universe<STATE> universe) {
         ObjectTest.assertInvariants(universe);// inherited
