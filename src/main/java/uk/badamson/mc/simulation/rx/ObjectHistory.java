@@ -20,6 +20,7 @@ package uk.badamson.mc.simulation.rx;
 
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.annotation.Nonnull;
@@ -28,7 +29,10 @@ import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 
+import org.reactivestreams.Publisher;
+
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import uk.badamson.mc.history.ModifiableValueHistory;
 import uk.badamson.mc.history.ValueHistory;
@@ -428,6 +432,14 @@ public final class ObjectHistory<STATE> {
      * <li>The returned state history is a snapshot: a copy of data, it is not
      * updated when events are {@linkplain #append(Event) appended}.</li>
      * </ul>
+     * <p>
+     * Using the sequence provided by {@link #observeState(Duration)} to acquire the
+     * state at a known point in time is typically better than using the snapshot of
+     * the state history, because the snapshot is not updated, and because creating
+     * the snapshot can be expensive.
+     * </p>
+     *
+     * @see #observeState(Duration)
      */
     @Nonnull
     public ValueHistory<STATE> getStateHistory() {
@@ -466,6 +478,52 @@ public final class ObjectHistory<STATE> {
     @Nonnull
     public Flux<Event<STATE>> observeEvents() {
         return events.asFlux();
+    }
+
+    /**
+     * <p>
+     * Provide the state of the {@linkplain #getObject() simulated object} at a
+     * given point in time.
+     * </p>
+     * <ul>
+     * <li>Because {@link Publisher} can not provide null values, the sequence uses
+     * {@link Optional}, with null states (that is, the state of not existing)
+     * indicated by an {@linkplain Optional#isEmpty() empty} Optional.</li>
+     * <li>The sequence of states is finite.</li>
+     * <li>The last state of the sequence of states is the state at the given point
+     * in time.</li>
+     * <li>The last state of the sequence of states may be proceeded may
+     * <i>provisional</i> values for the state at the given point in time. These
+     * provisional values will typically be approximations of the correct value,
+     * with successive values being closer to the correct value.</li>
+     * <li>The sequence of states does not contain successive duplicates.</li>
+     * <li>The time between publication of the last state of the sequence and
+     * completion of the sequence there can be a large. That is, the process of
+     * providing a value and then concluding that it is the correct value rather
+     * than a provisional value can be time consuming.</li>
+     * <li>If the given point in time is {@linkplain Duration#compareTo(Duration) at
+     * or before} the current {@linkplain #getEnd() end} time of this history, the
+     * method can return a {@linkplain Mono#just(Object) sequence that immediately
+     * provides} the correct value.</li>
+     * <li>All states published are the same as the value that could be
+     * {@linkplain ValueHistory#get(Duration) obtained} from the
+     * {@linkplain #getStateHistory() snapshot of the state history} at the time of
+     * publication.</li>
+     * </ul>
+     *
+     * @param when
+     *            The point in time of interest, expressed as the duration since an
+     *            (implied) epoch. All objects in a simulation should use the same
+     *            epoch.
+     * @throws NullPointerException
+     *             If {@code when} is null.
+     * @see #getStateHistory()
+     */
+    @Nonnull
+    public Publisher<Optional<STATE>> observeState(@Nonnull final Duration when) {
+        // TODO thread safety
+        // TODO provisional state
+        return Mono.just(Optional.ofNullable(stateHistory.get(when)));
     }
 
     /**

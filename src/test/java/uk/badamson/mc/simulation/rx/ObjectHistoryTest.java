@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
@@ -42,6 +43,7 @@ import javax.annotation.Nullable;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
+import org.reactivestreams.Publisher;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import reactor.core.publisher.Flux;
@@ -376,6 +378,140 @@ public class ObjectHistoryTest {
             assertNotNull(flux, "Not null, result");
             return flux;
         }
+    }// class
+
+    @Nested
+    public class ObserveState {
+
+        @Nested
+        public class AtStart {
+
+            @Test
+            public void a() {
+                test(WHEN_A, Integer.valueOf(0));
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_B, Integer.valueOf(1));
+            }
+
+            private void test(@Nonnull final Duration start, @Nonnull final Integer state) {
+                final var event = new TestEvent(new ObjectStateId(OBJECT_A, start), state, Map.of());
+                test(event);
+            }
+
+            private <STATE> void test(@Nonnull final Event<STATE> event) {
+                final Optional<STATE> expectedState = Optional.of(event.getState());
+                final var history = new ObjectHistory<>(event);
+                final Duration when = history.getStart();
+
+                final var states = ObserveState.this.test(history, when);
+
+                StepVerifier.create(states).expectNext(expectedState).expectComplete().verify();
+            }
+
+        }// class
+
+        @Nested
+        public class BeforeStart {
+
+            @Test
+            public void far() {
+                final Duration start = WHEN_B;
+                final Duration when = start.minusDays(365);
+                test(start, when);
+            }
+
+            @Test
+            public void near() {
+                final Duration start = WHEN_A;
+                final Duration when = start.minusNanos(1);// tough test
+                test(start, when);
+            }
+
+            private void test(@Nonnull final Duration start, @Nonnull final Duration when) {
+                assert when.compareTo(start) < 0;
+                final var event = new TestEvent(new ObjectStateId(OBJECT_A, start), Integer.valueOf(0), Map.of());
+
+                test(event, when);
+            }
+
+            private <STATE> void test(@Nonnull final Event<STATE> event, @Nonnull final Duration when) {
+                final Optional<STATE> expectedState = Optional.empty();
+                final var history = new ObjectHistory<>(event);
+                assert when.compareTo(history.getStart()) < 0;
+
+                final var states = ObserveState.this.test(history, when);
+
+                StepVerifier.create(states).expectNext(expectedState).expectComplete().verify();
+            }
+
+        }// class
+
+        @Nested
+        public class ReliableBetweenEvents {
+
+            @Test
+            public void atTransition() {
+                final Duration time0 = WHEN_A;
+                final Duration time1 = time0.plusSeconds(1);
+                final Duration when = time1;// critical
+                final Duration time2 = when.plusSeconds(1);
+
+                test(time0, time1, when, time2, Integer.valueOf(0), Integer.valueOf(1), Integer.valueOf(2));
+            }
+
+            @Test
+            public void betweenTransitions() {
+                final Duration time0 = WHEN_A;
+                final Duration time1 = time0.plusSeconds(1);
+                final Duration when = time1.plusSeconds(1);
+                final Duration time2 = when.plusSeconds(1);
+
+                test(time0, time1, when, time2, Integer.valueOf(0), Integer.valueOf(1), Integer.valueOf(2));
+            }
+
+            @Test
+            public void justBeforeTransition() {
+                final Duration time0 = WHEN_A;
+                final Duration time1 = time0.plusSeconds(1);
+                final Duration time2 = time1.plusSeconds(1);
+                final Duration when = time2.minusNanos(1);// critical
+
+                test(time0, time1, when, time2, Integer.valueOf(0), Integer.valueOf(1), Integer.valueOf(2));
+            }
+
+            private void test(@Nonnull final Duration time0, @Nonnull final Duration time1,
+                    @Nonnull final Duration when, @Nonnull final Duration time2, @Nonnull final Integer state0,
+                    @Nonnull final Integer state1, @Nullable final Integer state2) {
+                assert time0.compareTo(time1) < 0;
+                assert time1.compareTo(when) <= 0;// between events
+                assert when.compareTo(time2) < 0;
+                final var expectedState = Optional.of(state1);
+                final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, time0), state0, Map.of());
+                final var event1 = new TestEvent(new ObjectStateId(OBJECT_A, time1), state1, Map.of());
+                final var event2 = new TestEvent(new ObjectStateId(OBJECT_A, time2), state2, Map.of());
+                final var history = new ObjectHistory<>(event0);
+                history.append(event1);
+                history.append(event2);
+
+                final var states = ObserveState.this.test(history, when);
+
+                StepVerifier.create(states).expectNext(expectedState).expectComplete().verify();
+            }
+        }// class
+
+        private <STATE> Publisher<Optional<STATE>> test(@Nonnull final ObjectHistory<STATE> history,
+                @Nonnull final Duration when) {
+            final var states = history.observeState(when);
+
+            assertInvariants(history);
+            assertNotNull(states, "Not null, states");// guard
+
+            return states;
+        }
+
     }// class
 
     @Nested
