@@ -507,9 +507,9 @@ public final class ObjectHistory<STATE> {
      * with successive values being closer to the correct value.</li>
      * <li>The sequence of states does not contain successive duplicates.</li>
      * <li>The time between publication of the last state of the sequence and
-     * completion of the sequence there can be a large. That is, the process of
-     * providing a value and then concluding that it is the correct value rather
-     * than a provisional value can be time consuming.</li>
+     * completion of the sequence can be a large. That is, the process of providing
+     * a value and then concluding that it is the correct value rather than a
+     * provisional value can be time consuming.</li>
      * <li>If the given point in time is {@linkplain Duration#compareTo(Duration) at
      * or before} the current {@linkplain #getEnd() end} time of this history, the
      * method can return a {@linkplain Mono#just(Object) sequence that immediately
