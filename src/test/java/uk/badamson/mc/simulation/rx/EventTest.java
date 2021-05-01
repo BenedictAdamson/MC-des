@@ -137,8 +137,14 @@ public class EventTest {
             final Map<UUID, Duration> nextEventDependencies = new HashMap<>();
             this.getNextEventDependencies()
                     .forEach((object, when) -> nextEventDependencies.put(object, when.plusMillis(100)));
-            return new TestEvent(new ObjectStateId(getObject(), getWhen().plusMillis(250)),
-                    Integer.valueOf(getState().intValue() + 1), nextEventDependencies);
+            final int dependentValuesSum = this.getNextEventDependencies().keySet().stream()
+                    .map(dependentId -> dependentStates.get(dependentId))
+                    .mapToInt(dependentState -> dependentState == null ? 0 : dependentState.intValue()).sum();
+            final var value = getState().intValue();
+            final var nextValue = value + dependentValuesSum + 1;
+            final var delay = 250 * (1 + Math.abs(nextValue));
+            return new TestEvent(new ObjectStateId(getObject(), getWhen().plusMillis(delay)),
+                    Integer.valueOf(nextValue), nextEventDependencies);
         }
 
     }// class
