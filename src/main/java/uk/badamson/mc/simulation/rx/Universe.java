@@ -18,8 +18,11 @@ package uk.badamson.mc.simulation.rx;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
@@ -49,6 +52,8 @@ import javax.annotation.concurrent.ThreadSafe;
 @ThreadSafe
 public final class Universe<STATE> {
 
+    private final Map<UUID, ObjectHistory<STATE>> objectHistories = new ConcurrentHashMap<>();
+
     /**
      * <p>
      * Construct an empty universe.
@@ -60,6 +65,55 @@ public final class Universe<STATE> {
      */
     public Universe() {
         // Do nothing
+    }
+
+    /**
+     * <p>
+     * Add an object with given start information to the collection of objects in
+     * this universe.
+     * </p>
+     * <p>
+     * Invariants:
+     * </p>
+     * <ul>
+     * <li>Does not remove any objects from the {@linkplain #getObjects() set of
+     * objects}.</li>
+     * </ul>
+     * <p>
+     * Post conditions:
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getObjects() set of objects}
+     * {@linkplain Set#contains(Object) contains} the {@linkplain Event#getObject()
+     * object} of the {@code event}.</li>
+     * <li>Adds one object to the set of objects.</li>
+     * </ul>
+     *
+     * @param event
+     *            The first (known) state transition of the object.
+     * @throws NullPointerException
+     *             <ul>
+     *             <li>If {@code event} is null</li>
+     *             <li>if the {@linkplain Event#getState() state} of {@code event}
+     *             is null. That is, if the first event is the destruction or
+     *             removal of the simulated object.</li>
+     *             </ul>
+     * @throws IllegalArgumentException
+     *             If the {@linkplain #getObjects() set of objects} in this universe
+     *             already {@linkplain Set#contains(Object) contains} the
+     *             {@linkplain Event#getObject() object} of the {@code event}.
+     */
+    public void addObject(@Nonnull final Event<STATE> event) {
+        Objects.requireNonNull(event, "event");
+        Objects.requireNonNull(event.getState(), "event.state");
+
+        objectHistories.compute(event.getObject(), (k, v) -> {
+            if (v == null) {
+                return new ObjectHistory<>(event);
+            } else {
+                throw new IllegalArgumentException("Already present");
+            }
+        });
     }
 
     /**
@@ -76,7 +130,7 @@ public final class Universe<STATE> {
      */
     @Nonnull
     public Set<UUID> getObjects() {
-        return Set.of();// TODO
+        return Set.copyOf(objectHistories.keySet());
     }
 
 }
