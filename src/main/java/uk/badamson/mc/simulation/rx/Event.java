@@ -140,17 +140,33 @@ public abstract class Event<STATE> implements Comparable<Event<STATE>> {
      * object}, given state information about the
      * {@linkplain #getNextEventDependencies() dependencies of the next event}.
      * </p>
+     * 
+     * <p>
+     * The returned event
+     * </p>
      * <ul>
-     * <li>Not null.</li>
+     * <li>Is not null.</li>
      * <li>For the same object as the {@linkplain #getObject() object} of this
      * event.</li>
      * <li>For a time after the {@linkplain #getWhen() time} of this event.</li>
      * <li>The computation must be deterministic in the dependent state information
      * and the attributes of this event.</li>
      * <li>The computation typically also makes use of the {@linkplain #getState()
-     * state} of the simulated object just before the next event.</li>
+     * state} of the simulated object.</li>
      * </ul>
      * 
+     * @param dependentStates
+     *            Information about the states the the
+     *            {@linkplain #getNextEventDependencies() depended on}. The map maps
+     *            the ID of a depended on object to the state of the depended on
+     *            object. The depended on objects, and the time-stamps of the states
+     *            of interest, are given by the
+     *            {@linkplain #getNextEventDependencies() next event dependencies}
+     *            value. The given map may have null values or missing entries for
+     *            depended on objects that do not exist (because they have been
+     *            destroyed or removed).
+     * @throws NullPointerException
+     *             If {@code dependentStates} is null
      * @throws IllegalStateException
      *             If the {@linkplain #getState() state} transitioned to due to this
      *             event was null. That is, if this event was the destruction or
@@ -158,7 +174,7 @@ public abstract class Event<STATE> implements Comparable<Event<STATE>> {
      *             destroyed objects may not be resurrected.
      */
     @Nonnull
-    public abstract Event<STATE> computeNextEvent(Map<UUID, STATE> dependentStates);
+    public abstract Event<STATE> computeNextEvent(@Nonnull Map<UUID, STATE> dependentStates);
 
     /**
      * <p>
