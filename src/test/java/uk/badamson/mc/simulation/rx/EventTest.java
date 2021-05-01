@@ -63,13 +63,30 @@ public class EventTest {
         public class Two {
 
             @Test
-            public void different() {
-                // Tough test: same attributes and aggregates
+            public void differentObjects() {
+                // Tough test: all other attributes and aggregates the same
+                final var idA = new ObjectStateId(OBJECT_A, WHEN_A);
+                final var idB = new ObjectStateId(OBJECT_B, WHEN_A);
                 final Integer state = Integer.valueOf(0);
                 final Map<UUID, Duration> nextEventDependencies = Map.of();
 
-                final var eventA = new TestEvent(ID_A, state, nextEventDependencies);
-                final var eventB = new TestEvent(ID_B, state, nextEventDependencies);
+                final var eventA = new TestEvent(idA, state, nextEventDependencies);
+                final var eventB = new TestEvent(idB, state, nextEventDependencies);
+
+                assertInvariants(eventA, eventB);
+                assertNotEquals(eventA, eventB);
+            }
+
+            @Test
+            public void differentWhen() {
+                // Tough test: all other attributes and aggregates the same
+                final var idA = new ObjectStateId(OBJECT_A, WHEN_A);
+                final var idB = new ObjectStateId(OBJECT_A, WHEN_B);
+                final Integer state = Integer.valueOf(0);
+                final Map<UUID, Duration> nextEventDependencies = Map.of();
+
+                final var eventA = new TestEvent(idA, state, nextEventDependencies);
+                final var eventB = new TestEvent(idB, state, nextEventDependencies);
 
                 assertInvariants(eventA, eventB);
                 assertNotEquals(eventA, eventB);
@@ -152,8 +169,11 @@ public class EventTest {
     private static final UUID OBJECT_A = UUID.randomUUID();
     private static final UUID OBJECT_B = UUID.randomUUID();
 
-    private static final ObjectStateId ID_A = new ObjectStateId(OBJECT_A, Duration.ofMillis(0));
-    private static final ObjectStateId ID_B = new ObjectStateId(OBJECT_B, Duration.ofMillis(750));
+    private static final Duration WHEN_A = Duration.ofMillis(0);
+    private static final Duration WHEN_B = Duration.ofMillis(750);
+
+    private static final ObjectStateId ID_A = new ObjectStateId(OBJECT_A, WHEN_A);
+    private static final ObjectStateId ID_B = new ObjectStateId(OBJECT_B, WHEN_B);
 
     public static <STATE> void assertInvariants(@Nonnull final Event<STATE> event) {
         ObjectTest.assertInvariants(event);// inherited
