@@ -98,6 +98,46 @@ public class UniverseTest {
     public class AdvanceState {
 
         @Nested
+        public class DependencyAlsoAdvanced {
+
+            @Test
+            public void a() {
+                test(OBJECT_A, WHEN_A, Integer.valueOf(0), OBJECT_B, WHEN_A.minusSeconds(1), Integer.valueOf(1));
+            }
+
+            @Test
+            public void b() {
+                test(OBJECT_B, WHEN_B, Integer.valueOf(4), OBJECT_A, WHEN_B.minusDays(1), Integer.valueOf(2));
+            }
+
+            private void test(@Nonnull final UUID advancedObject, @Nonnull final Duration advancedObjectTime0,
+                    @Nonnull final Integer advancedObjectState, @Nonnull final UUID dependentObject,
+                    @Nonnull final Duration dependencyTime, @Nonnull final Integer dependentState) {
+                assert !advancedObject.equals(dependentObject);
+                assert dependencyTime.compareTo(advancedObjectTime0) < 0;
+                final var dependentObjectTime = dependencyTime.minusNanos(1);// tough test
+                final var dependentObjectInitialEvent = new TestEvent(
+                        new ObjectStateId(dependentObject, dependentObjectTime), dependentState, Map.of());
+                final var advancedObjectInitialEvent = new TestEvent(
+                        new ObjectStateId(advancedObject, advancedObjectTime0), advancedObjectState,
+                        Map.of(dependentObject, dependencyTime));
+                final var nextEvent = advancedObjectInitialEvent
+                        .computeNextEvent(Map.of(dependentObject, dependentState));
+                final var when = nextEvent.getWhen().minusNanos(1);
+
+                final Universe<Integer> universe = new Universe<>();
+                universe.addObject(dependentObjectInitialEvent);
+                universe.addObject(advancedObjectInitialEvent);
+                final var states = universe.observeState(advancedObject, when);
+
+                StepVerifier.create(states).expectNext(Optional.of(advancedObjectState))
+                        .then(() -> universe.advanceState(advancedObject))
+                        .then(() -> universe.advanceState(dependentObject)).expectComplete().verify();
+            }
+
+        }// class
+
+        @Nested
         public class DependencyWithProvisionalState {
 
             @Test
