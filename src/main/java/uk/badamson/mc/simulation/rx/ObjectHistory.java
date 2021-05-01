@@ -222,6 +222,8 @@ public final class ObjectHistory<STATE> {
      *             current last event was the destruction or removal of the
      *             {@linkplain #getObject() simulated object}: destroyed objects may
      *             not be resurrected.
+     *
+     * @see #compareAndAppend(Event, Event)
      */
     public void append(@Nonnull final Event<STATE> event) {
         Objects.requireNonNull(event, "event");
@@ -254,6 +256,73 @@ public final class ObjectHistory<STATE> {
             final var result4 = stateTransitions.tryEmitComplete();
             assert result3 == Sinks.EmitResult.OK;
             assert result4 == Sinks.EmitResult.OK;
+        }
+    }
+
+    /**
+     * <p>
+     * Append an event to this history, if the current {@linkplain #getLastEvent()
+     * last event} has a given expected value.
+     * </p>
+     *
+     * <ul>
+     * <li>If the method returns {@code true}, it has the same effect as if
+     * {@link #append(Event)} had been called with {@code event}.</li>
+     * <li>If the method returns {@code false}, it has no effect.</li>
+     * </ul>
+     * <p>
+     * This provides better thread safety than the {@link #append(Event)} method.
+     * </p>
+     *
+     * @param expectedLastEvent
+     *            The expected current last event.
+     * @param event
+     *            The event to append.
+     * @return The method returns whether the {@linkplain #getLastEvent() last
+     *         event} was the same as the given {@code expectedLastEvent}, in which
+     *         case it successfully appended the {@code event}.
+     *
+     * @throws NullPointerException
+     *             <ul>
+     *             <li>If {@code expectedLastEvent} is null.</li>
+     *             <li>If {@code event} is null.</li>
+     *             </ul>
+     * @throws IllegalArgumentException
+     *             <ul>
+     *             <li>If the {@linkplain Event#getObject() object} of the
+     *             {@code event} is not the same as the {@linkplain #getObject()
+     *             object} of this history.</li>
+     *             <li>If the {@linkplain Event#getWhen() time} of the {@code event}
+     *             is not {@linkplain Duration#compareTo(Duration) after} the time
+     *             of the {@code expectedLastEvent}</li>
+     *             <li>If the {@linkplain Event#getState() state} of the
+     *             {@code expectedLastEvent} is null. That is, if the expected last
+     *             event was the destruction or removal of the
+     *             {@linkplain #getObject() simulated object}: destroyed objects may
+     *             not be resurrected.
+     *             </ul>
+     *
+     * @see #append(Event)
+     */
+    public boolean compareAndAppend(@Nonnull final Event<STATE> expectedLastEvent, @Nonnull final Event<STATE> event) {
+        Objects.requireNonNull(expectedLastEvent, "expectedLastEvent");
+        Objects.requireNonNull(event, "event");
+        if (object != event.getObject()) {
+            throw new IllegalArgumentException("event.getObject");
+        }
+        if (0 <= expectedLastEvent.getWhen().compareTo(event.getWhen())) {
+            throw new IllegalStateException("event.getWhen");
+        }
+        if (expectedLastEvent.getState() == null) {
+            throw new IllegalStateException("resurrection attempted");
+        }
+
+        synchronized (lock) {
+            final boolean success = lastEvent == expectedLastEvent;
+            if (success) {
+                append1(event);
+            }
+            return success;
         }
     }
 

@@ -153,6 +153,127 @@ public class ObjectHistoryTest {
     }// class
 
     @Nested
+    public class CompareAndAppend {
+
+        @Nested
+        public class AsExpected {
+
+            @Test
+            public void a() {
+                test(OBJECT_A, WHEN_A, Integer.valueOf(0), WHEN_A.plusMillis(1), Integer.valueOf(1));
+            }
+
+            @Test
+            public void b() {
+                test(OBJECT_B, WHEN_B, Integer.valueOf(3), WHEN_B.plusMillis(1000), Integer.valueOf(2));
+            }
+
+            private <STATE> void test(@Nonnull final Event<STATE> expectedLastEvent,
+                    @Nonnull final Event<STATE> event) {
+                final ObjectHistory<STATE> history = new ObjectHistory<>(expectedLastEvent);
+
+                final boolean success = CompareAndAppend.this.test(history, expectedLastEvent, event);
+
+                assertTrue(success, "success");
+            }
+
+            private void test(final UUID object, final Duration time1, final Integer state1, final Duration time2,
+                    final Integer state2) {
+                final var event1 = new TestEvent(new ObjectStateId(object, time1), state1, Map.of());
+                final var event2 = new TestEvent(new ObjectStateId(object, time2), state2, Map.of());
+
+                test(event1, event2);
+            }
+
+        }// class
+
+        @Nested
+        public class NotAsExpected {
+
+            @Test
+            public void earlier() {
+                final var lastEventTime = WHEN_A;
+                final var expectedLastEventTime = lastEventTime.minusMillis(1);
+                assert lastEventTime.compareTo(expectedLastEventTime) > 0;
+
+                test(OBJECT_A, lastEventTime, Integer.valueOf(0), expectedLastEventTime, Integer.valueOf(1),
+                        lastEventTime.plusMillis(1), Integer.valueOf(2));
+            }
+
+            @Test
+            public void equals() {
+                final var lastEventTime = WHEN_B;
+                final var expectedLastEventTime = lastEventTime;// tough test
+                final var lastEventState = Integer.valueOf(0);
+                final var expectedLastEventState = lastEventState;// tough test
+
+                test(OBJECT_A, lastEventTime, lastEventState, expectedLastEventTime, expectedLastEventState,
+                        lastEventTime.plusMillis(1), Integer.valueOf(2));
+            }
+
+            @Test
+            public void later() {
+                final var lastEventTime = WHEN_B;
+                final var expectedLastEventTime = lastEventTime.plusMillis(1);
+                assert lastEventTime.compareTo(expectedLastEventTime) < 0;
+
+                test(OBJECT_A, lastEventTime, Integer.valueOf(0), expectedLastEventTime, Integer.valueOf(1),
+                        expectedLastEventTime.plusMillis(1), Integer.valueOf(2));
+            }
+
+            @Test
+            public void sameTime() {
+                final var lastEventTime = WHEN_B;
+                final var expectedLastEventTime = lastEventTime;// tough test
+
+                test(OBJECT_A, lastEventTime, Integer.valueOf(0), expectedLastEventTime, Integer.valueOf(1),
+                        lastEventTime.plusMillis(1), Integer.valueOf(2));
+            }
+
+            private <STATE> void test(@Nonnull final Event<STATE> lastEvent,
+                    @Nonnull final Event<STATE> expectedLastEvent, @Nonnull final Event<STATE> event) {
+                assert lastEvent != expectedLastEvent;
+                final ObjectHistory<STATE> history = new ObjectHistory<>(lastEvent);
+
+                final boolean success = CompareAndAppend.this.test(history, expectedLastEvent, event);
+
+                assertFalse(success, "failure");
+            }
+
+            private void test(final UUID object, final Duration lastEventTime, final Integer lastEventState,
+                    final Duration expectedLastEventTime, final Integer expectedLastEventState,
+                    final Duration eventTime, final Integer eventState) {
+                final var lastEvent = new TestEvent(new ObjectStateId(object, lastEventTime), lastEventState, Map.of());
+                final var expectedLastEvent = new TestEvent(new ObjectStateId(object, expectedLastEventTime),
+                        expectedLastEventState, Map.of());
+                final var event = new TestEvent(new ObjectStateId(object, eventTime), eventState, Map.of());
+
+                test(lastEvent, expectedLastEvent, event);
+            }
+
+        }// class
+
+        private <STATE> boolean test(@Nonnull final ObjectHistory<STATE> history,
+                @Nonnull final Event<STATE> expectedLastEvent, @Nonnull final Event<STATE> event) {
+            final var object0 = history.getObject();
+            final var start0 = history.getStart();
+            final var lastEvent0 = history.getLastEvent();
+
+            final boolean success = history.compareAndAppend(expectedLastEvent, event);
+
+            assertInvariants(history);
+            assertAll("Does not change constants", () -> assertSame(object0, history.getObject(), "object"),
+                    () -> assertSame(start0, history.getStart(), "start"));
+            assertAll(() -> assertFalse(success && history.getLastEvent() != event,
+                    "If the method returns true, it has the same effect as if append(Event) had been called with event."),
+                    () -> assertFalse(!success && history.getLastEvent() != lastEvent0,
+                            "If the method returns false, it has no effect."));
+            return success;
+        }
+
+    }// class
+
+    @Nested
     public class Constructor {
 
         @Test
