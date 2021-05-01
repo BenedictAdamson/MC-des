@@ -18,7 +18,17 @@ package uk.badamson.mc.simulation.rx;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import java.util.Set;
+import java.util.UUID;
+
 import javax.annotation.Nonnull;
+
+import org.junit.jupiter.api.Test;
 
 import uk.badamson.mc.ObjectTest;
 
@@ -26,10 +36,22 @@ public class UniverseTest {
 
     public static <STATE> void assertInvariants(@Nonnull final Universe<STATE> universe) {
         ObjectTest.assertInvariants(universe);// inherited
+
+        final Set<UUID> objects = universe.getObjects();
+        assertNotNull(objects, "Not null, objects");// guard
+        assertFalse(objects.stream().anyMatch(id -> id == null), "The set of object IDs does not contain a null.");
     }
 
     public static <STATE> void assertInvariants(@Nonnull final Universe<STATE> universe1,
             @Nonnull final Universe<STATE> universe2) {
         ObjectTest.assertInvariants(universe1, universe2);// inherited
+    }
+
+    @Test
+    public void constructor() {
+        final var universe = new Universe<>();
+
+        assertInvariants(universe);
+        assertThat("The set of objects is empty.", universe.getObjects(), empty());
     }
 }

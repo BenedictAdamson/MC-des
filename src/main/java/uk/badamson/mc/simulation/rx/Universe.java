@@ -18,6 +18,10 @@ package uk.badamson.mc.simulation.rx;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import java.util.Set;
+import java.util.UUID;
+
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -44,5 +48,35 @@ import javax.annotation.concurrent.ThreadSafe;
  */
 @ThreadSafe
 public final class Universe<STATE> {
+
+    /**
+     * <p>
+     * Construct an empty universe.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getObjects() set of objects} {@linkplain Set#isEmpty()
+     * is empty}.</li>
+     * </ul>
+     */
+    public Universe() {
+        // Do nothing
+    }
+
+    /**
+     * <p>
+     * The unique IDs of the simulated objects in this universe.
+     * </p>
+     * <ul>
+     * <li>The set of object IDs is not null.</li>
+     * <li>The set of object IDs does not contain a null.</li>
+     * <li>The set of object IDs is an unmodifiable copy (snapshot) of the set of
+     * object IDs; the returned set is constant, and will not update because of
+     * subsequent additions of objects.</li>
+     * </ul>
+     */
+    @Nonnull
+    public Set<UUID> getObjects() {
+        return Set.of();// TODO
+    }
 
 }
