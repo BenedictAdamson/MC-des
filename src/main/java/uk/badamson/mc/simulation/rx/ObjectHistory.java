@@ -209,7 +209,10 @@ public final class ObjectHistory<STATE> {
      * </ul>
      *
      * @param event
-     *            The event to append.
+     *            The event to append. The {@linkplain Event#getState() state}
+     *            transitioned to by the event may be equal to the state
+     *            transitioned to by the current last event, but that should be
+     *            avoided for performance reasons.
      * @throws NullPointerException
      *             If {@code event} is null
      * @throws IllegalArgumentException
@@ -249,7 +252,9 @@ public final class ObjectHistory<STATE> {
         lastEvent = event;
         final var when = event.getWhen();
         final var state = event.getState();
-        stateHistory.appendTransition(when, state);
+        if (stateHistory.isEmpty() || !stateHistory.getLastValue().equals(state)) {
+            stateHistory.appendTransition(when, state);
+        }
         final var result1 = events.tryEmitNext(event);
         final var result2 = stateTransitions.tryEmitNext(new TimestampedState<>(when, state));
         // The sink are reliable, so should always succeed.
@@ -281,7 +286,10 @@ public final class ObjectHistory<STATE> {
      * @param expectedLastEvent
      *            The expected current last event.
      * @param event
-     *            The event to append.
+     *            The event to append. The {@linkplain Event#getState() state}
+     *            transitioned to by {@code event} may be equal to the state
+     *            transitioned to by the {@code expectedLastEvent}, but that should
+     *            be avoided for performance reasons.
      * @return The method returns whether the {@linkplain #getLastEvent() last
      *         event} was the same as the given {@code expectedLastEvent}, in which
      *         case it successfully appended the {@code event}.
@@ -422,8 +430,9 @@ public final class ObjectHistory<STATE> {
      * <li>The {@linkplain ValueHistory#getFirstValue() state at the start of time}
      * of the state history is null.</li>
      * <li>The {@linkplain ValueHistory#getLastTansitionTime() last transition time}
-     * of the state history is the same as the {@linkplain Event#getWhen() time} of
-     * the {@linkplain #getLastEvent() last event} of this history.</li>
+     * of the state history is typically the same as the {@linkplain Event#getWhen()
+     * time} of the {@linkplain #getLastEvent() last event} of this history. But it
+     * will not be if there are events that do not actually change the state.</li>
      * <li>The {@linkplain ValueHistory#getLastValue() state at the end of time} of
      * the state history is the same as the {@linkplain Event#getState() state} of
      * the {@linkplain #getLastEvent() last event} of this history.</li>
@@ -527,8 +536,7 @@ public final class ObjectHistory<STATE> {
             } else {
                 return stateTransitions.asFlux().takeWhile(timeStamped -> timeStamped.getWhen().compareTo(when) <= 0)
                         .takeUntil(timeStamped -> when.compareTo(timeStamped.getWhen()) <= 0)
-                        .map(timeStamped -> Optional.ofNullable(timeStamped.getState()));
-                // TODO distinct
+                        .map(timeStamped -> Optional.ofNullable(timeStamped.getState())).distinctUntilChanged();
             }
         }
     }

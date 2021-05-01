@@ -64,7 +64,6 @@ public class ObjectHistoryTest {
 
         @Nested
         public class One {
-
             @Test
             public void a() {
                 test(OBJECT_A, WHEN_A, Integer.valueOf(0), WHEN_A.plusMillis(10), Integer.valueOf(1));
@@ -78,6 +77,13 @@ public class ObjectHistoryTest {
             @Test
             public void destruction() {
                 test(OBJECT_A, WHEN_A, Integer.valueOf(0), WHEN_A.plusMillis(10), null);
+            }
+
+            @Test
+            public void equalStates() {
+                final var state0 = Integer.valueOf(0);
+                final var state1 = state0;// critical
+                test(OBJECT_A, WHEN_A, state0, WHEN_A.plusMillis(10), state1);
             }
 
             private void test(final UUID object, final Duration when0, final Integer state0, final Duration when1,
@@ -577,13 +583,35 @@ public class ObjectHistoryTest {
         public class UpdatedProvisionalConfirmedAsReliable {
 
             @Test
+            public void duplicateStates() {
+                final Duration time0 = WHEN_A;
+                final Duration time1 = time0.plusDays(365);
+                final Duration when = time1.plusDays(365);
+                final Duration time2 = when.plusDays(365);
+                final var state0 = Integer.valueOf(3);
+                final var state1 = state0;// critical
+                final var state2 = Integer.valueOf(1);
+
+                final var expectedState0 = Optional.of(state0);
+                final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, time0), state0, Map.of());
+                final var event1 = new TestEvent(new ObjectStateId(OBJECT_A, time1), state1, Map.of());
+                final var event2 = new TestEvent(new ObjectStateId(OBJECT_A, time2), state2, Map.of());
+                final var history = new ObjectHistory<>(event0);
+
+                final var states = ObserveState.this.test(history, when);
+
+                StepVerifier.create(states).expectNext(expectedState0).then(() -> history.append(event1))
+                        .then(() -> history.append(event2)).expectComplete().verify();
+            }
+
+            @Test
             public void far() {
                 final Duration time0 = WHEN_B;
                 final Duration time1 = time0.plusDays(365);
                 final Duration when = time1.plusDays(365);
                 final Duration time2 = when.plusDays(365);
 
-                test(time0, time1, when, time2, Integer.valueOf(3), Integer.valueOf(2), Integer.valueOf(1));
+                testDistinct(time0, time1, when, time2, Integer.valueOf(3), Integer.valueOf(2), Integer.valueOf(1));
             }
 
             @Test
@@ -593,10 +621,10 @@ public class ObjectHistoryTest {
                 final Duration when = time1;// tough test
                 final Duration time2 = when.plusNanos(1);// tough test
 
-                test(time0, time1, when, time2, Integer.valueOf(0), Integer.valueOf(1), Integer.valueOf(2));
+                testDistinct(time0, time1, when, time2, Integer.valueOf(0), Integer.valueOf(1), Integer.valueOf(2));
             }
 
-            private void test(@Nonnull final Duration time0, @Nonnull final Duration time1,
+            private void testDistinct(@Nonnull final Duration time0, @Nonnull final Duration time1,
                     @Nonnull final Duration when, @Nonnull final Duration time2, @Nonnull final Integer state0,
                     @Nonnull final Integer state1, @Nullable final Integer state2) {
                 assert time0.compareTo(time1) < 0;
@@ -889,8 +917,6 @@ public class ObjectHistoryTest {
                         "The first transition time of the state history is the same as the start time of this history."),
                         () -> assertNull(stateHistory.getFirstValue(),
                                 "The state at the start of time of the state history is null."),
-                        () -> assertSame(lastEvent.getWhen(), stateHistory.getLastTansitionTime(),
-                                "The last transition time of the state history is the same as the time of the last event of this history."),
                         () -> assertSame(lastEvent.getState(), stateHistory.getLastValue(),
                                 "The state at the end of time of the state history is the same as the the last event of this history."),
                         () -> assertFalse(stateHistory.isEmpty(), "The state history is never empty.")));
