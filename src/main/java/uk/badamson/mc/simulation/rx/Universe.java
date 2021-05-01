@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation.rx;
 /*
- * © Copyright Benedict Adamson 2018m2021.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -18,7 +18,10 @@ package uk.badamson.mc.simulation.rx;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import static java.util.stream.Collectors.toUnmodifiableList;
+
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -32,6 +35,7 @@ import javax.annotation.concurrent.ThreadSafe;
 
 import org.reactivestreams.Publisher;
 
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -194,8 +198,29 @@ public final class Universe<STATE> {
         Objects.requireNonNull(event, "event");
         Objects.requireNonNull(event.getState(), "event.state");
 
-        // TODO handle dependencies
-        return Mono.just(event.computeNextEvent(Map.of()));
+        final var nextEventDependencies = event.getNextEventDependencies();
+        final int nDependencies = nextEventDependencies.size();
+        if (0 < nDependencies) {
+            final var dependencyIds = nextEventDependencies.entrySet().stream().sequential()
+                    .map(entry -> entry.getKey()).collect(toUnmodifiableList());
+            final var dependencyObservers = nextEventDependencies.entrySet().stream().sequential()
+                    .map(entry -> observeState(entry.getKey(), entry.getValue())).collect(toUnmodifiableList());
+
+            return Flux.combineLatest(dependencyObservers, (states) -> {
+                final Map<UUID, STATE> dependentStates = new HashMap<>();
+                for (int d = 0; d < nDependencies; ++d) {
+                    final UUID id = dependencyIds.get(d);
+                    @SuppressWarnings("unchecked")
+                    final Optional<STATE> dependencyState = (Optional<STATE>) states[d];
+                    if (dependencyState.isPresent()) {
+                        dependentStates.put(id, dependencyState.get());
+                    }
+                }
+                return event.computeNextEvent(dependentStates);
+            });
+        } else {// special case
+            return Mono.just(event.computeNextEvent(Map.of()));
+        }
     }
 
     /**

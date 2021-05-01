@@ -118,8 +118,44 @@ public class UniverseTest {
 
                 final var events = ObserveNextEvent.this.test(universe, event);
 
-                StepVerifier.create(events).expectNext(expectedNextEvent).expectComplete();
+                StepVerifier.create(events).expectNext(expectedNextEvent).expectComplete().verify();
             }
+        }// class
+
+        @Nested
+        public class OneDependency {
+
+            @Test
+            public void a() {
+                test(OBJECT_A, WHEN_A, Integer.valueOf(0), OBJECT_B, WHEN_A.minusNanos(1), Integer.valueOf(2));
+            }
+
+            @Test
+            public void b() {
+                test(OBJECT_B, WHEN_B, Integer.valueOf(3), OBJECT_A, WHEN_A.minusDays(1), Integer.valueOf(20));
+            }
+
+            private void test(@Nonnull final UUID eventObject, @Nonnull final Duration eventTime,
+                    @Nonnull final Integer eventState, @Nonnull final UUID dependentObject,
+                    @Nonnull final Duration dependentObjectTime, @Nonnull final Integer dependentState) {
+                assert !eventObject.equals(dependentObject);
+                assert dependentObjectTime.compareTo(eventTime) < 0;
+                final var dependentObjectInitialEvent = new TestEvent(
+                        new ObjectStateId(dependentObject, dependentObjectTime), dependentState, Map.of());
+                final var event = new TestEvent(new ObjectStateId(eventObject, eventTime), eventState,
+                        Map.of(dependentObject, dependentObjectTime));
+                final var expectedNextEvent = event.computeNextEvent(Map.of(dependentObject, dependentState));
+                assert !expectedNextEvent.equals(event.computeNextEvent(Map.of()));// critical
+
+                final Universe<Integer> universe = new Universe<>();
+                universe.addObject(dependentObjectInitialEvent);
+                universe.addObject(event);
+
+                final var events = ObserveNextEvent.this.test(universe, event);
+
+                StepVerifier.create(events).expectNext(expectedNextEvent).expectComplete().verify();
+            }
+
         }// class
 
         private <STATE> Publisher<Event<STATE>> test(@Nonnull final Universe<STATE> universe,
