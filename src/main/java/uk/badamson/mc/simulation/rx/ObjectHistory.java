@@ -176,9 +176,8 @@ public final class ObjectHistory<STATE> {
      *             </ul>
      */
     public ObjectHistory(@Nonnull final Event<STATE> event) {
-        Objects.requireNonNull(event, "event");
+        this.lastEvent = Objects.requireNonNull(event, "event");// redundant; satisfy SpotBugs
         Objects.requireNonNull(event.getState(), "event.state");
-
         this.object = event.getObject();
         this.start = event.getWhen();
         append1(event);
