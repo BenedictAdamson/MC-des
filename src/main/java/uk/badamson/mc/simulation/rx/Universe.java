@@ -132,6 +132,40 @@ public final class Universe<STATE> {
 
     /**
      * <p>
+     * Start computation of the {@linkplain #observeNextEvent(Event) next event} of
+     * an {@linkplain #getObjects() object} in this universe, and append that event
+     * to the history of events (state transitions) of the object, publishing new
+     * state information to {@linkplain #observeState(UUID, Duration) observers of
+     * the state information} if necessary.
+     * </p>
+     * <p>
+     * The computation may halt, waiting until
+     * {@linkplain #observeState(UUID, Duration) reliable state information} of
+     * {@linkplain Event#getNextEventDependencies() dependent objects} becomes
+     * available.
+     * </p>
+     *
+     * @param object
+     *            The unique ID of the object for which to advance.
+     * @throws NullPointerException
+     *             If {@code object} is null.
+     * @throws IllegalArgumentException
+     *             If {@code object} is not the ID of ab {@linkplain #getObjects()
+     *             object} in this universe.
+     */
+    public void advanceState(@Nonnull final UUID object) {
+        Objects.requireNonNull(object, "object");
+        final var objectHistory = objectHistories.get(object);
+        if (objectHistory == null) {
+            throw new IllegalArgumentException("Unknown object");
+        }
+        final var oldLastEvent = objectHistory.getLastEvent();
+        Flux.from(observeNextEvent(oldLastEvent)).last()
+                .subscribe(newLastEvent -> objectHistory.compareAndAppend(oldLastEvent, newLastEvent));
+    }
+
+    /**
+     * <p>
      * The unique IDs of the simulated objects in this universe.
      * </p>
      * <ul>

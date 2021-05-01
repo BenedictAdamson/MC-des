@@ -95,6 +95,53 @@ public class UniverseTest {
     }// class
 
     @Nested
+    public class AdvanceState {
+
+        @Nested
+        public class NoDependencies {
+
+            @Nested
+            public class ProvisionalStateConfirmedAsReliable {
+
+                @Test
+                public void a() {
+                    test(OBJECT_A, WHEN_A, Integer.valueOf(0));
+                }
+
+                @Test
+                public void b() {
+                    test(OBJECT_B, WHEN_B, Integer.valueOf(1));
+                }
+
+                private void test(@Nonnull final UUID object, @Nonnull final Duration time0,
+                        @Nonnull final Integer state0) {
+                    final var id0 = new ObjectStateId(object, time0);
+                    final var event0 = new TestEvent(id0, state0, Map.of());
+                    final var event1 = event0.computeNextEvent(Map.of());
+                    final var time1 = event1.getWhen();
+                    final var when = time1.minusNanos(1);// tough test
+
+                    final var universe = new Universe<Integer>();
+                    universe.addObject(event0);
+
+                    AdvanceState.this.test(universe, object);
+
+                    final var states = universe.observeState(object, when);
+                    StepVerifier.create(states).expectNext(Optional.of(state0)).expectComplete()
+                            .verify(Duration.ofMillis(100));
+                }
+
+            }// class
+        }// class
+
+        private <STATE> void test(@Nonnull final Universe<STATE> universe, @Nonnull final UUID object) {
+            universe.advanceState(object);
+
+            assertInvariants(universe);
+        }
+    }// class
+
+    @Nested
     public class ObserveNextEvent {
 
         @Nested
