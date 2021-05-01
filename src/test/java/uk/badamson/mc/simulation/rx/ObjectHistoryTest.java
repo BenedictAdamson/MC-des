@@ -48,6 +48,7 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.ThreadTest;
+import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.history.ValueHistoryTest;
 import uk.badamson.mc.simulation.ObjectStateId;
 import uk.badamson.mc.simulation.rx.EventTest.TestEvent;
@@ -570,29 +571,39 @@ public class ObjectHistoryTest {
 
         final var object = history.getObject();
         final var start = history.getStart();
+        final var end = history.getEnd();
         final var lastEvent = history.getLastEvent();
         final var stateHistory = history.getStateHistory();
 
         assertAll("Not null", () -> assertNotNull(object, "object"), () -> assertNotNull(start, "start"), // guard
+                () -> assertNotNull(end, "end"), // guard
                 () -> assertNotNull(lastEvent, "lastEvent"), // guard
                 () -> assertNotNull(stateHistory, "stateHistory")// guard
         );
         assertAll("Maintains invariants of attributes and aggregates", () -> EventTest.assertInvariants(lastEvent),
                 () -> ValueHistoryTest.assertInvariants(stateHistory));
-        assertAll("lastEvent",
-                () -> assertSame(object, lastEvent.getObject(),
-                        "The object of the last event is the same has the object of this history."),
-                () -> assertThat("The time of the last event is at or after the start of this history.",
-                        lastEvent.getWhen(), greaterThanOrEqualTo(start)));
-        assertAll("stateHistory", () -> assertSame(start, stateHistory.getFirstTansitionTime(),
-                "The first transition time of the state history is the same as the start time of this history."),
-                () -> assertNull(stateHistory.getFirstValue(),
-                        "The state at the start of time of the state history is null."),
-                () -> assertSame(lastEvent.getWhen(), stateHistory.getLastTansitionTime(),
-                        "The last transition time of the state history is the same as the time of the last event of this history."),
-                () -> assertSame(lastEvent.getState(), stateHistory.getLastValue(),
-                        "The state at the end of time of the state history is the same as the the last event of this history."),
-                () -> assertFalse(stateHistory.isEmpty(), "The state history is never empty."));
+        assertAll(
+                () -> assertAll("lastEvent",
+                        () -> assertSame(object, lastEvent.getObject(),
+                                "The object of the last event is the same has the object of this history."),
+                        () -> assertThat("The time of the last event is at or after the start of this history.",
+                                lastEvent.getWhen(), greaterThanOrEqualTo(start))),
+                () -> assertAll("end",
+                        () -> assertThat("The end time is at or after the start time.", end,
+                                greaterThanOrEqualTo(start)),
+                        () -> assertFalse(lastEvent.getState() == null && end != ValueHistory.END_OF_TIME,
+                                "If the state transitioned to by the last event is null, the end time is the end of time."),
+                        () -> assertFalse(lastEvent.getState() != null && end != lastEvent.getWhen(),
+                                "If the state transitioned to by the last event is not null, the end time is the time of that event.")),
+                () -> assertAll("stateHistory", () -> assertSame(start, stateHistory.getFirstTansitionTime(),
+                        "The first transition time of the state history is the same as the start time of this history."),
+                        () -> assertNull(stateHistory.getFirstValue(),
+                                "The state at the start of time of the state history is null."),
+                        () -> assertSame(lastEvent.getWhen(), stateHistory.getLastTansitionTime(),
+                                "The last transition time of the state history is the same as the time of the last event of this history."),
+                        () -> assertSame(lastEvent.getState(), stateHistory.getLastValue(),
+                                "The state at the end of time of the state history is the same as the the last event of this history."),
+                        () -> assertFalse(stateHistory.isEmpty(), "The state history is never empty.")));
     }
 
     public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history1,

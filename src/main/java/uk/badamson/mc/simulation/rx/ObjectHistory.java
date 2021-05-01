@@ -328,6 +328,33 @@ public final class ObjectHistory<STATE> {
 
     /**
      * <p>
+     * The last point in time for which this history is reliable.
+     * </p>
+     * <ul>
+     * <li>Expressed as the duration since an (implied) epoch. All objects in a
+     * simulation should use the same epoch.</li>
+     * <li>The end time is {@linkplain Duration#compareTo(Duration) at or after} the
+     * {@linkplain #getStart() start} time.</li>
+     * <li>If the {@linkplain Event#getState() state transitioned to} by the
+     * {@linkplain #getLastEvent() last event} is null (that is, the last event was
+     * destruction or removal of the {@linkplain #getObject() simulated object}),
+     * the end time is the {@linkplain ValueHistory#END_OF_TIME end of time}.</li>
+     * <li>If the state transitioned to by the last event is not null, the end time
+     * is the {@linkplain Event#getWhen() time} of that event.</li>
+     * </ul>
+     */
+    @Nonnull
+    public Duration getEnd() {
+        final var event = getLastEvent();
+        if (event.getState() == null) {
+            return ValueHistory.END_OF_TIME;
+        } else {
+            return event.getWhen();
+        }
+    }
+
+    /**
+     * <p>
      * The last (known) state transition of the {@linkplain #getObject() object}.
      * </p>
      * <ul>
