@@ -522,8 +522,14 @@ public final class ObjectHistory<STATE> {
     @Nonnull
     public Publisher<Optional<STATE>> observeState(@Nonnull final Duration when) {
         // TODO thread safety
-        // TODO provisional state
-        return Mono.just(Optional.ofNullable(stateHistory.get(when)));
+        if (when.compareTo(lastEvent.getWhen()) <= 0) {
+            return Mono.just(Optional.ofNullable(stateHistory.get(when)));
+        } else {
+            return stateTransitions.asFlux().takeWhile(timeStamped -> timeStamped.getWhen().compareTo(when) <= 0)
+                    .takeUntil(timeStamped -> when.compareTo(timeStamped.getWhen()) <= 0)
+                    .map(timeStamped -> Optional.ofNullable(timeStamped.getState()));
+            // TODO distinct
+        }
     }
 
     /**

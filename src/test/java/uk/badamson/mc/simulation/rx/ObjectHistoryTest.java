@@ -450,6 +450,77 @@ public class ObjectHistoryTest {
         }// class
 
         @Nested
+        public class Provisional {
+
+            @Test
+            public void far() {
+                final Duration time0 = WHEN_B;
+                final Duration when = time0.plusDays(365);
+
+                test(time0, when, Integer.valueOf(1));
+            }
+
+            @Test
+            public void near() {
+                final Duration time0 = WHEN_A;
+                final Duration when = time0.plusNanos(1);// tough test
+
+                test(time0, when, Integer.valueOf(0));
+            }
+
+            private void test(@Nonnull final Duration time0, @Nonnull final Duration when,
+                    @Nonnull final Integer state0) {
+                assert time0.compareTo(when) < 0;// provisional
+                final var expectedState = Optional.of(state0);
+                final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, time0), state0, Map.of());
+                final var history = new ObjectHistory<>(event0);
+
+                final var states = ObserveState.this.test(history, when);
+
+                StepVerifier.create(states).expectNext(expectedState).expectTimeout(Duration.ofMillis(100)).verify();
+            }
+
+        }// class
+
+        @Nested
+        public class ProvisionalConfirmedAsReliable {
+
+            @Test
+            public void far() {
+                final Duration time0 = WHEN_B;
+                final Duration when = time0.plusDays(365);
+                final Duration time1 = when.plusDays(365);
+
+                test(time0, when, time1, Integer.valueOf(3), Integer.valueOf(2));
+            }
+
+            @Test
+            public void near() {
+                final Duration time0 = WHEN_A;
+                final Duration when = time0.plusNanos(1);// tough test
+                final Duration time1 = when.plusNanos(1);// tough test
+
+                test(time0, when, time1, Integer.valueOf(0), Integer.valueOf(1));
+            }
+
+            private void test(@Nonnull final Duration time0, @Nonnull final Duration when,
+                    @Nonnull final Duration time1, @Nonnull final Integer state0, @Nonnull final Integer state1) {
+                assert time0.compareTo(when) < 0;// provisional
+                assert when.compareTo(time1) <= 0;// becomes reliable
+                final var expectedState = Optional.of(state0);
+                final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, time0), state0, Map.of());
+                final var event1 = new TestEvent(new ObjectStateId(OBJECT_A, time1), state1, Map.of());
+                final var history = new ObjectHistory<>(event0);
+
+                final var states = ObserveState.this.test(history, when);
+
+                StepVerifier.create(states).expectNext(expectedState).then(() -> history.append(event1))
+                        .expectComplete().verify();
+            }
+
+        }// class
+
+        @Nested
         public class ReliableBetweenEvents {
 
             @Test
@@ -500,6 +571,89 @@ public class ObjectHistoryTest {
 
                 StepVerifier.create(states).expectNext(expectedState).expectComplete().verify();
             }
+        }// class
+
+        @Nested
+        public class UpdatedProvisionalConfirmedAsReliable {
+
+            @Test
+            public void far() {
+                final Duration time0 = WHEN_B;
+                final Duration time1 = time0.plusDays(365);
+                final Duration when = time1.plusDays(365);
+                final Duration time2 = when.plusDays(365);
+
+                test(time0, time1, when, time2, Integer.valueOf(3), Integer.valueOf(2), Integer.valueOf(1));
+            }
+
+            @Test
+            public void near() {
+                final Duration time0 = WHEN_A;
+                final Duration time1 = time0.plusNanos(1);// tough test
+                final Duration when = time1;// tough test
+                final Duration time2 = when.plusNanos(1);// tough test
+
+                test(time0, time1, when, time2, Integer.valueOf(0), Integer.valueOf(1), Integer.valueOf(2));
+            }
+
+            private void test(@Nonnull final Duration time0, @Nonnull final Duration time1,
+                    @Nonnull final Duration when, @Nonnull final Duration time2, @Nonnull final Integer state0,
+                    @Nonnull final Integer state1, @Nullable final Integer state2) {
+                assert time0.compareTo(time1) < 0;
+                assert time1.compareTo(time2) < 0;
+                assert time0.compareTo(when) < 0;// provisional
+                assert time1.compareTo(when) <= 0;// updated provisional
+                assert when.compareTo(time2) < 0;// becomes reliable
+                final var expectedState0 = Optional.of(state0);
+                final var expectedState1 = Optional.of(state1);
+                final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, time0), state0, Map.of());
+                final var event1 = new TestEvent(new ObjectStateId(OBJECT_A, time1), state1, Map.of());
+                final var event2 = new TestEvent(new ObjectStateId(OBJECT_A, time2), state2, Map.of());
+                final var history = new ObjectHistory<>(event0);
+
+                final var states = ObserveState.this.test(history, when);
+
+                StepVerifier.create(states).expectNext(expectedState0).then(() -> history.append(event1))
+                        .expectNext(expectedState1).then(() -> history.append(event2)).expectComplete().verify();
+            }
+
+        }// class
+
+        @Nested
+        public class UpdateIsReliable {
+
+            @Test
+            public void far() {
+                final Duration time0 = WHEN_B;
+                final Duration time1 = time0.plusDays(365);
+
+                test(time0, time1, Integer.valueOf(3), Integer.valueOf(2));
+            }
+
+            @Test
+            public void near() {
+                final Duration time0 = WHEN_A;
+                final Duration time1 = time0.plusNanos(1);// tough test
+
+                test(time0, time1, Integer.valueOf(0), Integer.valueOf(1));
+            }
+
+            private void test(@Nonnull final Duration time0, @Nonnull final Duration time1,
+                    @Nonnull final Integer state0, @Nonnull final Integer state1) {
+                assert time0.compareTo(time1) < 0;
+                final var when = time1;// the update is reliable
+                final var expectedState0 = Optional.of(state0);
+                final var expectedState1 = Optional.of(state1);
+                final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, time0), state0, Map.of());
+                final var event1 = new TestEvent(new ObjectStateId(OBJECT_A, time1), state1, Map.of());
+                final var history = new ObjectHistory<>(event0);
+
+                final var states = ObserveState.this.test(history, when);
+
+                StepVerifier.create(states).expectNext(expectedState0).then(() -> history.append(event1))
+                        .expectNext(expectedState1).expectComplete().verify(Duration.ofMillis(100));
+            }
+
         }// class
 
         private <STATE> Publisher<Optional<STATE>> test(@Nonnull final ObjectHistory<STATE> history,
