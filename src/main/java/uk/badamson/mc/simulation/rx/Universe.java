@@ -238,7 +238,8 @@ public final class Universe<STATE> {
             final var dependencyIds = nextEventDependencies.entrySet().stream().sequential()
                     .map(entry -> entry.getKey()).collect(toUnmodifiableList());
             final var dependencyObservers = nextEventDependencies.entrySet().stream().sequential()
-                    .map(entry -> observeState(entry.getKey(), entry.getValue())).collect(toUnmodifiableList());
+                    .map(entry -> Flux.from(observeState(entry.getKey(), entry.getValue())).last())
+                    .collect(toUnmodifiableList());
 
             return Flux.combineLatest(dependencyObservers, (states) -> {
                 final Map<UUID, STATE> dependentStates = new HashMap<>();
