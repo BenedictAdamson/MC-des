@@ -188,28 +188,17 @@ public final class Universe<STATE> {
      * </p>
      *
      * <ul>
-     * <li>The sequence of next events is finite.</li>
-     * <li>Events in the sequence of next events are for the same object as the
+     * <li>The event in the sequence of next events is for the same object as the
      * {@linkplain Event#getObject() object} of the given event.</li>
-     * <li>Events in the sequence of next events are for a time after the
+     * <li>The event in the sequence of next events is for a time after the
      * {@linkplain Event#getWhen() time} of the given event.</li>
-     * <li>The sequence of next events is {@linkplain Event#computeNextEvent(Map)
-     * computed} using the given event and the
-     * {@linkplain #observeState(UUID, Duration) states} of the
-     * {@linkplain Event#getNextEventDependencies() dependencies} of the event.</li>
-     * <li>The last event of the sequence of next events is the correct next event
-     * for the given event, computed using the given event and the correct states of
-     * the dependencies.</li>
-     * <li>The last event of the sequence of next events may be proceeded may
-     * <i>provisional</i> values for the next event. The provisional values will
-     * have been computed using provisional values for the states of the
-     * dependencies. These provisional values will typically be approximations of
-     * the correct value, with successive values being closer to the correct
-     * value.</li>
-     * <li>The time between publication of the last event of the sequence and
-     * completion of the sequence can be a large. That is, the process of providing
-     * a value and then concluding that it is the correct value rather than a
-     * provisional value can be time consuming.</li>
+     * <li>The event in the sequence of next events is
+     * {@linkplain Event#computeNextEvent(Map) computed} using the given event and
+     * the {@linkplain #observeState(UUID, Duration) states} of the
+     * {@linkplain Event#getNextEventDependencies() dependencies} of the given
+     * event.</li>
+     * <li>The event of the sequence of next events is computed using the given
+     * event and the correct (non provisional) states of the dependencies.</li>
      * </ul>
      *
      * @param event
