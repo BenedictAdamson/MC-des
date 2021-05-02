@@ -241,7 +241,7 @@ public final class Universe<STATE> {
                     .map(entry -> Flux.from(observeState(entry.getKey(), entry.getValue())).last())
                     .collect(toUnmodifiableList());
 
-            return Flux.combineLatest(dependencyObservers, (states) -> {
+            return Mono.zip(dependencyObservers, (states) -> {
                 final Map<UUID, STATE> dependentStates = new HashMap<>();
                 for (int d = 0; d < nDependencies; ++d) {
                     final UUID id = dependencyIds.get(d);
@@ -252,7 +252,7 @@ public final class Universe<STATE> {
                     }
                 }
                 return event.computeNextEvent(dependentStates);
-            }).last();
+            });
         } else {// special case
             return Mono.just(event.computeNextEvent(Map.of()));
         }
