@@ -160,7 +160,7 @@ public final class Universe<STATE> {
             throw new IllegalArgumentException("Unknown object");
         }
         final var oldLastEvent = objectHistory.getLastEvent();
-        Flux.from(observeNextEvent(oldLastEvent)).last()
+        Flux.from(observeNextEvent(oldLastEvent))
                 .subscribe(newLastEvent -> objectHistory.compareAndAppend(oldLastEvent, newLastEvent));
     }
 
@@ -228,7 +228,7 @@ public final class Universe<STATE> {
      *             </ul>
      */
     @Nonnull
-    public Publisher<Event<STATE>> observeNextEvent(@Nonnull final Event<STATE> event) {
+    public Mono<Event<STATE>> observeNextEvent(@Nonnull final Event<STATE> event) {
         Objects.requireNonNull(event, "event");
         Objects.requireNonNull(event.getState(), "event.state");
 
@@ -251,7 +251,7 @@ public final class Universe<STATE> {
                     }
                 }
                 return event.computeNextEvent(dependentStates);
-            });
+            }).last();
         } else {// special case
             return Mono.just(event.computeNextEvent(Map.of()));
         }

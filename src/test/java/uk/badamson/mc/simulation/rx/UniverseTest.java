@@ -39,6 +39,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.simulation.ObjectStateId;
@@ -318,7 +319,7 @@ public class UniverseTest {
 
         }// class
 
-        private <STATE> Publisher<Event<STATE>> test(@Nonnull final Universe<STATE> universe,
+        private <STATE> Mono<Event<STATE>> test(@Nonnull final Universe<STATE> universe,
                 @Nonnull final Event<STATE> event) {
             final var events = universe.observeNextEvent(event);
 
