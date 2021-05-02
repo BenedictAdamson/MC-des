@@ -96,6 +96,28 @@ public class UniverseTest {
     }// class
 
     @Nested
+    public class AdvanceStatesTo {
+
+        @Test
+        public void empty() {
+            final var universe = new Universe<Integer>();
+
+            final var sequence = test(universe, WHEN_A);
+
+            StepVerifier.create(sequence).expectComplete().verify();
+        }
+
+        private <STATE> Mono<Void> test(@Nonnull final Universe<STATE> universe, @Nonnull final Duration when) {
+            final var sequence = universe.advanceStatesTo(when);
+
+            assertInvariants(universe);
+            assertNotNull(sequence, "Not null, sequence");
+
+            return sequence;
+        }
+    }// class
+
+    @Nested
     public class ObserveNextEvent {
 
         @Nested

@@ -132,6 +132,35 @@ public final class Universe<STATE> {
 
     /**
      * <p>
+     * Advance all simulation of this universe so the
+     * {@linkplain #observeState(UUID, Duration) observable states} of all the
+     * {@linkplain #getObjects() objects} of this universe for all times
+     * {@linkplain Duration#compareTo(Duration) at or before} a given time are
+     * reliable states.
+     * </p>
+     * <p>
+     * That is, {@link #observeState(UUID, Duration)} sequences for all times
+     * <var>t</var> &le; {@code when} complete. Some (typically most) objects of
+     * this universe will have reliable state information for a short time after the
+     * given time.
+     * </p>
+     *
+     * @param when
+     *            the latest point in time for which all objects must have reliable
+     *            state information.
+     * @return a sequence that completes when all the states have been advanced.
+     * @throws NullPointerException
+     *             If {@code when} is null.
+     */
+    @Nonnull
+    public Mono<Void> advanceStatesTo(@Nonnull final Duration when) {
+        Objects.requireNonNull(when, "when");
+        // FIXME
+        return Mono.empty();
+    }
+
+    /**
+     * <p>
      * The unique IDs of the simulated objects in this universe.
      * </p>
      * <ul>
