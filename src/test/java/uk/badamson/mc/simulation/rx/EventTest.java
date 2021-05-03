@@ -33,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -150,18 +151,28 @@ public class EventTest {
         }
 
         @Override
-        public Event<Integer> computeNextEvent(final Map<UUID, Integer> dependentStates) {
-            final Map<UUID, Duration> nextEventDependencies = new HashMap<>();
-            this.getNextEventDependencies()
-                    .forEach((object, when) -> nextEventDependencies.put(object, when.plusMillis(100)));
-            final int dependentValuesSum = this.getNextEventDependencies().keySet().stream()
-                    .map(dependentId -> dependentStates.get(dependentId))
-                    .mapToInt(dependentState -> dependentState == null ? 0 : dependentState.intValue()).sum();
+        public Event<Integer> computeNextEvent(@Nonnull final Map<UUID, Integer> dependentStates) {
+            Objects.requireNonNull(dependentStates, "dependentStates");
+            if (getState() == null) {
+                throw new IllegalStateException("Destroyed objects may not be resurrected");
+            }
+
             final var value = getState().intValue();
-            final var nextValue = value + dependentValuesSum + 1;
-            final var delay = 250 * (1 + Math.abs(nextValue));
-            return new TestEvent(new ObjectStateId(getObject(), getWhen().plusMillis(delay)),
-                    Integer.valueOf(nextValue), nextEventDependencies);
+            if (value < Integer.MAX_VALUE) {
+                final Map<UUID, Duration> nextEventDependencies = new HashMap<>();
+                this.getNextEventDependencies()
+                        .forEach((object, when) -> nextEventDependencies.put(object, when.plusMillis(100)));
+                final int dependentValuesSum = this.getNextEventDependencies().keySet().stream()
+                        .map(dependentId -> dependentStates.get(dependentId))
+                        .mapToInt(dependentState -> dependentState == null ? 0 : dependentState.intValue()).sum();
+                final var nextValue = value + dependentValuesSum + 1;
+                final var delay = 250 * (1 + Math.abs(nextValue));
+                return new TestEvent(new ObjectStateId(getObject(), getWhen().plusMillis(delay)),
+                        Integer.valueOf(nextValue), nextEventDependencies);
+            } else {
+                // Magic number to trigger a destruction event
+                return new TestEvent(new ObjectStateId(getObject(), getWhen().plusMillis(250)), null, Map.of());
+            }
         }
 
     }// class
