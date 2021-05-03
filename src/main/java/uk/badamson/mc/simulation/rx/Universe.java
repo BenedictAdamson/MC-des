@@ -22,6 +22,7 @@ import static java.util.stream.Collectors.toUnmodifiableList;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -130,6 +131,25 @@ public final class Universe<STATE> {
         });
     }
 
+    @Nonnull
+    private Publisher<ObjectHistory<STATE>> advanceHistoryTo(@Nonnull final ObjectHistory<STATE> history,
+            @Nonnull final Duration when) {
+        final var lastEvent = history.getLastEvent();
+        // TODO handle destruction events
+        if (lastEvent.getWhen().compareTo(when) < 0) {
+            return observeNextEvent(lastEvent).doOnNext(nextEvent -> {
+                history.compareAndAppend(lastEvent, nextEvent);
+                /*
+                 * ignore failure to append: indicates a different thread did the advancement
+                 * for us
+                 */
+            }).then(Mono.just(history));
+        } else {
+            // No (more) advancement necessary
+            return Mono.empty();
+        }
+    }
+
     /**
      * <p>
      * Advance all simulation of this universe so the
@@ -155,8 +175,9 @@ public final class Universe<STATE> {
     @Nonnull
     public Mono<Void> advanceStatesTo(@Nonnull final Duration when) {
         Objects.requireNonNull(when, "when");
-        // FIXME
-        return Mono.empty();
+
+        return Flux.fromIterable(List.copyOf(objectHistories.values()))
+                .expand(history -> advanceHistoryTo(history, when)).then();
     }
 
     /**

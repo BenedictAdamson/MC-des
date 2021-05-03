@@ -98,6 +98,64 @@ public class UniverseTest {
     @Nested
     public class AdvanceStatesTo {
 
+        @Nested
+        public class One {
+
+            @Test
+            public void atFirstEvent() {
+                final Duration start = WHEN_A;
+                final Duration when = start;// critical
+
+                test(OBJECT_A, start, Integer.valueOf(0), when);
+            }
+
+            @Test
+            public void beforeFirstEvent() {
+                final Duration start = WHEN_A;
+                final Duration when = start.minusNanos(1);// tough test
+
+                test(OBJECT_A, start, Integer.valueOf(0), when);
+            }
+
+            @Test
+            public void far() {
+                final Duration start = WHEN_A;
+                final Duration when = start.plusSeconds(5);
+
+                test(OBJECT_A, start, Integer.valueOf(0), when);
+            }
+
+            @Test
+            public void justAfterFirstEvent_A() {
+                final Duration start = WHEN_A;
+                final Duration when = start.plusNanos(1);// critical
+
+                test(OBJECT_A, start, Integer.valueOf(0), when);
+            }
+
+            @Test
+            public void justAfterFirstEvent_B() {
+                final Duration start = WHEN_B;
+                final Duration when = start.plusNanos(1);// critical
+
+                test(OBJECT_A, start, Integer.valueOf(1), when);
+            }
+
+            private void test(@Nonnull final UUID object, @Nonnull final Duration start, @Nonnull final Integer state0,
+                    @Nonnull final Duration when) {
+                final var event0 = new TestEvent(new ObjectStateId(object, start), state0, Map.of());
+                final var universe = new Universe<Integer>();
+                universe.addObject(event0);
+
+                final var sequence = AdvanceStatesTo.this.test(universe, when);
+
+                StepVerifier.create(sequence).expectComplete().verify(Duration.ofMillis(100));
+                StepVerifier.create(universe.observeState(object, when)).expectNextCount(1).expectComplete()
+                        .verify(Duration.ofMillis(100));
+            }
+
+        }// class
+
         @Test
         public void empty() {
             final var universe = new Universe<Integer>();
