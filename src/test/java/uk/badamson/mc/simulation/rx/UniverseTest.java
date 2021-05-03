@@ -118,6 +118,15 @@ public class UniverseTest {
             }
 
             @Test
+            public void destruction() {
+                final Duration start = WHEN_A;
+                final Duration when = start.plusSeconds(5);
+                final var state0 = Integer.valueOf(Integer.MAX_VALUE);// magic number
+
+                test(OBJECT_A, start, state0, when);
+            }
+
+            @Test
             public void far() {
                 final Duration start = WHEN_A;
                 final Duration when = start.plusSeconds(5);

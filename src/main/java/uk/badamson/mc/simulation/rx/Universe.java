@@ -136,7 +136,7 @@ public final class Universe<STATE> {
             @Nonnull final Duration when) {
         final var lastEvent = history.getLastEvent();
         // TODO handle destruction events
-        if (lastEvent.getWhen().compareTo(when) < 0) {
+        if (lastEvent.getState() != null && lastEvent.getWhen().compareTo(when) < 0) {
             return observeNextEvent(lastEvent).doOnNext(nextEvent -> {
                 history.compareAndAppend(lastEvent, nextEvent);
                 /*
