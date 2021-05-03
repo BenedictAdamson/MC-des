@@ -43,7 +43,7 @@ import uk.badamson.mc.simulation.ObjectStateId;
 public abstract class Event<STATE> implements Comparable<Event<STATE>> {
 
     private static <STATE> Map<UUID, Duration> requireValidNextEventDependencies(
-            final Map<UUID, Duration> nextEventDependencies, @Nonnull final ObjectStateId id, STATE state) {
+            final Map<UUID, Duration> nextEventDependencies, @Nonnull final ObjectStateId id, final STATE state) {
         Objects.requireNonNull(nextEventDependencies, "nextEventDependencies");
         final var object = id.getObject();
         final var when = id.getWhen();
@@ -121,7 +121,7 @@ public abstract class Event<STATE> implements Comparable<Event<STATE>> {
      * <li>Hence the <i>natural ordering</i> of {@link Event} is consistent with
      * {@linkplain #equals(Object) equals}.</li>
      * </ul>
-     * 
+     *
      * @throws NullPointerException
      *             If {@code that} is null
      */
@@ -137,24 +137,48 @@ public abstract class Event<STATE> implements Comparable<Event<STATE>> {
     /**
      * <p>
      * Compute the next event (after this event) of the {@linkplain #getObject()
-     * object}, given state information about the
-     * {@linkplain #getNextEventDependencies() dependencies of the next event}.
+     * object}, and any <i>object creation events</i>, given state information about
+     * the {@linkplain #getNextEventDependencies() dependencies}.
      * </p>
-     * 
+     *
      * <p>
-     * The returned event
+     * The returned map
      * </p>
      * <ul>
      * <li>Is not null.</li>
-     * <li>For the same object as the {@linkplain #getObject() object} of this
-     * event.</li>
-     * <li>For a time after the {@linkplain #getWhen() time} of this event.</li>
+     * <li>Is not {@linkplain Map#isEmpty() empty}.</li>
+     * <li>Maps the IDs of simulated objects to an event for each of those simulated
+     * objects.</li>
+     * <li>Has no null {@linkplain Map#keySet() keys} (simulated object IDs).</li>
+     * <li>Has no null {@linkplain Map#values() values} (events).</li>
+     * <li>Has only entries for which the simulated object ID (entry key) is
+     * {@linkplain UUID#equals(Object) equivalent to} the
+     * {@linkplain Event#getObject() object} of the event (entry value).</li>
+     * <li>Has an entry for the same object as the {@linkplain #getObject() object}
+     * of this event.</li>
+     * <li>Has only entries for which the {@linkplain Event#getWhen() event times}
+     * are the same.</li>
+     * <li>Has only entries for which the {@linkplain Event#getWhen() event times}
+     * are after the {@linkplain #getWhen() time} of this event.</li>
      * <li>The computation must be deterministic in the dependent state information
      * and the attributes of this event.</li>
      * <li>The computation typically also makes use of the {@linkplain #getState()
      * state} of the simulated object.</li>
      * </ul>
-     * 
+     * <p>
+     * Entries in the map for different simulated objects than the
+     * {@linkplain #getObject() object} of this event are <dfn>object creation
+     * events</dfn>. Those events are the first events (in {@linkplain #getWhen()
+     * time} for those objects. The method must ensure that the object IDs of the
+     * created objects are {@linkplain UUID#equals(Object) different} from the IDs
+     * of all other objects, for example by using {@linkplain UUID#randomUUID() new
+     * random} IDs.
+     * </p>
+     * {@linkplain #getNextEventDependencies() Event dependencies} must respect
+     * causality with respect to object creation. No event may depend on the state
+     * of an object before its creation.
+     * </p>
+     *
      * @param dependentStates
      *            Information about the states the the
      *            {@linkplain #getNextEventDependencies() depended on}. The map maps
@@ -174,7 +198,7 @@ public abstract class Event<STATE> implements Comparable<Event<STATE>> {
      *             destroyed objects may not be resurrected.
      */
     @Nonnull
-    public abstract Event<STATE> computeNextEvent(@Nonnull Map<UUID, STATE> dependentStates);
+    public abstract Map<UUID, Event<STATE>> computeNextEvents(@Nonnull Map<UUID, STATE> dependentStates);
 
     /**
      * <p>
@@ -224,7 +248,8 @@ public abstract class Event<STATE> implements Comparable<Event<STATE>> {
      * </p>
      * <p>
      * Maps an object ID to the time-stamp of the state of that object that
-     * {@linkplain #computeNextEvent(Map) computation of the next event} depends on.
+     * {@linkplain #computeNextEvents(Map) computation of the next event} depends
+     * on.
      * </p>
      * <ul>
      * <li>Not null.</li>
@@ -272,7 +297,7 @@ public abstract class Event<STATE> implements Comparable<Event<STATE>> {
      * <li>Returns a null state if the object ceases to exist as a result of this
      * event. That is, if this event is the destruction of the object.</li>
      * <li>This is for a discrete event simulation: the object implicitly has the
-     * same state until the {@linkplain #computeNextEvent(Map) next event}.</li>
+     * same state until the {@linkplain #computeNextEvents(Map) next event}.</li>
      * </ul>
      */
     @Nullable

@@ -151,7 +151,7 @@ public class EventTest {
         }
 
         @Override
-        public Event<Integer> computeNextEvent(@Nonnull final Map<UUID, Integer> dependentStates) {
+        public Map<UUID, Event<Integer>> computeNextEvents(@Nonnull final Map<UUID, Integer> dependentStates) {
             Objects.requireNonNull(dependentStates, "dependentStates");
             if (getState() == null) {
                 throw new IllegalStateException("Destroyed objects may not be resurrected");
@@ -167,11 +167,12 @@ public class EventTest {
                         .mapToInt(dependentState -> dependentState == null ? 0 : dependentState.intValue()).sum();
                 final var nextValue = value + dependentValuesSum + 1;
                 final var delay = 250 * (1 + Math.abs(nextValue));
-                return new TestEvent(new ObjectStateId(getObject(), getWhen().plusMillis(delay)),
-                        Integer.valueOf(nextValue), nextEventDependencies);
+                return Map.of(getObject(), new TestEvent(new ObjectStateId(getObject(), getWhen().plusMillis(delay)),
+                        Integer.valueOf(nextValue), nextEventDependencies));
             } else {
                 // Magic number to trigger a destruction event
-                return new TestEvent(new ObjectStateId(getObject(), getWhen().plusMillis(250)), null, Map.of());
+                return Map.of(getObject(),
+                        new TestEvent(new ObjectStateId(getObject(), getWhen().plusMillis(250)), null, Map.of()));
             }
         }
 

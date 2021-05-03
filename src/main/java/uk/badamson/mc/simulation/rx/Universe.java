@@ -137,8 +137,10 @@ public final class Universe<STATE> {
         final var lastEvent = history.getLastEvent();
         // TODO handle destruction events
         if (lastEvent.getState() != null && lastEvent.getWhen().compareTo(when) < 0) {
-            return observeNextEvent(lastEvent).flatMap(nextEvent -> {
-                history.compareAndAppend(lastEvent, nextEvent);
+            return observeNextEvents(lastEvent).flatMap(nextEvents -> {
+                final var nextEventForThisHistory = nextEvents.get(history.getObject());
+                // TODO handle creation events
+                history.compareAndAppend(lastEvent, nextEventForThisHistory);
                 /*
                  * ignore failure to append: indicates a different thread did the advancement
                  * for us
@@ -200,23 +202,16 @@ public final class Universe<STATE> {
 
     /**
      * <p>
-     * Provide the next event after a given event for an {@linkplain #getObjects()
-     * object} in this universe.
+     * Provide the next event after a given event, and any associated <i>object
+     * creation events</i>, for an {@linkplain #getObjects() object} in this
+     * universe.
      * </p>
      *
-     * <ul>
-     * <li>The event in the sequence of next events is for the same object as the
-     * {@linkplain Event#getObject() object} of the given event.</li>
-     * <li>The event in the sequence of next events is for a time after the
-     * {@linkplain Event#getWhen() time} of the given event.</li>
-     * <li>The event in the sequence of next events is
-     * {@linkplain Event#computeNextEvent(Map) computed} using the given event and
-     * the {@linkplain #observeState(UUID, Duration) states} of the
-     * {@linkplain Event#getNextEventDependencies() dependencies} of the given
-     * event.</li>
-     * <li>The event of the sequence of next events is computed using the given
-     * event and the correct (non provisional) states of the dependencies.</li>
-     * </ul>
+     * <p>
+     * The event in the sequence of next events is as
+     * {@linkplain Event#computeNextEvents(Map) computed as the next event} by the
+     * given event, using the correct (non provisional) states of the dependencies.
+     * </p>
      *
      * @param event
      *            The event for which to provide the next event. The
@@ -234,7 +229,7 @@ public final class Universe<STATE> {
      *             </ul>
      */
     @Nonnull
-    public Mono<Event<STATE>> observeNextEvent(@Nonnull final Event<STATE> event) {
+    public Mono<Map<UUID, Event<STATE>>> observeNextEvents(@Nonnull final Event<STATE> event) {
         Objects.requireNonNull(event, "event");
         Objects.requireNonNull(event.getState(), "event.state");
 
@@ -257,10 +252,10 @@ public final class Universe<STATE> {
                         dependentStates.put(id, dependencyState.get());
                     }
                 }
-                return event.computeNextEvent(dependentStates);
+                return event.computeNextEvents(dependentStates);
             });
         } else {// special case
-            return Mono.just(event.computeNextEvent(Map.of()));
+            return Mono.just(event.computeNextEvents(Map.of()));
         }
     }
 

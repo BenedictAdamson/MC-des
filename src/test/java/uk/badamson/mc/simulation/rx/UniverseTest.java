@@ -185,7 +185,7 @@ public class UniverseTest {
     }// class
 
     @Nested
-    public class ObserveNextEvent {
+    public class ObserveNextEvents {
 
         @Nested
         public class NoDependencies {
@@ -202,11 +202,11 @@ public class UniverseTest {
 
             private void test(@Nonnull final ObjectStateId id, @Nonnull final Integer state) {
                 final var event = new TestEvent(id, state, Map.of());
-                final var expectedNextEvent = event.computeNextEvent(Map.of());
+                final var expectedNextEvent = event.computeNextEvents(Map.of());
                 final Universe<Integer> universe = new Universe<>();
                 universe.addObject(event);
 
-                final var events = ObserveNextEvent.this.test(universe, event);
+                final var events = ObserveNextEvents.this.test(universe, event);
 
                 StepVerifier.create(events).expectNext(expectedNextEvent).expectComplete().verify();
             }
@@ -234,23 +234,23 @@ public class UniverseTest {
                         new ObjectStateId(dependentObject, dependentObjectTime), dependentState, Map.of());
                 final var event = new TestEvent(new ObjectStateId(eventObject, eventTime), eventState,
                         Map.of(dependentObject, dependentObjectTime));
-                final var expectedNextEvent = event.computeNextEvent(Map.of(dependentObject, dependentState));
-                assert !expectedNextEvent.equals(event.computeNextEvent(Map.of()));// critical
+                final var expectedNextEvent = event.computeNextEvents(Map.of(dependentObject, dependentState));
+                assert !expectedNextEvent.equals(event.computeNextEvents(Map.of()));// critical
 
                 final Universe<Integer> universe = new Universe<>();
                 universe.addObject(dependentObjectInitialEvent);
                 universe.addObject(event);
 
-                final var events = ObserveNextEvent.this.test(universe, event);
+                final var events = ObserveNextEvents.this.test(universe, event);
 
                 StepVerifier.create(events).expectNext(expectedNextEvent).expectComplete().verify();
             }
 
         }// class
 
-        private <STATE> Mono<Event<STATE>> test(@Nonnull final Universe<STATE> universe,
+        private <STATE> Mono<Map<UUID, Event<STATE>>> test(@Nonnull final Universe<STATE> universe,
                 @Nonnull final Event<STATE> event) {
-            final var events = universe.observeNextEvent(event);
+            final var events = universe.observeNextEvents(event);
 
             assertInvariants(universe);
             assertNotNull(events, "Not null, result");
