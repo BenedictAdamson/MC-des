@@ -137,13 +137,14 @@ public final class Universe<STATE> {
         final var lastEvent = history.getLastEvent();
         // TODO handle destruction events
         if (lastEvent.getState() != null && lastEvent.getWhen().compareTo(when) < 0) {
-            return observeNextEvent(lastEvent).doOnNext(nextEvent -> {
+            return observeNextEvent(lastEvent).flatMap(nextEvent -> {
                 history.compareAndAppend(lastEvent, nextEvent);
                 /*
                  * ignore failure to append: indicates a different thread did the advancement
                  * for us
                  */
-            }).then(Mono.just(history));
+                return Mono.just(history);
+            });
         } else {
             // No (more) advancement necessary
             return Mono.empty();
