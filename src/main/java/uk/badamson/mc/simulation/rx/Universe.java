@@ -21,6 +21,8 @@ package uk.badamson.mc.simulation.rx;
 import static java.util.stream.Collectors.toUnmodifiableList;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +31,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
@@ -38,6 +41,7 @@ import org.reactivestreams.Publisher;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import uk.badamson.mc.simulation.ObjectStateId;
 
 /**
  * <p>
@@ -131,28 +135,6 @@ public final class Universe<STATE> {
         });
     }
 
-    @Nonnull
-    private Publisher<ObjectHistory<STATE>> advanceHistoryTo(@Nonnull final ObjectHistory<STATE> history,
-            @Nonnull final Duration when) {
-        final var lastEvent = history.getLastEvent();
-        // TODO handle destruction events
-        if (lastEvent.getState() != null && lastEvent.getWhen().compareTo(when) < 0) {
-            return observeNextEvents(lastEvent).flatMap(nextEvents -> {
-                final var nextEventForThisHistory = nextEvents.get(history.getObject());
-                // TODO handle creation events
-                history.compareAndAppend(lastEvent, nextEventForThisHistory);
-                /*
-                 * ignore failure to append: indicates a different thread did the advancement
-                 * for us
-                 */
-                return Mono.just(history);
-            });
-        } else {
-            // No (more) advancement necessary
-            return Mono.empty();
-        }
-    }
-
     /**
      * <p>
      * Advance all simulation of this universe so the
@@ -179,8 +161,58 @@ public final class Universe<STATE> {
     public Mono<Void> advanceStatesTo(@Nonnull final Duration when) {
         Objects.requireNonNull(when, "when");
 
-        return Flux.fromIterable(List.copyOf(objectHistories.values()))
-                .expand(history -> advanceHistoryTo(history, when)).then();
+        return Flux.fromStream(getInitialAdvanceObjectives(when))
+                .expand(step -> Flux.fromIterable(expandAdvanceStep(step))).then();
+    }
+
+    private void applyEvent(@Nonnull final Event<STATE> expectedLastEvent, @Nonnull final Event<STATE> event) {
+        objectHistories.compute(event.getObject(), (k, history) -> {
+            if (history == null) {
+                return new ObjectHistory<>(event);
+            } else {
+                history.compareAndAppend(expectedLastEvent, event);
+                /*
+                 * Ignore failure to append: indicates that another thread has appended the
+                 * event for us.
+                 */
+                return history;
+            }
+        });
+    }
+
+    private Collection<ObjectStateId> expandAdvanceStep(@Nonnull final ObjectStateId step) {
+        final var history = objectHistories.get(step.getObject());
+        final var when = step.getWhen();
+        while (history.getEnd().compareTo(when) < 0) {// (advancing is necessary)
+            final var lastEvent = history.getLastEvent();
+            final var dependencies = lastEvent.getNextEventDependencies();
+            final var subSteps = new ArrayList<ObjectStateId>(dependencies.size());
+            dependencies.entrySet().stream().filter(entry -> {
+                final var dependent = entry.getKey();
+                final var dependentTime = entry.getValue();
+                /*
+                 * If we do not yet know the state of the dependent, computing that state is a
+                 * sub step.
+                 */
+                return objectHistories.get(dependent).getEnd().compareTo(dependentTime) < 0;
+            }).forEach(entry -> subSteps.add(new ObjectStateId(entry.getKey(), entry.getValue())));
+            if (subSteps.isEmpty()) {
+                // Can advance right now
+                observeNextEvents(lastEvent).flatMapIterable(map -> map.values())
+                        .doOnNext(event -> applyEvent(lastEvent, event)).then().block();
+                // But have we advanced far enough? May iterate again.
+            } else {
+                // Defer the step until its predecessors are done
+                subSteps.add(step);
+                return subSteps;
+            }
+        } // while
+        return List.of();
+    }
+
+    private Stream<ObjectStateId> getInitialAdvanceObjectives(@Nonnull final Duration when) {
+        return List.copyOf(objectHistories.values()).stream().filter(history -> history.getEnd().compareTo(when) < 0)
+                .map(history -> new ObjectStateId(history.getObject(), when));
     }
 
     /**

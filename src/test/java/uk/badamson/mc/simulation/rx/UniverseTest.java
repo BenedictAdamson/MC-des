@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -164,6 +165,25 @@ public class UniverseTest {
             }
 
         }// class
+
+        @Test
+        public void creation() {
+            final var object1 = OBJECT_A;
+            final Duration start = WHEN_A;
+            final Duration when = start.plusSeconds(5);
+            final var state0 = Integer.valueOf(Integer.MIN_VALUE);// magic number
+            final var event0 = new TestEvent(new ObjectStateId(object1, start), state0, Map.of());
+            final var universe = new Universe<Integer>();
+            universe.addObject(event0);
+
+            final var sequence = AdvanceStatesTo.this.test(universe, when);
+
+            StepVerifier.create(sequence).expectComplete().verify(Duration.ofMillis(100));
+            StepVerifier.create(universe.observeState(object1, when)).expectNextCount(1).expectComplete()
+                    .verify(Duration.ofMillis(100));
+
+            assertEquals(2, universe.getObjects().size(), "Number of objects");
+        }
 
         @Test
         public void empty() {
