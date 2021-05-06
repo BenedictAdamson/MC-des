@@ -48,8 +48,7 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
      * </ul>
      *
      * @param object
-     *            The unique ID of the object for which the {@link ObjectState} this
-     *            identifies is a state.
+     *            The unique ID of the object for which this identifies a state.
      * @param when
      *            The point in time that the {@linkplain #getObject() object} has
      *            the state identified by this ID, expressed as a duration since an
