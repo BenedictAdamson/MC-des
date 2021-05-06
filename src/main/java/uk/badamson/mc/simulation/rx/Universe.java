@@ -42,6 +42,7 @@ import org.reactivestreams.Publisher;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import uk.badamson.mc.simulation.ObjectStateId;
 
 /**
@@ -150,7 +151,7 @@ public final class Universe<STATE> {
 
     /**
      * <p>
-     * Advance all simulation of this universe so the
+     * Advance the simulation of this universe so the
      * {@linkplain #observeState(UUID, Duration) observable states} of all the
      * {@linkplain #getObjects() objects} of this universe for all times
      * {@linkplain Duration#compareTo(Duration) at or before} a given time are
@@ -158,24 +159,37 @@ public final class Universe<STATE> {
      * </p>
      * <p>
      * That is, {@link #observeState(UUID, Duration)} sequences for all times
-     * <var>t</var> &le; {@code when} complete. Some (typically most) objects of
-     * this universe will have reliable state information for a short time after the
-     * given time.
+     * <var>t</var> &le; {@code when} will immediately complete. Some (typically
+     * most) objects of this universe will also have reliable state information for
+     * a short time after the given time.
+     * </p>
+     * <p>
+     * The computation may make use of multiple threads.
      * </p>
      *
      * @param when
      *            the latest point in time for which all objects must have reliable
      *            state information.
+     * @param nThreads
+     *            the number of threads to use for the computation; the degree of
+     *            parallelism. This value should not normally greatly exceed the
+     *            number of CPU cores.
      * @return a sequence that completes when all the states have been advanced.
      * @throws NullPointerException
      *             If {@code when} is null.
+     * @throws IllegalArgumentException
+     *             If {@code nThreads} is not positive.
      */
     @Nonnull
-    public Mono<Void> advanceStatesTo(@Nonnull final Duration when) {
+    public Mono<Void> advanceStatesTo(@Nonnull final Duration when, final int nThreads) {
         Objects.requireNonNull(when, "when");
+        if (nThreads < 1) {
+            throw new IllegalArgumentException("nThreads not positive");
+        }
 
         return Flux.fromStream(getInitialAdvanceObjectives(when))
-                .expand(step -> Flux.fromIterable(expandAdvanceStep(step))).then();
+                .expand(step -> Flux.fromIterable(expandAdvanceStep(step))).parallel(nThreads)
+                .runOn(Schedulers.parallel()).then();
     }
 
     private void applyEvent(@Nonnull final Event<STATE> expectedLastEvent, @Nonnull final Event<STATE> event) {

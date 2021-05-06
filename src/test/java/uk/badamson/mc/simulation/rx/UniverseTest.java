@@ -157,7 +157,7 @@ public class UniverseTest {
                 final var universe = new Universe<Integer>();
                 universe.addObject(event0);
 
-                final var sequence = AdvanceStatesTo.this.test(universe, when);
+                final var sequence = AdvanceStatesTo.this.test(universe, when, 1);
 
                 StepVerifier.create(sequence).expectComplete().verify(Duration.ofMillis(100));
                 StepVerifier.create(universe.observeState(object, when)).expectNextCount(1).expectComplete()
@@ -176,7 +176,7 @@ public class UniverseTest {
             final var universe = new Universe<Integer>();
             universe.addObject(event0);
 
-            final var sequence = AdvanceStatesTo.this.test(universe, when);
+            final var sequence = AdvanceStatesTo.this.test(universe, when, 1);
 
             StepVerifier.create(sequence).expectComplete().verify(Duration.ofMillis(100));
             StepVerifier.create(universe.observeState(object1, when)).expectNextCount(1).expectComplete()
@@ -186,16 +186,33 @@ public class UniverseTest {
         }
 
         @Test
+        public void manyInParallel() {
+            final int nObjects = 256;
+            final int nThreads = 4;
+            final var universe = new Universe<Integer>();
+            for (int s = 0; s < nObjects; ++s) {
+                final var state = Integer.valueOf(s);
+                final var event = new TestEvent(new ObjectStateId(UUID.randomUUID(), WHEN_A), state, Map.of());
+                universe.addObject(event);
+            }
+
+            final var sequence = AdvanceStatesTo.this.test(universe, WHEN_A.plusSeconds(16), nThreads);
+            StepVerifier.create(sequence).expectComplete().verify(Duration.ofMillis(100));
+            assertInvariants(universe);
+        }
+
+        @Test
         public void empty() {
             final var universe = new Universe<Integer>();
 
-            final var sequence = test(universe, WHEN_A);
+            final var sequence = test(universe, WHEN_A, 1);
 
             StepVerifier.create(sequence).expectComplete().verify();
         }
 
-        private <STATE> Mono<Void> test(@Nonnull final Universe<STATE> universe, @Nonnull final Duration when) {
-            final var sequence = universe.advanceStatesTo(when);
+        private <STATE> Mono<Void> test(@Nonnull final Universe<STATE> universe, @Nonnull final Duration when,
+                int nThreads) {
+            final var sequence = universe.advanceStatesTo(when, nThreads);
 
             assertInvariants(universe);
             assertNotNull(sequence, "Not null, sequence");
