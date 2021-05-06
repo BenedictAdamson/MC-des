@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
@@ -66,6 +67,18 @@ import uk.badamson.mc.simulation.ObjectStateId;
  */
 @ThreadSafe
 public final class Universe<STATE> {
+
+    private static final int MAX_SORT = 32;
+
+    @Nonnull
+    private static Collection<ObjectStateId> sortIfSmall(@Nonnull final Collection<ObjectStateId> ids) {
+        final var size = ids.size();
+        if (1 < size && size <= MAX_SORT) {
+            return new TreeSet<>(ids);
+        } else {
+            return ids;
+        }
+    }
 
     private final Map<UUID, ObjectHistory<STATE>> objectHistories = new ConcurrentHashMap<>();
 
@@ -204,7 +217,12 @@ public final class Universe<STATE> {
             } else {
                 // Defer the step until its predecessors are done
                 subSteps.add(step);
-                return subSteps;
+                /*
+                 * Ideally, do the sub steps in ascending time-stamp order, so interdependencies
+                 * are automatically satisfied. However, do not get bogged down doing an
+                 * expensive sort if there are many dependencies.
+                 */
+                return sortIfSmall(subSteps);
             }
         } // while
         return List.of();
