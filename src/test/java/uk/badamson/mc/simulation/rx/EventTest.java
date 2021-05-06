@@ -158,7 +158,20 @@ public class EventTest {
             }
 
             final var value = getState().intValue();
-            if (value < Integer.MAX_VALUE) {
+            if (value == Integer.MAX_VALUE) {
+                // Magic number to trigger a destruction event
+                final var whenNext = getWhen().plusMillis(250);
+                return Map.of(getObject(), new TestEvent(new ObjectStateId(getObject(), whenNext), null, Map.of()));
+            } else if (value == Integer.MIN_VALUE) {
+                // Magic number to trigger a creation event
+                final var whenNext = getWhen().plusMillis(250);
+                final var successorEvent = new TestEvent(new ObjectStateId(getObject(), whenNext), Integer.valueOf(0),
+                        Map.of());
+                final var createdObject = UUID.randomUUID();
+                final var creationEvent = new TestEvent(new ObjectStateId(createdObject, whenNext), Integer.valueOf(1),
+                        Map.of());
+                return Map.of(getObject(), successorEvent, createdObject, creationEvent);
+            } else {
                 final Map<UUID, Duration> nextEventDependencies = new HashMap<>();
                 this.getNextEventDependencies()
                         .forEach((object, when) -> nextEventDependencies.put(object, when.plusMillis(100)));
@@ -169,10 +182,6 @@ public class EventTest {
                 final var delay = 250 * (1 + Math.abs(nextValue));
                 return Map.of(getObject(), new TestEvent(new ObjectStateId(getObject(), getWhen().plusMillis(delay)),
                         Integer.valueOf(nextValue), nextEventDependencies));
-            } else {
-                // Magic number to trigger a destruction event
-                return Map.of(getObject(),
-                        new TestEvent(new ObjectStateId(getObject(), getWhen().plusMillis(250)), null, Map.of()));
             }
         }
 
