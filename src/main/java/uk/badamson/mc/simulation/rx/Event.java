@@ -160,6 +160,9 @@ public abstract class Event<STATE> implements Comparable<Event<STATE>> {
      * are the same.</li>
      * <li>Has only entries for which the {@linkplain Event#getWhen() event times}
      * are after the {@linkplain #getWhen() time} of this event.</li>
+     * <li>May have a destruction event (an event with a null
+     * {@linkplain #getState() state}) only for the same object as the
+     * {@linkplain #getObject() object} of this event.</li>
      * <li>The computation must be deterministic in the dependent state information
      * and the attributes of this event.</li>
      * <li>The computation typically also makes use of the {@linkplain #getState()
