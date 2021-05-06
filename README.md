@@ -14,7 +14,7 @@ list_.
 * This framework further enables parallel computation by not attempting to
 compute and record a single set of _state variables_ at one point in
 time. It instead computes and records the full time history of all the state
-variables within a time period of interest.
+variables.
 * Unlike other PDES algorithms, the framework does not mandate a
 _process-oriented_ methodology, although it can be used in that manner.
 Instead, the system is modelled as composed as a set of objects, each of
@@ -25,20 +25,14 @@ computation. Instead, the computation is broken down into a large set of
 _transactions_. Each transaction computes the effect (the state
 change) of one event.
 * The algorithm of the framework prevents causality violations by recording
-(state read) dependency relationships between the transactions. The framework
-is _optimistic_: transactions proceed assuming that they will not
-violate causality, but are aborted if the dependency information indicates
-that the assumption is invalid. Aborted transactions are eventually
-rescheduling, to ensure progress eventually occurs. The known dependency
-information is used as scheduling hints to reduce the risk of thrashing.
+dependency relationships (reads of time-stamped states) between the transactions.
+The known dependency information is used as scheduling hints.
 * Unlike PDES algorithms using _logical processes_, the simulation
 events (transactions) of this framework may access (read) the states of any
 number of objects.
 * The framework enforces causality and partly avoids deadlock by requiring
 that the time-stamps of states read by a transaction are strictly before the
-time-stamp of the state (or states) written by the transaction. Further
-deadlock avoidance is done by transparently merging mutually dependent
-transactions into one coordinated transaction.
+time-stamp of the state (or states) written by the transaction.
 * The framework is _non blocking_: if a thread creates a
 transaction that can not be immediately committed (or aborted), the
 transaction is recorded and deferred until more work has been done, rather

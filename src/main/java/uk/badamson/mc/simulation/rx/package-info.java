@@ -16,7 +16,7 @@
  * <li>This framework further enables parallel computation by not attempting to
  * compute and record a single set of <i>state variables</i> at one point in
  * time. It instead computes and records the full time history of all the state
- * variables within a time period of interest.</li>
+ * variables.</li>
  * <li>Unlike other PDES algorithms, the framework does not mandate a
  * <i>process-oriented</i> methodology, although it can be used in that manner.
  * Instead, the system is modelled as composed as a set of objects, each of
@@ -25,21 +25,17 @@
  * continually running <i>logical processes</i> is not used to perform the
  * computation.</li>
  * <li>The algorithm of the framework prevents causality violations by recording
- * (state read) dependency relationships. The framework is
- * <dfn>optimistic</dfn>: work proceeds assuming that it will not violate
- * causality, but is noted as invalid if the dependency information indicates
- * that the assumption is invalid. Invalid work is eventually rescheduling, to
- * ensure progress eventually occurs.</li>
+ * dependency relationships (reads of time-stamped states).</li>
  * <li>Unlike PDES algorithms using <i>logical processes</i>, the simulation
  * events of this framework may access (read) the states of any number of
  * objects.</li>
  * <li>The framework enforces causality and partly avoids deadlock by requiring
  * that the time-stamps of states read by a transaction are strictly before the
  * time-stamp of the state (or states) written by the transaction.</li>
- * <li>Only the (state read) dependencies between transactions constrain the
- * order of their computation. Therefore computation of the state histories for
- * different objects can proceed at different rates, if those objects are
- * uncoupled (or only loosely coupled) by dependencies.</li>
+ * <li>Only the dependencies between transactions constrain the order of their
+ * computation. Therefore computation of the state histories for different
+ * objects can proceed at different rates, if those objects are uncoupled (or
+ * only loosely coupled) by dependencies.</li>
  * <li>The framework reduces the memory required to record all the state
  * histories by recording only the changes in the object states. It assumes that
  * the object states will be recorded as collections of immutable objects, so
