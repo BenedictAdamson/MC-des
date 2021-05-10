@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -37,6 +37,9 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -257,6 +260,46 @@ public class ModifiableValueHistoryTest {
                 constructor(that);
             }
 
+        }// class
+
+        @Nested
+        public class Transitions {
+
+            @Test
+            public void none_nonnll() {
+                test(Integer.valueOf(0), new TreeMap<>());
+            }
+
+            @Test
+            public void none_null() {
+                test((Integer) null, new TreeMap<>());
+            }
+
+            @Test
+            public void one() {
+                final SortedMap<Duration, Integer> transitions = new TreeMap<>();
+                transitions.put(WHEN_1, Integer.valueOf(1));
+
+                test(Integer.valueOf(0), transitions);
+            }
+
+            private <VALUE> void test(@Nullable final VALUE firstValue,
+                    @Nonnull final SortedMap<Duration, VALUE> transitions) {
+                final var history = new ModifiableValueHistory<>(firstValue, transitions);
+
+                assertInvariants(history);
+                assertAll(() -> assertSame(firstValue, history.getFirstValue(), "firstValue"),
+                        () -> assertEquals(transitions, history.getTransitions(), "transitions"));
+            }
+
+            @Test
+            public void two() {
+                final SortedMap<Duration, Integer> transitions = new TreeMap<>();
+                transitions.put(WHEN_2, Integer.valueOf(3));
+                transitions.put(WHEN_3, Integer.valueOf(2));
+
+                test(Integer.valueOf(1), transitions);
+            }
         }// class
 
         @Test

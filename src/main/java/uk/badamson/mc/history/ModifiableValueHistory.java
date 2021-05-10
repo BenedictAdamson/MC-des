@@ -86,6 +86,39 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
 
     /**
      * <p>
+     * Construct a value history with a given sequence of state transitions
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getFirstValue() first value} of this history is the same
+     * as the given {@code firstValue}.</li>
+     * <li>The {@linkplain #getTransitions() transitions} of this history is
+     * {@linkplain SortedMap#equals(Object) equivalent to} the given
+     * {@code transitions} map.</li>
+     * </ul>
+     *
+     * @param firstValue
+     *            The {@linkplain #get(Duration) value} of this history at the
+     *            {@linkplain #START_OF_TIME start of time}.
+     * @param transitions
+     *            The transitions in the value of this history.
+     * @throws NullPointerException
+     *             If {@code transitions} is null
+     * @throws IllegalArgumentException
+     *             If adjacent {@linkplain SortedMap#values() values} of
+     *             {@code transitions} are
+     *             {@linkplain Objects#equals(Object, Object) equivalent or
+     *             equivalently null}.
+     */
+    public ModifiableValueHistory(@Nullable final VALUE firstValue,
+            @Nonnull final SortedMap<Duration, VALUE> transitions) {
+        Objects.requireNonNull(transitions, "transitions");
+        this.firstValue = firstValue;
+        transitions.entrySet().stream().sequential()
+                .forEach(entry -> this.transitions.put(entry.getKey(), entry.getValue()));
+    }
+
+    /**
+     * <p>
      * Construct a value history that is initially a copy of a given value history
      * </p>
      * <ul>
