@@ -297,6 +297,31 @@ public class ObjectHistory<STATE> {
 
     /**
      * <p>
+     * Whether this object is <dfn>equivalent</dfn> to a given object.
+     * </p>
+     * <p>
+     * The {@link ObjectHistory} class has <i>value semantics</i>: this object is
+     * equivalent to another object if, and only if, the other is also an
+     * {@link ObjectHistory}, and the two have equivalent
+     * {@linkplain #getLastEvent() last events} and {@linkplain #getStateHistory()
+     * state histories}.
+     * </p>
+     */
+    @Override
+    public final boolean equals(final Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof ObjectHistory)) {
+            return false;
+        }
+        @SuppressWarnings("rawtypes")
+        final ObjectHistory other = (ObjectHistory) obj;
+        return lastEvent.equals(other.lastEvent) && stateHistory.equals(other.stateHistory);
+    }
+
+    /**
+     * <p>
      * The last point in time for which this history is reliable.
      * </p>
      * <ul>
@@ -434,6 +459,15 @@ public class ObjectHistory<STATE> {
         }
     }
 
+    @Override
+    public final int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + lastEvent.hashCode();
+        result = prime * result + stateHistory.hashCode();
+        return result;
+    }
+
     /**
      * <p>
      * Provide the sequence of {@linkplain Event events} that cause
@@ -545,4 +579,10 @@ public class ObjectHistory<STATE> {
     public Flux<TimestampedState<STATE>> observeStateTransitions() {
         return stateTransitions.asFlux();
     }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [stateHistory=" + stateHistory + ", lastEvent=" + lastEvent + "]";
+    }
+
 }

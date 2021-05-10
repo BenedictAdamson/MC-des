@@ -20,6 +20,8 @@ package uk.badamson.mc.simulation.rx;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -31,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -98,6 +101,7 @@ public class ObjectHistoryTest {
 
                 assertInvariants(copy);
                 assertInvariants(copy, that);
+                assertEquals(copy, that);
                 assertAll("Copied", () -> assertSame(that.getEnd(), copy.getEnd(), "end"),
                         () -> assertSame(that.getLastEvent(), copy.getLastEvent(), "lastEvent"),
                         () -> assertSame(that.getObject(), copy.getObject(), "object"),
@@ -162,6 +166,71 @@ public class ObjectHistoryTest {
 
             }// class
 
+            @Nested
+            public class Two {
+
+                @Test
+                public void differentLastEvent() {
+                    final SortedMap<Duration, Integer> previousStateTransitions = new TreeMap<>(
+                            Map.of(WHEN_A.minusMillis(10), Integer.valueOf(-1)));
+                    final var lastEventA = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A), Integer.valueOf(0),
+                            Map.of());
+                    final var lastEventB = new TestEvent(new ObjectStateId(OBJECT_B, WHEN_B), Integer.valueOf(1),
+                            Map.of());
+                    assert !lastEventA.equals(lastEventB);
+
+                    final var historyA = new ObjectHistory<>(previousStateTransitions, lastEventA);
+                    final var historyB = new ObjectHistory<>(previousStateTransitions, lastEventB);
+
+                    assertInvariants(historyA, historyB);
+                    assertThat("not equals", historyA, not(is(historyB)));
+                }
+
+                @Test
+                public void differentPreviousStateTransitions() {
+                    final SortedMap<Duration, Integer> previousStateTransitionsA = new TreeMap<>(
+                            Map.of(WHEN_A.minusMillis(10), Integer.valueOf(-1)));
+                    final SortedMap<Duration, Integer> previousStateTransitionsB = new TreeMap<>(
+                            Map.of(WHEN_A.minusMillis(20), Integer.valueOf(-2)));
+                    final var lastEvent = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A),
+                            Integer.valueOf(Integer.MAX_VALUE), Map.of());
+                    assert !previousStateTransitionsA.equals(previousStateTransitionsB);
+
+                    final var historyA = new ObjectHistory<>(previousStateTransitionsA, lastEvent);
+                    final var historyB = new ObjectHistory<>(previousStateTransitionsB, lastEvent);
+
+                    assertInvariants(historyA, historyB);
+                    assertThat("not equals", historyA, not(is(historyB)));
+                }
+
+                @Test
+                public void equivalent() {
+                    final var nextEventDependenciesA = Map.of(OBJECT_B, WHEN_A.minusMillis(10));
+                    final var nextEventDependenciesB = new HashMap<>(nextEventDependenciesA);
+
+                    final SortedMap<Duration, Integer> previousStateTransitionsA = new TreeMap<>(
+                            Map.of(WHEN_A.minusMillis(10), Integer.valueOf(-1)));
+                    final SortedMap<Duration, Integer> previousStateTransitionsB = new TreeMap<>(
+                            previousStateTransitionsA);
+                    final var lastEventA = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A),
+                            Integer.valueOf(Integer.MAX_VALUE), nextEventDependenciesA);
+                    final var lastEventB = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A),
+                            Integer.valueOf(Integer.MAX_VALUE), nextEventDependenciesB);
+
+                    assert previousStateTransitionsA.equals(previousStateTransitionsB);
+                    assert previousStateTransitionsA != previousStateTransitionsB;// tough test
+                    assert lastEventA.equals(lastEventB);
+                    assert lastEventA != lastEventB;// tough test
+
+                    final var historyA = new ObjectHistory<>(previousStateTransitionsA, lastEventA);
+                    final var historyB = new ObjectHistory<>(previousStateTransitionsB, lastEventB);
+
+                    assertInvariants(historyA, historyB);
+                    assertThat("equals", historyA, is(historyB));
+                }
+
+            }// class
+
             private <STATE> void test(@Nonnull final SortedMap<Duration, STATE> previousStateTransitions,
                     @Nonnull final Event<STATE> lastEvent) {
                 final var history = new ObjectHistory<>(previousStateTransitions, lastEvent);
@@ -186,6 +255,41 @@ public class ObjectHistoryTest {
 
         @Nested
         public class LastEvent {
+
+            @Nested
+            public class Two {
+
+                @Test
+                public void different() {
+                    final var eventA = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A), Integer.valueOf(0), Map.of());
+                    final var eventB = new TestEvent(new ObjectStateId(OBJECT_B, WHEN_B), Integer.valueOf(1),
+                            Map.of(OBJECT_A, WHEN_B.minusMillis(10)));
+
+                    final var historyA = new ObjectHistory<>(eventA);
+                    final var historyB = new ObjectHistory<>(eventB);
+
+                    assertInvariants(historyA, historyB);
+                    assertNotEquals(historyA, historyB);
+                }
+
+                @Test
+                public void equivalent() {
+                    final var nextEventDependenciesA = Map.of(OBJECT_B, WHEN_A.minusMillis(10));
+                    final var nextEventDependenciesB = new HashMap<>(nextEventDependenciesA);
+                    final var eventA = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A),
+                            Integer.valueOf(Integer.MAX_VALUE), nextEventDependenciesA);
+                    final var eventB = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A),
+                            Integer.valueOf(Integer.MAX_VALUE), nextEventDependenciesB);
+                    assert eventA.equals(eventB);
+                    assert eventA != eventB;// tough test
+
+                    final var historyA = new ObjectHistory<>(eventA);
+                    final var historyB = new ObjectHistory<>(eventB);
+
+                    assertInvariants(historyA, historyB);
+                    assertEquals(historyA, historyB);
+                }
+            }// class
 
             @Test
             public void a() {
@@ -655,6 +759,11 @@ public class ObjectHistoryTest {
     public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history1,
             @Nonnull final ObjectHistory<STATE> history2) {
         ObjectTest.assertInvariants(history1, history2);// inherited
+
+        assertTrue(history1.equals(
+                history2) == (history1.getPreviousStateTransitions().equals(history2.getPreviousStateTransitions())
+                        && history1.getLastEvent().equals(history2.getLastEvent())),
+                "value semantics");
     }
 
     public static <STATE> Flux<Event<STATE>> observeEvents(@Nonnull final ObjectHistory<STATE> history) {
