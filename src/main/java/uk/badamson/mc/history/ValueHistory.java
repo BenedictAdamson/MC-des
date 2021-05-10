@@ -32,6 +32,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 /**
  * <p>
  * The time-wise variation of a value that changes at discrete points in time.
@@ -119,6 +121,7 @@ public interface ValueHistory<VALUE> {
      * @return the first transition time.
      */
     @Nullable
+    @JsonIgnore
     Duration getFirstTansitionTime();
 
     /**
@@ -158,6 +161,7 @@ public interface ValueHistory<VALUE> {
      * @return the last transition time.
      */
     @Nullable
+    @JsonIgnore
     Duration getLastTansitionTime();
 
     /**
@@ -182,6 +186,7 @@ public interface ValueHistory<VALUE> {
      * @return the last value.
      */
     @Nullable
+    @JsonIgnore
     VALUE getLastValue();
 
     /**
@@ -271,6 +276,7 @@ public interface ValueHistory<VALUE> {
      * @return the transition times
      */
     @Nonnull
+    @JsonIgnore
     SortedSet<Duration> getTransitionTimes();
 
     /**
@@ -302,6 +308,7 @@ public interface ValueHistory<VALUE> {
      * </ul>
      *
      */
+    @JsonIgnore
     boolean isEmpty();
 
     /**

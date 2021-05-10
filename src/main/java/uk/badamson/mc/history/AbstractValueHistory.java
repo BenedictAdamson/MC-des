@@ -76,20 +76,17 @@ abstract class AbstractValueHistory<VALUE> implements ValueHistory<VALUE> {
     }
 
     @Override
-    @JsonIgnore
     public @Nullable Duration getLastTansitionTime() {
         final var transitions = getTransitions();
         return transitions.isEmpty() ? null : transitions.lastKey();
     }
 
     @Override
-    @JsonIgnore
     public @Nullable VALUE getLastValue() {
         return get(END_OF_TIME);
     }
 
     @Override
-    @JsonIgnore
     public @Nonnull SortedSet<Duration> getTransitionTimes() {
         return new TreeSet<>(getTransitions().keySet());
     }
@@ -101,7 +98,6 @@ abstract class AbstractValueHistory<VALUE> implements ValueHistory<VALUE> {
     }
 
     @Override
-    @JsonIgnore
     public boolean isEmpty() {
         return getTransitions().isEmpty();
     }
