@@ -283,6 +283,33 @@ public final class Universe<STATE> {
 
     /**
      * <p>
+     * Get a snapshot of the history information of all the objects in this
+     * universe.
+     * </p>
+     * <ul>
+     * <li>A map of an object ID to the history of the object that has that ID.</li>
+     * <li>The map will not subsequently change due to events.</li>
+     * <li>Has no null {@linkplain Map#keySet() keys}.</li>
+     * <li>Has no null {@linkplain Map#values() values}.</li>
+     * <li>Has only {@linkplain Map#entrySet() entries} for which the
+     * {@linkplain ObjectHistory#getObject() object} of the value of the entry is
+     * the same as the key of the entry.</li>
+     * <li>Has a {@linkplain Map#keySet() set of keys}
+     * {@linkplain Set#equals(Object) equivalent to} the {@linkplain #getObjects()
+     * set of object IDs}.</li>
+     * </ul>
+     */
+    @Nonnull
+    public Map<UUID, ObjectHistory<STATE>> getObjectHistories() {
+        final Map<UUID, ObjectHistory<STATE>> copy = new HashMap<>(objectHistories.size());
+        synchronized (objectCreationLock) {// hard to test
+            objectHistories.forEach((object, history) -> copy.put(object, new ObjectHistory<>(history)));
+        }
+        return copy;
+    }
+
+    /**
+     * <p>
      * The unique IDs of the simulated objects in this universe.
      * </p>
      * <ul>

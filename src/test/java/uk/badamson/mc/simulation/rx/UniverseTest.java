@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation.rx;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
@@ -35,12 +36,14 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.reactivestreams.Publisher;
 
 import reactor.core.publisher.Mono;
@@ -71,6 +74,12 @@ public class UniverseTest {
                 final Universe<STATE> universe = new Universe<>();
 
                 AddObject.this.test(universe, event);
+
+                final var objectHistories = universe.getObjectHistories();
+                final var objectHistory = objectHistories.get(event.getObject());
+                assertEquals(1, objectHistories.size(), "number of objects");
+                assertNotNull(objectHistory, "has a histopry for the object");// guard
+                assertSame(event, objectHistory.getLastEvent(), "objectHistory.lastEvent");
             }
 
         }// class
@@ -247,7 +256,13 @@ public class UniverseTest {
                     final Universe<STATE> universe = new Universe<>();
                     universe.addObject(event);
 
-                    Copy.this.test(universe);
+                    final var copy = Copy.this.test(universe);
+
+                    final var objectHistories = copy.getObjectHistories();
+                    final var objectHistory = objectHistories.get(event.getObject());
+                    assertEquals(1, objectHistories.size(), "number of objects");
+                    assertNotNull(objectHistory, "has a histopry for the object");// guard
+                    assertSame(event, objectHistory.getLastEvent(), "objectHistory.lastEvent");
                 }
             }// class
 
@@ -256,9 +271,11 @@ public class UniverseTest {
                 final var universe = new Universe<Integer>();
 
                 test(universe);
+
+                assertEmpty(universe);
             }
 
-            private <STATE> void test(@Nonnull final Universe<STATE> that) {
+            private <STATE> Universe<STATE> test(@Nonnull final Universe<STATE> that) {
                 final var copy = new Universe<>(that);
 
                 assertInvariants(copy);
@@ -266,6 +283,8 @@ public class UniverseTest {
                 assertInvariants(copy, that);
 
                 assertThat("objects", copy.getObjects(), is(that.getObjects()));
+
+                return copy;
             }
 
             @Test
@@ -316,7 +335,7 @@ public class UniverseTest {
             final var universe = new Universe<>();
 
             assertInvariants(universe);
-            assertThat("The set of objects is empty.", universe.getObjects(), empty());
+            assertEmpty(universe);
         }
 
     }// class
@@ -449,16 +468,46 @@ public class UniverseTest {
 
     private static final TestEvent EVENT_B = new TestEvent(OBJECT_STATE_ID_B, Integer.valueOf(1), Map.of());
 
+    private static <STATE> void assertEmpty(@Nonnull final Universe<STATE> universe) {
+        assertAll("empty", () -> assertThat("objects", universe.getObjects(), empty()),
+                () -> assertThat("objectHistories", universe.getObjectHistories().keySet(), empty()));
+    }
+
     public static <STATE> void assertInvariants(@Nonnull final Universe<STATE> universe) {
         ObjectTest.assertInvariants(universe);// inherited
 
         final Set<UUID> objects = universe.getObjects();
-        assertNotNull(objects, "Not null, objects");// guard
+        final Map<UUID, ObjectHistory<STATE>> objectHistories = universe.getObjectHistories();
+
+        assertAll("Not null", () -> assertNotNull(objects, "objects"), // guard
+                () -> assertNotNull(objectHistories, "objectHistories")// guard
+        );
         assertFalse(objects.stream().anyMatch(id -> id == null), "The set of object IDs does not contain a null.");
+        assertAll("objectHistories", createObjectHistoriesInvariantAssertions(objectHistories));
+        assertEquals(objects, objectHistories.keySet(),
+                "objectHistories has a set of keys equivalent to the set of object IDs");
     }
 
     public static <STATE> void assertInvariants(@Nonnull final Universe<STATE> universe1,
             @Nonnull final Universe<STATE> universe2) {
         ObjectTest.assertInvariants(universe1, universe2);// inherited
+    }
+
+    private static <STATE> Stream<Executable> createObjectHistoriesInvariantAssertions(
+            @Nonnull final Map<UUID, ObjectHistory<STATE>> objectHistories) {
+        return objectHistories.entrySet().stream().map(entry -> {
+            return new Executable() {
+
+                @Override
+                public void execute() {
+                    final var object = entry.getKey();
+                    final var history = entry.getValue();
+                    assertAll("Not null", () -> assertNotNull(object, "key"), () -> assertNotNull(history, "value"));
+                    ObjectHistoryTest.assertInvariants(history);
+                    assertSame(object, history.getObject(),
+                            "Has only entries for which the object of the value of the entry is the same as the key of the entry.");
+                }
+            };
+        });
     }
 }
