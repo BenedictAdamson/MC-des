@@ -201,11 +201,12 @@ public final class ObjectHistory<STATE> {
      */
     public ObjectHistory(@Nonnull final ObjectHistory<STATE> that) {
         Objects.requireNonNull(that, "that");
-        // FIXME
+        synchronized (that.object) {// hard to test
+            lastEvent = that.lastEvent;
+            stateHistory = new ModifiableValueHistory<>(that.stateHistory);
+        }
         object = that.object;
         start = that.start;
-        lastEvent = that.lastEvent;
-        stateHistory = new ModifiableValueHistory<>(that.stateHistory);
         final var result1 = events.tryEmitNext(lastEvent);
         final var result2 = stateTransitions
                 .tryEmitNext(new TimestampedState<>(lastEvent.getWhen(), lastEvent.getState()));
