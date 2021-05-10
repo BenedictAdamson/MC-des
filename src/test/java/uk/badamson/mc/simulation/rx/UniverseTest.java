@@ -228,6 +228,27 @@ public class UniverseTest {
         @Nested
         public class Copy {
 
+            @Nested
+            public class OneEvent {
+
+                @Test
+                public void a() {
+                    test(EVENT_A);
+                }
+
+                @Test
+                public void b() {
+                    test(EVENT_B);
+                }
+
+                private <STATE> void test(@Nonnull final Event<STATE> event) {
+                    final Universe<STATE> universe = new Universe<>();
+                    universe.addObject(event);
+
+                    Copy.this.test(universe);
+                }
+            }// class
+
             @Test
             public void empty() {
                 final var universe = new Universe<Integer>();

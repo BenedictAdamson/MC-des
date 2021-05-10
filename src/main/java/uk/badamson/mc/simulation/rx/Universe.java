@@ -106,7 +106,8 @@ public final class Universe<STATE> {
      */
     public Universe(@Nonnull final Universe<STATE> that) {
         Objects.requireNonNull(that, "that");
-        // FIXME
+        that.objectHistories.forEach((object, history) -> objectHistories.put(object, new ObjectHistory<>(history)));
+        // FIXME threadsafety
     }
 
     /**
