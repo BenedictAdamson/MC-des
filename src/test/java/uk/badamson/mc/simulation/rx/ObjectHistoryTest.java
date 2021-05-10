@@ -51,6 +51,7 @@ import org.reactivestreams.Publisher;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.ThreadTest;
 import uk.badamson.mc.history.ValueHistory;
@@ -437,6 +438,83 @@ public class ObjectHistoryTest {
             }
 
         }// class
+
+    }// class
+
+    @Nested
+    public class JSON {
+
+        @Nested
+        public class OneTransition {
+
+            @Test
+            public void a() {
+                test(OBJECT_A, WHEN_A, Integer.valueOf(0), Map.of());
+            }
+
+            @Test
+            public void b() {
+                test(OBJECT_B, WHEN_B, Integer.valueOf(1), Map.of(OBJECT_A, WHEN_B.minusMillis(10)));
+            }
+
+            private <STATE> void test(@Nonnull final Event<STATE> event) {
+                final var history = new ObjectHistory<>(event);
+
+                JSON.this.test(history);
+            }
+
+            private void test(final UUID object, final Duration start, final Integer state,
+                    final Map<UUID, Duration> nextEventDependencies) {
+                final var event = new TestEvent(new ObjectStateId(object, start), state, nextEventDependencies);
+
+                test(event);
+            }
+
+        }// class
+
+        @Nested
+        public class TwoTransitions {
+
+            @Test
+            public void destruction() {
+                test(OBJECT_A, WHEN_A, Integer.valueOf(0), WHEN_B, null);
+            }
+
+            @Test
+            public void far() {
+                test(OBJECT_A, WHEN_A, Integer.valueOf(0), WHEN_B, Integer.valueOf(1));
+            }
+
+            @Test
+            public void near() {
+                final var start = WHEN_B;
+                final var end = start.plusNanos(1);
+                test(OBJECT_A, start, Integer.valueOf(3), end, Integer.valueOf(2));
+            }
+
+            private void test(final UUID object, final Duration start, final Integer state1, final Duration end,
+                    final Integer state2) {
+                final SortedMap<Duration, Integer> previousStateTransitions = new TreeMap<>();
+                previousStateTransitions.put(start, state1);
+                final var event = new TestEvent(new ObjectStateId(object, end), state2, Map.of());
+                final var history = new ObjectHistory<>(previousStateTransitions, event);
+
+                JSON.this.test(history);
+            }
+
+        }// class
+
+        private <STATE> void test(@Nonnull final ObjectHistory<STATE> history) {
+            final var deserialized = JsonTest.serializeAndDeserialize(history);
+
+            assertInvariants(history);
+            assertInvariants(history, deserialized);
+            assertAll(() -> assertEquals(history.getEnd(), deserialized.getEnd(), "end"),
+                    () -> assertEquals(history.getLastEvent(), deserialized.getLastEvent(), "lastEvent"),
+                    () -> assertEquals(history.getObject(), deserialized.getObject(), "object"),
+                    () -> assertEquals(history.getStart(), deserialized.getStart(), "start"),
+                    () -> assertEquals(history.getStateHistory(), deserialized.getStateHistory(), "stateHistory"));
+        }
 
     }// class
 
@@ -926,7 +1004,6 @@ public class ObjectHistoryTest {
             }
 
         }// class
-        
 
         @Nested
         public class AfterCopyConstructor {

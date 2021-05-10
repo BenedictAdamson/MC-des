@@ -28,6 +28,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import uk.badamson.mc.simulation.ObjectStateId;
 
@@ -42,6 +43,7 @@ import uk.badamson.mc.simulation.ObjectStateId;
  *            that is not required.
  */
 @Immutable
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "class")
 public abstract class Event<STATE> implements Comparable<Event<STATE>> {
 
     private static <STATE> Map<UUID, Duration> requireValidNextEventDependencies(

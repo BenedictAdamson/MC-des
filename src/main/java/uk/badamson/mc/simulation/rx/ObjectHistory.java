@@ -32,6 +32,10 @@ import javax.annotation.concurrent.ThreadSafe;
 
 import org.reactivestreams.Publisher;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
@@ -251,8 +255,10 @@ public final class ObjectHistory<STATE> {
      *             null as)} its predecessor value.</li>
      *             </ul>
      */
-    public ObjectHistory(@Nonnull final SortedMap<Duration, STATE> previousStateTransitions,
-            @Nonnull final Event<STATE> lastEvent) {
+    @JsonCreator
+    public ObjectHistory(
+            @Nonnull @JsonProperty("previousStateTransitions") final SortedMap<Duration, STATE> previousStateTransitions,
+            @JsonProperty("lastEvent") @Nonnull final Event<STATE> lastEvent) {
         this.lastEvent = Objects.requireNonNull(lastEvent, "lastEvent");// redundant; satisfy SpotBugs
         this.object = lastEvent.getObject();
         this.start = previousStateTransitions.isEmpty() ? lastEvent.getWhen() : previousStateTransitions.firstKey();
@@ -433,6 +439,7 @@ public final class ObjectHistory<STATE> {
      * </ul>
      */
     @Nonnull
+    @JsonIgnore
     public Duration getEnd() {
         final var event = getLastEvent();
         if (event.getState() == null) {
@@ -473,6 +480,7 @@ public final class ObjectHistory<STATE> {
      * </ul>
      */
     @Nonnull
+    @JsonIgnore
     public UUID getObject() {
         return object;
     }
@@ -507,6 +515,7 @@ public final class ObjectHistory<STATE> {
      * </ul>
      */
     @Nonnull
+    @JsonIgnore
     public Duration getStart() {
         return start;
     }
@@ -544,6 +553,7 @@ public final class ObjectHistory<STATE> {
      * @see #observeState(Duration)
      */
     @Nonnull
+    @JsonIgnore
     public ValueHistory<STATE> getStateHistory() {
         synchronized (lock) {// hard to test
             return new ModifiableValueHistory<>(stateHistory);
