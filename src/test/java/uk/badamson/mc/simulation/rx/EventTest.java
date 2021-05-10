@@ -67,6 +67,21 @@ public class EventTest {
         public class Two {
 
             @Test
+            public void differentNextEventDependencies() {
+                // Tough test: all other attributes and aggregates the same
+                final var id = new ObjectStateId(OBJECT_A, WHEN_A);
+                final Integer state = Integer.valueOf(0);
+                final Map<UUID, Duration> nextEventDependenciesA = Map.of();
+                final Map<UUID, Duration> nextEventDependenciesB = Map.of(OBJECT_B, Duration.ofMillis(-100));
+
+                final var eventA = new TestEvent(id, state, nextEventDependenciesA);
+                final var eventB = new TestEvent(id, state, nextEventDependenciesB);
+
+                assertInvariants(eventA, eventB);
+                assertNotEquals(eventA, eventB);
+            }
+
+            @Test
             public void differentObjects() {
                 // Tough test: all other attributes and aggregates the same
                 final var idA = new ObjectStateId(OBJECT_A, WHEN_A);
@@ -76,6 +91,21 @@ public class EventTest {
 
                 final var eventA = new TestEvent(idA, state, nextEventDependencies);
                 final var eventB = new TestEvent(idB, state, nextEventDependencies);
+
+                assertInvariants(eventA, eventB);
+                assertNotEquals(eventA, eventB);
+            }
+
+            @Test
+            public void differentState() {
+                // Tough test: all other attributes and aggregates the same
+                final var id = new ObjectStateId(OBJECT_A, WHEN_A);
+                final Integer stateA = Integer.valueOf(0);
+                final Integer stateB = Integer.valueOf(1);
+                final Map<UUID, Duration> nextEventDependencies = Map.of();
+
+                final var eventA = new TestEvent(id, stateA, nextEventDependencies);
+                final var eventB = new TestEvent(id, stateB, nextEventDependencies);
 
                 assertInvariants(eventA, eventB);
                 assertNotEquals(eventA, eventB);
@@ -98,19 +128,32 @@ public class EventTest {
 
             @Test
             public void equivalent() {
-                final Integer stateA = Integer.valueOf(0);
+                final Integer stateA = Integer.valueOf(Integer.MAX_VALUE);
                 final Integer stateB = Integer.valueOf(Integer.MAX_VALUE);
-                final Map<UUID, Duration> nextEventDependenciesA = Map.of();
-                final Map<UUID, Duration> nextEventDependenciesB = Map.of(OBJECT_B, Duration.ofMillis(-100));
-                assert !stateA.equals(stateB);// tough test
-                assert !nextEventDependenciesA.equals(nextEventDependenciesB);// tough test
+                final Map<UUID, Duration> nextEventDependenciesA = Map.of(OBJECT_B, Duration.ofMillis(-100));
+                final Map<UUID, Duration> nextEventDependenciesB = new HashMap<>(nextEventDependenciesA);
                 final ObjectStateId idA = ID_A;
                 final ObjectStateId idB = new ObjectStateId(ID_A.getObject(), ID_A.getWhen());
                 assert idA.equals(idB);
                 assert idA != idB;// tough test
+                assert stateA.equals(stateB);
+                assert stateA != stateB;// tough test
+                assert nextEventDependenciesA.equals(nextEventDependenciesB);
+                assert nextEventDependenciesA != nextEventDependenciesB;// tough test
 
                 final var eventA = new TestEvent(idA, stateA, nextEventDependenciesA);
-                final var eventB = new TestEvent(idB, stateB, nextEventDependenciesB);
+                final var eventB = new TestEvent(idB, stateA, nextEventDependenciesB);
+
+                assertInvariants(eventA, eventB);
+                assertEquals(eventA, eventB);
+            }
+
+            @Test
+            public void equivalent_nullState() {
+                final Integer state = null;
+                final Map<UUID, Duration> nextEventDependencies = Map.of();
+                final var eventA = new TestEvent(ID_A, state, nextEventDependencies);
+                final var eventB = new TestEvent(ID_A, state, nextEventDependencies);
 
                 assertInvariants(eventA, eventB);
                 assertEquals(eventA, eventB);
@@ -254,8 +297,9 @@ public class EventTest {
             @Nonnull final Event<STATE> event2) {
         ObjectTest.assertInvariants(event1, event2);// inherited
 
-        assertTrue(event1.getId().equals(event2.getId()) == event1.equals(event2),
-                "entity semantics with ID as the unique ID");
+        assertTrue(event1.equals(event2) == (event1.getId().equals(event2.getId())
+                && Objects.equals(event1.getState(), event2.getState())
+                && event1.getNextEventDependencies().equals(event2.getNextEventDependencies())));
     }
 
     private static Stream<Executable> createNextEventDependenciesAssertions(

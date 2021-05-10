@@ -188,10 +188,10 @@ public abstract class Event<STATE> {
      * Whether this object is <dfn>equivalent</dfn> to a given object.
      * </p>
      * <p>
-     * The Event class has <i>entity semantics</i> with the {@linkplain #getId() ID}
-     * acting as the unique ID: this object is equivalent to another object if, and
-     * only if, the other object is also an Event and the two have
-     * {@linkplain ObjectStateId#equals(Object) equivalent} IDs.
+     * The Event class has <i>value semantics</i>: this object is equivalent to
+     * another object if, and only if, the other object is also an Event and the two
+     * have equivalent {@linkplain #getId() ID}, {@linkplain #getState() state} and
+     * {@linkplain #getNextEventDependencies() next dependencies}.
      * </p>
      */
     @Override
@@ -202,9 +202,10 @@ public abstract class Event<STATE> {
         if (!(obj instanceof Event)) {
             return false;
         }
-        @SuppressWarnings("unchecked")
-        final Event<STATE> other = (Event<STATE>) obj;
-        return id.equals(other.id);
+        @SuppressWarnings("rawtypes")
+        final Event other = (Event) obj;
+        return id.equals(other.id) && nextEventDependencies.equals(other.nextEventDependencies)
+                && Objects.equals(state, other.state);
     }
 
     /**
@@ -310,12 +311,17 @@ public abstract class Event<STATE> {
 
     @Override
     public final int hashCode() {
-        return id.hashCode();
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + id.hashCode();
+        result = prime * result + nextEventDependencies.hashCode();
+        result = prime * result + (state == null ? 0 : state.hashCode());
+        return result;
     }
 
     @Override
     public String toString() {
-        return "Event [" + id + "]";
+        return "Event [" + id + ", nextEventDependencies=" + nextEventDependencies + ", state=" + state + "]";
     }
 
 }
