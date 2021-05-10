@@ -34,10 +34,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 
@@ -282,6 +284,30 @@ public class UniverseTest {
                 StepVerifier.create(sequence).then(() -> test(universe)).expectComplete()
                         .verify(Duration.ofMillis(100));
                 assertInvariants(universe);
+            }
+
+            @RepeatedTest(64)
+            public void whileCreatingObjects() {
+                final var object1 = OBJECT_A;
+                final Duration start = WHEN_A;
+                final var timeout = Duration.ofMillis(100);
+                final Duration when = start.plusSeconds(32);
+                final var state0 = Integer.valueOf(Integer.MIN_VALUE);// magic number
+                final var event0 = new TestEvent(new ObjectStateId(object1, start), state0, Map.of());
+                final var universe = new Universe<Integer>();
+                universe.addObject(event0);
+                final var copy = new AtomicReference<Universe<Integer>>();
+
+                final var sequence1 = universe.advanceStatesTo(when, 1);
+
+                StepVerifier.create(sequence1).then(() -> copy.set(new Universe<>(universe))).expectComplete()
+                        .verify(timeout);
+
+                final var sequence2 = copy.get().advanceStatesTo(when, 1);
+                StepVerifier.create(sequence2).expectComplete().verify(timeout);
+
+                assertEquals(universe.getObjects().size(), copy.get().getObjects().size(),
+                        "copy can have created objects");
             }
         }// class
 

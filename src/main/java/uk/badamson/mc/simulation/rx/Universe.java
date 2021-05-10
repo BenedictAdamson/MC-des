@@ -82,6 +82,10 @@ public final class Universe<STATE> {
     }
 
     private final Map<UUID, ObjectHistory<STATE>> objectHistories = new ConcurrentHashMap<>();
+    /**
+     * Adding entries to the objectHistories Map is guarded by this lock.
+     */
+    private final Object objectCreationLock = new Object();
 
     /**
      * <p>
@@ -106,8 +110,10 @@ public final class Universe<STATE> {
      */
     public Universe(@Nonnull final Universe<STATE> that) {
         Objects.requireNonNull(that, "that");
-        that.objectHistories.forEach((object, history) -> objectHistories.put(object, new ObjectHistory<>(history)));
-        // FIXME threadsafety
+        synchronized (that.objectCreationLock) {// hard to test
+            that.objectHistories
+                    .forEach((object, history) -> objectHistories.put(object, new ObjectHistory<>(history)));
+        }
     }
 
     /**
@@ -154,13 +160,15 @@ public final class Universe<STATE> {
         Objects.requireNonNull(event, "event");
         Objects.requireNonNull(event.getState(), "event.state");
 
-        objectHistories.compute(event.getObject(), (k, v) -> {
-            if (v == null) {
-                return new ObjectHistory<>(event);
-            } else {
-                throw new IllegalArgumentException("Already present");
-            }
-        });
+        synchronized (objectCreationLock) {
+            objectHistories.compute(event.getObject(), (k, v) -> {
+                if (v == null) {
+                    return new ObjectHistory<>(event);
+                } else {
+                    throw new IllegalArgumentException("Already present");
+                }
+            });
+        }
     }
 
     /**
@@ -221,6 +229,19 @@ public final class Universe<STATE> {
         });
     }
 
+    private void applyNextEvents(@Nonnull final Event<STATE> lastEvent,
+            @Nonnull final Map<UUID, Event<STATE>> nextEvents) {
+        assert 1 <= nextEvents.size();
+        if (nextEvents.size() == 1) {
+            nextEvents.values().forEach(event -> applyEvent(lastEvent, event));
+        } else {
+            // creation events too
+            synchronized (objectCreationLock) {
+                nextEvents.values().forEach(event -> applyEvent(lastEvent, event));
+            }
+        }
+    }
+
     private Collection<ObjectStateId> expandAdvanceStep(@Nonnull final ObjectStateId step) {
         final var history = objectHistories.get(step.getObject());
         final var when = step.getWhen();
@@ -239,8 +260,7 @@ public final class Universe<STATE> {
             }).forEach(entry -> subSteps.add(new ObjectStateId(entry.getKey(), entry.getValue())));
             if (subSteps.isEmpty()) {
                 // Can advance right now
-                observeNextEvents(lastEvent).flatMapIterable(map -> map.values())
-                        .doOnNext(event -> applyEvent(lastEvent, event)).then().block();
+                observeNextEvents(lastEvent).doOnNext(events -> applyNextEvents(lastEvent, events)).then().block();
                 // But have we advanced far enough? May iterate again.
             } else {
                 // Defer the step until its predecessors are done
