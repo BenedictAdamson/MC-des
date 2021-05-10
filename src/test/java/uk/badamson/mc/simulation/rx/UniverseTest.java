@@ -22,6 +22,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -186,6 +187,15 @@ public class UniverseTest {
         }
 
         @Test
+        public void empty() {
+            final var universe = new Universe<Integer>();
+
+            final var sequence = test(universe, WHEN_A, 1);
+
+            StepVerifier.create(sequence).expectComplete().verify();
+        }
+
+        @Test
         public void manyInParallel() {
             final int nObjects = 256;
             final int nThreads = 4;
@@ -201,17 +211,8 @@ public class UniverseTest {
             assertInvariants(universe);
         }
 
-        @Test
-        public void empty() {
-            final var universe = new Universe<Integer>();
-
-            final var sequence = test(universe, WHEN_A, 1);
-
-            StepVerifier.create(sequence).expectComplete().verify();
-        }
-
         private <STATE> Mono<Void> test(@Nonnull final Universe<STATE> universe, @Nonnull final Duration when,
-                int nThreads) {
+                final int nThreads) {
             final var sequence = universe.advanceStatesTo(when, nThreads);
 
             assertInvariants(universe);
@@ -219,6 +220,40 @@ public class UniverseTest {
 
             return sequence;
         }
+    }// class
+
+    @Nested
+    public class Constructor {
+
+        @Nested
+        public class Copy {
+
+            @Test
+            public void empty() {
+                final var universe = new Universe<Integer>();
+
+                test(universe);
+            }
+
+            private <STATE> void test(@Nonnull final Universe<STATE> that) {
+                final var copy = new Universe<>(that);
+
+                assertInvariants(copy);
+                assertInvariants(that);
+                assertInvariants(copy, that);
+
+                assertThat("objects", copy.getObjects(), is(that.getObjects()));
+            }
+        }// class
+
+        @Test
+        public void noArgs() {
+            final var universe = new Universe<>();
+
+            assertInvariants(universe);
+            assertThat("The set of objects is empty.", universe.getObjects(), empty());
+        }
+
     }// class
 
     @Nested
@@ -337,15 +372,16 @@ public class UniverseTest {
     }// class
 
     private static final UUID OBJECT_A = UUID.randomUUID();
+
     private static final UUID OBJECT_B = UUID.randomUUID();
-
     private static final Duration WHEN_A = Duration.ofMillis(0);
+
     private static final Duration WHEN_B = Duration.ofMillis(5000);
-
     private static final ObjectStateId OBJECT_STATE_ID_A = new ObjectStateId(OBJECT_A, WHEN_A);
-    private static final ObjectStateId OBJECT_STATE_ID_B = new ObjectStateId(OBJECT_B, WHEN_B);
 
+    private static final ObjectStateId OBJECT_STATE_ID_B = new ObjectStateId(OBJECT_B, WHEN_B);
     private static final TestEvent EVENT_A = new TestEvent(OBJECT_STATE_ID_A, Integer.valueOf(0), Map.of());
+
     private static final TestEvent EVENT_B = new TestEvent(OBJECT_STATE_ID_B, Integer.valueOf(1), Map.of());
 
     public static <STATE> void assertInvariants(@Nonnull final Universe<STATE> universe) {
@@ -359,13 +395,5 @@ public class UniverseTest {
     public static <STATE> void assertInvariants(@Nonnull final Universe<STATE> universe1,
             @Nonnull final Universe<STATE> universe2) {
         ObjectTest.assertInvariants(universe1, universe2);// inherited
-    }
-
-    @Test
-    public void constructor() {
-        final var universe = new Universe<>();
-
-        assertInvariants(universe);
-        assertThat("The set of objects is empty.", universe.getObjects(), empty());
     }
 }

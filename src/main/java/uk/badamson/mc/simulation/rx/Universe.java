@@ -98,6 +98,19 @@ public final class Universe<STATE> {
 
     /**
      * <p>
+     * Copy a universe.
+     * </p>
+     *
+     * @throws NullPointerException
+     *             If {@code that} is null.
+     */
+    public Universe(@Nonnull final Universe<STATE> that) {
+        Objects.requireNonNull(that, "that");
+        // FIXME
+    }
+
+    /**
+     * <p>
      * Add an object with given start information to the collection of objects in
      * this universe.
      * </p>
