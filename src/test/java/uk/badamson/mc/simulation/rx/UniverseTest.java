@@ -265,6 +265,24 @@ public class UniverseTest {
 
                 assertThat("objects", copy.getObjects(), is(that.getObjects()));
             }
+
+            @Test
+            public void whileAdvancing() {
+                final int nObjects = 256;
+                final int nThreads = 4;
+                final var universe = new Universe<Integer>();
+                for (int s = 0; s < nObjects; ++s) {
+                    final var state = Integer.valueOf(s);
+                    final var event = new TestEvent(new ObjectStateId(UUID.randomUUID(), WHEN_A), state, Map.of());
+                    universe.addObject(event);
+                }
+                final var end = WHEN_A.plusSeconds(16);
+
+                final var sequence = universe.advanceStatesTo(end, nThreads);
+                StepVerifier.create(sequence).then(() -> test(universe)).expectComplete()
+                        .verify(Duration.ofMillis(100));
+                assertInvariants(universe);
+            }
         }// class
 
         @Test
