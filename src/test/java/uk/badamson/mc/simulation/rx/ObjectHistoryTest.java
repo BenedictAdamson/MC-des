@@ -484,7 +484,7 @@ public class ObjectHistoryTest {
         }// class
 
         @Nested
-        public class AfterConstructor {
+        public class AfterConstructorGivenEvent {
 
             @Test
             public void a() {
@@ -501,6 +501,31 @@ public class ObjectHistoryTest {
                 final var history = new ObjectHistory<>(event);
 
                 final var flux = ObserveEvents.this.test(history);
+
+                StepVerifier.create(flux).expectNext(event).expectTimeout(Duration.ofMillis(100)).verify();
+            }
+
+        }// class
+
+        @Nested
+        public class AfterCopyConstructor {
+
+            @Test
+            public void a() {
+                test(OBJECT_A, WHEN_A, Integer.valueOf(0));
+            }
+
+            @Test
+            public void b() {
+                test(OBJECT_B, WHEN_B, Integer.valueOf(1));
+            }
+
+            private void test(final UUID object, final Duration start, final Integer state) {
+                final var event = new TestEvent(new ObjectStateId(object, start), state, Map.of());
+                final var history = new ObjectHistory<>(event);
+                final var copy = new ObjectHistory<>(history);
+
+                final var flux = ObserveEvents.this.test(copy);
 
                 StepVerifier.create(flux).expectNext(event).expectTimeout(Duration.ofMillis(100)).verify();
             }

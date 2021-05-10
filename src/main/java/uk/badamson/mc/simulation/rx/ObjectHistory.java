@@ -206,6 +206,9 @@ public final class ObjectHistory<STATE> {
         start = that.start;
         lastEvent = that.lastEvent;
         stateHistory = new ModifiableValueHistory<>(that.stateHistory);
+        final var result1 = events.tryEmitNext(lastEvent);
+        // The sink are reliable, so should always succeed.
+        assert result1 == Sinks.EmitResult.OK;
     }
 
     /**
