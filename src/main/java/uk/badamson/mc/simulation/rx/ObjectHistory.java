@@ -207,8 +207,11 @@ public final class ObjectHistory<STATE> {
         lastEvent = that.lastEvent;
         stateHistory = new ModifiableValueHistory<>(that.stateHistory);
         final var result1 = events.tryEmitNext(lastEvent);
+        final var result2 = stateTransitions
+                .tryEmitNext(new TimestampedState<>(lastEvent.getWhen(), lastEvent.getState()));
         // The sink are reliable, so should always succeed.
         assert result1 == Sinks.EmitResult.OK;
+        assert result2 == Sinks.EmitResult.OK;
     }
 
     /**
