@@ -102,6 +102,38 @@ public final class Universe<STATE> {
 
     /**
      * <p>
+     * Construct a universe given the histories of all the objects in it.
+     * </p>
+     *
+     * @param objectHistories
+     *            A snapshot of the history information of all the objects in the
+     *            universe.
+     * @throws NullPointerException
+     *             <ul>
+     *             <li>If {@code objectHistories} is null.</li>
+     *             <li>If {@code objectHistories} has a null
+     *             {@linkplain Map#keySet() key}.</li>
+     *             <li>If {@code objectHistories} has a null
+     *             {@linkplain Map#values() value}.</li>
+     *             </ul>
+     * @throws IllegalArgumentException
+     *             If {@code objectHistories} has an {@linkplain Map#entrySet()
+     *             entry} for which the {@linkplain ObjectHistory#getObject()
+     *             object} of the value of the entry is not
+     *             {@linkplain UUID#equals(Object) equivalent to} the key of the
+     *             entry.
+     */
+    public Universe(@Nonnull final Map<UUID, ObjectHistory<STATE>> objectHistories) {
+        Objects.requireNonNull(objectHistories, "objectHistories");
+        if (objectHistories.entrySet().stream()
+                .anyMatch(entry -> !entry.getKey().equals(entry.getValue().getObject()))) {
+            throw new IllegalArgumentException("objectHistories");
+        }
+        // TODO
+    }
+
+    /**
+     * <p>
      * Copy a universe.
      * </p>
      *

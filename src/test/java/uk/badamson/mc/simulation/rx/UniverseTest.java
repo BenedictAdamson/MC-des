@@ -330,6 +330,21 @@ public class UniverseTest {
             }
         }// class
 
+        @Nested
+        public class FromObjectHistories {
+
+            @Test
+            public void empty() {
+                test(Map.of());
+            }
+
+            private <STATE> void test(@Nonnull final Map<UUID, ObjectHistory<STATE>> objectHistories) {
+                final var universe = new Universe<>(objectHistories);
+
+                assertInvariants(universe);
+            }
+        }// class
+
         @Test
         public void noArgs() {
             final var universe = new Universe<>();
