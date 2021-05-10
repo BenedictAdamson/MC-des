@@ -43,8 +43,12 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import uk.badamson.mc.ComparableTest;
+import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.simulation.ObjectStateId;
 import uk.badamson.mc.simulation.ObjectStateIdTest;
@@ -144,9 +148,39 @@ public class EventTest {
         }
     }// class
 
+    @Nested
+    public class JSON {
+
+        @Test
+        public void a() {
+            test(ID_A, Integer.valueOf(1), Map.of(OBJECT_B, Duration.ofMillis(-1)));
+        }
+
+        @Test
+        public void b() {
+            test(ID_B, Integer.valueOf(2), Map.of(OBJECT_A, Duration.ofMillis(-100)));
+        }
+
+        private <STATE> void test(@Nonnull final Event<STATE> event) {
+            final var deserialized = JsonTest.serializeAndDeserialize(event);
+
+            assertInvariants(event);
+            assertInvariants(event, deserialized);
+            assertEquals(event, deserialized);
+        }
+
+        private void test(final ObjectStateId id, final Integer state,
+                final Map<UUID, Duration> nextEventDependencies) {
+            final var event = new TestEvent(id, state, nextEventDependencies);
+            test(event);
+        }
+    }// class
+
     static final class TestEvent extends Event<Integer> {
 
-        public TestEvent(final ObjectStateId id, final Integer state, final Map<UUID, Duration> nextEventDependencies) {
+        @JsonCreator
+        public TestEvent(@JsonProperty("id") final ObjectStateId id, @JsonProperty("state") final Integer state,
+                @JsonProperty("nextEventDependencies") final Map<UUID, Duration> nextEventDependencies) {
             super(id, state, nextEventDependencies);
         }
 

@@ -27,6 +27,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import uk.badamson.mc.simulation.ObjectStateId;
 
 /**
@@ -287,6 +289,7 @@ public abstract class Event<STATE> implements Comparable<Event<STATE>> {
      * </ul>
      */
     @Nonnull
+    @JsonIgnore
     public final UUID getObject() {
         return id.getObject();
     }
@@ -322,6 +325,7 @@ public abstract class Event<STATE> implements Comparable<Event<STATE>> {
      * </ul>
      */
     @Nonnull
+    @JsonIgnore
     public final Duration getWhen() {
         return id.getWhen();
     }
