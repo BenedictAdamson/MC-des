@@ -538,7 +538,7 @@ public class ModifiableObjectHistoryTest {
                 final var history = new ModifiableObjectHistory<>(event0);
                 history.append(event1);
 
-                final var flux = ObserveEvents.this.test(history);
+                final var flux = observeEvents(history);
 
                 StepVerifier.create(flux).expectNext(event1).expectComplete().verify(Duration.ofMillis(100));
             }
@@ -550,7 +550,7 @@ public class ModifiableObjectHistoryTest {
                 final var history = new ModifiableObjectHistory<>(event0);
                 history.append(event1);
 
-                final var flux = ObserveEvents.this.test(history);
+                final var flux = observeEvents(history);
 
                 StepVerifier.create(flux).expectNext(event1).expectTimeout(Duration.ofMillis(100)).verify();
             }
@@ -574,7 +574,7 @@ public class ModifiableObjectHistoryTest {
                 final var event = new TestEvent(new ObjectStateId(object, start), state, Map.of());
                 final var history = new ModifiableObjectHistory<>(event);
 
-                final var flux = ObserveEvents.this.test(history);
+                final var flux = observeEvents(history);
 
                 StepVerifier.create(flux).expectNext(event).expectTimeout(Duration.ofMillis(100)).verify();
             }
@@ -599,20 +599,12 @@ public class ModifiableObjectHistoryTest {
                 final var history = new ModifiableObjectHistory<>(event);
                 final var copy = new ModifiableObjectHistory<>(history);
 
-                final var flux = ObserveEvents.this.test(copy);
+                final var flux = observeEvents(copy);
 
                 StepVerifier.create(flux).expectNext(event).expectTimeout(Duration.ofMillis(100)).verify();
             }
 
         }// class
-
-        private <STATE> Flux<Event<STATE>> test(@Nonnull final ModifiableObjectHistory<STATE> history) {
-            final var flux = history.observeEvents();
-
-            assertInvariants(history);
-            assertNotNull(flux, "Not null, result");
-            return flux;
-        }
     }// class
 
     @Nested
@@ -641,7 +633,7 @@ public class ModifiableObjectHistoryTest {
                 final var history = new ModifiableObjectHistory<>(event);
                 final Duration when = history.getStart();
 
-                final var states = ObserveState.this.test(history, when);
+                final var states = observeState(history, when);
 
                 StepVerifier.create(states).expectNext(expectedState).expectComplete().verify();
             }
@@ -677,7 +669,7 @@ public class ModifiableObjectHistoryTest {
                 final var history = new ModifiableObjectHistory<>(event);
                 assert when.compareTo(history.getStart()) < 0;
 
-                final var states = ObserveState.this.test(history, when);
+                final var states = observeState(history, when);
 
                 StepVerifier.create(states).expectNext(expectedState).expectComplete().verify();
             }
@@ -710,7 +702,7 @@ public class ModifiableObjectHistoryTest {
                 final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, time0), state0, Map.of());
                 final var history = new ModifiableObjectHistory<>(event0);
 
-                final var states = ObserveState.this.test(history, when);
+                final var states = observeState(history, when);
 
                 StepVerifier.create(states).expectNext(expectedState).expectTimeout(Duration.ofMillis(100)).verify();
             }
@@ -747,7 +739,7 @@ public class ModifiableObjectHistoryTest {
                 final var event1 = new TestEvent(new ObjectStateId(OBJECT_A, time1), state1, Map.of());
                 final var history = new ModifiableObjectHistory<>(event0);
 
-                final var states = ObserveState.this.test(history, when);
+                final var states = observeState(history, when);
 
                 StepVerifier.create(states).expectNext(expectedState).then(() -> history.append(event1))
                         .expectComplete().verify();
@@ -802,7 +794,7 @@ public class ModifiableObjectHistoryTest {
                 history.append(event1);
                 history.append(event2);
 
-                final var states = ObserveState.this.test(history, when);
+                final var states = observeState(history, when);
 
                 StepVerifier.create(states).expectNext(expectedState).expectComplete().verify();
             }
@@ -827,7 +819,7 @@ public class ModifiableObjectHistoryTest {
                 final var event2 = new TestEvent(new ObjectStateId(OBJECT_A, time2), state2, Map.of());
                 final var history = new ModifiableObjectHistory<>(event0);
 
-                final var states = ObserveState.this.test(history, when);
+                final var states = observeState(history, when);
 
                 StepVerifier.create(states).expectNext(expectedState0).then(() -> history.append(event1))
                         .then(() -> history.append(event2)).expectComplete().verify();
@@ -868,7 +860,7 @@ public class ModifiableObjectHistoryTest {
                 final var event2 = new TestEvent(new ObjectStateId(OBJECT_A, time2), state2, Map.of());
                 final var history = new ModifiableObjectHistory<>(event0);
 
-                final var states = ObserveState.this.test(history, when);
+                final var states = observeState(history, when);
 
                 StepVerifier.create(states).expectNext(expectedState0).then(() -> history.append(event1))
                         .expectNext(expectedState1).then(() -> history.append(event2)).expectComplete().verify();
@@ -905,23 +897,13 @@ public class ModifiableObjectHistoryTest {
                 final var event1 = new TestEvent(new ObjectStateId(OBJECT_A, time1), state1, Map.of());
                 final var history = new ModifiableObjectHistory<>(event0);
 
-                final var states = ObserveState.this.test(history, when);
+                final var states = observeState(history, when);
 
                 StepVerifier.create(states).expectNext(expectedState0).then(() -> history.append(event1))
                         .expectNext(expectedState1).expectComplete().verify(Duration.ofMillis(100));
             }
 
         }// class
-
-        private <STATE> Publisher<Optional<STATE>> test(@Nonnull final ModifiableObjectHistory<STATE> history,
-                @Nonnull final Duration when) {
-            final var states = history.observeState(when);
-
-            assertInvariants(history);
-            assertNotNull(states, "Not null, states");// guard
-
-            return states;
-        }
 
     }// class
 
@@ -953,7 +935,7 @@ public class ModifiableObjectHistoryTest {
                 final var history = new ModifiableObjectHistory<>(event0);
                 history.append(event1);
 
-                final var flux = ObserveStateTransitions.this.test(history);
+                final var flux = observeStateTransitions(history);
 
                 StepVerifier.create(flux).expectNext(expectedStateTransition).expectComplete()
                         .verify(Duration.ofMillis(100));
@@ -967,7 +949,7 @@ public class ModifiableObjectHistoryTest {
                 final var history = new ModifiableObjectHistory<>(event0);
                 history.append(event1);
 
-                final var flux = ObserveStateTransitions.this.test(history);
+                final var flux = observeStateTransitions(history);
 
                 StepVerifier.create(flux).expectNext(expectedStateTransition).expectTimeout(Duration.ofMillis(100))
                         .verify();
@@ -993,7 +975,7 @@ public class ModifiableObjectHistoryTest {
                 final var event = new TestEvent(new ObjectStateId(object, start), state, Map.of());
                 final var history = new ModifiableObjectHistory<>(event);
 
-                final var flux = ObserveStateTransitions.this.test(history);
+                final var flux = observeStateTransitions(history);
 
                 StepVerifier.create(flux).expectNext(expectedStateTransition).expectTimeout(Duration.ofMillis(100))
                         .verify();
@@ -1020,21 +1002,13 @@ public class ModifiableObjectHistoryTest {
                 final var history = new ModifiableObjectHistory<>(event);
                 final var copy = new ModifiableObjectHistory<>(history);
 
-                final var flux = ObserveStateTransitions.this.test(copy);
+                final var flux = observeStateTransitions(copy);
 
                 StepVerifier.create(flux).expectNext(expectedStateTransition).expectTimeout(Duration.ofMillis(100))
                         .verify();
             }
 
         }// class
-
-        private <STATE> Flux<TimestampedState<STATE>> test(@Nonnull final ModifiableObjectHistory<STATE> history) {
-            final var flux = history.observeStateTransitions();
-
-            assertInvariants(history);
-            assertNotNull(flux, "Not null, result");
-            return flux;
-        }
     }// class
 
     public static class TimestampedStateTest {
@@ -1150,5 +1124,32 @@ public class ModifiableObjectHistoryTest {
     public static <STATE> void assertInvariants(@Nonnull final ModifiableObjectHistory<STATE> history1,
             @Nonnull final ModifiableObjectHistory<STATE> history2) {
         ObjectHistoryTest.assertInvariants(history1, history2);// inherited
+    }
+
+    private static <STATE> Flux<Event<STATE>> observeEvents(@Nonnull final ModifiableObjectHistory<STATE> history) {
+        final var flux = ObjectHistoryTest.observeEvents(history);// inherited
+
+        assertInvariants(history);
+        assertNotNull(flux, "Not null, result");
+        return flux;
+    }
+
+    private static <STATE> Publisher<Optional<STATE>> observeState(
+            @Nonnull final ModifiableObjectHistory<STATE> history, @Nonnull final Duration when) {
+        final var states = ObjectHistoryTest.observeState(history, when);// inherited
+
+        assertInvariants(history);
+        assertNotNull(states, "Not null, states");// guard
+
+        return states;
+    }
+
+    private static <STATE> Flux<TimestampedState<STATE>> observeStateTransitions(
+            @Nonnull final ModifiableObjectHistory<STATE> history) {
+        final var flux = ObjectHistoryTest.observeStateTransitions(history);// inherited
+
+        assertInvariants(history);
+        assertNotNull(flux, "Not null, result");
+        return flux;
     }
 }

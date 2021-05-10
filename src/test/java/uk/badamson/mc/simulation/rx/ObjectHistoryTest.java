@@ -311,7 +311,7 @@ public class ObjectHistoryTest {
                 final var event = new TestEvent(new ObjectStateId(object, start), state, Map.of());
                 final var history = new ObjectHistory<>(event);
 
-                final var flux = ObserveEvents.this.test(history);
+                final var flux = observeEvents(history);
 
                 StepVerifier.create(flux).expectNext(event).expectTimeout(Duration.ofMillis(100)).verify();
             }
@@ -336,20 +336,12 @@ public class ObjectHistoryTest {
                 final var history = new ObjectHistory<>(event);
                 final var copy = new ObjectHistory<>(history);
 
-                final var flux = ObserveEvents.this.test(copy);
+                final var flux = observeEvents(copy);
 
                 StepVerifier.create(flux).expectNext(event).expectTimeout(Duration.ofMillis(100)).verify();
             }
 
         }// class
-
-        private <STATE> Flux<Event<STATE>> test(@Nonnull final ObjectHistory<STATE> history) {
-            final var flux = history.observeEvents();
-
-            assertInvariants(history);
-            assertNotNull(flux, "Not null, result");
-            return flux;
-        }
     }// class
 
     @Nested
@@ -378,7 +370,7 @@ public class ObjectHistoryTest {
                 final var history = new ObjectHistory<>(event);
                 final Duration when = history.getStart();
 
-                final var states = ObserveState.this.test(history, when);
+                final var states = observeState(history, when);
 
                 StepVerifier.create(states).expectNext(expectedState).expectComplete().verify();
             }
@@ -414,7 +406,7 @@ public class ObjectHistoryTest {
                 final var history = new ObjectHistory<>(event);
                 assert when.compareTo(history.getStart()) < 0;
 
-                final var states = ObserveState.this.test(history, when);
+                final var states = observeState(history, when);
 
                 StepVerifier.create(states).expectNext(expectedState).expectComplete().verify();
             }
@@ -447,22 +439,12 @@ public class ObjectHistoryTest {
                 final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, time0), state0, Map.of());
                 final var history = new ObjectHistory<>(event0);
 
-                final var states = ObserveState.this.test(history, when);
+                final var states = observeState(history, when);
 
                 StepVerifier.create(states).expectNext(expectedState).expectTimeout(Duration.ofMillis(100)).verify();
             }
 
         }// class
-
-        private <STATE> Publisher<Optional<STATE>> test(@Nonnull final ObjectHistory<STATE> history,
-                @Nonnull final Duration when) {
-            final var states = history.observeState(when);
-
-            assertInvariants(history);
-            assertNotNull(states, "Not null, states");// guard
-
-            return states;
-        }
 
     }// class
 
@@ -487,7 +469,7 @@ public class ObjectHistoryTest {
                 final var event = new TestEvent(new ObjectStateId(object, start), state, Map.of());
                 final var history = new ObjectHistory<>(event);
 
-                final var flux = ObserveStateTransitions.this.test(history);
+                final var flux = observeStateTransitions(history);
 
                 StepVerifier.create(flux).expectNext(expectedStateTransition).expectTimeout(Duration.ofMillis(100))
                         .verify();
@@ -514,21 +496,13 @@ public class ObjectHistoryTest {
                 final var history = new ObjectHistory<>(event);
                 final var copy = new ObjectHistory<>(history);
 
-                final var flux = ObserveStateTransitions.this.test(copy);
+                final var flux = observeStateTransitions(copy);
 
                 StepVerifier.create(flux).expectNext(expectedStateTransition).expectTimeout(Duration.ofMillis(100))
                         .verify();
             }
 
         }// class
-
-        private <STATE> Flux<TimestampedState<STATE>> test(@Nonnull final ObjectHistory<STATE> history) {
-            final var flux = history.observeStateTransitions();
-
-            assertInvariants(history);
-            assertNotNull(flux, "Not null, result");
-            return flux;
-        }
     }// class
 
     public static class TimestampedStateTest {
@@ -682,4 +656,31 @@ public class ObjectHistoryTest {
             @Nonnull final ObjectHistory<STATE> history2) {
         ObjectTest.assertInvariants(history1, history2);// inherited
     }
-}
+
+    public static <STATE> Flux<Event<STATE>> observeEvents(@Nonnull final ObjectHistory<STATE> history) {
+        final var flux = history.observeEvents();
+
+        assertInvariants(history);
+        assertNotNull(flux, "Not null, result");
+        return flux;
+    }
+
+    public static <STATE> Publisher<Optional<STATE>> observeState(@Nonnull final ObjectHistory<STATE> history,
+            @Nonnull final Duration when) {
+        final var states = history.observeState(when);
+
+        assertInvariants(history);
+        assertNotNull(states, "Not null, states");// guard
+
+        return states;
+    }
+
+    public static <STATE> Flux<TimestampedState<STATE>> observeStateTransitions(
+            @Nonnull final ObjectHistory<STATE> history) {
+        final var flux = history.observeStateTransitions();
+
+        assertInvariants(history);
+        assertNotNull(flux, "Not null, result");
+        return flux;
+    }
+}// class
