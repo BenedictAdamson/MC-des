@@ -289,6 +289,50 @@ public class ObjectHistoryTest {
     public class Constructor {
 
         @Nested
+        public class Copy {
+
+            @Nested
+            public class OneTransition {
+
+                @Test
+                public void a() {
+                    test(OBJECT_A, WHEN_A, Integer.valueOf(0), Map.of());
+                }
+
+                @Test
+                public void b() {
+                    test(OBJECT_B, WHEN_B, Integer.valueOf(1), Map.of(OBJECT_A, WHEN_B.minusMillis(10)));
+                }
+
+                private <STATE> void test(@Nonnull final Event<STATE> event) {
+                    final var history = new ObjectHistory<>(event);
+
+                    Copy.this.test(history);
+                }
+
+                private void test(final UUID object, final Duration start, final Integer state,
+                        final Map<UUID, Duration> nextEventDependencies) {
+                    final var event = new TestEvent(new ObjectStateId(object, start), state, nextEventDependencies);
+
+                    test(event);
+                }
+
+            }// class
+
+            private <STATE> void test(@Nonnull final ObjectHistory<STATE> that) {
+                final var copy = new ObjectHistory<>(that);
+
+                assertInvariants(copy);
+                assertInvariants(copy, that);
+                assertAll("Copied", () -> assertSame(that.getEnd(), copy.getEnd(), "end"),
+                        () -> assertSame(that.getLastEvent(), copy.getLastEvent(), "lastEvent"),
+                        () -> assertSame(that.getObject(), copy.getObject(), "object"),
+                        () -> assertSame(that.getStart(), copy.getStart(), "start"),
+                        () -> assertEquals(that.getStateHistory(), copy.getStateHistory(), "stateHistory"));
+            }
+        }// class
+
+        @Nested
         public class History {
 
             @Nested

@@ -153,8 +153,9 @@ public final class ObjectHistory<STATE> {
     private final Sinks.Many<Event<STATE>> events = Sinks.many().replay().latest();
     private final Sinks.Many<TimestampedState<STATE>> stateTransitions = Sinks.many().replay().latest();
 
+    @Nonnull
     @GuardedBy("lock")
-    private final ModifiableValueHistory<STATE> stateHistory = new ModifiableValueHistory<>();
+    private final ModifiableValueHistory<STATE> stateHistory;
 
     @Nonnull
     @GuardedBy("lock")
@@ -185,7 +186,26 @@ public final class ObjectHistory<STATE> {
         Objects.requireNonNull(event.getState(), "event.state");
         this.object = event.getObject();
         this.start = event.getWhen();
+        this.stateHistory = new ModifiableValueHistory<>();
         append1(event);
+    }
+
+    /**
+     * <p>
+     * Copy an object history.
+     * </p>
+     *
+     * @throws NullPointerException
+     *             If {@code that} is null
+     *
+     */
+    public ObjectHistory(@Nonnull final ObjectHistory<STATE> that) {
+        Objects.requireNonNull(that, "that");
+        // FIXME
+        object = that.object;
+        start = that.start;
+        lastEvent = that.lastEvent;
+        stateHistory = new ModifiableValueHistory<>(that.stateHistory);
     }
 
     /**
@@ -234,13 +254,7 @@ public final class ObjectHistory<STATE> {
         this.lastEvent = Objects.requireNonNull(lastEvent, "lastEvent");// redundant; satisfy SpotBugs
         this.object = lastEvent.getObject();
         this.start = previousStateTransitions.isEmpty() ? lastEvent.getWhen() : previousStateTransitions.firstKey();
-        try {
-            previousStateTransitions.forEach((when, state) -> {
-                stateHistory.appendTransition(when, state);
-            });
-        } catch (final IllegalStateException e) {
-            throw new IllegalArgumentException("previousStateTransitions", e);
-        }
+        this.stateHistory = new ModifiableValueHistory<>(null, previousStateTransitions);
         append1(lastEvent);
     }
 
