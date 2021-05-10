@@ -338,6 +338,16 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
         return transitions.ceilingKey(when);
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * <p>
+     * Furthermore, for the {@link ModifiableValueHistory} type
+     * </p>
+     * <ul>
+     * <li>The transitions map is a newly constructed object.</li>
+     * </ul>
+     */
     @Override
     @JsonProperty("transitions")
     public @Nonnull SortedMap<Duration, VALUE> getTransitions() {
