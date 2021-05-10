@@ -113,8 +113,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
             @Nonnull final SortedMap<Duration, VALUE> transitions) {
         Objects.requireNonNull(transitions, "transitions");
         this.firstValue = firstValue;
-        transitions.entrySet().stream().sequential()
-                .forEach(entry -> this.transitions.put(entry.getKey(), entry.getValue()));
+        appendTransitions(transitions.entrySet().stream());
     }
 
     /**
@@ -133,7 +132,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
     public ModifiableValueHistory(@Nonnull final ValueHistory<VALUE> that) {
         Objects.requireNonNull(that, "that");
         firstValue = that.getFirstValue();
-        that.streamOfTransitions().sequential().forEach(entry -> transitions.put(entry.getKey(), entry.getValue()));
+        appendTransitions(that.streamOfTransitions());
     }
 
     /**
@@ -186,6 +185,10 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
             throw new IllegalStateException("First appended value equals value at start of time");
         }
         transitions.put(when, value);
+    }
+
+    private void appendTransitions(@Nonnull final Stream<Entry<Duration, VALUE>> streamOfTransitions) {
+        streamOfTransitions.sequential().forEach(entry -> transitions.put(entry.getKey(), entry.getValue()));
     }
 
     private void clear(final VALUE value) {
