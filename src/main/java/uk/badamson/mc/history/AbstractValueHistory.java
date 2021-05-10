@@ -30,6 +30,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 /**
  * <p>
  * The modifiable time-wise variation of a value that changes at discrete points
@@ -62,6 +64,7 @@ abstract class AbstractValueHistory<VALUE> implements ValueHistory<VALUE> {
     }
 
     @Override
+    @JsonIgnore
     public @Nullable Duration getFirstTansitionTime() {
         final var transitions = getTransitions();
         return transitions.isEmpty() ? null : transitions.firstKey();
@@ -73,17 +76,20 @@ abstract class AbstractValueHistory<VALUE> implements ValueHistory<VALUE> {
     }
 
     @Override
+    @JsonIgnore
     public @Nullable Duration getLastTansitionTime() {
         final var transitions = getTransitions();
         return transitions.isEmpty() ? null : transitions.lastKey();
     }
 
     @Override
+    @JsonIgnore
     public @Nullable VALUE getLastValue() {
         return get(END_OF_TIME);
     }
 
     @Override
+    @JsonIgnore
     public @Nonnull SortedSet<Duration> getTransitionTimes() {
         return new TreeSet<>(getTransitions().keySet());
     }
@@ -95,6 +101,7 @@ abstract class AbstractValueHistory<VALUE> implements ValueHistory<VALUE> {
     }
 
     @Override
+    @JsonIgnore
     public boolean isEmpty() {
         return getTransitions().isEmpty();
     }

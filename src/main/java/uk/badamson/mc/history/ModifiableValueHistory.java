@@ -34,7 +34,6 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -260,7 +259,6 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @return the first transition time.
      */
     @Override
-    @JsonIgnore
     public @Nullable Duration getFirstTansitionTime() {
         return transitions.isEmpty() ? null : transitions.firstKey();
     }
@@ -304,7 +302,6 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @return the last transition time.
      */
     @Override
-    @JsonIgnore
     public @Nullable Duration getLastTansitionTime() {
         return transitions.isEmpty() ? null : transitions.lastKey();
     }
@@ -330,14 +327,12 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @return the last value.
      */
     @Override
-    @JsonIgnore
     public @Nullable VALUE getLastValue() {
         final var lastTransition = transitions.lastEntry();
         return lastTransition == null ? firstValue : lastTransition.getValue();
     }
 
     @Override
-    @JsonIgnore
     public Duration getTansitionTimeAtOrAfter(@Nonnull final Duration when) {
         Objects.requireNonNull(when, "when");
         return transitions.ceilingKey(when);
@@ -375,7 +370,6 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @return the transition times
      */
     @Override
-    @JsonIgnore
     public @Nonnull SortedSet<Duration> getTransitionTimes() {
         return Collections.unmodifiableSortedSet(transitions.navigableKeySet());
     }
@@ -399,7 +393,6 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      *
      */
     @Override
-    @JsonIgnore
     public boolean isEmpty() {
         return transitions.isEmpty();
     }
