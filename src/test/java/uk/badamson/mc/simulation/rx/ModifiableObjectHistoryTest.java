@@ -21,7 +21,6 @@ package uk.badamson.mc.simulation.rx;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -29,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -49,7 +47,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import uk.badamson.mc.JsonTest;
-import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.ThreadTest;
 import uk.badamson.mc.simulation.ObjectStateId;
 import uk.badamson.mc.simulation.rx.EventTest.TestEvent;
@@ -515,199 +512,47 @@ public class ModifiableObjectHistoryTest {
     }// class
 
     @Nested
-    public class ObserveEvents {
+    public class ObserveEventsAfterAppend {
 
-        @Nested
-        public class AfterAppend {
+        @Test
+        public void a() {
+            testNonDestruction(OBJECT_A, WHEN_A, Integer.valueOf(0), WHEN_A.plusMillis(10), Integer.valueOf(1));
+        }
 
-            @Test
-            public void a() {
-                testNonDestruction(OBJECT_A, WHEN_A, Integer.valueOf(0), WHEN_A.plusMillis(10), Integer.valueOf(1));
-            }
+        @Test
+        public void b() {
+            testNonDestruction(OBJECT_B, WHEN_B, Integer.valueOf(3), WHEN_B.plusMillis(1500), Integer.valueOf(2));
+        }
 
-            @Test
-            public void b() {
-                testNonDestruction(OBJECT_B, WHEN_B, Integer.valueOf(3), WHEN_B.plusMillis(1500), Integer.valueOf(2));
-            }
+        @Test
+        public void destruction() {
+            final UUID object = OBJECT_A;
+            final var event0 = new TestEvent(new ObjectStateId(object, WHEN_A), Integer.valueOf(0), Map.of());
+            final var event1 = new TestEvent(new ObjectStateId(object, WHEN_A.plusMillis(10)), null, Map.of());
+            final var history = new ModifiableObjectHistory<>(event0);
+            history.append(event1);
 
-            @Test
-            public void destruction() {
-                final UUID object = OBJECT_A;
-                final var event0 = new TestEvent(new ObjectStateId(object, WHEN_A), Integer.valueOf(0), Map.of());
-                final var event1 = new TestEvent(new ObjectStateId(object, WHEN_A.plusMillis(10)), null, Map.of());
-                final var history = new ModifiableObjectHistory<>(event0);
-                history.append(event1);
+            final var flux = observeEvents(history);
 
-                final var flux = observeEvents(history);
+            StepVerifier.create(flux).expectNext(event1).expectComplete().verify(Duration.ofMillis(100));
+        }
 
-                StepVerifier.create(flux).expectNext(event1).expectComplete().verify(Duration.ofMillis(100));
-            }
+        private void testNonDestruction(final UUID object, final Duration when0, final Integer state0,
+                final Duration when1, final Integer state1) {
+            final var event0 = new TestEvent(new ObjectStateId(object, when0), state0, Map.of());
+            final var event1 = new TestEvent(new ObjectStateId(object, when1), state1, Map.of());
+            final var history = new ModifiableObjectHistory<>(event0);
+            history.append(event1);
 
-            private void testNonDestruction(final UUID object, final Duration when0, final Integer state0,
-                    final Duration when1, final Integer state1) {
-                final var event0 = new TestEvent(new ObjectStateId(object, when0), state0, Map.of());
-                final var event1 = new TestEvent(new ObjectStateId(object, when1), state1, Map.of());
-                final var history = new ModifiableObjectHistory<>(event0);
-                history.append(event1);
+            final var flux = observeEvents(history);
 
-                final var flux = observeEvents(history);
+            StepVerifier.create(flux).expectNext(event1).expectTimeout(Duration.ofMillis(100)).verify();
+        }
 
-                StepVerifier.create(flux).expectNext(event1).expectTimeout(Duration.ofMillis(100)).verify();
-            }
-
-        }// class
-
-        @Nested
-        public class AfterConstructorGivenEvent {
-
-            @Test
-            public void a() {
-                test(OBJECT_A, WHEN_A, Integer.valueOf(0));
-            }
-
-            @Test
-            public void b() {
-                test(OBJECT_B, WHEN_B, Integer.valueOf(1));
-            }
-
-            private void test(final UUID object, final Duration start, final Integer state) {
-                final var event = new TestEvent(new ObjectStateId(object, start), state, Map.of());
-                final var history = new ModifiableObjectHistory<>(event);
-
-                final var flux = observeEvents(history);
-
-                StepVerifier.create(flux).expectNext(event).expectTimeout(Duration.ofMillis(100)).verify();
-            }
-
-        }// class
-
-        @Nested
-        public class AfterCopyConstructor {
-
-            @Test
-            public void a() {
-                test(OBJECT_A, WHEN_A, Integer.valueOf(0));
-            }
-
-            @Test
-            public void b() {
-                test(OBJECT_B, WHEN_B, Integer.valueOf(1));
-            }
-
-            private void test(final UUID object, final Duration start, final Integer state) {
-                final var event = new TestEvent(new ObjectStateId(object, start), state, Map.of());
-                final var history = new ModifiableObjectHistory<>(event);
-                final var copy = new ModifiableObjectHistory<>(history);
-
-                final var flux = observeEvents(copy);
-
-                StepVerifier.create(flux).expectNext(event).expectTimeout(Duration.ofMillis(100)).verify();
-            }
-
-        }// class
     }// class
 
     @Nested
     public class ObserveState {
-
-        @Nested
-        public class AtStart {
-
-            @Test
-            public void a() {
-                test(WHEN_A, Integer.valueOf(0));
-            }
-
-            @Test
-            public void b() {
-                test(WHEN_B, Integer.valueOf(1));
-            }
-
-            private void test(@Nonnull final Duration start, @Nonnull final Integer state) {
-                final var event = new TestEvent(new ObjectStateId(OBJECT_A, start), state, Map.of());
-                test(event);
-            }
-
-            private <STATE> void test(@Nonnull final Event<STATE> event) {
-                final Optional<STATE> expectedState = Optional.of(event.getState());
-                final var history = new ModifiableObjectHistory<>(event);
-                final Duration when = history.getStart();
-
-                final var states = observeState(history, when);
-
-                StepVerifier.create(states).expectNext(expectedState).expectComplete().verify();
-            }
-
-        }// class
-
-        @Nested
-        public class BeforeStart {
-
-            @Test
-            public void far() {
-                final Duration start = WHEN_B;
-                final Duration when = start.minusDays(365);
-                test(start, when);
-            }
-
-            @Test
-            public void near() {
-                final Duration start = WHEN_A;
-                final Duration when = start.minusNanos(1);// tough test
-                test(start, when);
-            }
-
-            private void test(@Nonnull final Duration start, @Nonnull final Duration when) {
-                assert when.compareTo(start) < 0;
-                final var event = new TestEvent(new ObjectStateId(OBJECT_A, start), Integer.valueOf(0), Map.of());
-
-                test(event, when);
-            }
-
-            private <STATE> void test(@Nonnull final Event<STATE> event, @Nonnull final Duration when) {
-                final Optional<STATE> expectedState = Optional.empty();
-                final var history = new ModifiableObjectHistory<>(event);
-                assert when.compareTo(history.getStart()) < 0;
-
-                final var states = observeState(history, when);
-
-                StepVerifier.create(states).expectNext(expectedState).expectComplete().verify();
-            }
-
-        }// class
-
-        @Nested
-        public class Provisional {
-
-            @Test
-            public void far() {
-                final Duration time0 = WHEN_B;
-                final Duration when = time0.plusDays(365);
-
-                test(time0, when, Integer.valueOf(1));
-            }
-
-            @Test
-            public void near() {
-                final Duration time0 = WHEN_A;
-                final Duration when = time0.plusNanos(1);// tough test
-
-                test(time0, when, Integer.valueOf(0));
-            }
-
-            private void test(@Nonnull final Duration time0, @Nonnull final Duration when,
-                    @Nonnull final Integer state0) {
-                assert time0.compareTo(when) < 0;// provisional
-                final var expectedState = Optional.of(state0);
-                final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, time0), state0, Map.of());
-                final var history = new ModifiableObjectHistory<>(event0);
-
-                final var states = observeState(history, when);
-
-                StepVerifier.create(states).expectNext(expectedState).expectTimeout(Duration.ofMillis(100)).verify();
-            }
-
-        }// class
 
         @Nested
         public class ProvisionalConfirmedAsReliable {
@@ -908,206 +753,50 @@ public class ModifiableObjectHistoryTest {
     }// class
 
     @Nested
-    public class ObserveStateTransitions {
+    public class ObserveStateTransitionsAfterAppend {
 
-        @Nested
-        public class AfterAppend {
-
-            @Test
-            public void a() {
-                testNonDestruction(OBJECT_A, WHEN_A, Integer.valueOf(0), WHEN_A.plusMillis(10), Integer.valueOf(1));
-            }
-
-            @Test
-            public void b() {
-                testNonDestruction(OBJECT_B, WHEN_B, Integer.valueOf(3), WHEN_B.plusMillis(1500), Integer.valueOf(2));
-            }
-
-            @Test
-            public void destruction() {
-                final var object = OBJECT_A;
-                final var when1 = WHEN_A;
-                final Integer state1 = null;// critical
-                final var expectedStateTransition = new ModifiableObjectHistory.TimestampedState<>(when1, state1);
-                final var event0 = new TestEvent(new ObjectStateId(object, when1.minusMillis(10)), Integer.valueOf(0),
-                        Map.of());
-                final var event1 = new TestEvent(new ObjectStateId(object, when1), state1, Map.of());
-                final var history = new ModifiableObjectHistory<>(event0);
-                history.append(event1);
-
-                final var flux = observeStateTransitions(history);
-
-                StepVerifier.create(flux).expectNext(expectedStateTransition).expectComplete()
-                        .verify(Duration.ofMillis(100));
-            }
-
-            private void testNonDestruction(final UUID object, final Duration when0, final Integer state0,
-                    final Duration when1, final Integer state1) {
-                final var expectedStateTransition = new ModifiableObjectHistory.TimestampedState<>(when1, state1);
-                final var event0 = new TestEvent(new ObjectStateId(object, when0), state0, Map.of());
-                final var event1 = new TestEvent(new ObjectStateId(object, when1), state1, Map.of());
-                final var history = new ModifiableObjectHistory<>(event0);
-                history.append(event1);
-
-                final var flux = observeStateTransitions(history);
-
-                StepVerifier.create(flux).expectNext(expectedStateTransition).expectTimeout(Duration.ofMillis(100))
-                        .verify();
-            }
-
-        }// class
-
-        @Nested
-        public class AfterConstructorGivenEvent {
-
-            @Test
-            public void a() {
-                test(OBJECT_A, WHEN_A, Integer.valueOf(0));
-            }
-
-            @Test
-            public void b() {
-                test(OBJECT_B, WHEN_B, Integer.valueOf(1));
-            }
-
-            private void test(final UUID object, final Duration start, final Integer state) {
-                final var expectedStateTransition = new ModifiableObjectHistory.TimestampedState<>(start, state);
-                final var event = new TestEvent(new ObjectStateId(object, start), state, Map.of());
-                final var history = new ModifiableObjectHistory<>(event);
-
-                final var flux = observeStateTransitions(history);
-
-                StepVerifier.create(flux).expectNext(expectedStateTransition).expectTimeout(Duration.ofMillis(100))
-                        .verify();
-            }
-
-        }// class
-
-        @Nested
-        public class AfterCopyConstructor {
-
-            @Test
-            public void a() {
-                test(OBJECT_A, WHEN_A, Integer.valueOf(0));
-            }
-
-            @Test
-            public void b() {
-                test(OBJECT_B, WHEN_B, Integer.valueOf(1));
-            }
-
-            private void test(final UUID object, final Duration start, final Integer state) {
-                final var expectedStateTransition = new ModifiableObjectHistory.TimestampedState<>(start, state);
-                final var event = new TestEvent(new ObjectStateId(object, start), state, Map.of());
-                final var history = new ModifiableObjectHistory<>(event);
-                final var copy = new ModifiableObjectHistory<>(history);
-
-                final var flux = observeStateTransitions(copy);
-
-                StepVerifier.create(flux).expectNext(expectedStateTransition).expectTimeout(Duration.ofMillis(100))
-                        .verify();
-            }
-
-        }// class
-    }// class
-
-    public static class TimestampedStateTest {
-
-        @Nested
-        public class Constructor {
-
-            @Nested
-            public class Two {
-
-                @Test
-                public void differentState() {
-                    final String stateA = "A";
-                    final String stateB = "B";
-
-                    final var timestampedA = new ModifiableObjectHistory.TimestampedState<>(WHEN_A, stateA);
-                    final var timestampedB = new ModifiableObjectHistory.TimestampedState<>(WHEN_A, stateB);
-
-                    assertInvariants(timestampedA, timestampedB);
-                    assertNotEquals(timestampedA, timestampedB);
-                }
-
-                @Test
-                public void differentWhen() {
-                    final Duration whenA = Duration.ofMillis(1000);
-                    final Duration whenB = Duration.ofMillis(2000);
-                    final String state = "State";
-
-                    final var timestampedA = new ModifiableObjectHistory.TimestampedState<>(whenA, state);
-                    final var timestampedB = new ModifiableObjectHistory.TimestampedState<>(whenB, state);
-
-                    assertInvariants(timestampedA, timestampedB);
-                    assertNotEquals(timestampedA, timestampedB);
-                }
-
-                @Test
-                public void equivalent() {
-                    final Duration whenA = Duration.ofMillis(1000);
-                    final Duration whenB = Duration.ofMillis(1000);
-                    final String stateA = "State";
-                    final String stateB = new String(stateA);
-                    assert whenA.equals(whenB);
-                    assert stateA.equals(stateB);
-                    assert whenA != whenB;// tough test
-                    assert stateA != stateB;// tough test
-
-                    final var timestampedA = new ModifiableObjectHistory.TimestampedState<>(whenA, stateA);
-                    final var timestampedB = new ModifiableObjectHistory.TimestampedState<>(whenB, stateB);
-
-                    assertInvariants(timestampedA, timestampedB);
-                    assertEquals(timestampedA, timestampedB);
-                }
-            }// class
-
-            @Test
-            public void a() {
-                test(WHEN_A, "State");
-            }
-
-            @Test
-            public void b() {
-                test(WHEN_B, Integer.valueOf(0));
-            }
-
-            @Test
-            public void nullState() {
-                test(WHEN_A, (Integer) null);
-            }
-
-            private <STATE> void test(@Nonnull final Duration when, @Nullable final STATE state) {
-                final var timestamped = new ModifiableObjectHistory.TimestampedState<>(when, state);
-
-                assertInvariants(timestamped);
-                assertAll(() -> assertSame(when, timestamped.getWhen(), "when"),
-                        () -> assertSame(state, timestamped.getState(), "state"));
-            }
-
-        }// class
-
-        public static <STATE> void assertInvariants(
-                @Nonnull final ModifiableObjectHistory.TimestampedState<STATE> timestamped) {
-            ObjectTest.assertInvariants(timestamped);// inherited
-
-            assertNotNull(timestamped.getWhen(), "Not null, when");
+        @Test
+        public void a() {
+            testNonDestruction(OBJECT_A, WHEN_A, Integer.valueOf(0), WHEN_A.plusMillis(10), Integer.valueOf(1));
         }
 
-        public static <STATE> void assertInvariants(
-                @Nonnull final ModifiableObjectHistory.TimestampedState<STATE> timestamped1,
-                @Nonnull final ModifiableObjectHistory.TimestampedState<STATE> timestamped2) {
-            ObjectTest.assertInvariants(timestamped1, timestamped2);// inherited
-
-            final var state1 = timestamped1.getState();
-            final var state2 = timestamped2.getState();
-            if (state1 != null && state2 != null) {
-                ObjectTest.assertInvariants(state1, state2);
-            }
-            assertTrue(timestamped1.equals(timestamped2) == (timestamped1.getWhen().equals(timestamped2.getWhen())
-                    && Objects.equals(state1, state2)), "equals has value semantics");
+        @Test
+        public void b() {
+            testNonDestruction(OBJECT_B, WHEN_B, Integer.valueOf(3), WHEN_B.plusMillis(1500), Integer.valueOf(2));
         }
+
+        @Test
+        public void destruction() {
+            final var object = OBJECT_A;
+            final var when1 = WHEN_A;
+            final Integer state1 = null;// critical
+            final var expectedStateTransition = new ModifiableObjectHistory.TimestampedState<>(when1, state1);
+            final var event0 = new TestEvent(new ObjectStateId(object, when1.minusMillis(10)), Integer.valueOf(0),
+                    Map.of());
+            final var event1 = new TestEvent(new ObjectStateId(object, when1), state1, Map.of());
+            final var history = new ModifiableObjectHistory<>(event0);
+            history.append(event1);
+
+            final var flux = observeStateTransitions(history);
+
+            StepVerifier.create(flux).expectNext(expectedStateTransition).expectComplete()
+                    .verify(Duration.ofMillis(100));
+        }
+
+        private void testNonDestruction(final UUID object, final Duration when0, final Integer state0,
+                final Duration when1, final Integer state1) {
+            final var expectedStateTransition = new ModifiableObjectHistory.TimestampedState<>(when1, state1);
+            final var event0 = new TestEvent(new ObjectStateId(object, when0), state0, Map.of());
+            final var event1 = new TestEvent(new ObjectStateId(object, when1), state1, Map.of());
+            final var history = new ModifiableObjectHistory<>(event0);
+            history.append(event1);
+
+            final var flux = observeStateTransitions(history);
+
+            StepVerifier.create(flux).expectNext(expectedStateTransition).expectTimeout(Duration.ofMillis(100))
+                    .verify();
+        }
+
     }// class
 
     private static final UUID OBJECT_A = UUID.randomUUID();
