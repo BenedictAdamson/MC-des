@@ -23,16 +23,20 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsSame.sameInstance;
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.time.Duration;
 import java.util.UUID;
 
+import javax.annotation.Nonnull;
+
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import uk.badamson.mc.ComparableTest;
+import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.ObjectTest;
 
 /**
@@ -140,10 +144,38 @@ public class ObjectStateIdTest {
 
     }// class
 
+    @Nested
+    public class JSON {
+
+        @Test
+        public void a() {
+            test(OBJECT_A, DURATION_A);
+        }
+
+        @Test
+        public void b() {
+            test(OBJECT_B, DURATION_B);
+        }
+
+        private <VALUE> void test(@Nonnull final ObjectStateId id) {
+            final var deserialized = JsonTest.serializeAndDeserialize(id);
+
+            assertInvariants(id);
+            assertInvariants(id, deserialized);
+            assertEquals(id, deserialized);
+        }
+
+        private void test(@Nonnull final UUID object, @Nonnull final Duration when) {
+            final ObjectStateId id = new ObjectStateId(object, when);
+            test(id);
+        }
+
+    }// class
+
     static final UUID OBJECT_A = UUID.randomUUID();
     static final UUID OBJECT_B = UUID.randomUUID();
-    static final Duration DURATION_A = Duration.ZERO;
 
+    static final Duration DURATION_A = Duration.ZERO;
     static final Duration DURATION_B = Duration.ofSeconds(15);
 
     public static void assertInvariants(final ObjectStateId id) {

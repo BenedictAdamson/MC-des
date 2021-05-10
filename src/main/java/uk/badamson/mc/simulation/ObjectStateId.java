@@ -25,6 +25,9 @@ import java.util.UUID;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * <p>
  * An identifier (unique key) for the state of a simulated object.
@@ -60,7 +63,9 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
      *             <li>If {@code when} is null.</li>
      *             </ul>
      */
-    public ObjectStateId(@Nonnull final UUID object, @Nonnull final Duration when) {
+    @JsonCreator
+    public ObjectStateId(@Nonnull @JsonProperty("object") final UUID object,
+            @Nonnull @JsonProperty("when") final Duration when) {
         this.object = Objects.requireNonNull(object, "object");
         this.when = Objects.requireNonNull(when, "when");
     }
