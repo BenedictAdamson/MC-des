@@ -21,6 +21,7 @@ package uk.badamson.mc.simulation.rx;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.SortedMap;
 import java.util.UUID;
 
 import javax.annotation.Nonnull;
@@ -185,6 +186,64 @@ public final class ObjectHistory<STATE> {
         this.object = event.getObject();
         this.start = event.getWhen();
         append1(event);
+    }
+
+    /**
+     * <p>
+     * Construct an object history with given history information.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getLastEvent() last event} of this history is the given
+     * {@code event}.</li>
+     * <li>The {@linkplain ValueHistory#getTransitions() transitions} of the
+     * {@linkplain #getStateHistory() state history}
+     * {@linkplain SortedMap#headMap(Object) before} the {@linkplain Event#getWhen()
+     * time} of the {@code lastEvent} are {@linkplain SortedMap#equals(Object)
+     * equivalent to} the given {@code previousStateTransitions}
+     * </ul>
+     *
+     * @param previousStateTransitions
+     *            The state transitions before the {@code lastEvent}
+     * @param lastEvent
+     *            The last (known) state transition of the {@linkplain #getObject()
+     *            object}.
+     * @throws NullPointerException
+     *             <ul>
+     *             <li>If {@code stateTransitions} is null</li>
+     *             <li>If {@code lastEvent} is null</li>
+     *             <li>If {@code stateTransitions} is empty and the
+     *             {@linkplain Event#getState() state} of {@code lastEvent} is null.
+     *             That is, if the first event is the destruction or removal of the
+     *             {@linkplain #getObject() simulated object}.</li>
+     *             <li>If {@code stateTransitions} has any null
+     *             {@linkplain SortedMap#values() values}. That is, if the object
+     *             was destroyed or removed before the {@code lastEvent} .</li>
+     *             </ul>
+     * @throws IllegalArgumentException
+     *             <ul>
+     *             <li>If the {@linkplain Event#getWhen() time} of the
+     *             {@code lastEvent} is not {@linkplain Duration#compareTo(Duration)
+     *             after} the {@linkplain SortedMap#lastKey() last} of the given
+     *             {@code previousStateTransitions}.</li>
+     *             <li>If any {@linkplain SortedMap#values() value} of
+     *             {@code previousStateTransitions} is
+     *             {@linkplain Objects#equals(Object, Object) equal to (or equally
+     *             null as)} its predecessor value.</li>
+     *             </ul>
+     */
+    public ObjectHistory(@Nonnull final SortedMap<Duration, STATE> previousStateTransitions,
+            @Nonnull final Event<STATE> lastEvent) {
+        this.lastEvent = Objects.requireNonNull(lastEvent, "lastEvent");// redundant; satisfy SpotBugs
+        this.object = lastEvent.getObject();
+        this.start = previousStateTransitions.isEmpty() ? lastEvent.getWhen() : previousStateTransitions.firstKey();
+        try {
+            previousStateTransitions.forEach((when, state) -> {
+                stateHistory.appendTransition(when, state);
+            });
+        } catch (final IllegalStateException e) {
+            throw new IllegalArgumentException("previousStateTransitions", e);
+        }
+        append1(lastEvent);
     }
 
     /**

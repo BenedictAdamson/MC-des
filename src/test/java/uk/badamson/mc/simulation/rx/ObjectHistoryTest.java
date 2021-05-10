@@ -30,9 +30,12 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
@@ -285,28 +288,112 @@ public class ObjectHistoryTest {
     @Nested
     public class Constructor {
 
-        @Test
-        public void a() {
-            test(OBJECT_A, WHEN_A, Integer.valueOf(0), Map.of());
-        }
+        @Nested
+        public class History {
 
-        @Test
-        public void b() {
-            test(OBJECT_B, WHEN_B, Integer.valueOf(1), Map.of(OBJECT_A, WHEN_B.minusMillis(10)));
-        }
+            @Nested
+            public class NoPreviousStateTransitions {
 
-        private <STATE> void test(@Nonnull final Event<STATE> event) {
-            final var history = new ObjectHistory<>(event);
+                @Test
+                public void a() {
+                    test(OBJECT_A, WHEN_A, Integer.valueOf(0));
+                }
 
-            assertInvariants(history);
-            assertSame(event, history.getLastEvent(), "lastEvent");
-        }
+                @Test
+                public void b() {
+                    test(OBJECT_B, WHEN_B, Integer.valueOf(1));
+                }
 
-        private void test(final UUID object, final Duration start, final Integer state,
-                final Map<UUID, Duration> nextEventDependencies) {
-            final var event = new TestEvent(new ObjectStateId(object, start), state, nextEventDependencies);
-            test(event);
-        }
+                private void test(final UUID object, final Duration start, final Integer state) {
+                    final SortedMap<Duration, Integer> previousStateTransitions = Collections.emptySortedMap();
+                    final var event = new TestEvent(new ObjectStateId(object, start), state, Map.of());
+
+                    History.this.test(previousStateTransitions, event);
+                }
+
+            }// class
+
+            @Nested
+            public class OnePreviousStateTransition {
+
+                @Test
+                public void destruction() {
+                    test(OBJECT_A, WHEN_A, Integer.valueOf(0), WHEN_B, null);
+                }
+
+                @Test
+                public void far() {
+                    test(OBJECT_A, WHEN_A, Integer.valueOf(0), WHEN_B, Integer.valueOf(1));
+                }
+
+                @Test
+                public void near() {
+                    final var start = WHEN_B;
+                    final var end = start.plusNanos(1);
+                    test(OBJECT_A, start, Integer.valueOf(3), end, Integer.valueOf(2));
+                }
+
+                private void test(final UUID object, final Duration start, final Integer state1, final Duration end,
+                        final Integer state2) {
+                    final SortedMap<Duration, Integer> previousStateTransitions = new TreeMap<>();
+                    previousStateTransitions.put(start, state1);
+                    final var event = new TestEvent(new ObjectStateId(object, end), state2, Map.of());
+
+                    History.this.test(previousStateTransitions, event);
+                }
+
+            }// class
+
+            private <STATE> void test(@Nonnull final SortedMap<Duration, STATE> previousStateTransitions,
+                    @Nonnull final Event<STATE> lastEvent) {
+                final var history = new ObjectHistory<>(previousStateTransitions, lastEvent);
+
+                assertInvariants(history);
+                assertAll(() -> assertSame(lastEvent, history.getLastEvent(), "lastEvent"),
+                        () -> assertEquals(previousStateTransitions,
+                                history.getStateHistory().getTransitions().headMap(lastEvent.getWhen()),
+                                "previousStateTransitions"));
+            }
+
+            @Test
+            public void twoPreviosStateTransitions() {
+                final SortedMap<Duration, Integer> previousStateTransitions = new TreeMap<>();
+                previousStateTransitions.put(WHEN_A, Integer.valueOf(0));
+                previousStateTransitions.put(WHEN_B, Integer.valueOf(1));
+                final var event = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_C), Integer.valueOf(3), Map.of());
+
+                History.this.test(previousStateTransitions, event);
+            }
+
+        }// class
+
+        @Nested
+        public class LastEvent {
+
+            @Test
+            public void a() {
+                test(OBJECT_A, WHEN_A, Integer.valueOf(0), Map.of());
+            }
+
+            @Test
+            public void b() {
+                test(OBJECT_B, WHEN_B, Integer.valueOf(1), Map.of(OBJECT_A, WHEN_B.minusMillis(10)));
+            }
+
+            private <STATE> void test(@Nonnull final Event<STATE> event) {
+                final var history = new ObjectHistory<>(event);
+
+                assertInvariants(history);
+                assertSame(event, history.getLastEvent(), "lastEvent");
+            }
+
+            private void test(final UUID object, final Duration start, final Integer state,
+                    final Map<UUID, Duration> nextEventDependencies) {
+                final var event = new TestEvent(new ObjectStateId(object, start), state, nextEventDependencies);
+                test(event);
+            }
+
+        }// class
 
     }// class
 
@@ -883,6 +970,7 @@ public class ObjectHistoryTest {
 
     private static final Duration WHEN_A = Duration.ofMillis(0);
     private static final Duration WHEN_B = Duration.ofMillis(5000);
+    private static final Duration WHEN_C = Duration.ofMillis(7000);
 
     public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history) {
         ObjectTest.assertInvariants(history);// inherited
