@@ -339,7 +339,7 @@ public class ObjectHistory<STATE> {
      */
     @Nonnull
     @JsonIgnore
-    public Duration getEnd() {
+    public final Duration getEnd() {
         final var event = getLastEvent();
         if (event.getState() == null) {
             return ValueHistory.END_OF_TIME;
@@ -364,7 +364,7 @@ public class ObjectHistory<STATE> {
      * @see #observeEvents()
      */
     @Nonnull
-    public Event<STATE> getLastEvent() {
+    public final Event<STATE> getLastEvent() {
         synchronized (lock) {
             return lastEvent;
         }
@@ -380,7 +380,7 @@ public class ObjectHistory<STATE> {
      */
     @Nonnull
     @JsonIgnore
-    public UUID getObject() {
+    public final UUID getObject() {
         return object;
     }
 
@@ -393,7 +393,7 @@ public class ObjectHistory<STATE> {
      * </p>
      */
     @Nonnull
-    public SortedMap<Duration, STATE> getPreviousStateTransitions() {
+    public final SortedMap<Duration, STATE> getPreviousStateTransitions() {
         synchronized (lock) {// hard to test
             final var transitions = stateHistory.getTransitions();
             return transitions.headMap(transitions.lastKey());
@@ -415,7 +415,7 @@ public class ObjectHistory<STATE> {
      */
     @Nonnull
     @JsonIgnore
-    public Duration getStart() {
+    public final Duration getStart() {
         return start;
     }
 
@@ -453,7 +453,7 @@ public class ObjectHistory<STATE> {
      */
     @Nonnull
     @JsonIgnore
-    public ValueHistory<STATE> getStateHistory() {
+    public final ValueHistory<STATE> getStateHistory() {
         synchronized (lock) {// hard to test
             return new ModifiableValueHistory<>(stateHistory);
         }
@@ -496,7 +496,7 @@ public class ObjectHistory<STATE> {
      * @see #getLastEvent()
      */
     @Nonnull
-    public Flux<Event<STATE>> observeEvents() {
+    public final Flux<Event<STATE>> observeEvents() {
         return events.asFlux();
     }
 
@@ -540,7 +540,7 @@ public class ObjectHistory<STATE> {
      * @see #getStateHistory()
      */
     @Nonnull
-    public Publisher<Optional<STATE>> observeState(@Nonnull final Duration when) {
+    public final Publisher<Optional<STATE>> observeState(@Nonnull final Duration when) {
         synchronized (lock) {// hard to test
             if (when.compareTo(lastEvent.getWhen()) <= 0) {
                 return Mono.just(Optional.ofNullable(stateHistory.get(when)));
@@ -576,7 +576,7 @@ public class ObjectHistory<STATE> {
      * </ul>
      */
     @Nonnull
-    public Flux<TimestampedState<STATE>> observeStateTransitions() {
+    public final Flux<TimestampedState<STATE>> observeStateTransitions() {
         return stateTransitions.asFlux();
     }
 
