@@ -207,12 +207,7 @@ public final class ObjectHistory<STATE> {
         }
         object = that.object;
         start = that.start;
-        final var result1 = events.tryEmitNext(lastEvent);
-        final var result2 = stateTransitions
-                .tryEmitNext(new TimestampedState<>(lastEvent.getWhen(), lastEvent.getState()));
-        // The sink are reliable, so should always succeed.
-        assert result1 == Sinks.EmitResult.OK;
-        assert result2 == Sinks.EmitResult.OK;
+        emitLastEvent();
     }
 
     /**
@@ -328,16 +323,11 @@ public final class ObjectHistory<STATE> {
 
     private void append1(final Event<STATE> event) {
         lastEvent = event;
-        final var when = event.getWhen();
         final var state = event.getState();
         if (stateHistory.isEmpty() || !stateHistory.getLastValue().equals(state)) {
-            stateHistory.appendTransition(when, state);
+            stateHistory.appendTransition(event.getWhen(), state);
         }
-        final var result1 = events.tryEmitNext(event);
-        final var result2 = stateTransitions.tryEmitNext(new TimestampedState<>(when, state));
-        // The sink are reliable, so should always succeed.
-        assert result1 == Sinks.EmitResult.OK;
-        assert result2 == Sinks.EmitResult.OK;
+        emitLastEvent();
         if (state == null) {// destruction
             final var result3 = events.tryEmitComplete();
             final var result4 = stateTransitions.tryEmitComplete();
@@ -414,6 +404,15 @@ public final class ObjectHistory<STATE> {
             }
             return success;
         }
+    }
+
+    private void emitLastEvent() {
+        final var result1 = events.tryEmitNext(lastEvent);
+        final var result2 = stateTransitions
+                .tryEmitNext(new TimestampedState<>(lastEvent.getWhen(), lastEvent.getState()));
+        // The sink are reliable, so should always succeed.
+        assert result1 == Sinks.EmitResult.OK;
+        assert result2 == Sinks.EmitResult.OK;
     }
 
     /**
