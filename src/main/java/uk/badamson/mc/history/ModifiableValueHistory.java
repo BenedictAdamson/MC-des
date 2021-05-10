@@ -114,6 +114,14 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
         Objects.requireNonNull(transitions, "transitions");
         this.firstValue = firstValue;
         appendTransitions(transitions.entrySet().stream());
+        // Check after copy to avoid race hazards.
+        var previous = firstValue;
+        for (final var value : this.transitions.values()) {
+            if (Objects.equals(previous, value)) {
+                throw new IllegalArgumentException("transitions " + this.transitions);
+            }
+            previous = value;
+        }
     }
 
     /**
