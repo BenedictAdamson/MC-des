@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.time.Duration;
 import java.util.UUID;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import uk.badamson.mc.ComparableTest;
@@ -42,9 +43,107 @@ import uk.badamson.mc.ObjectTest;
  */
 public class ObjectStateIdTest {
 
+    @Nested
+    public class Constructor {
+
+        @Nested
+        public class One {
+
+            @Test
+            public void a() {
+                test(OBJECT_A, DURATION_A);
+            }
+
+            @Test
+            public void b() {
+                test(OBJECT_B, DURATION_B);
+            }
+
+            private void test(final UUID object, final Duration when) {
+                final ObjectStateId id = new ObjectStateId(object, when);
+
+                assertInvariants(id);
+                assertAll(
+                        () -> assertThat("The object ID of this ID is the given object ID.", id.getObject(),
+                                sameInstance(object)),
+                        () -> assertThat("The time-stamp of this ID is the given time-stamp.", id.getWhen(),
+                                sameInstance(when)));
+            }
+        }// class
+
+        @Nested
+        public class Two {
+
+            @Nested
+            public class Equal {
+
+                @Test
+                public void a() {
+                    test(OBJECT_A, DURATION_A);
+                }
+
+                @Test
+                public void b() {
+                    test(OBJECT_B, DURATION_B);
+                }
+
+                private void test(final UUID object, final Duration when) {
+                    // Copy attributes so can test that checks for equality rather than sameness
+                    final UUID object2 = new UUID(object.getMostSignificantBits(), object.getLeastSignificantBits());
+                    final Duration when2 = when.plus(Duration.ZERO);
+
+                    final ObjectStateId id1 = new ObjectStateId(object, when);
+                    final ObjectStateId id2 = new ObjectStateId(object2, when2);
+
+                    assertInvariants(id1, id2);
+                    assertThat("Equal.", id1, equalTo(id2));
+                }
+
+            }// class
+
+            @Test
+            public void differentObjectA() {
+                final ObjectStateId id1 = new ObjectStateId(OBJECT_A, DURATION_A);
+                final ObjectStateId id2 = new ObjectStateId(OBJECT_B, DURATION_A);
+
+                assertInvariants(id1, id2);
+                assertThat("Not equal.", id1, not(id2));
+            }
+
+            @Test
+            public void differentObjectB() {
+                final ObjectStateId id1 = new ObjectStateId(OBJECT_B, DURATION_A);
+                final ObjectStateId id2 = new ObjectStateId(OBJECT_A, DURATION_A);
+
+                assertInvariants(id1, id2);
+                assertThat("Not equal.", id1, not(id2));
+            }
+
+            @Test
+            public void differentWhenA() {
+                final ObjectStateId id1 = new ObjectStateId(OBJECT_A, DURATION_A);
+                final ObjectStateId id2 = new ObjectStateId(OBJECT_A, DURATION_B);
+
+                assertInvariants(id1, id2);
+                assertThat("Not equal.", id1, not(id2));
+            }
+
+            @Test
+            public void differentWhenB() {
+                final ObjectStateId id1 = new ObjectStateId(OBJECT_B, DURATION_B);
+                final ObjectStateId id2 = new ObjectStateId(OBJECT_B, DURATION_A);
+
+                assertInvariants(id1, id2);
+                assertThat("Not equal.", id1, not(id2));
+            }
+        }// class
+
+    }// class
+
     static final UUID OBJECT_A = UUID.randomUUID();
     static final UUID OBJECT_B = UUID.randomUUID();
     static final Duration DURATION_A = Duration.ZERO;
+
     static final Duration DURATION_B = Duration.ofSeconds(15);
 
     public static void assertInvariants(final ObjectStateId id) {
@@ -76,85 +175,6 @@ public class ObjectStateIdTest {
                 "The natural ordering orders by time-stamp.");
         assertFalse(whenEquals && compareTo != Integer.signum(id1.getObject().compareTo(id2.getObject())),
                 "The natural ordering orders by object IDs if time-stamps are equivalent.");
-    }
-
-    private static void constructor(final UUID object, final Duration when) {
-        final ObjectStateId id = new ObjectStateId(object, when);
-
-        assertInvariants(id);
-        assertAll(
-                () -> assertThat("The object ID of this ID is the given object ID.", id.getObject(),
-                        sameInstance(object)),
-                () -> assertThat("The time-stamp of this ID is the given time-stamp.", id.getWhen(),
-                        sameInstance(when)));
-    }
-
-    private static void constructor_2Equal(final UUID object, final Duration when) {
-        // Copy attributes so can test that checks for equality rather than sameness
-        final UUID object2 = new UUID(object.getMostSignificantBits(), object.getLeastSignificantBits());
-        final Duration when2 = when.plus(Duration.ZERO);
-
-        final ObjectStateId id1 = new ObjectStateId(object, when);
-        final ObjectStateId id2 = new ObjectStateId(object2, when2);
-
-        assertInvariants(id1, id2);
-        assertThat("Equal.", id1, equalTo(id2));
-    }
-
-    @Test
-    public void constructor_2DifferentObjectA() {
-        final ObjectStateId id1 = new ObjectStateId(OBJECT_A, DURATION_A);
-        final ObjectStateId id2 = new ObjectStateId(OBJECT_B, DURATION_A);
-
-        assertInvariants(id1, id2);
-        assertThat("Not equal.", id1, not(id2));
-    }
-
-    @Test
-    public void constructor_2DifferentObjectB() {
-        final ObjectStateId id1 = new ObjectStateId(OBJECT_B, DURATION_A);
-        final ObjectStateId id2 = new ObjectStateId(OBJECT_A, DURATION_A);
-
-        assertInvariants(id1, id2);
-        assertThat("Not equal.", id1, not(id2));
-    }
-
-    @Test
-    public void constructor_2DifferentWhenA() {
-        final ObjectStateId id1 = new ObjectStateId(OBJECT_A, DURATION_A);
-        final ObjectStateId id2 = new ObjectStateId(OBJECT_A, DURATION_B);
-
-        assertInvariants(id1, id2);
-        assertThat("Not equal.", id1, not(id2));
-    }
-
-    @Test
-    public void constructor_2DifferentWhenB() {
-        final ObjectStateId id1 = new ObjectStateId(OBJECT_B, DURATION_B);
-        final ObjectStateId id2 = new ObjectStateId(OBJECT_B, DURATION_A);
-
-        assertInvariants(id1, id2);
-        assertThat("Not equal.", id1, not(id2));
-    }
-
-    @Test
-    public void constructor_2EqualA() {
-        constructor_2Equal(OBJECT_A, DURATION_A);
-    }
-
-    @Test
-    public void constructor_2EqualB() {
-        constructor_2Equal(OBJECT_B, DURATION_B);
-    }
-
-    @Test
-    public void constructor_A() {
-        constructor(OBJECT_A, DURATION_A);
-    }
-
-    @Test
-    public void constructor_B() {
-        constructor(OBJECT_B, DURATION_B);
     }
 
 }// class
