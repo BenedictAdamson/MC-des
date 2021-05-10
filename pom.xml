@@ -32,8 +32,9 @@
    </scm>
    <properties>
       <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-      <spotbugs.version>4.2.3</spotbugs.version>
+      <jackson.version>2.11.4</jackson.version>
       <reactor.version>3.4.5</reactor.version>
+      <spotbugs.version>4.2.3</spotbugs.version>
    </properties>
    <dependencyManagement>
       <dependencies>
@@ -211,6 +212,18 @@
          <groupId>io.projectreactor</groupId>
          <artifactId>reactor-tools</artifactId>
          <version>${reactor.version}</version>
+         <scope>test</scope>
+      </dependency>
+      <dependency>
+         <groupId>com.fasterxml.jackson.core</groupId>
+         <artifactId>jackson-databind</artifactId>
+         <version>${jackson.version}</version>
+         <scope>test</scope>
+      </dependency>
+      <dependency>
+         <groupId>com.fasterxml.jackson.datatype</groupId>
+         <artifactId>jackson-datatype-jsr310</artifactId>
+         <version>${jackson.version}</version>
          <scope>test</scope>
       </dependency>
       <dependency>
