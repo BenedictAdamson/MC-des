@@ -44,6 +44,7 @@ import javax.annotation.Nullable;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.ObjectTest;
 
 /**
@@ -325,6 +326,50 @@ public class ModifiableValueHistoryTest {
             assertEquals(that, history, "This equals the given value history.");
 
             return history;
+        }
+    }// class
+
+    @Nested
+    public class JSON {
+
+        @Test
+        public void empty() {
+            final var history = new ModifiableValueHistory<Integer>();
+
+            test(history);
+        }
+
+        @Test
+        public void one_nonnull() {
+            final var history = new ModifiableValueHistory<>(Integer.valueOf(0));
+            history.appendTransition(WHEN_1, Integer.valueOf(1));
+
+            test(history);
+        }
+
+        @Test
+        public void one_null() {
+            final var history = new ModifiableValueHistory<Integer>();
+            history.appendTransition(WHEN_1, Integer.valueOf(0));
+
+            test(history);
+        }
+
+        private <VALUE> void test(@Nonnull final ModifiableValueHistory<VALUE> history) {
+            final var deserialized = JsonTest.serializeAndDeserialize(history);
+
+            assertInvariants(history);
+            assertInvariants(history, deserialized);
+            assertEquals(history, deserialized);
+        }
+
+        @Test
+        public void two() {
+            final var history = new ModifiableValueHistory<>(Integer.valueOf(3));
+            history.appendTransition(WHEN_2, Integer.valueOf(2));
+            history.appendTransition(WHEN_3, Integer.valueOf(1));
+
+            test(history);
         }
     }// class
 

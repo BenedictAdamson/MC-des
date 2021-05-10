@@ -33,6 +33,10 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * <p>
  * The modifiable time-wise variation of a value that changes at discrete points
@@ -109,8 +113,9 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      *             {@linkplain Objects#equals(Object, Object) equivalent or
      *             equivalently null}.
      */
-    public ModifiableValueHistory(@Nullable final VALUE firstValue,
-            @Nonnull final SortedMap<Duration, VALUE> transitions) {
+    @JsonCreator
+    public ModifiableValueHistory(@Nullable @JsonProperty("firstValue") final VALUE firstValue,
+            @Nonnull @JsonProperty("transitions") final SortedMap<Duration, VALUE> transitions) {
         Objects.requireNonNull(transitions, "transitions");
         this.firstValue = firstValue;
         appendTransitions(transitions.entrySet().stream());
@@ -255,6 +260,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @return the first transition time.
      */
     @Override
+    @JsonIgnore
     public @Nullable Duration getFirstTansitionTime() {
         return transitions.isEmpty() ? null : transitions.firstKey();
     }
@@ -274,6 +280,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @return the first value.
      */
     @Override
+    @JsonProperty("firstValue")
     public @Nullable VALUE getFirstValue() {
         return firstValue;
     }
@@ -297,6 +304,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @return the last transition time.
      */
     @Override
+    @JsonIgnore
     public @Nullable Duration getLastTansitionTime() {
         return transitions.isEmpty() ? null : transitions.lastKey();
     }
@@ -322,18 +330,21 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @return the last value.
      */
     @Override
+    @JsonIgnore
     public @Nullable VALUE getLastValue() {
         final var lastTransition = transitions.lastEntry();
         return lastTransition == null ? firstValue : lastTransition.getValue();
     }
 
     @Override
+    @JsonIgnore
     public Duration getTansitionTimeAtOrAfter(@Nonnull final Duration when) {
         Objects.requireNonNull(when, "when");
         return transitions.ceilingKey(when);
     }
 
     @Override
+    @JsonProperty("transitions")
     public @Nonnull SortedMap<Duration, VALUE> getTransitions() {
         return new TreeMap<>(transitions);
     }
@@ -364,6 +375,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @return the transition times
      */
     @Override
+    @JsonIgnore
     public @Nonnull SortedSet<Duration> getTransitionTimes() {
         return Collections.unmodifiableSortedSet(transitions.navigableKeySet());
     }
@@ -387,6 +399,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      *
      */
     @Override
+    @JsonIgnore
     public boolean isEmpty() {
         return transitions.isEmpty();
     }
