@@ -44,7 +44,7 @@ import uk.badamson.mc.simulation.ObjectStateId;
  */
 @Immutable
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "class")
-public abstract class Event<STATE> implements Comparable<Event<STATE>> {
+public abstract class Event<STATE> {
 
     private static <STATE> Map<UUID, Duration> requireValidNextEventDependencies(
             final Map<UUID, Duration> nextEventDependencies, @Nonnull final ObjectStateId id, final STATE state) {
@@ -112,30 +112,6 @@ public abstract class Event<STATE> implements Comparable<Event<STATE>> {
         this.id = Objects.requireNonNull(id, "id");
         this.state = state;
         this.nextEventDependencies = requireValidNextEventDependencies(nextEventDependencies, id, state);
-    }
-
-    /**
-     * <p>
-     * The natural ordering of {@link Event}s.
-     * </p>
-     * <ul>
-     * <li>The <i>natural ordering</i> of {@link Event} is the
-     * {@linkplain ObjectStateId#compareTo(ObjectStateId) natural ordering} of the
-     * {@linkplain #getId() IDs} of the events.</li>
-     * <li>Hence the <i>natural ordering</i> of {@link Event} is consistent with
-     * {@linkplain #equals(Object) equals}.</li>
-     * </ul>
-     *
-     * @throws NullPointerException
-     *             If {@code that} is null
-     */
-    @Override
-    public final int compareTo(@Nullable final Event<STATE> that) throws NullPointerException {
-        if (that != null) {
-            return id.compareTo(that.getId());
-        } else {
-            throw new NullPointerException("that");
-        }
     }
 
     /**

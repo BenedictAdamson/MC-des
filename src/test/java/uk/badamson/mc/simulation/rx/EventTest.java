@@ -47,7 +47,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import uk.badamson.mc.ComparableTest;
 import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.simulation.ObjectStateId;
@@ -232,7 +231,6 @@ public class EventTest {
 
     public static <STATE> void assertInvariants(@Nonnull final Event<STATE> event) {
         ObjectTest.assertInvariants(event);// inherited
-        ComparableTest.assertInvariants(event);// inherited
 
         final var id = event.getId();
         final var nextEventDependencies = event.getNextEventDependencies();
@@ -255,8 +253,6 @@ public class EventTest {
     public static <STATE> void assertInvariants(@Nonnull final Event<STATE> event1,
             @Nonnull final Event<STATE> event2) {
         ObjectTest.assertInvariants(event1, event2);// inherited
-        ComparableTest.assertInvariants(event1, event2);// inherited
-        ComparableTest.assertComparableConsistentWithEquals(event1, event2);
 
         assertTrue(event1.getId().equals(event2.getId()) == event1.equals(event2),
                 "entity semantics with ID as the unique ID");
