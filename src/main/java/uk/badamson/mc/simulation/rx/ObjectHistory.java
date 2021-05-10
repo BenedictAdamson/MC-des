@@ -46,6 +46,11 @@ import uk.badamson.mc.history.ValueHistory;
  * <p>
  * The sequence of state transitions of a simulated object.
  * </p>
+ * <p>
+ * This concrete base class is not <i>modifiable</i>: additional state
+ * transitions may not be added after construction. The
+ * {@link ModifiableObjectHistory} derived class however is modifiable.
+ * </p>
  *
  * @param <STATE>
  *            The class of states of the simulated object. This must be
@@ -53,7 +58,7 @@ import uk.badamson.mc.history.ValueHistory;
  *            that is not required.
  */
 @ThreadSafe
-public final class ObjectHistory<STATE> {
+public class ObjectHistory<STATE> {
 
     /**
      * <p>
@@ -153,7 +158,7 @@ public final class ObjectHistory<STATE> {
     private final UUID object;
     @Nonnull
     private final Duration start;
-    private final Object lock = new Object();
+    protected final Object lock = new Object();
     private final Sinks.Many<Event<STATE>> events = Sinks.many().replay().latest();
     private final Sinks.Many<TimestampedState<STATE>> stateTransitions = Sinks.many().replay().latest();
 
@@ -163,7 +168,7 @@ public final class ObjectHistory<STATE> {
 
     @Nonnull
     @GuardedBy("lock")
-    private Event<STATE> lastEvent;
+    protected Event<STATE> lastEvent;
 
     /**
      * <p>
@@ -266,68 +271,7 @@ public final class ObjectHistory<STATE> {
         append1(lastEvent);
     }
 
-    /**
-     * <p>
-     * Append an event to this history.
-     * </p>
-     *
-     * <ul>
-     * <li>The {@linkplain #getLastEvent() last event} becomes the same as the given
-     * {@code event}.</li>
-     * <li>Any subscribers to the {@linkplain #observeStateTransitions() sequence of
-     * state transitions} will receive a new state transition corresponding the the
-     * {@code event}:
-     * <ul>
-     * <li>The {@linkplain TimestampedState#getWhen() time} of the state transition
-     * will be the same as the {@linkplain Event#getWhen() time} of the
-     * {@code event}.</li>
-     * <li>The {@linkplain TimestampedState#getState() state} of the state
-     * transition will be the same as the {@linkplain Event#getState() state} of the
-     * {@code event}.</li>
-     * </ul>
-     * </ul>
-     *
-     * @param event
-     *            The event to append. The {@linkplain Event#getState() state}
-     *            transitioned to by the event may be equal to the state
-     *            transitioned to by the current last event, but that should be
-     *            avoided for performance reasons.
-     * @throws NullPointerException
-     *             If {@code event} is null
-     * @throws IllegalArgumentException
-     *             If the {@linkplain Event#getObject() object} of the {@code event}
-     *             is not the same as the {@linkplain #getObject() object} of this
-     *             history.
-     * @throws IllegalStateException
-     *             <li>If the {@linkplain Event#getWhen() time} of the {@code event}
-     *             is not {@linkplain Duration#compareTo(Duration) after} the time
-     *             of the {@linkplain #getLastEvent() last event} of this history.
-     *             That can happen if a different thread appended an event.</li>
-     *             <li>If the {@linkplain Event#getState() state} of the current
-     *             {@linkplain #getLastEvent() last event} is null. That is, if the
-     *             current last event was the destruction or removal of the
-     *             {@linkplain #getObject() simulated object}: destroyed objects may
-     *             not be resurrected.
-     *
-     * @see #compareAndAppend(Event, Event)
-     */
-    public void append(@Nonnull final Event<STATE> event) {
-        Objects.requireNonNull(event, "event");
-        if (object != event.getObject()) {
-            throw new IllegalArgumentException("event.getObject");
-        }
-        synchronized (lock) {
-            if (0 <= lastEvent.getWhen().compareTo(event.getWhen())) {
-                throw new IllegalStateException("event.getWhen");
-            }
-            if (lastEvent.getState() == null) {
-                throw new IllegalStateException("resurrection attempted");
-            }
-            append1(event);
-        }
-    }
-
-    private void append1(final Event<STATE> event) {
+    protected final void append1(final Event<STATE> event) {
         lastEvent = event;
         final var state = event.getState();
         if (stateHistory.isEmpty() || !stateHistory.getLastValue().equals(state)) {
@@ -339,76 +283,6 @@ public final class ObjectHistory<STATE> {
             final var result4 = stateTransitions.tryEmitComplete();
             assert result3 == Sinks.EmitResult.OK;
             assert result4 == Sinks.EmitResult.OK;
-        }
-    }
-
-    /**
-     * <p>
-     * Append an event to this history, if the current {@linkplain #getLastEvent()
-     * last event} has a given expected value.
-     * </p>
-     *
-     * <ul>
-     * <li>If the method returns {@code true}, it has the same effect as if
-     * {@link #append(Event)} had been called with {@code event}.</li>
-     * <li>If the method returns {@code false}, it has no effect.</li>
-     * </ul>
-     * <p>
-     * This provides better thread safety than the {@link #append(Event)} method.
-     * </p>
-     *
-     * @param expectedLastEvent
-     *            The expected current last event.
-     * @param event
-     *            The event to append. The {@linkplain Event#getState() state}
-     *            transitioned to by {@code event} may be equal to the state
-     *            transitioned to by the {@code expectedLastEvent}, but that should
-     *            be avoided for performance reasons.
-     * @return The method returns whether the {@linkplain #getLastEvent() last
-     *         event} was the same as the given {@code expectedLastEvent}, in which
-     *         case it successfully appended the {@code event}.
-     *
-     * @throws NullPointerException
-     *             <ul>
-     *             <li>If {@code expectedLastEvent} is null.</li>
-     *             <li>If {@code event} is null.</li>
-     *             </ul>
-     * @throws IllegalArgumentException
-     *             <ul>
-     *             <li>If the {@linkplain Event#getObject() object} of the
-     *             {@code event} is not the same as the {@linkplain #getObject()
-     *             object} of this history.</li>
-     *             <li>If the {@linkplain Event#getWhen() time} of the {@code event}
-     *             is not {@linkplain Duration#compareTo(Duration) after} the time
-     *             of the {@code expectedLastEvent}</li>
-     *             <li>If the {@linkplain Event#getState() state} of the
-     *             {@code expectedLastEvent} is null. That is, if the expected last
-     *             event was the destruction or removal of the
-     *             {@linkplain #getObject() simulated object}: destroyed objects may
-     *             not be resurrected.
-     *             </ul>
-     *
-     * @see #append(Event)
-     */
-    public boolean compareAndAppend(@Nonnull final Event<STATE> expectedLastEvent, @Nonnull final Event<STATE> event) {
-        Objects.requireNonNull(expectedLastEvent, "expectedLastEvent");
-        Objects.requireNonNull(event, "event");
-        if (object != event.getObject()) {
-            throw new IllegalArgumentException("event.getObject");
-        }
-        if (0 <= expectedLastEvent.getWhen().compareTo(event.getWhen())) {
-            throw new IllegalStateException("event.getWhen");
-        }
-        if (expectedLastEvent.getState() == null) {
-            throw new IllegalStateException("resurrection attempted");
-        }
-
-        synchronized (lock) {
-            final boolean success = lastEvent == expectedLastEvent;
-            if (success) {
-                append1(event);
-            }
-            return success;
         }
     }
 
@@ -541,7 +415,7 @@ public final class ObjectHistory<STATE> {
      * <li>The state history is never {@linkplain ValueHistory#isEmpty()
      * empty}.</li>
      * <li>The returned state history is a snapshot: a copy of data, it is not
-     * updated when events are {@linkplain #append(Event) appended}.</li>
+     * updated if events are appended.</li>
      * </ul>
      * <p>
      * Using the sequence provided by {@link #observeState(Duration)} to acquire the

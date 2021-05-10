@@ -81,7 +81,7 @@ public final class Universe<STATE> {
         }
     }
 
-    private final Map<UUID, ObjectHistory<STATE>> objectHistories = new ConcurrentHashMap<>();
+    private final Map<UUID, ModifiableObjectHistory<STATE>> objectHistories = new ConcurrentHashMap<>();
     /**
      * Adding entries to the objectHistories Map is guarded by this lock.
      */
@@ -112,7 +112,7 @@ public final class Universe<STATE> {
         Objects.requireNonNull(that, "that");
         synchronized (that.objectCreationLock) {// hard to test
             that.objectHistories
-                    .forEach((object, history) -> objectHistories.put(object, new ObjectHistory<>(history)));
+                    .forEach((object, history) -> objectHistories.put(object, new ModifiableObjectHistory<>(history)));
         }
     }
 
@@ -163,7 +163,7 @@ public final class Universe<STATE> {
         synchronized (objectCreationLock) {
             objectHistories.compute(event.getObject(), (k, v) -> {
                 if (v == null) {
-                    return new ObjectHistory<>(event);
+                    return new ModifiableObjectHistory<>(event);
                 } else {
                     throw new IllegalArgumentException("Already present");
                 }
@@ -217,7 +217,7 @@ public final class Universe<STATE> {
     private void applyEvent(@Nonnull final Event<STATE> expectedLastEvent, @Nonnull final Event<STATE> event) {
         objectHistories.compute(event.getObject(), (k, history) -> {
             if (history == null) {
-                return new ObjectHistory<>(event);
+                return new ModifiableObjectHistory<>(event);
             } else {
                 history.compareAndAppend(expectedLastEvent, event);
                 /*

@@ -18,14 +18,11 @@ package uk.badamson.mc.simulation.rx;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -54,14 +51,12 @@ import reactor.test.StepVerifier;
 import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.ThreadTest;
-import uk.badamson.mc.history.ValueHistory;
-import uk.badamson.mc.history.ValueHistoryTest;
 import uk.badamson.mc.simulation.ObjectStateId;
 import uk.badamson.mc.simulation.rx.EventTest.TestEvent;
 import uk.badamson.mc.simulation.rx.ObjectHistory.TimestampedState;
 
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
-public class ObjectHistoryTest {
+public class ModifiableObjectHistoryTest {
 
     @Nested
     public class Append {
@@ -94,7 +89,7 @@ public class ObjectHistoryTest {
                     final Integer state1) {
                 final var event0 = new TestEvent(new ObjectStateId(object, when0), state0, Map.of());
                 final var event1 = new TestEvent(new ObjectStateId(object, when1), state1, Map.of());
-                final var history = new ObjectHistory<>(event0);
+                final var history = new ModifiableObjectHistory<>(event0);
 
                 Append.this.test(history, event1);
             }
@@ -108,7 +103,7 @@ public class ObjectHistoryTest {
                     Map.of());
             final var event2 = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A.plusMillis(2)), Integer.valueOf(2),
                     Map.of());
-            final var history = new ObjectHistory<>(event0);
+            final var history = new ModifiableObjectHistory<>(event0);
 
             final CountDownLatch ready = new CountDownLatch(1);
             final var future1 = testInOtherThread(history, event1, ready);
@@ -121,7 +116,8 @@ public class ObjectHistoryTest {
             assertSame(event2, history.getLastEvent(), "lastEvent");
         }
 
-        private <STATE> void test(@Nonnull final ObjectHistory<STATE> history, @Nonnull final Event<STATE> event) {
+        private <STATE> void test(@Nonnull final ModifiableObjectHistory<STATE> history,
+                @Nonnull final Event<STATE> event) {
             final var object0 = history.getObject();
             final var start0 = history.getStart();
 
@@ -133,7 +129,7 @@ public class ObjectHistoryTest {
             assertSame(event, history.getLastEvent(), "lastEvent");
         }
 
-        private Future<Void> testInOtherThread(final ObjectHistory<Integer> history, final TestEvent event,
+        private Future<Void> testInOtherThread(final ModifiableObjectHistory<Integer> history, final TestEvent event,
                 final CountDownLatch ready) {
             return ThreadTest.runInOtherThread(ready, () -> {
                 final var object0 = history.getObject();
@@ -157,7 +153,7 @@ public class ObjectHistoryTest {
                     Map.of());
             final var event2 = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A.plusMillis(2)), Integer.valueOf(2),
                     Map.of());
-            final var history = new ObjectHistory<>(event0);
+            final var history = new ModifiableObjectHistory<>(event0);
             history.append(event1);
 
             test(history, event2);
@@ -183,7 +179,7 @@ public class ObjectHistoryTest {
 
             private <STATE> void test(@Nonnull final Event<STATE> expectedLastEvent,
                     @Nonnull final Event<STATE> event) {
-                final ObjectHistory<STATE> history = new ObjectHistory<>(expectedLastEvent);
+                final ModifiableObjectHistory<STATE> history = new ModifiableObjectHistory<>(expectedLastEvent);
 
                 final boolean success = CompareAndAppend.this.test(history, expectedLastEvent, event);
 
@@ -246,7 +242,7 @@ public class ObjectHistoryTest {
             private <STATE> void test(@Nonnull final Event<STATE> lastEvent,
                     @Nonnull final Event<STATE> expectedLastEvent, @Nonnull final Event<STATE> event) {
                 assert lastEvent != expectedLastEvent;
-                final ObjectHistory<STATE> history = new ObjectHistory<>(lastEvent);
+                final ModifiableObjectHistory<STATE> history = new ModifiableObjectHistory<>(lastEvent);
 
                 final boolean success = CompareAndAppend.this.test(history, expectedLastEvent, event);
 
@@ -266,7 +262,7 @@ public class ObjectHistoryTest {
 
         }// class
 
-        private <STATE> boolean test(@Nonnull final ObjectHistory<STATE> history,
+        private <STATE> boolean test(@Nonnull final ModifiableObjectHistory<STATE> history,
                 @Nonnull final Event<STATE> expectedLastEvent, @Nonnull final Event<STATE> event) {
             final var object0 = history.getObject();
             final var start0 = history.getStart();
@@ -306,7 +302,7 @@ public class ObjectHistoryTest {
                 }
 
                 private <STATE> void test(@Nonnull final Event<STATE> event) {
-                    final var history = new ObjectHistory<>(event);
+                    final var history = new ModifiableObjectHistory<>(event);
 
                     Copy.this.test(history);
                 }
@@ -320,8 +316,8 @@ public class ObjectHistoryTest {
 
             }// class
 
-            private <STATE> void test(@Nonnull final ObjectHistory<STATE> that) {
-                final var copy = new ObjectHistory<>(that);
+            private <STATE> void test(@Nonnull final ModifiableObjectHistory<STATE> that) {
+                final var copy = new ModifiableObjectHistory<>(that);
 
                 assertInvariants(copy);
                 assertInvariants(copy, that);
@@ -391,7 +387,7 @@ public class ObjectHistoryTest {
 
             private <STATE> void test(@Nonnull final SortedMap<Duration, STATE> previousStateTransitions,
                     @Nonnull final Event<STATE> lastEvent) {
-                final var history = new ObjectHistory<>(previousStateTransitions, lastEvent);
+                final var history = new ModifiableObjectHistory<>(previousStateTransitions, lastEvent);
 
                 assertInvariants(history);
                 assertAll(() -> assertSame(lastEvent, history.getLastEvent(), "lastEvent"),
@@ -425,7 +421,7 @@ public class ObjectHistoryTest {
             }
 
             private <STATE> void test(@Nonnull final Event<STATE> event) {
-                final var history = new ObjectHistory<>(event);
+                final var history = new ModifiableObjectHistory<>(event);
 
                 assertInvariants(history);
                 assertSame(event, history.getLastEvent(), "lastEvent");
@@ -458,7 +454,7 @@ public class ObjectHistoryTest {
             }
 
             private <STATE> void test(@Nonnull final Event<STATE> event) {
-                final var history = new ObjectHistory<>(event);
+                final var history = new ModifiableObjectHistory<>(event);
 
                 JSON.this.test(history);
             }
@@ -497,14 +493,14 @@ public class ObjectHistoryTest {
                 final SortedMap<Duration, Integer> previousStateTransitions = new TreeMap<>();
                 previousStateTransitions.put(start, state1);
                 final var event = new TestEvent(new ObjectStateId(object, end), state2, Map.of());
-                final var history = new ObjectHistory<>(previousStateTransitions, event);
+                final var history = new ModifiableObjectHistory<>(previousStateTransitions, event);
 
                 JSON.this.test(history);
             }
 
         }// class
 
-        private <STATE> void test(@Nonnull final ObjectHistory<STATE> history) {
+        private <STATE> void test(@Nonnull final ModifiableObjectHistory<STATE> history) {
             final var deserialized = JsonTest.serializeAndDeserialize(history);
 
             assertInvariants(history);
@@ -539,7 +535,7 @@ public class ObjectHistoryTest {
                 final UUID object = OBJECT_A;
                 final var event0 = new TestEvent(new ObjectStateId(object, WHEN_A), Integer.valueOf(0), Map.of());
                 final var event1 = new TestEvent(new ObjectStateId(object, WHEN_A.plusMillis(10)), null, Map.of());
-                final var history = new ObjectHistory<>(event0);
+                final var history = new ModifiableObjectHistory<>(event0);
                 history.append(event1);
 
                 final var flux = ObserveEvents.this.test(history);
@@ -551,7 +547,7 @@ public class ObjectHistoryTest {
                     final Duration when1, final Integer state1) {
                 final var event0 = new TestEvent(new ObjectStateId(object, when0), state0, Map.of());
                 final var event1 = new TestEvent(new ObjectStateId(object, when1), state1, Map.of());
-                final var history = new ObjectHistory<>(event0);
+                final var history = new ModifiableObjectHistory<>(event0);
                 history.append(event1);
 
                 final var flux = ObserveEvents.this.test(history);
@@ -576,7 +572,7 @@ public class ObjectHistoryTest {
 
             private void test(final UUID object, final Duration start, final Integer state) {
                 final var event = new TestEvent(new ObjectStateId(object, start), state, Map.of());
-                final var history = new ObjectHistory<>(event);
+                final var history = new ModifiableObjectHistory<>(event);
 
                 final var flux = ObserveEvents.this.test(history);
 
@@ -600,8 +596,8 @@ public class ObjectHistoryTest {
 
             private void test(final UUID object, final Duration start, final Integer state) {
                 final var event = new TestEvent(new ObjectStateId(object, start), state, Map.of());
-                final var history = new ObjectHistory<>(event);
-                final var copy = new ObjectHistory<>(history);
+                final var history = new ModifiableObjectHistory<>(event);
+                final var copy = new ModifiableObjectHistory<>(history);
 
                 final var flux = ObserveEvents.this.test(copy);
 
@@ -610,7 +606,7 @@ public class ObjectHistoryTest {
 
         }// class
 
-        private <STATE> Flux<Event<STATE>> test(@Nonnull final ObjectHistory<STATE> history) {
+        private <STATE> Flux<Event<STATE>> test(@Nonnull final ModifiableObjectHistory<STATE> history) {
             final var flux = history.observeEvents();
 
             assertInvariants(history);
@@ -642,7 +638,7 @@ public class ObjectHistoryTest {
 
             private <STATE> void test(@Nonnull final Event<STATE> event) {
                 final Optional<STATE> expectedState = Optional.of(event.getState());
-                final var history = new ObjectHistory<>(event);
+                final var history = new ModifiableObjectHistory<>(event);
                 final Duration when = history.getStart();
 
                 final var states = ObserveState.this.test(history, when);
@@ -678,7 +674,7 @@ public class ObjectHistoryTest {
 
             private <STATE> void test(@Nonnull final Event<STATE> event, @Nonnull final Duration when) {
                 final Optional<STATE> expectedState = Optional.empty();
-                final var history = new ObjectHistory<>(event);
+                final var history = new ModifiableObjectHistory<>(event);
                 assert when.compareTo(history.getStart()) < 0;
 
                 final var states = ObserveState.this.test(history, when);
@@ -712,7 +708,7 @@ public class ObjectHistoryTest {
                 assert time0.compareTo(when) < 0;// provisional
                 final var expectedState = Optional.of(state0);
                 final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, time0), state0, Map.of());
-                final var history = new ObjectHistory<>(event0);
+                final var history = new ModifiableObjectHistory<>(event0);
 
                 final var states = ObserveState.this.test(history, when);
 
@@ -749,7 +745,7 @@ public class ObjectHistoryTest {
                 final var expectedState = Optional.of(state0);
                 final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, time0), state0, Map.of());
                 final var event1 = new TestEvent(new ObjectStateId(OBJECT_A, time1), state1, Map.of());
-                final var history = new ObjectHistory<>(event0);
+                final var history = new ModifiableObjectHistory<>(event0);
 
                 final var states = ObserveState.this.test(history, when);
 
@@ -802,7 +798,7 @@ public class ObjectHistoryTest {
                 final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, time0), state0, Map.of());
                 final var event1 = new TestEvent(new ObjectStateId(OBJECT_A, time1), state1, Map.of());
                 final var event2 = new TestEvent(new ObjectStateId(OBJECT_A, time2), state2, Map.of());
-                final var history = new ObjectHistory<>(event0);
+                final var history = new ModifiableObjectHistory<>(event0);
                 history.append(event1);
                 history.append(event2);
 
@@ -829,7 +825,7 @@ public class ObjectHistoryTest {
                 final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, time0), state0, Map.of());
                 final var event1 = new TestEvent(new ObjectStateId(OBJECT_A, time1), state1, Map.of());
                 final var event2 = new TestEvent(new ObjectStateId(OBJECT_A, time2), state2, Map.of());
-                final var history = new ObjectHistory<>(event0);
+                final var history = new ModifiableObjectHistory<>(event0);
 
                 final var states = ObserveState.this.test(history, when);
 
@@ -870,7 +866,7 @@ public class ObjectHistoryTest {
                 final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, time0), state0, Map.of());
                 final var event1 = new TestEvent(new ObjectStateId(OBJECT_A, time1), state1, Map.of());
                 final var event2 = new TestEvent(new ObjectStateId(OBJECT_A, time2), state2, Map.of());
-                final var history = new ObjectHistory<>(event0);
+                final var history = new ModifiableObjectHistory<>(event0);
 
                 final var states = ObserveState.this.test(history, when);
 
@@ -907,7 +903,7 @@ public class ObjectHistoryTest {
                 final var expectedState1 = Optional.of(state1);
                 final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, time0), state0, Map.of());
                 final var event1 = new TestEvent(new ObjectStateId(OBJECT_A, time1), state1, Map.of());
-                final var history = new ObjectHistory<>(event0);
+                final var history = new ModifiableObjectHistory<>(event0);
 
                 final var states = ObserveState.this.test(history, when);
 
@@ -917,7 +913,7 @@ public class ObjectHistoryTest {
 
         }// class
 
-        private <STATE> Publisher<Optional<STATE>> test(@Nonnull final ObjectHistory<STATE> history,
+        private <STATE> Publisher<Optional<STATE>> test(@Nonnull final ModifiableObjectHistory<STATE> history,
                 @Nonnull final Duration when) {
             final var states = history.observeState(when);
 
@@ -950,11 +946,11 @@ public class ObjectHistoryTest {
                 final var object = OBJECT_A;
                 final var when1 = WHEN_A;
                 final Integer state1 = null;// critical
-                final var expectedStateTransition = new ObjectHistory.TimestampedState<>(when1, state1);
+                final var expectedStateTransition = new ModifiableObjectHistory.TimestampedState<>(when1, state1);
                 final var event0 = new TestEvent(new ObjectStateId(object, when1.minusMillis(10)), Integer.valueOf(0),
                         Map.of());
                 final var event1 = new TestEvent(new ObjectStateId(object, when1), state1, Map.of());
-                final var history = new ObjectHistory<>(event0);
+                final var history = new ModifiableObjectHistory<>(event0);
                 history.append(event1);
 
                 final var flux = ObserveStateTransitions.this.test(history);
@@ -965,10 +961,10 @@ public class ObjectHistoryTest {
 
             private void testNonDestruction(final UUID object, final Duration when0, final Integer state0,
                     final Duration when1, final Integer state1) {
-                final var expectedStateTransition = new ObjectHistory.TimestampedState<>(when1, state1);
+                final var expectedStateTransition = new ModifiableObjectHistory.TimestampedState<>(when1, state1);
                 final var event0 = new TestEvent(new ObjectStateId(object, when0), state0, Map.of());
                 final var event1 = new TestEvent(new ObjectStateId(object, when1), state1, Map.of());
-                final var history = new ObjectHistory<>(event0);
+                final var history = new ModifiableObjectHistory<>(event0);
                 history.append(event1);
 
                 final var flux = ObserveStateTransitions.this.test(history);
@@ -993,9 +989,9 @@ public class ObjectHistoryTest {
             }
 
             private void test(final UUID object, final Duration start, final Integer state) {
-                final var expectedStateTransition = new ObjectHistory.TimestampedState<>(start, state);
+                final var expectedStateTransition = new ModifiableObjectHistory.TimestampedState<>(start, state);
                 final var event = new TestEvent(new ObjectStateId(object, start), state, Map.of());
-                final var history = new ObjectHistory<>(event);
+                final var history = new ModifiableObjectHistory<>(event);
 
                 final var flux = ObserveStateTransitions.this.test(history);
 
@@ -1019,10 +1015,10 @@ public class ObjectHistoryTest {
             }
 
             private void test(final UUID object, final Duration start, final Integer state) {
-                final var expectedStateTransition = new ObjectHistory.TimestampedState<>(start, state);
+                final var expectedStateTransition = new ModifiableObjectHistory.TimestampedState<>(start, state);
                 final var event = new TestEvent(new ObjectStateId(object, start), state, Map.of());
-                final var history = new ObjectHistory<>(event);
-                final var copy = new ObjectHistory<>(history);
+                final var history = new ModifiableObjectHistory<>(event);
+                final var copy = new ModifiableObjectHistory<>(history);
 
                 final var flux = ObserveStateTransitions.this.test(copy);
 
@@ -1032,7 +1028,7 @@ public class ObjectHistoryTest {
 
         }// class
 
-        private <STATE> Flux<TimestampedState<STATE>> test(@Nonnull final ObjectHistory<STATE> history) {
+        private <STATE> Flux<TimestampedState<STATE>> test(@Nonnull final ModifiableObjectHistory<STATE> history) {
             final var flux = history.observeStateTransitions();
 
             assertInvariants(history);
@@ -1054,8 +1050,8 @@ public class ObjectHistoryTest {
                     final String stateA = "A";
                     final String stateB = "B";
 
-                    final var timestampedA = new ObjectHistory.TimestampedState<>(WHEN_A, stateA);
-                    final var timestampedB = new ObjectHistory.TimestampedState<>(WHEN_A, stateB);
+                    final var timestampedA = new ModifiableObjectHistory.TimestampedState<>(WHEN_A, stateA);
+                    final var timestampedB = new ModifiableObjectHistory.TimestampedState<>(WHEN_A, stateB);
 
                     assertInvariants(timestampedA, timestampedB);
                     assertNotEquals(timestampedA, timestampedB);
@@ -1067,8 +1063,8 @@ public class ObjectHistoryTest {
                     final Duration whenB = Duration.ofMillis(2000);
                     final String state = "State";
 
-                    final var timestampedA = new ObjectHistory.TimestampedState<>(whenA, state);
-                    final var timestampedB = new ObjectHistory.TimestampedState<>(whenB, state);
+                    final var timestampedA = new ModifiableObjectHistory.TimestampedState<>(whenA, state);
+                    final var timestampedB = new ModifiableObjectHistory.TimestampedState<>(whenB, state);
 
                     assertInvariants(timestampedA, timestampedB);
                     assertNotEquals(timestampedA, timestampedB);
@@ -1085,8 +1081,8 @@ public class ObjectHistoryTest {
                     assert whenA != whenB;// tough test
                     assert stateA != stateB;// tough test
 
-                    final var timestampedA = new ObjectHistory.TimestampedState<>(whenA, stateA);
-                    final var timestampedB = new ObjectHistory.TimestampedState<>(whenB, stateB);
+                    final var timestampedA = new ModifiableObjectHistory.TimestampedState<>(whenA, stateA);
+                    final var timestampedB = new ModifiableObjectHistory.TimestampedState<>(whenB, stateB);
 
                     assertInvariants(timestampedA, timestampedB);
                     assertEquals(timestampedA, timestampedB);
@@ -1109,7 +1105,7 @@ public class ObjectHistoryTest {
             }
 
             private <STATE> void test(@Nonnull final Duration when, @Nullable final STATE state) {
-                final var timestamped = new ObjectHistory.TimestampedState<>(when, state);
+                final var timestamped = new ModifiableObjectHistory.TimestampedState<>(when, state);
 
                 assertInvariants(timestamped);
                 assertAll(() -> assertSame(when, timestamped.getWhen(), "when"),
@@ -1118,14 +1114,16 @@ public class ObjectHistoryTest {
 
         }// class
 
-        public static <STATE> void assertInvariants(@Nonnull final ObjectHistory.TimestampedState<STATE> timestamped) {
+        public static <STATE> void assertInvariants(
+                @Nonnull final ModifiableObjectHistory.TimestampedState<STATE> timestamped) {
             ObjectTest.assertInvariants(timestamped);// inherited
 
             assertNotNull(timestamped.getWhen(), "Not null, when");
         }
 
-        public static <STATE> void assertInvariants(@Nonnull final ObjectHistory.TimestampedState<STATE> timestamped1,
-                @Nonnull final ObjectHistory.TimestampedState<STATE> timestamped2) {
+        public static <STATE> void assertInvariants(
+                @Nonnull final ModifiableObjectHistory.TimestampedState<STATE> timestamped1,
+                @Nonnull final ModifiableObjectHistory.TimestampedState<STATE> timestamped2) {
             ObjectTest.assertInvariants(timestamped1, timestamped2);// inherited
 
             final var state1 = timestamped1.getState();
@@ -1145,51 +1143,12 @@ public class ObjectHistoryTest {
     private static final Duration WHEN_B = Duration.ofMillis(5000);
     private static final Duration WHEN_C = Duration.ofMillis(7000);
 
-    public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history) {
-        ObjectTest.assertInvariants(history);// inherited
-
-        final var object = history.getObject();
-        final var start = history.getStart();
-        final var end = history.getEnd();
-        final var lastEvent = history.getLastEvent();
-        final var stateHistory = history.getStateHistory();
-        final var previousStateTransitions = history.getPreviousStateTransitions();
-
-        assertAll("Not null", () -> assertNotNull(object, "object"), () -> assertNotNull(start, "start"), // guard
-                () -> assertNotNull(end, "end"), // guard
-                () -> assertNotNull(lastEvent, "lastEvent"), // guard
-                () -> assertNotNull(stateHistory, "stateHistory"), // guard
-                () -> assertNotNull(previousStateTransitions, "previousStateTransitions")// guard
-        );
-        assertAll("Maintains invariants of attributes and aggregates", () -> EventTest.assertInvariants(lastEvent),
-                () -> ValueHistoryTest.assertInvariants(stateHistory));
-        assertAll(
-                () -> assertAll("lastEvent",
-                        () -> assertSame(object, lastEvent.getObject(),
-                                "The object of the last event is the same has the object of this history."),
-                        () -> assertThat("The time of the last event is at or after the start of this history.",
-                                lastEvent.getWhen(), greaterThanOrEqualTo(start))),
-                () -> assertAll("end",
-                        () -> assertThat("The end time is at or after the start time.", end,
-                                greaterThanOrEqualTo(start)),
-                        () -> assertFalse(lastEvent.getState() == null && end != ValueHistory.END_OF_TIME,
-                                "If the state transitioned to by the last event is null, the end time is the end of time."),
-                        () -> assertFalse(lastEvent.getState() != null && end != lastEvent.getWhen(),
-                                "If the state transitioned to by the last event is not null, the end time is the time of that event.")),
-                () -> assertAll("stateHistory", () -> assertSame(start, stateHistory.getFirstTansitionTime(),
-                        "The first transition time of the state history is the same as the start time of this history."),
-                        () -> assertNull(stateHistory.getFirstValue(),
-                                "The state at the start of time of the state history is null."),
-                        () -> assertSame(lastEvent.getState(), stateHistory.getLastValue(),
-                                "The state at the end of time of the state history is the same as the the last event of this history."),
-                        () -> assertFalse(stateHistory.isEmpty(), "The state history is never empty.")),
-                () -> assertEquals(previousStateTransitions,
-                        stateHistory.getTransitions().headMap(stateHistory.getTransitions().lastKey()),
-                        "previousStateTransitions"));
+    public static <STATE> void assertInvariants(@Nonnull final ModifiableObjectHistory<STATE> history) {
+        ObjectHistoryTest.assertInvariants(history);// inherited
     }
 
-    public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history1,
-            @Nonnull final ObjectHistory<STATE> history2) {
-        ObjectTest.assertInvariants(history1, history2);// inherited
+    public static <STATE> void assertInvariants(@Nonnull final ModifiableObjectHistory<STATE> history1,
+            @Nonnull final ModifiableObjectHistory<STATE> history2) {
+        ObjectHistoryTest.assertInvariants(history1, history2);// inherited
     }
 }
