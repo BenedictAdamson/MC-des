@@ -333,6 +333,28 @@ public class UniverseTest {
         @Nested
         public class FromObjectHistories {
 
+            @Nested
+            public class One {
+
+                @Test
+                public void a() {
+                    test(EVENT_A);
+                }
+
+                @Test
+                public void b() {
+                    test(EVENT_B);
+                }
+
+                private <STATE> void test(@Nonnull final Event<STATE> event) {
+                    final var object = event.getObject();
+                    final var objectHistory = new ObjectHistory<>(event);
+                    final Map<UUID, ObjectHistory<STATE>> objectHistories = Map.of(object, objectHistory);
+
+                    FromObjectHistories.this.test(objectHistories);
+                }
+            }// class
+
             @Test
             public void empty() {
                 test(Map.of());
@@ -342,6 +364,18 @@ public class UniverseTest {
                 final var universe = new Universe<>(objectHistories);
 
                 assertInvariants(universe);
+                assertThat("objectHistories", universe.getObjectHistories(), is(objectHistories));
+            }
+
+            @Test
+            public void two() {
+                final var objectA = EVENT_A.getObject();
+                final var objectHistoryA = new ObjectHistory<>(EVENT_A);
+                final var objectB = EVENT_B.getObject();
+                final var objectHistoryB = new ObjectHistory<>(EVENT_B);
+                final var objectHistories = Map.of(objectA, objectHistoryA, objectB, objectHistoryB);
+
+                FromObjectHistories.this.test(objectHistories);
             }
         }// class
 

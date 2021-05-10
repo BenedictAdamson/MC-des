@@ -104,6 +104,11 @@ public final class Universe<STATE> {
      * <p>
      * Construct a universe given the histories of all the objects in it.
      * </p>
+     * <ul>
+     * <li>The {@linkplain #getObjectHistories() object histories} of this universe
+     * is {@linkplain Map#equals(Object) equivalent to} the given
+     * {@code objectHistories}.</li>
+     * </ul>
      *
      * @param objectHistories
      *            A snapshot of the history information of all the objects in the
@@ -129,7 +134,8 @@ public final class Universe<STATE> {
                 .anyMatch(entry -> !entry.getKey().equals(entry.getValue().getObject()))) {
             throw new IllegalArgumentException("objectHistories");
         }
-        // TODO
+        objectHistories.forEach((object, history) -> this.objectHistories.put(history.getObject(),
+                new ModifiableObjectHistory<>(history)));
     }
 
     /**
