@@ -350,8 +350,7 @@ public class ObjectHistoryTest {
 
                 assertInvariants(history);
                 assertAll(() -> assertSame(lastEvent, history.getLastEvent(), "lastEvent"),
-                        () -> assertEquals(previousStateTransitions,
-                                history.getStateHistory().getTransitions().headMap(lastEvent.getWhen()),
+                        () -> assertEquals(previousStateTransitions, history.getPreviousStateTransitions(),
                                 "previousStateTransitions"));
             }
 
@@ -980,11 +979,13 @@ public class ObjectHistoryTest {
         final var end = history.getEnd();
         final var lastEvent = history.getLastEvent();
         final var stateHistory = history.getStateHistory();
+        final var previousStateTransitions = history.getPreviousStateTransitions();
 
         assertAll("Not null", () -> assertNotNull(object, "object"), () -> assertNotNull(start, "start"), // guard
                 () -> assertNotNull(end, "end"), // guard
                 () -> assertNotNull(lastEvent, "lastEvent"), // guard
-                () -> assertNotNull(stateHistory, "stateHistory")// guard
+                () -> assertNotNull(stateHistory, "stateHistory"), // guard
+                () -> assertNotNull(previousStateTransitions, "previousStateTransitions")// guard
         );
         assertAll("Maintains invariants of attributes and aggregates", () -> EventTest.assertInvariants(lastEvent),
                 () -> ValueHistoryTest.assertInvariants(stateHistory));
@@ -1007,7 +1008,10 @@ public class ObjectHistoryTest {
                                 "The state at the start of time of the state history is null."),
                         () -> assertSame(lastEvent.getState(), stateHistory.getLastValue(),
                                 "The state at the end of time of the state history is the same as the the last event of this history."),
-                        () -> assertFalse(stateHistory.isEmpty(), "The state history is never empty.")));
+                        () -> assertFalse(stateHistory.isEmpty(), "The state history is never empty.")),
+                () -> assertEquals(previousStateTransitions,
+                        stateHistory.getTransitions().headMap(stateHistory.getTransitions().lastKey()),
+                        "previousStateTransitions"));
     }
 
     public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history1,

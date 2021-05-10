@@ -195,10 +195,8 @@ public final class ObjectHistory<STATE> {
      * <ul>
      * <li>The {@linkplain #getLastEvent() last event} of this history is the given
      * {@code event}.</li>
-     * <li>The {@linkplain ValueHistory#getTransitions() transitions} of the
-     * {@linkplain #getStateHistory() state history}
-     * {@linkplain SortedMap#headMap(Object) before} the {@linkplain Event#getWhen()
-     * time} of the {@code lastEvent} are {@linkplain SortedMap#equals(Object)
+     * <li>The {@linkplain #getPreviousStateTransitions() previous state
+     * transitions} of this history is {@linkplain SortedMap#equals(Object)
      * equivalent to} the given {@code previousStateTransitions}
      * </ul>
      *
@@ -461,6 +459,22 @@ public final class ObjectHistory<STATE> {
 
     /**
      * <p>
+     * The {@linkplain ValueHistory#getTransitions() transitions} in the
+     * {@linkplain #getStateHistory() state history} of this object history
+     * {@linkplain SortedMap#headMap(Object) before} the {@linkplain #getLastEvent()
+     * last event} of this object history.
+     * </p>
+     */
+    @Nonnull
+    public SortedMap<Duration, STATE> getPreviousStateTransitions() {
+        synchronized (lock) {// hard to test
+            final var transitions = stateHistory.getTransitions();
+            return transitions.headMap(transitions.lastKey());
+        }
+    }
+
+    /**
+     * <p>
      * The point in time that this history starts.
      * </p>
      * <p>
@@ -627,5 +641,4 @@ public final class ObjectHistory<STATE> {
     public Flux<TimestampedState<STATE>> observeStateTransitions() {
         return stateTransitions.asFlux();
     }
-
 }
