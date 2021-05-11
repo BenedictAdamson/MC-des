@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -281,8 +282,10 @@ public class UniverseTest {
                 assertInvariants(copy);
                 assertInvariants(that);
                 assertInvariants(copy, that);
+                assertThat("equals", copy, is(that));
 
-                assertThat("objects", copy.getObjects(), is(that.getObjects()));
+                assertAll("copied content", () -> assertThat("objects", copy.getObjects(), is(that.getObjects())),
+                        () -> assertThat("objectHistories", copy.getObjectHistories(), is(that.getObjectHistories())));
 
                 return copy;
             }
@@ -376,6 +379,71 @@ public class UniverseTest {
                 final var objectHistories = Map.of(objectA, objectHistoryA, objectB, objectHistoryB);
 
                 FromObjectHistories.this.test(objectHistories);
+            }
+        }// class
+
+        @Nested
+        public class Two {
+
+            @Test
+            public void differentEventTimes() {
+                final var state = Integer.valueOf(0);
+                final var eventA = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A), state, Map.of());
+                final var eventB = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_B), state, Map.of());
+                final var universeA = new Universe<Integer>();
+                universeA.addObject(eventA);
+                final var universeB = new Universe<Integer>();
+                universeB.addObject(eventB);
+
+                assertInvariants(universeA, universeB);
+                assertNotEquals(universeA, universeB);
+            }
+
+            @Test
+            public void differentObjects() {
+                final var state = Integer.valueOf(0);
+                final var eventA = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A), state, Map.of());
+                final var eventB = new TestEvent(new ObjectStateId(OBJECT_B, WHEN_A), state, Map.of());
+                final var universeA = new Universe<Integer>();
+                universeA.addObject(eventA);
+                final var universeB = new Universe<Integer>();
+                universeB.addObject(eventB);
+
+                assertInvariants(universeA, universeB);
+                assertNotEquals(universeA, universeB);
+            }
+
+            @Test
+            public void differentStates() {
+                final var eventA = new TestEvent(OBJECT_STATE_ID_A, Integer.valueOf(0), Map.of());
+                final var eventB = new TestEvent(OBJECT_STATE_ID_A, Integer.valueOf(1), Map.of());
+                final var universeA = new Universe<Integer>();
+                universeA.addObject(eventA);
+                final var universeB = new Universe<Integer>();
+                universeB.addObject(eventB);
+
+                assertInvariants(universeA, universeB);
+                assertNotEquals(universeA, universeB);
+            }
+
+            @Test
+            public void equivalent_empty() {
+                final var universeA = new Universe<Integer>();
+                final var universeB = new Universe<Integer>();
+
+                assertInvariants(universeA, universeB);
+                assertThat("equals", universeA, is(universeB));
+            }
+
+            @Test
+            public void equivalent_nonEmpty() {
+                final var universeA = new Universe<Integer>();
+                universeA.addObject(EVENT_A);
+                final var universeB = new Universe<Integer>();
+                universeB.addObject(EVENT_A);
+
+                assertInvariants(universeA, universeB);
+                assertThat("equals", universeA, is(universeB));
             }
         }// class
 
@@ -505,16 +573,15 @@ public class UniverseTest {
     }// class
 
     private static final UUID OBJECT_A = UUID.randomUUID();
-
     private static final UUID OBJECT_B = UUID.randomUUID();
+
     private static final Duration WHEN_A = Duration.ofMillis(0);
-
     private static final Duration WHEN_B = Duration.ofMillis(5000);
+
     private static final ObjectStateId OBJECT_STATE_ID_A = new ObjectStateId(OBJECT_A, WHEN_A);
-
     private static final ObjectStateId OBJECT_STATE_ID_B = new ObjectStateId(OBJECT_B, WHEN_B);
-    private static final TestEvent EVENT_A = new TestEvent(OBJECT_STATE_ID_A, Integer.valueOf(0), Map.of());
 
+    private static final TestEvent EVENT_A = new TestEvent(OBJECT_STATE_ID_A, Integer.valueOf(0), Map.of());
     private static final TestEvent EVENT_B = new TestEvent(OBJECT_STATE_ID_B, Integer.valueOf(1), Map.of());
 
     private static <STATE> void assertEmpty(@Nonnull final Universe<STATE> universe) {
@@ -540,6 +607,9 @@ public class UniverseTest {
     public static <STATE> void assertInvariants(@Nonnull final Universe<STATE> universe1,
             @Nonnull final Universe<STATE> universe2) {
         ObjectTest.assertInvariants(universe1, universe2);// inherited
+
+        assertTrue(universe1.equals(universe2) == universe1.getObjectHistories().equals(universe2.getObjectHistories()),
+                "equality requires equal objectHistories");
     }
 
     private static <STATE> Stream<Executable> createObjectHistoriesInvariantAssertions(

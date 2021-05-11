@@ -280,6 +280,31 @@ public final class Universe<STATE> {
         }
     }
 
+    /**
+     * <p>
+     * Whether this is <dfn>equivalent</dfn> to a given object.
+     * </p>
+     * 
+     * <p>
+     * The {@link Universe} class has <i>value semantics</i>: this is equivalent to
+     * a given object if, and only if, the other is also a {@link Universe}, and
+     * they have {@linkplain Map#equals(Object) equivalent}
+     * {@linkplain #getObjectHistories() object histories}.
+     * </p>
+     */
+    @Override
+    public boolean equals(final Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof Universe)) {
+            return false;
+        }
+        @SuppressWarnings("rawtypes")
+        final Universe other = (Universe) obj;
+        return objectHistories.equals(other.objectHistories);
+    }
+
     private Collection<ObjectStateId> expandAdvanceStep(@Nonnull final ObjectStateId step) {
         final var history = objectHistories.get(step.getObject());
         final var when = step.getWhen();
@@ -361,6 +386,11 @@ public final class Universe<STATE> {
     @Nonnull
     public Set<UUID> getObjects() {
         return Set.copyOf(objectHistories.keySet());
+    }
+
+    @Override
+    public int hashCode() {
+        return objectHistories.hashCode();
     }
 
     /**
@@ -469,4 +499,10 @@ public final class Universe<STATE> {
         }
         return objectHistory.observeState(when);
     }
+
+    @Override
+    public String toString() {
+        return "Universe" + objectHistories.values();
+    }
+
 }
