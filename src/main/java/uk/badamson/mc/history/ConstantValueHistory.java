@@ -74,8 +74,7 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
         if (!(obj instanceof ConstantValueHistory)) {
             return false;
         }
-        @SuppressWarnings("unchecked")
-        final ConstantValueHistory<VALUE> other = (ConstantValueHistory<VALUE>) obj;
+        final ConstantValueHistory<?> other = (ConstantValueHistory<?>) obj;
         return Objects.equals(value, other.value);
     }
 

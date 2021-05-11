@@ -33,6 +33,9 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * <p>
  * The modifiable time-wise variation of a value that changes at discrete points
@@ -86,6 +89,47 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
 
     /**
      * <p>
+     * Construct a value history with a given sequence of state transitions
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getFirstValue() first value} of this history is the same
+     * as the given {@code firstValue}.</li>
+     * <li>The {@linkplain #getTransitions() transitions} of this history is
+     * {@linkplain SortedMap#equals(Object) equivalent to} the given
+     * {@code transitions} map.</li>
+     * </ul>
+     *
+     * @param firstValue
+     *            The {@linkplain #get(Duration) value} of this history at the
+     *            {@linkplain #START_OF_TIME start of time}.
+     * @param transitions
+     *            The transitions in the value of this history.
+     * @throws NullPointerException
+     *             If {@code transitions} is null
+     * @throws IllegalArgumentException
+     *             If adjacent {@linkplain SortedMap#values() values} of
+     *             {@code transitions} are
+     *             {@linkplain Objects#equals(Object, Object) equivalent or
+     *             equivalently null}.
+     */
+    @JsonCreator
+    public ModifiableValueHistory(@Nullable @JsonProperty("firstValue") final VALUE firstValue,
+            @Nonnull @JsonProperty("transitions") final SortedMap<Duration, VALUE> transitions) {
+        Objects.requireNonNull(transitions, "transitions");
+        this.firstValue = firstValue;
+        appendTransitions(transitions.entrySet().stream());
+        // Check after copy to avoid race hazards.
+        var previous = firstValue;
+        for (final var value : this.transitions.values()) {
+            if (Objects.equals(previous, value)) {
+                throw new IllegalArgumentException("transitions " + this.transitions);
+            }
+            previous = value;
+        }
+    }
+
+    /**
+     * <p>
      * Construct a value history that is initially a copy of a given value history
      * </p>
      * <ul>
@@ -100,7 +144,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
     public ModifiableValueHistory(@Nonnull final ValueHistory<VALUE> that) {
         Objects.requireNonNull(that, "that");
         firstValue = that.getFirstValue();
-        that.streamOfTransitions().sequential().forEach(entry -> transitions.put(entry.getKey(), entry.getValue()));
+        appendTransitions(that.streamOfTransitions());
     }
 
     /**
@@ -155,6 +199,10 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
         transitions.put(when, value);
     }
 
+    private void appendTransitions(@Nonnull final Stream<Entry<Duration, VALUE>> streamOfTransitions) {
+        streamOfTransitions.sequential().forEach(entry -> transitions.put(entry.getKey(), entry.getValue()));
+    }
+
     private void clear(final VALUE value) {
         firstValue = value;
         transitions.clear();
@@ -170,8 +218,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
         }
         if (that instanceof ModifiableValueHistory) {
             // Optimisation
-            @SuppressWarnings("unchecked")
-            final ModifiableValueHistory<VALUE> thatValueHistory = (ModifiableValueHistory<VALUE>) that;
+            final ModifiableValueHistory<?> thatValueHistory = (ModifiableValueHistory<?>) that;
             return Objects.equals(firstValue, thatValueHistory.firstValue)
                     && transitions.equals(thatValueHistory.transitions);
         } else {
@@ -230,6 +277,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @return the first value.
      */
     @Override
+    @JsonProperty("firstValue")
     public @Nullable VALUE getFirstValue() {
         return firstValue;
     }
@@ -289,7 +337,18 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
         return transitions.ceilingKey(when);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>
+     * Furthermore, for the {@link ModifiableValueHistory} type
+     * </p>
+     * <ul>
+     * <li>The transitions map is a newly constructed object.</li>
+     * </ul>
+     */
     @Override
+    @JsonProperty("transitions")
     public @Nonnull SortedMap<Duration, VALUE> getTransitions() {
         return new TreeMap<>(transitions);
     }
