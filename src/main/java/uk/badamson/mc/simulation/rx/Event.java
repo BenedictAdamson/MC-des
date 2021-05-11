@@ -195,15 +195,14 @@ public abstract class Event<STATE> {
      * </p>
      */
     @Override
-    public final boolean equals(final Object obj) {
-        if (this == obj) {
+    public final boolean equals(final Object that) {
+        if (this == that) {
             return true;
         }
-        if (!(obj instanceof Event)) {
+        if (!(that instanceof Event)) {
             return false;
         }
-        @SuppressWarnings("rawtypes")
-        final Event other = (Event) obj;
+        final Event<?> other = (Event<?>) that;
         return id.equals(other.id) && nextEventDependencies.equals(other.nextEventDependencies)
                 && Objects.equals(state, other.state);
     }

@@ -54,8 +54,7 @@ abstract class AbstractValueHistory<VALUE> implements ValueHistory<VALUE> {
             return true;
         }
         if (that instanceof ValueHistory) {
-            @SuppressWarnings("unchecked")
-            final ValueHistory<VALUE> thatValueHistory = (ValueHistory<VALUE>) that;
+            final ValueHistory<?> thatValueHistory = (ValueHistory<?>) that;
             return Objects.equals(getFirstValue(), thatValueHistory.getFirstValue())
                     && getTransitions().equals(thatValueHistory.getTransitions());
         } else {

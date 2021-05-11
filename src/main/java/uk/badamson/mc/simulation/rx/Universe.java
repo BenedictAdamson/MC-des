@@ -284,7 +284,7 @@ public final class Universe<STATE> {
      * <p>
      * Whether this is <dfn>equivalent</dfn> to a given object.
      * </p>
-     * 
+     *
      * <p>
      * The {@link Universe} class has <i>value semantics</i>: this is equivalent to
      * a given object if, and only if, the other is also a {@link Universe}, and
@@ -304,8 +304,7 @@ public final class Universe<STATE> {
         if (!(obj instanceof Universe)) {
             return false;
         }
-        @SuppressWarnings("rawtypes")
-        final Universe other = (Universe) obj;
+        final Universe<?> other = (Universe<?>) obj;
         /*
          * thread-safe because ConcurrentHashMap.equals and
          * ModifiableObjectHistory.equals is threads-safe.

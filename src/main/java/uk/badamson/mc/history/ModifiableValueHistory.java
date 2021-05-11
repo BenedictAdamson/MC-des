@@ -218,8 +218,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
         }
         if (that instanceof ModifiableValueHistory) {
             // Optimisation
-            @SuppressWarnings("unchecked")
-            final ModifiableValueHistory<VALUE> thatValueHistory = (ModifiableValueHistory<VALUE>) that;
+            final ModifiableValueHistory<?> thatValueHistory = (ModifiableValueHistory<?>) that;
             return Objects.equals(firstValue, thatValueHistory.firstValue)
                     && transitions.equals(thatValueHistory.transitions);
         } else {
@@ -340,7 +339,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * <p>
      * Furthermore, for the {@link ModifiableValueHistory} type
      * </p>

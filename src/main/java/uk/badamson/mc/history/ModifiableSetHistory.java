@@ -178,8 +178,7 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
             return true;
         }
         if (that instanceof ModifiableSetHistory) {
-            @SuppressWarnings("unchecked")
-            final ModifiableSetHistory<VALUE> thatValueHistory = (ModifiableSetHistory<VALUE>) that;
+            final ModifiableSetHistory<?> thatValueHistory = (ModifiableSetHistory<?>) that;
             return firstValue.equals(thatValueHistory.firstValue) && containsMap.equals(thatValueHistory.containsMap);
         } else {
             return super.equals(that);

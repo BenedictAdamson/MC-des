@@ -101,15 +101,14 @@ public class ObjectHistory<STATE> {
          * </p>
          */
         @Override
-        public boolean equals(final Object obj) {
-            if (this == obj) {
+        public boolean equals(final Object that) {
+            if (this == that) {
                 return true;
             }
-            if (!(obj instanceof TimestampedState)) {
+            if (!(that instanceof TimestampedState)) {
                 return false;
             }
-            @SuppressWarnings("unchecked")
-            final TimestampedState<STATE> other = (TimestampedState<STATE>) obj;
+            final TimestampedState<?> other = (TimestampedState<?>) that;
             return when.equals(other.when) && Objects.equals(state, other.state);
         }
 
