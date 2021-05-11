@@ -49,6 +49,7 @@ import org.reactivestreams.Publisher;
 
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.simulation.ObjectStateId;
 import uk.badamson.mc.simulation.rx.EventTest.TestEvent;
@@ -455,6 +456,31 @@ public class UniverseTest {
             assertEmpty(universe);
         }
 
+    }// class
+
+    @Nested
+    public class JSON {
+
+        @Test
+        public void empty() {
+            final var universe = new Universe<Integer>();
+            test(universe);
+        }
+
+        @Test
+        public void nonEmpty() {
+            final var universe = new Universe<Integer>();
+            universe.addObject(EVENT_A);
+
+            test(universe);
+        }
+
+        private <STATE> void test(@Nonnull final Universe<STATE> universe) {
+            final var deserialized = JsonTest.serializeAndDeserialize(universe);
+
+            assertInvariants(universe, deserialized);
+            assertThat("equal", deserialized, is(universe));
+        }
     }// class
 
     @Nested

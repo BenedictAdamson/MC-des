@@ -40,6 +40,10 @@ import javax.annotation.concurrent.ThreadSafe;
 
 import org.reactivestreams.Publisher;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -128,7 +132,8 @@ public final class Universe<STATE> {
      *             {@linkplain UUID#equals(Object) equivalent to} the key of the
      *             entry.
      */
-    public Universe(@Nonnull final Map<UUID, ObjectHistory<STATE>> objectHistories) {
+    @JsonCreator
+    public Universe(@Nonnull @JsonProperty("objectHistories") final Map<UUID, ObjectHistory<STATE>> objectHistories) {
         Objects.requireNonNull(objectHistories, "objectHistories");
         if (objectHistories.entrySet().stream()
                 .anyMatch(entry -> !entry.getKey().equals(entry.getValue().getObject()))) {
@@ -370,6 +375,7 @@ public final class Universe<STATE> {
      * </ul>
      */
     @Nonnull
+    @JsonProperty("objectHistories")
     public Map<UUID, ObjectHistory<STATE>> getObjectHistories() {
         final Map<UUID, ObjectHistory<STATE>> copy = new HashMap<>(objectHistories.size());
         synchronized (objectCreationLock) {// hard to test
@@ -391,6 +397,7 @@ public final class Universe<STATE> {
      * </ul>
      */
     @Nonnull
+    @JsonIgnore
     public Set<UUID> getObjects() {
         return Set.copyOf(objectHistories.keySet());
     }
