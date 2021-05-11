@@ -82,7 +82,7 @@ public final class Universe<STATE> {
     }
 
     private final Map<UUID, ModifiableObjectHistory<STATE>> objectHistories = new ConcurrentHashMap<>();
-    /**
+    /*
      * Adding entries to the objectHistories Map is guarded by this lock.
      */
     private final Object objectCreationLock = new Object();
@@ -291,6 +291,10 @@ public final class Universe<STATE> {
      * they have {@linkplain Map#equals(Object) equivalent}
      * {@linkplain #getObjectHistories() object histories}.
      * </p>
+     * <p>
+     * This method may give misleading results if either object is modified during
+     * the computation of equality.
+     * </p>
      */
     @Override
     public boolean equals(final Object obj) {
@@ -302,6 +306,10 @@ public final class Universe<STATE> {
         }
         @SuppressWarnings("rawtypes")
         final Universe other = (Universe) obj;
+        /*
+         * thread-safe because ConcurrentHashMap.equals and
+         * ModifiableObjectHistory.equals is threads-safe.
+         */
         return objectHistories.equals(other.objectHistories);
     }
 

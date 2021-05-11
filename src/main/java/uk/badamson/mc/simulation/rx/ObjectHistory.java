@@ -160,7 +160,7 @@ public class ObjectHistory<STATE> {
     private final Duration start;
     /*
      * Use a UUID object as the lock so all ObjectHistory objects can have a
-     * predictable lock ordering.
+     * predictable lock ordering when locking two instances.
      */
     protected final UUID lock = UUID.randomUUID();
     private final Sinks.Many<Event<STATE>> events = Sinks.many().replay().latest();
