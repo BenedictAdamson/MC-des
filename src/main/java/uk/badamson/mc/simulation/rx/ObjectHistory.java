@@ -158,7 +158,11 @@ public class ObjectHistory<STATE> {
     private final UUID object;
     @Nonnull
     private final Duration start;
-    protected final Object lock = new Object();
+    /*
+     * Use a UUID object as the lock so all ObjectHistory objects can have a
+     * predictable lock ordering.
+     */
+    protected final UUID lock = UUID.randomUUID();
     private final Sinks.Many<Event<STATE>> events = Sinks.many().replay().latest();
     private final Sinks.Many<TimestampedState<STATE>> stateTransitions = Sinks.many().replay().latest();
 
@@ -315,9 +319,21 @@ public class ObjectHistory<STATE> {
         if (!(obj instanceof ObjectHistory)) {
             return false;
         }
-        @SuppressWarnings("rawtypes")
-        final ObjectHistory other = (ObjectHistory) obj;
-        return lastEvent.equals(other.lastEvent) && stateHistory.equals(other.stateHistory);
+        final ObjectHistory<?> other = (ObjectHistory<?>) obj;
+        if (lockBefore(other)) {
+            return equalsObjectHistories(other);
+        } else {
+            return other.equalsObjectHistories(this);
+        }
+    }
+
+    private boolean equalsObjectHistories(@Nonnull final ObjectHistory<?> other) {
+        // hard to test the thread safety
+        synchronized (lock) {
+            synchronized (other.lock) {
+                return lastEvent.equals(other.lastEvent) && stateHistory.equals(other.stateHistory);
+            }
+        }
     }
 
     /**
@@ -463,9 +479,16 @@ public class ObjectHistory<STATE> {
     public final int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + lastEvent.hashCode();
-        result = prime * result + stateHistory.hashCode();
+        synchronized (lock) {// hard to test thread safety
+            result = prime * result + lastEvent.hashCode();
+            result = prime * result + stateHistory.hashCode();
+        }
         return result;
+    }
+
+    private boolean lockBefore(@Nonnull final ObjectHistory<?> that) {
+        assert !lock.equals(that.lock);
+        return lock.compareTo(that.lock) < 0;
     }
 
     /**
