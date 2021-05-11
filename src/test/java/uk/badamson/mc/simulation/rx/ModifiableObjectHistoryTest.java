@@ -502,6 +502,7 @@ public class ModifiableObjectHistoryTest {
 
             assertInvariants(history);
             assertInvariants(history, deserialized);
+            assertEquals(history, deserialized);
             assertAll(() -> assertEquals(history.getEnd(), deserialized.getEnd(), "end"),
                     () -> assertEquals(history.getLastEvent(), deserialized.getLastEvent(), "lastEvent"),
                     () -> assertEquals(history.getObject(), deserialized.getObject(), "object"),
