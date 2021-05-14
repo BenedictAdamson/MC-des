@@ -78,15 +78,26 @@ public class ObjectHistory<STATE> {
 
         @Nonnull
         private final Duration start;
+        @Nonnull
+        private final Duration end;
         @Nullable
         private final STATE state;
 
         /**
          * Constructs a value with given attribute values.
+         *
+         * @throws IllegalArgumentException
+         *             If {@code end} {@linkplain Duration#compareTo(Duration) is
+         *             before} {@code start}
          */
-        public TimestampedState(@Nonnull final Duration start, @Nullable final STATE state) {
+        public TimestampedState(@Nonnull final Duration start, @Nonnull final Duration end,
+                @Nullable final STATE state) {
             this.start = Objects.requireNonNull(start, "start");
+            this.end = Objects.requireNonNull(end, "end");
             this.state = state;
+            if (end.compareTo(start) < 0) {
+                throw new IllegalArgumentException("end before start");
+            }
         }
 
         /**
@@ -106,7 +117,26 @@ public class ObjectHistory<STATE> {
                 return false;
             }
             final TimestampedState<?> other = (TimestampedState<?>) that;
-            return start.equals(other.start) && Objects.equals(state, other.state);// FIXME
+            return start.equals(other.start) && end.equals(other.end) && Objects.equals(state, other.state);
+        }
+
+        /**
+         * <p>
+         * The last point in time that the simulated object had the
+         * {@linkplain #getState() state}
+         * </p>
+         * <p>
+         * This is an <i>inclusive</i> and time. Expressed as the duration since an
+         * (implied) epoch.
+         * </p>
+         * <ul>
+         * <li>The end time is {@linkplain Duration#compareTo(Duration) at or after} the
+         * {@linkplain #getStart() start} time.</li>
+         * </ul>
+         */
+        @Nonnull
+        public Duration getEnd() {
+            return end;
         }
 
         /**
@@ -140,13 +170,13 @@ public class ObjectHistory<STATE> {
 
         @Override
         public int hashCode() {
-            return Objects.hash(state, start);// FIXME
+            return Objects.hash(state, end, start);
         }
 
         @Nonnull
         @Override
         public String toString() {
-            return "@" + start + "=" + state + "]";
+            return "@(" + start + "," + end + ")=" + state;
         }
 
     }// class
