@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -38,7 +38,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import uk.badamson.mc.ObjectTest;
 
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
-public class TimestampedStateTest {
+public class TimestampedValueTest {
 
     @Nested
     public class Constructor {
@@ -47,12 +47,12 @@ public class TimestampedStateTest {
         public class Two {
 
             @Test
-            public void differentState() {
-                final String stateA = "A";
-                final String stateB = "B";
+            public void differentValue() {
+                final String valueA = "A";
+                final String valueB = "B";
 
-                final var timestampedA = new TimestampedState<>(WHEN_A, stateA);
-                final var timestampedB = new TimestampedState<>(WHEN_A, stateB);
+                final var timestampedA = new TimestampedValue<>(WHEN_A, valueA);
+                final var timestampedB = new TimestampedValue<>(WHEN_A, valueB);
 
                 assertInvariants(timestampedA, timestampedB);
                 assertNotEquals(timestampedA, timestampedB);
@@ -62,10 +62,10 @@ public class TimestampedStateTest {
             public void differentWhen() {
                 final Duration whenA = Duration.ofMillis(1000);
                 final Duration whenB = Duration.ofMillis(2000);
-                final String state = "State";
+                final String value = "State";
 
-                final var timestampedA = new TimestampedState<>(whenA, state);
-                final var timestampedB = new TimestampedState<>(whenB, state);
+                final var timestampedA = new TimestampedValue<>(whenA, value);
+                final var timestampedB = new TimestampedValue<>(whenB, value);
 
                 assertInvariants(timestampedA, timestampedB);
                 assertNotEquals(timestampedA, timestampedB);
@@ -75,15 +75,15 @@ public class TimestampedStateTest {
             public void equivalent() {
                 final Duration whenA = Duration.ofMillis(1000);
                 final Duration whenB = Duration.ofMillis(1000);
-                final String stateA = "State";
-                final String stateB = new String(stateA);
+                final String valueA = "Value";
+                final String valueB = new String(valueA);
                 assert whenA.equals(whenB);
-                assert stateA.equals(stateB);
+                assert valueA.equals(valueB);
                 assert whenA != whenB;// tough test
-                assert stateA != stateB;// tough test
+                assert valueA != valueB;// tough test
 
-                final var timestampedA = new TimestampedState<>(whenA, stateA);
-                final var timestampedB = new TimestampedState<>(whenB, stateB);
+                final var timestampedA = new TimestampedValue<>(whenA, valueA);
+                final var timestampedB = new TimestampedValue<>(whenB, valueB);
 
                 assertInvariants(timestampedA, timestampedB);
                 assertEquals(timestampedA, timestampedB);
@@ -101,16 +101,16 @@ public class TimestampedStateTest {
         }
 
         @Test
-        public void nullState() {
+        public void nullValue() {
             test(WHEN_A, (Integer) null);
         }
 
-        private <STATE> void test(@Nonnull final Duration when, @Nullable final STATE state) {
-            final var timestamped = new TimestampedState<>(when, state);
+        private <VALUE> void test(@Nonnull final Duration when, @Nullable final VALUE value) {
+            final var timestamped = new TimestampedValue<>(when, value);
 
             assertInvariants(timestamped);
             assertAll(() -> assertSame(when, timestamped.getWhen(), "when"),
-                    () -> assertSame(state, timestamped.getState(), "state"));
+                    () -> assertSame(value, timestamped.getValue(), "value"));
         }
 
     }// class
@@ -118,22 +118,22 @@ public class TimestampedStateTest {
     private static final Duration WHEN_A = Duration.ofMillis(0);
     private static final Duration WHEN_B = Duration.ofMillis(5000);
 
-    public static <STATE> void assertInvariants(@Nonnull final TimestampedState<STATE> timestamped) {
+    public static <STATE> void assertInvariants(@Nonnull final TimestampedValue<STATE> timestamped) {
         ObjectTest.assertInvariants(timestamped);// inherited
 
         assertNotNull(timestamped.getWhen(), "Not null, when");
     }
 
-    public static <STATE> void assertInvariants(@Nonnull final TimestampedState<STATE> timestamped1,
-            @Nonnull final TimestampedState<STATE> timestamped2) {
+    public static <STATE> void assertInvariants(@Nonnull final TimestampedValue<STATE> timestamped1,
+            @Nonnull final TimestampedValue<STATE> timestamped2) {
         ObjectTest.assertInvariants(timestamped1, timestamped2);// inherited
 
-        final var state1 = timestamped1.getState();
-        final var state2 = timestamped2.getState();
-        if (state1 != null && state2 != null) {
-            ObjectTest.assertInvariants(state1, state2);
+        final var value1 = timestamped1.getValue();
+        final var value2 = timestamped2.getValue();
+        if (value1 != null && value2 != null) {
+            ObjectTest.assertInvariants(value1, value2);
         }
         assertTrue(timestamped1.equals(timestamped2) == (timestamped1.getWhen().equals(timestamped2.getWhen())
-                && Objects.equals(state1, state2)), "equals has value semantics");
+                && Objects.equals(value1, value2)), "equals has value semantics");
     }
 }// class

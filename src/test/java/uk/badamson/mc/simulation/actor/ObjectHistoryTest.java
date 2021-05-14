@@ -48,7 +48,7 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.ObjectTest;
-import uk.badamson.mc.history.TimestampedState;
+import uk.badamson.mc.history.TimestampedValue;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.history.ValueHistoryTest;
 
@@ -406,7 +406,7 @@ public class ObjectHistoryTest {
             }
 
             private void test(final UUID object, final Duration start, final Duration end, final Integer state) {
-                final var expectedStateTransition = new TimestampedState<>(start, state);
+                final var expectedStateTransition = new TimestampedValue<>(start, state);
                 final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>();
                 stateTransitions.put(start, state);
                 final var history = new ObjectHistory<>(object, end, stateTransitions);
@@ -433,7 +433,7 @@ public class ObjectHistoryTest {
             }
 
             private void test(final UUID object, final Duration start, final Integer state) {
-                final var expectedStateTransition = new TimestampedState<>(start, state);
+                final var expectedStateTransition = new TimestampedValue<>(start, state);
                 final var history = new ObjectHistory<>(object, start, state);
 
                 final var flux = observeStateTransitions(history);
@@ -458,7 +458,7 @@ public class ObjectHistoryTest {
             }
 
             private void test(final UUID object, final Duration start, final Integer state) {
-                final var expectedStateTransition = new TimestampedState<>(start, state);
+                final var expectedStateTransition = new TimestampedValue<>(start, state);
                 final var history = new ObjectHistory<>(object, start, state);
                 final var copy = new ObjectHistory<>(history);
 
@@ -558,7 +558,7 @@ public class ObjectHistoryTest {
         return states;
     }
 
-    public static <STATE> Flux<TimestampedState<STATE>> observeStateTransitions(
+    public static <STATE> Flux<TimestampedValue<STATE>> observeStateTransitions(
             @Nonnull final ObjectHistory<STATE> history) {
         final var flux = history.observeStateTransitions();
 

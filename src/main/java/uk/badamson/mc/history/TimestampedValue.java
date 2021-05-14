@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -27,29 +27,29 @@ import javax.annotation.concurrent.Immutable;
 
 /**
  * <p>
- * The state of a simulated object, with a time-stamp indicating one of the
- * point in time when the simulated object was in that state.
+ * A snapshot of a time-wise varying value, with a time-stamp indicating the
+ * point in time of the snapshot.
  * </p>
  *
- * @param <STATE>
- *            The class of states of the simulated object. This must be
- *            {@link Immutable immutable}. It ought to have value semantics, but
- *            that is not required.
+ * @param <VALUE>
+ *            The class of the time-wise varying values. This must be
+ *            {@link Immutable immutable}, or have reference semantics. It ought
+ *            to have value semantics, but that is not required.
  */
 @Immutable
-public final class TimestampedState<STATE> {
+public final class TimestampedValue<VALUE> {
 
     @Nonnull
     private final Duration when;
     @Nullable
-    private final STATE state;
+    private final VALUE value;
 
     /**
-     * Constructs a value with given attribute values.
+     * Constructs a snapshot with given attribute values.
      */
-    public TimestampedState(@Nonnull final Duration when, @Nullable final STATE state) {
+    public TimestampedValue(@Nonnull final Duration when, @Nullable final VALUE state) {
         this.when = Objects.requireNonNull(when, "when");
-        this.state = state;
+        this.value = state;
     }
 
     /**
@@ -57,7 +57,7 @@ public final class TimestampedState<STATE> {
      * Whether this object is <dfn>equivalent</dfn> to a given other object.
      * </p>
      * <p>
-     * The TimestampedState class has <i>value semantics</i>.
+     * The {@link TimestampedValue} class has <i>value semantics</i>.
      * </p>
      */
     @Override
@@ -65,34 +65,31 @@ public final class TimestampedState<STATE> {
         if (this == that) {
             return true;
         }
-        if (!(that instanceof TimestampedState)) {
+        if (!(that instanceof TimestampedValue)) {
             return false;
         }
-        final TimestampedState<?> other = (TimestampedState<?>) that;
-        return when.equals(other.when) && Objects.equals(state, other.state);
+        final TimestampedValue<?> other = (TimestampedValue<?>) that;
+        return when.equals(other.when) && Objects.equals(value, other.value);
     }
 
     /**
      * <p>
-     * A state of the simulated object at the {@linkplain #getWhen() time}
+     * A snapshot of the time-varying value, at the {@linkplain #getWhen() time} of
+     * the snapshot.
      * </p>
-     * <ul>
-     * <li>Null if the object does not exist at that time.</li>
-     * </ul>
      */
     @Nullable
-    public STATE getState() {
-        return state;
+    public VALUE getValue() {
+        return value;
     }
 
     /**
      * <p>
-     * The point in time that the simulated object is in the {@linkplain #getState()
-     * state}
+     * The point in time that the time-varying value has the {@linkplain #getValue()
+     * value}
      * </p>
      * <p>
-     * Expressed as the duration since an (implied) epoch. All objects in a
-     * simulation should use the same epoch.
+     * Expressed as the duration since an (implied) epoch.
      * </p>
      */
     @Nonnull
@@ -102,13 +99,13 @@ public final class TimestampedState<STATE> {
 
     @Override
     public int hashCode() {
-        return Objects.hash(state, when);
+        return Objects.hash(value, when);
     }
 
     @Nonnull
     @Override
     public String toString() {
-        return "@" + when + "=" + state + "]";
+        return "@" + when + "=" + value + "]";
     }
 
 }

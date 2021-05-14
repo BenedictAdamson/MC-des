@@ -40,7 +40,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import uk.badamson.mc.history.ModifiableValueHistory;
-import uk.badamson.mc.history.TimestampedState;
+import uk.badamson.mc.history.TimestampedValue;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.simulation.rx.ModifiableObjectHistory;
 
@@ -71,7 +71,7 @@ public class ObjectHistory<STATE> {
      * predictable lock ordering when locking two instances.
      */
     protected final UUID lock = UUID.randomUUID();
-    private final Sinks.Many<TimestampedState<STATE>> stateTransitions = Sinks.many().replay().latest();
+    private final Sinks.Many<TimestampedValue<STATE>> stateTransitions = Sinks.many().replay().latest();
 
     @Nonnull
     @GuardedBy("lock")
@@ -190,7 +190,7 @@ public class ObjectHistory<STATE> {
     }
 
     private void emitStateTransition(@Nonnull final Duration when, @Nullable final STATE state) {
-        final var result = stateTransitions.tryEmitNext(new TimestampedState<>(when, state));
+        final var result = stateTransitions.tryEmitNext(new TimestampedValue<>(when, state));
         // The sink are reliable, so should always succeed.
         assert result == Sinks.EmitResult.OK;
     }
@@ -411,7 +411,7 @@ public class ObjectHistory<STATE> {
     private Flux<Optional<STATE>> observeStateFromStateTransitions(@Nonnull final Duration when) {
         return stateTransitions.asFlux().takeWhile(timeStamped -> timeStamped.getWhen().compareTo(when) <= 0)
                 .takeUntil(timeStamped -> when.compareTo(timeStamped.getWhen()) <= 0)
-                .map(timeStamped -> Optional.ofNullable(timeStamped.getState()));
+                .map(timeStamped -> Optional.ofNullable(timeStamped.getValue()));
     }
 
     /**
@@ -420,23 +420,23 @@ public class ObjectHistory<STATE> {
      * simulated object}.
      * </p>
      * <ul>
-     * <li>Each state transition is represented by a {@linkplain TimestampedState
+     * <li>Each state transition is represented by a {@linkplain TimestampedValue
      * time-stamped state}: the state that the simulated object transitioned to, and
      * the time that the simulated object entered that state.</li>
      * <li>The sequence of state transitions has no null transitions.</li>
      * <li>The sequence of state transitions can be infinite.</li>
      * <li>The sequence of state transitions can be finite. In that case, the last
      * state transition is the destruction of the object: a transition to a null
-     * {@linkplain TimestampedState#getState() state}.</li>
+     * {@linkplain TimestampedValue#getValue() state}.</li>
      * <li>The sequence of state transitions are in
      * {@linkplain Duration#compareTo(Duration) ascending}
-     * {@linkplain TimestampedState#getWhen() time-stamp} order.</li>
+     * {@linkplain TimestampedValue#getWhen() time-stamp} order.</li>
      * <li>The sequence of state transitions does not include old state transitions;
      * it is a <i>hot</i> observable.</li>
      * </ul>
      */
     @Nonnull
-    public final Flux<TimestampedState<STATE>> observeStateTransitions() {
+    public final Flux<TimestampedValue<STATE>> observeStateTransitions() {
         return stateTransitions.asFlux();
     }
 
