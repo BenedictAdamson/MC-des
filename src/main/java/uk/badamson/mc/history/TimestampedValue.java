@@ -27,8 +27,8 @@ import javax.annotation.concurrent.Immutable;
 
 /**
  * <p>
- * A snapshot of a time-wise varying value, with a time-stamp indicating the
- * point in time of the snapshot.
+ * A snapshot of a time-wise varying value, with a time-range indicating the
+ * points in time when the variable had a particular value.
  * </p>
  *
  * @param <VALUE>
@@ -41,15 +41,25 @@ public final class TimestampedValue<VALUE> {
 
     @Nonnull
     private final Duration start;
+    @Nonnull
+    private final Duration end;
     @Nullable
     private final VALUE value;
 
     /**
      * Constructs a snapshot with given attribute values.
+     *
+     * @throws IllegalArgumentException
+     *             If {@code end} {@linkplain Duration#compareTo(Duration) is
+     *             before} {@code start}
      */
-    public TimestampedValue(@Nonnull final Duration start, @Nullable final VALUE state) {
-        this.start = Objects.requireNonNull(start, "when");
+    public TimestampedValue(@Nonnull final Duration start, @Nonnull final Duration end, @Nullable final VALUE state) {
+        this.start = Objects.requireNonNull(start, "end");
+        this.end = Objects.requireNonNull(end, "end");
         this.value = state;
+        if (end.compareTo(start) < 0) {
+            throw new IllegalArgumentException("end before start");
+        }
     }
 
     /**
@@ -69,18 +79,26 @@ public final class TimestampedValue<VALUE> {
             return false;
         }
         final TimestampedValue<?> other = (TimestampedValue<?>) that;
-        return start.equals(other.start) && Objects.equals(value, other.value);
+        return start.equals(other.start) && end.equals(other.end) && Objects.equals(value, other.value);// FIXME
     }
 
     /**
      * <p>
-     * A snapshot of the time-varying value, at the {@linkplain #getStart() time} of
-     * the snapshot.
+     * The last point in time that the time-varying value had the
+     * {@linkplain #getValue() value}
      * </p>
+     * <p>
+     * This is an <i>inclusive</i> and time. Expressed as the duration since an
+     * (implied) epoch.
+     * </p>
+     * <ul>
+     * <li>The end time is {@linkplain Duration#compareTo(Duration) at or after} the
+     * {@linkplain #getStart() start} time.</li>
+     * </ul>
      */
-    @Nullable
-    public VALUE getValue() {
-        return value;
+    @Nonnull
+    public Duration getEnd() {
+        return end;
     }
 
     /**
@@ -97,15 +115,26 @@ public final class TimestampedValue<VALUE> {
         return start;
     }
 
+    /**
+     * <p>
+     * A snapshot of the time-varying value, in the time-range given by the
+     * {@linkplain #getStart() start} and {@linkplain #getEnd() end} times
+     * </p>
+     */
+    @Nullable
+    public VALUE getValue() {
+        return value;
+    }
+
     @Override
     public int hashCode() {
-        return Objects.hash(value, start);
+        return Objects.hash(value, start, end);
     }
 
     @Nonnull
     @Override
     public String toString() {
-        return "@" + start + "=" + value + "]";
+        return "@(" + start + "," + end + ")=" + value;
     }
 
 }

@@ -190,7 +190,7 @@ public class ObjectHistory<STATE> {
     }
 
     private void emitStateTransition(@Nonnull final Duration when, @Nullable final STATE state) {
-        final var result = stateTransitions.tryEmitNext(new TimestampedValue<>(when, state));
+        final var result = stateTransitions.tryEmitNext(new TimestampedValue<>(when, when, state));
         // The sink are reliable, so should always succeed.
         assert result == Sinks.EmitResult.OK;
     }
