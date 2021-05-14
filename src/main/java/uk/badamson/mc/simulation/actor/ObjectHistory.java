@@ -22,7 +22,6 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.SortedMap;
-import java.util.TreeMap;
 import java.util.UUID;
 
 import javax.annotation.Nonnull;
@@ -65,7 +64,7 @@ public class ObjectHistory<STATE> {
     /**
      * <p>
      * The state of a simulated object, with a time-stamp indicating one of the
-     * points in time when the simulated object was in that state.
+     * point in time when the simulated object was in that state.
      * </p>
      *
      * @param <STATE>
@@ -83,9 +82,6 @@ public class ObjectHistory<STATE> {
 
         /**
          * Constructs a value with given attribute values.
-         *
-         * @throws NullPointerException
-         *             If {@code when} is null
          */
         public TimestampedState(@Nonnull final Duration when, @Nullable final STATE state) {
             this.when = Objects.requireNonNull(when, "when");
@@ -97,9 +93,7 @@ public class ObjectHistory<STATE> {
          * Whether this object is <dfn>equivalent</dfn> to a given other object.
          * </p>
          * <p>
-         * The TimestampedState class has <i>value semantics</i>: the object is
-         * equivalent to another object if, and only if, the other object is also a
-         * TimestampedState and the two have equivalent attribute values.
+         * The TimestampedState class has <i>value semantics</i>.
          * </p>
          */
         @Override
@@ -150,7 +144,7 @@ public class ObjectHistory<STATE> {
         @Nonnull
         @Override
         public String toString() {
-            return "TimestampedState [@" + when + ", " + state + "]";
+            return "@" + when + "=" + state + "]";
         }
 
     }// class
@@ -177,10 +171,6 @@ public class ObjectHistory<STATE> {
      * <p>
      * Copy an object history.
      * </p>
-     *
-     * @throws NullPointerException
-     *             If {@code that} is null
-     *
      */
     public ObjectHistory(@Nonnull final ObjectHistory<STATE> that) {
         Objects.requireNonNull(that, "that");
@@ -199,22 +189,38 @@ public class ObjectHistory<STATE> {
      * </p>
      * <ul>
      *
+     * @param object
+     *            The unique ID of the object for which this is the history.
+     * @param end
+     *            The last point in time for which this history is reliable.
      * @param stateTransitions
      *            The state transitions
      * @throws NullPointerException
+     *             If any {@link Nonnull} argument is null.
+     * @throws IllegalArgumentException
      *             <ul>
-     *             <li>If {@code stateTransitions} is null</li>
      *             <li>If {@code stateTransitions} is empty.</li>
+     *             <li>If {@code end} is {@linkplain Duration#compareTo(Duration)
+     *             before} the first time in {@code stateTransitions}.</li>
+     *             <li>If adjacent {@linkplain SortedMap#values() values} of
+     *             {@code stateTransitions} are
+     *             {@linkplain Objects#equals(Object, Object) equivalent or
+     *             equivalently null}.</li>
+     *             <li>If {@code stateTransitions} contains more than one null
+     *             value.</li>
      *             <li>If {@code stateTransitions} has any null
      *             {@linkplain SortedMap#values() values} other than the last. That
      *             is, if the object was destroyed or removed before the last
      *             transition.</li>
+     *             <li>The the final value in {@code stateTransitions} is null and
+     *             the final state transition is at or before the {@code end} time,
+     *             but the {@code end} time is not the
+     *             {@linkplain ValueHistory#END_OF_TIME end of time}. That is, if
+     *             the arguments indicate that there is reliable information
+     *             indicating destruction of the simulated object, but the
+     *             reliability information suggests it might be resurrected at a
+     *             later time.</li>
      *             </ul>
-     * @throws IllegalArgumentException
-     *             If any {@linkplain SortedMap#values() value} of
-     *             {@code previousStateTransitions} is
-     *             {@linkplain Objects#equals(Object, Object) equal to (or equally
-     *             null as)} its predecessor value.
      */
     @JsonCreator
     public ObjectHistory(@Nonnull @JsonProperty("object") final UUID object,
@@ -223,7 +229,25 @@ public class ObjectHistory<STATE> {
         this.object = Objects.requireNonNull(object, "object");
         this.end = Objects.requireNonNull(end, "end");
         this.stateHistory = new ModifiableValueHistory<>(null, stateTransitions);
+        // Check after copy to avoid race hazards
         this.start = this.stateHistory.getFirstTansitionTime();
+        if (this.start == null) {
+            throw new IllegalArgumentException("empty stateTransitions");
+        }
+        if (end.compareTo(this.start) < 0) {
+            throw new IllegalArgumentException("end before first in stateTransitions");
+        }
+        final var nDestructionEvents = this.stateHistory.getTransitions().values().stream()
+                .filter(state -> state == null).count();
+        if (1 < nDestructionEvents) {
+            throw new IllegalArgumentException("stateTransitions has multiple destruction events");
+        }
+        if (0 < nDestructionEvents && this.stateHistory.getLastValue() != null) {
+            throw new IllegalArgumentException("stateTransitions destruction event is not the last event");
+        }
+        if (stateHistory.get(end) == null && !ValueHistory.END_OF_TIME.equals(end)) {
+            throw new IllegalArgumentException("reliability information suggests destroyed object may be recreated");
+        }
         emitStateTransition(stateHistory.getLastTansitionTime(), stateHistory.getLastValue());
     }
 
@@ -231,11 +255,13 @@ public class ObjectHistory<STATE> {
      * <p>
      * Construct an object history with given start information.
      * </p>
-     * <ul>
-     * </ul>
      *
+     * @param object
+     *            The unique ID of the object for which this is the history.
+     * @param start
+     *            The point in time that this history starts.
      * @param state
-     *            The first (known) state transition of the {@linkplain #getObject()
+     *            The first (known) state transition of the {@code
      *            object}.
      * @throws NullPointerException
      *             If a {@link Nonnull} argument is null
@@ -261,11 +287,7 @@ public class ObjectHistory<STATE> {
      * Whether this object is <dfn>equivalent</dfn> to a given object.
      * </p>
      * <p>
-     * The {@link ObjectHistory} class has <i>value semantics</i>: this object is
-     * equivalent to another object if, and only if, the other is also an
-     * {@link ObjectHistory}, and the two have equivalent {@linkplain #getObject()
-     * object ID}s, {@linkplain #getEnd() end times} and
-     * {@linkplain #getStateHistory() state histories}.
+     * The {@link ObjectHistory} class has <i>value semantics</i>.
      * </p>
      */
     @Override
@@ -352,19 +374,24 @@ public class ObjectHistory<STATE> {
      * simulated object} has passed through.
      * </p>
      * <ul>
+     * <li>The state history is never {@linkplain ValueHistory#isEmpty()
+     * empty}.</li>
      * <li>The {@linkplain ValueHistory#getFirstTansitionTime() first transition
      * time} of the state history is the same as the {@linkplain #getStart() start}
      * time of this history.</li>
      * <li>The {@linkplain ValueHistory#getFirstValue() state at the start of time}
      * of the state history is null.</li>
-     * <li>The state history is never {@linkplain ValueHistory#isEmpty()
-     * empty}.</li>
+     * <li>If the state at the {@linkplain #getEnd() end} time is null (destruction
+     * of the {@linkplain #getObject() object}), the end time is the
+     * {@linkplain ValueHistory#END_OF_TIME end of time}. That is, if reliable state
+     * information indicates that the simulated object was destroyed, it is
+     * guaranteed that the simulated object will never be recreated.</li>
      * <li>The returned state history is a snapshot: a copy of data, it is not
-     * updated if events are appended.</li>
+     * updated if this object history is subsequently changed.</li>
      * </ul>
      * <p>
      * Using the sequence provided by {@link #observeState(Duration)} to acquire the
-     * state at a known point in time is typically better than using the snapshot of
+     * state at a given point in time is typically better than using the snapshot of
      * the state history, because the snapshot is not updated, and because creating
      * the snapshot can be expensive.
      * </p>
@@ -389,7 +416,11 @@ public class ObjectHistory<STATE> {
     @JsonProperty("stateTransitions")
     public final SortedMap<Duration, STATE> getStateTransitions() {
         synchronized (lock) {// hard to test
-            return new TreeMap<>(stateHistory.getTransitions());
+            /*
+             * No need to make a defensive copy: ModifiableValueHistory.getTransitions()
+             * does that for us.
+             */
+            return stateHistory.getTransitions();
         }
     }
 
@@ -425,7 +456,7 @@ public class ObjectHistory<STATE> {
      * <li>The last state of the sequence of states may be proceeded may
      * <i>provisional</i> values for the state at the given point in time. These
      * provisional values will typically be approximations of the correct value,
-     * with successive values being closer to the correct value.</li>
+     * with successive values typically being closer to the correct value.</li>
      * <li>The sequence of states does not contain successive duplicates.</li>
      * <li>The sequence rapidly publishes the first state of the sequence.</li>
      * <li>The time between publication of the last state of the sequence and
@@ -498,7 +529,8 @@ public class ObjectHistory<STATE> {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" + object + "from " + start + " stateHistory=" + stateHistory + "]";
+        return getClass().getSimpleName() + " [" + object + "from " + start + " to " + end + "stateHistory="
+                + stateHistory + "]";
     }
 
 }

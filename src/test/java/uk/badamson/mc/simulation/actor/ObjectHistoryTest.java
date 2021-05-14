@@ -51,6 +51,7 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.ObjectTest;
+import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.history.ValueHistoryTest;
 
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
@@ -185,9 +186,9 @@ public class ObjectHistoryTest {
             public void twoStateTransitions() {
                 final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>();
                 stateTransitions.put(WHEN_A, Integer.valueOf(0));
-                stateTransitions.put(WHEN_B, Integer.valueOf(1));
+                stateTransitions.put(WHEN_A.plusSeconds(1), Integer.valueOf(1));
 
-                constructor(OBJECT_A, WHEN_C, stateTransitions);
+                constructor(OBJECT_A, WHEN_A.plusSeconds(2), stateTransitions);
             }
 
         }// class
@@ -574,7 +575,6 @@ public class ObjectHistoryTest {
 
     private static final Duration WHEN_A = Duration.ofMillis(0);
     private static final Duration WHEN_B = Duration.ofMillis(5000);
-    private static final Duration WHEN_C = Duration.ofMillis(7000);
 
     public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history) {
         ObjectTest.assertInvariants(history);// inherited
@@ -596,7 +596,10 @@ public class ObjectHistoryTest {
                         "The first transition time of the state history is the same as the start time of this history."),
                         () -> assertNull(stateHistory.getFirstValue(),
                                 "The state at the start of time of the state history is null."),
-                        () -> assertFalse(stateHistory.isEmpty(), "The state history is never empty.")),
+                        () -> assertFalse(stateHistory.isEmpty(), "The state history is never empty."),
+                        () -> assertThat(
+                                "If reliable state information indicates that the simulated object was destroyed, it is guaranteed that the simulated object will never be recreated.",
+                                !(stateHistory.get(end) == null && !ValueHistory.END_OF_TIME.equals(end)))),
                 () -> assertEquals(stateTransitions, stateHistory.getTransitions(), "stateTransitions"));
     }
 
