@@ -1,4 +1,4 @@
-package uk.badamson.mc.simulation.rx;
+package uk.badamson.mc.simulation.actor;
 /*
  * © Copyright Benedict Adamson 2018,2021.
  *
@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import javax.annotation.Nonnull;
@@ -41,6 +42,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import uk.badamson.mc.history.ModifiableValueHistory;
 import uk.badamson.mc.history.ValueHistory;
+import uk.badamson.mc.simulation.rx.ModifiableObjectHistory;
 
 /**
  * <p>
@@ -162,45 +164,14 @@ public class ObjectHistory<STATE> {
      * predictable lock ordering when locking two instances.
      */
     protected final UUID lock = UUID.randomUUID();
-    private final Sinks.Many<Event<STATE>> events = Sinks.many().replay().latest();
     private final Sinks.Many<TimestampedState<STATE>> stateTransitions = Sinks.many().replay().latest();
 
     @Nonnull
     @GuardedBy("lock")
-    private final ModifiableValueHistory<STATE> stateHistory;
-
+    private final Duration end;
     @Nonnull
     @GuardedBy("lock")
-    protected Event<STATE> lastEvent;
-
-    /**
-     * <p>
-     * Construct an object history with given start information.
-     * </p>
-     * <ul>
-     * <li>The {@linkplain #getLastEvent() last event} of this history is the given
-     * {@code event}.</li>
-     * </ul>
-     *
-     * @param event
-     *            The first (known) state transition of the {@linkplain #getObject()
-     *            object}.
-     * @throws NullPointerException
-     *             <ul>
-     *             <li>If {@code event} is null</li>
-     *             <li>if the {@linkplain Event#getState() state} of {@code event}
-     *             is null. That is, if the first event is the destruction or
-     *             removal of the {@linkplain #getObject() simulated object}.</li>
-     *             </ul>
-     */
-    public ObjectHistory(@Nonnull final Event<STATE> event) {
-        this.lastEvent = Objects.requireNonNull(event, "event");// redundant; satisfy SpotBugs
-        Objects.requireNonNull(event.getState(), "event.state");
-        this.object = event.getObject();
-        this.start = event.getWhen();
-        this.stateHistory = new ModifiableValueHistory<>();
-        append1(event);
-    }
+    private final ModifiableValueHistory<STATE> stateHistory;
 
     /**
      * <p>
@@ -214,12 +185,12 @@ public class ObjectHistory<STATE> {
     public ObjectHistory(@Nonnull final ObjectHistory<STATE> that) {
         Objects.requireNonNull(that, "that");
         synchronized (that.object) {// hard to test
-            lastEvent = that.lastEvent;
+            end = that.end;
             stateHistory = new ModifiableValueHistory<>(that.stateHistory);
+            emitStateTransition(stateHistory.getLastTansitionTime(), stateHistory.getLastValue());
         }
         object = that.object;
         start = that.start;
-        emitLastEvent();
     }
 
     /**
@@ -227,75 +198,62 @@ public class ObjectHistory<STATE> {
      * Construct an object history with given history information.
      * </p>
      * <ul>
-     * <li>The {@linkplain #getLastEvent() last event} of this history is the given
-     * {@code event}.</li>
-     * <li>The {@linkplain #getPreviousStateTransitions() previous state
-     * transitions} of this history is {@linkplain SortedMap#equals(Object)
-     * equivalent to} the given {@code previousStateTransitions}
-     * </ul>
      *
-     * @param previousStateTransitions
-     *            The state transitions before the {@code lastEvent}
-     * @param lastEvent
-     *            The last (known) state transition of the {@linkplain #getObject()
-     *            object}.
+     * @param stateTransitions
+     *            The state transitions
      * @throws NullPointerException
      *             <ul>
      *             <li>If {@code stateTransitions} is null</li>
-     *             <li>If {@code lastEvent} is null</li>
-     *             <li>If {@code stateTransitions} is empty and the
-     *             {@linkplain Event#getState() state} of {@code lastEvent} is null.
-     *             That is, if the first event is the destruction or removal of the
-     *             {@linkplain #getObject() simulated object}.</li>
+     *             <li>If {@code stateTransitions} is empty.</li>
      *             <li>If {@code stateTransitions} has any null
-     *             {@linkplain SortedMap#values() values}. That is, if the object
-     *             was destroyed or removed before the {@code lastEvent} .</li>
+     *             {@linkplain SortedMap#values() values} other than the last. That
+     *             is, if the object was destroyed or removed before the last
+     *             transition.</li>
      *             </ul>
      * @throws IllegalArgumentException
-     *             <ul>
-     *             <li>If the {@linkplain Event#getWhen() time} of the
-     *             {@code lastEvent} is not {@linkplain Duration#compareTo(Duration)
-     *             after} the {@linkplain SortedMap#lastKey() last} of the given
-     *             {@code previousStateTransitions}.</li>
-     *             <li>If any {@linkplain SortedMap#values() value} of
+     *             If any {@linkplain SortedMap#values() value} of
      *             {@code previousStateTransitions} is
      *             {@linkplain Objects#equals(Object, Object) equal to (or equally
-     *             null as)} its predecessor value.</li>
-     *             </ul>
+     *             null as)} its predecessor value.
      */
     @JsonCreator
-    public ObjectHistory(
-            @Nonnull @JsonProperty("previousStateTransitions") final SortedMap<Duration, STATE> previousStateTransitions,
-            @JsonProperty("lastEvent") @Nonnull final Event<STATE> lastEvent) {
-        this.lastEvent = Objects.requireNonNull(lastEvent, "lastEvent");// redundant; satisfy SpotBugs
-        this.object = lastEvent.getObject();
-        this.start = previousStateTransitions.isEmpty() ? lastEvent.getWhen() : previousStateTransitions.firstKey();
-        this.stateHistory = new ModifiableValueHistory<>(null, previousStateTransitions);
-        append1(lastEvent);
+    public ObjectHistory(@Nonnull @JsonProperty("object") final UUID object,
+            @Nonnull @JsonProperty("end") final Duration end,
+            @Nonnull @JsonProperty("stateTransitions") final SortedMap<Duration, STATE> stateTransitions) {
+        this.object = Objects.requireNonNull(object, "object");
+        this.end = Objects.requireNonNull(end, "end");
+        this.stateHistory = new ModifiableValueHistory<>(null, stateTransitions);
+        this.start = this.stateHistory.getFirstTansitionTime();
+        emitStateTransition(stateHistory.getLastTansitionTime(), stateHistory.getLastValue());
     }
 
-    protected final void append1(final Event<STATE> event) {
-        lastEvent = event;
-        final var state = event.getState();
-        if (stateHistory.isEmpty() || !stateHistory.getLastValue().equals(state)) {
-            stateHistory.appendTransition(event.getWhen(), state);
-        }
-        emitLastEvent();
-        if (state == null) {// destruction
-            final var result3 = events.tryEmitComplete();
-            final var result4 = stateTransitions.tryEmitComplete();
-            assert result3 == Sinks.EmitResult.OK;
-            assert result4 == Sinks.EmitResult.OK;
-        }
+    /**
+     * <p>
+     * Construct an object history with given start information.
+     * </p>
+     * <ul>
+     * </ul>
+     *
+     * @param state
+     *            The first (known) state transition of the {@linkplain #getObject()
+     *            object}.
+     * @throws NullPointerException
+     *             If a {@link Nonnull} argument is null
+     */
+    public ObjectHistory(@Nonnull final UUID object, @Nonnull final Duration start, @Nonnull final STATE state) {
+        Objects.requireNonNull(state, "state");
+        this.object = Objects.requireNonNull(object, "object");
+        this.start = Objects.requireNonNull(start, "start");
+        this.end = start;
+        this.stateHistory = new ModifiableValueHistory<>();
+        this.stateHistory.appendTransition(start, state);
+        emitStateTransition(start, state);
     }
 
-    private void emitLastEvent() {
-        final var result1 = events.tryEmitNext(lastEvent);
-        final var result2 = stateTransitions
-                .tryEmitNext(new TimestampedState<>(lastEvent.getWhen(), lastEvent.getState()));
+    private void emitStateTransition(@Nonnull final Duration when, @Nullable final STATE state) {
+        final var result = stateTransitions.tryEmitNext(new TimestampedState<>(when, state));
         // The sink are reliable, so should always succeed.
-        assert result1 == Sinks.EmitResult.OK;
-        assert result2 == Sinks.EmitResult.OK;
+        assert result == Sinks.EmitResult.OK;
     }
 
     /**
@@ -305,9 +263,9 @@ public class ObjectHistory<STATE> {
      * <p>
      * The {@link ObjectHistory} class has <i>value semantics</i>: this object is
      * equivalent to another object if, and only if, the other is also an
-     * {@link ObjectHistory}, and the two have equivalent
-     * {@linkplain #getLastEvent() last events} and {@linkplain #getStateHistory()
-     * state histories}.
+     * {@link ObjectHistory}, and the two have equivalent {@linkplain #getObject()
+     * object ID}s, {@linkplain #getEnd() end times} and
+     * {@linkplain #getStateHistory() state histories}.
      * </p>
      */
     @Override
@@ -319,18 +277,21 @@ public class ObjectHistory<STATE> {
             return false;
         }
         final ObjectHistory<?> other = (ObjectHistory<?>) obj;
+        if (!object.equals(other.object) || !start.equals(other.start)) {
+            return false;
+        }
         if (lockBefore(other)) {
-            return equalsObjectHistories(other);
+            return equalsGuarded(other);
         } else {
-            return other.equalsObjectHistories(this);
+            return other.equalsGuarded(this);
         }
     }
 
-    private boolean equalsObjectHistories(@Nonnull final ObjectHistory<?> other) {
+    private boolean equalsGuarded(@Nonnull final ObjectHistory<?> other) {
         // hard to test the thread safety
         synchronized (lock) {
             synchronized (other.lock) {
-                return lastEvent.equals(other.lastEvent) && stateHistory.equals(other.stateHistory);
+                return end.equals(other.end) && stateHistory.equals(other.stateHistory);
             }
         }
     }
@@ -344,45 +305,12 @@ public class ObjectHistory<STATE> {
      * simulation should use the same epoch.</li>
      * <li>The end time is {@linkplain Duration#compareTo(Duration) at or after} the
      * {@linkplain #getStart() start} time.</li>
-     * <li>If the {@linkplain Event#getState() state transitioned to} by the
-     * {@linkplain #getLastEvent() last event} is null (that is, the last event was
-     * destruction or removal of the {@linkplain #getObject() simulated object}),
-     * the end time is the {@linkplain ValueHistory#END_OF_TIME end of time}.</li>
-     * <li>If the state transitioned to by the last event is not null, the end time
-     * is the {@linkplain Event#getWhen() time} of that event.</li>
      * </ul>
      */
     @Nonnull
-    @JsonIgnore
+    @JsonProperty("end")
     public final Duration getEnd() {
-        final var event = getLastEvent();
-        if (event.getState() == null) {
-            return ValueHistory.END_OF_TIME;
-        } else {
-            return event.getWhen();
-        }
-    }
-
-    /**
-     * <p>
-     * The last (known) state transition of the {@linkplain #getObject() object}.
-     * </p>
-     * <ul>
-     * <li>Always have a (non null) last event.</li>
-     * <li>The {@linkplain Event#getObject() object} of the last event is the same
-     * as the {@linkplain #getObject() object} of this history.</li>
-     * <li>The {@linkplain Event#getWhen() time} of the last event is
-     * {@linkplain Duration#compareTo(Duration) at or after} the
-     * {@linkplain #getStart() start} of this history.</li>
-     * </ul>
-     *
-     * @see #observeEvents()
-     */
-    @Nonnull
-    public final Event<STATE> getLastEvent() {
-        synchronized (lock) {
-            return lastEvent;
-        }
+        return end;
     }
 
     /**
@@ -394,25 +322,9 @@ public class ObjectHistory<STATE> {
      * </ul>
      */
     @Nonnull
-    @JsonIgnore
+    @JsonProperty("object")
     public final UUID getObject() {
         return object;
-    }
-
-    /**
-     * <p>
-     * The {@linkplain ValueHistory#getTransitions() transitions} in the
-     * {@linkplain #getStateHistory() state history} of this object history
-     * {@linkplain SortedMap#headMap(Object) before} the {@linkplain #getLastEvent()
-     * last event} of this object history.
-     * </p>
-     */
-    @Nonnull
-    public final SortedMap<Duration, STATE> getPreviousStateTransitions() {
-        synchronized (lock) {// hard to test
-            final var transitions = stateHistory.getTransitions();
-            return transitions.headMap(transitions.lastKey());
-        }
     }
 
     /**
@@ -445,13 +357,6 @@ public class ObjectHistory<STATE> {
      * time of this history.</li>
      * <li>The {@linkplain ValueHistory#getFirstValue() state at the start of time}
      * of the state history is null.</li>
-     * <li>The {@linkplain ValueHistory#getLastTansitionTime() last transition time}
-     * of the state history is typically the same as the {@linkplain Event#getWhen()
-     * time} of the {@linkplain #getLastEvent() last event} of this history. But it
-     * will not be if there are events that do not actually change the state.</li>
-     * <li>The {@linkplain ValueHistory#getLastValue() state at the end of time} of
-     * the state history is the same as the {@linkplain Event#getState() state} of
-     * the {@linkplain #getLastEvent() last event} of this history.</li>
      * <li>The state history is never {@linkplain ValueHistory#isEmpty()
      * empty}.</li>
      * <li>The returned state history is a snapshot: a copy of data, it is not
@@ -474,12 +379,27 @@ public class ObjectHistory<STATE> {
         }
     }
 
+    /**
+     * <p>
+     * The {@linkplain ValueHistory#getTransitions() transitions} in the
+     * {@linkplain #getStateHistory() state history} of this object history.
+     * </p>
+     */
+    @Nonnull
+    @JsonProperty("stateTransitions")
+    public final SortedMap<Duration, STATE> getStateTransitions() {
+        synchronized (lock) {// hard to test
+            return new TreeMap<>(stateHistory.getTransitions());
+        }
+    }
+
     @Override
     public final int hashCode() {
         final int prime = 31;
         int result = 1;
         synchronized (lock) {// hard to test thread safety
-            result = prime * result + lastEvent.hashCode();
+            result = prime * result + object.hashCode();
+            result = prime * result + end.hashCode();
             result = prime * result + stateHistory.hashCode();
         }
         return result;
@@ -488,38 +408,6 @@ public class ObjectHistory<STATE> {
     private boolean lockBefore(@Nonnull final ObjectHistory<?> that) {
         assert !lock.equals(that.lock);
         return lock.compareTo(that.lock) < 0;
-    }
-
-    /**
-     * <p>
-     * Provide the sequence of {@linkplain Event events} that cause
-     * {@linkplain #observeStateTransitions() state transitions} of the
-     * {@linkplain #getObject() simulated object}.
-     * </p>
-     * <ul>
-     * <li>The sequence of events has no null events.</li>
-     * <li>The sequence of events can be infinite.</li>
-     * <li>The sequence of events can be finite. In that case, the last event is the
-     * destruction of the object: a transition to a null
-     * {@linkplain Event#getState() state}.</li>
-     * <li>The sequence of events are in {@linkplain Duration#compareTo(Duration)
-     * ascending} {@linkplain Event#getWhen() time-stamp} order.</li>
-     * <li>Always have a (non null) last event.</li>
-     * <li>The {@linkplain Event#getObject() object} of each event is the same as
-     * the {@linkplain #getObject() object} of this history.</li>
-     * <li>The {@linkplain Event#getWhen() time} of each event is
-     * {@linkplain Duration#compareTo(Duration) at or after} the
-     * {@linkplain #getStart() start} of this history.</li>
-     * <li>The sequence of events does not include old events; the first event
-     * published to a subscriber will be the current {@linkplain #getLastEvent()
-     * last event} at the time of subscription.</li>
-     * </ul>
-     *
-     * @see #getLastEvent()
-     */
-    @Nonnull
-    public final Flux<Event<STATE>> observeEvents() {
-        return events.asFlux();
     }
 
     /**
@@ -539,6 +427,7 @@ public class ObjectHistory<STATE> {
      * provisional values will typically be approximations of the correct value,
      * with successive values being closer to the correct value.</li>
      * <li>The sequence of states does not contain successive duplicates.</li>
+     * <li>The sequence rapidly publishes the first state of the sequence.</li>
      * <li>The time between publication of the last state of the sequence and
      * completion of the sequence can be a large. That is, the process of providing
      * a value and then concluding that it is the correct value rather than a
@@ -563,15 +452,22 @@ public class ObjectHistory<STATE> {
      */
     @Nonnull
     public final Publisher<Optional<STATE>> observeState(@Nonnull final Duration when) {
+        Objects.requireNonNull(when, "when");
         synchronized (lock) {// hard to test
-            if (when.compareTo(lastEvent.getWhen()) <= 0) {
-                return Mono.just(Optional.ofNullable(stateHistory.get(when)));
+            final var observeStateFromStateHistory = Mono.just(Optional.ofNullable(stateHistory.get(when)));
+            if (when.compareTo(end) <= 0) {
+                return observeStateFromStateHistory;
             } else {
-                return stateTransitions.asFlux().takeWhile(timeStamped -> timeStamped.getWhen().compareTo(when) <= 0)
-                        .takeUntil(timeStamped -> when.compareTo(timeStamped.getWhen()) <= 0)
-                        .map(timeStamped -> Optional.ofNullable(timeStamped.getState())).distinctUntilChanged();
+                return Flux.concat(observeStateFromStateHistory, observeStateFromStateTransitions(when))
+                        .distinctUntilChanged();
             }
         }
+    }
+
+    private Flux<Optional<STATE>> observeStateFromStateTransitions(@Nonnull final Duration when) {
+        return stateTransitions.asFlux().takeWhile(timeStamped -> timeStamped.getWhen().compareTo(when) <= 0)
+                .takeUntil(timeStamped -> when.compareTo(timeStamped.getWhen()) <= 0)
+                .map(timeStamped -> Optional.ofNullable(timeStamped.getState()));
     }
 
     /**
@@ -592,9 +488,7 @@ public class ObjectHistory<STATE> {
      * {@linkplain Duration#compareTo(Duration) ascending}
      * {@linkplain TimestampedState#getWhen() time-stamp} order.</li>
      * <li>The sequence of state transitions does not include old state transitions;
-     * the first state transition published to a subscriber will correspond to the
-     * current {@linkplain #getLastEvent() last event} at the time of
-     * subscription.</li>
+     * it is a <i>hot</i> observable.</li>
      * </ul>
      */
     @Nonnull
@@ -604,7 +498,7 @@ public class ObjectHistory<STATE> {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [stateHistory=" + stateHistory + ", lastEvent=" + lastEvent + "]";
+        return getClass().getSimpleName() + " [" + object + "from " + start + " stateHistory=" + stateHistory + "]";
     }
 
 }
