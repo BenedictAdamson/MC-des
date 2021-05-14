@@ -25,7 +25,6 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -33,14 +32,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -51,6 +48,7 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.ObjectTest;
+import uk.badamson.mc.history.TimestampedState;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.history.ValueHistoryTest;
 
@@ -408,7 +406,7 @@ public class ObjectHistoryTest {
             }
 
             private void test(final UUID object, final Duration start, final Duration end, final Integer state) {
-                final var expectedStateTransition = new ObjectHistory.TimestampedState<>(start, state);
+                final var expectedStateTransition = new TimestampedState<>(start, state);
                 final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>();
                 stateTransitions.put(start, state);
                 final var history = new ObjectHistory<>(object, end, stateTransitions);
@@ -435,7 +433,7 @@ public class ObjectHistoryTest {
             }
 
             private void test(final UUID object, final Duration start, final Integer state) {
-                final var expectedStateTransition = new ObjectHistory.TimestampedState<>(start, state);
+                final var expectedStateTransition = new TimestampedState<>(start, state);
                 final var history = new ObjectHistory<>(object, start, state);
 
                 final var flux = observeStateTransitions(history);
@@ -460,7 +458,7 @@ public class ObjectHistoryTest {
             }
 
             private void test(final UUID object, final Duration start, final Integer state) {
-                final var expectedStateTransition = new ObjectHistory.TimestampedState<>(start, state);
+                final var expectedStateTransition = new TimestampedState<>(start, state);
                 final var history = new ObjectHistory<>(object, start, state);
                 final var copy = new ObjectHistory<>(history);
 
@@ -471,103 +469,6 @@ public class ObjectHistoryTest {
             }
 
         }// class
-    }// class
-
-    public static class TimestampedStateTest {
-
-        @Nested
-        public class Constructor {
-
-            @Nested
-            public class Two {
-
-                @Test
-                public void differentState() {
-                    final String stateA = "A";
-                    final String stateB = "B";
-
-                    final var timestampedA = new ObjectHistory.TimestampedState<>(WHEN_A, stateA);
-                    final var timestampedB = new ObjectHistory.TimestampedState<>(WHEN_A, stateB);
-
-                    assertInvariants(timestampedA, timestampedB);
-                    assertNotEquals(timestampedA, timestampedB);
-                }
-
-                @Test
-                public void differentWhen() {
-                    final Duration whenA = Duration.ofMillis(1000);
-                    final Duration whenB = Duration.ofMillis(2000);
-                    final String state = "State";
-
-                    final var timestampedA = new ObjectHistory.TimestampedState<>(whenA, state);
-                    final var timestampedB = new ObjectHistory.TimestampedState<>(whenB, state);
-
-                    assertInvariants(timestampedA, timestampedB);
-                    assertNotEquals(timestampedA, timestampedB);
-                }
-
-                @Test
-                public void equivalent() {
-                    final Duration whenA = Duration.ofMillis(1000);
-                    final Duration whenB = Duration.ofMillis(1000);
-                    final String stateA = "State";
-                    final String stateB = new String(stateA);
-                    assert whenA.equals(whenB);
-                    assert stateA.equals(stateB);
-                    assert whenA != whenB;// tough test
-                    assert stateA != stateB;// tough test
-
-                    final var timestampedA = new ObjectHistory.TimestampedState<>(whenA, stateA);
-                    final var timestampedB = new ObjectHistory.TimestampedState<>(whenB, stateB);
-
-                    assertInvariants(timestampedA, timestampedB);
-                    assertEquals(timestampedA, timestampedB);
-                }
-            }// class
-
-            @Test
-            public void a() {
-                test(WHEN_A, "State");
-            }
-
-            @Test
-            public void b() {
-                test(WHEN_B, Integer.valueOf(0));
-            }
-
-            @Test
-            public void nullState() {
-                test(WHEN_A, (Integer) null);
-            }
-
-            private <STATE> void test(@Nonnull final Duration when, @Nullable final STATE state) {
-                final var timestamped = new ObjectHistory.TimestampedState<>(when, state);
-
-                assertInvariants(timestamped);
-                assertAll(() -> assertSame(when, timestamped.getWhen(), "when"),
-                        () -> assertSame(state, timestamped.getState(), "state"));
-            }
-
-        }// class
-
-        public static <STATE> void assertInvariants(@Nonnull final ObjectHistory.TimestampedState<STATE> timestamped) {
-            ObjectTest.assertInvariants(timestamped);// inherited
-
-            assertNotNull(timestamped.getWhen(), "Not null, when");
-        }
-
-        public static <STATE> void assertInvariants(@Nonnull final ObjectHistory.TimestampedState<STATE> timestamped1,
-                @Nonnull final ObjectHistory.TimestampedState<STATE> timestamped2) {
-            ObjectTest.assertInvariants(timestamped1, timestamped2);// inherited
-
-            final var state1 = timestamped1.getState();
-            final var state2 = timestamped2.getState();
-            if (state1 != null && state2 != null) {
-                ObjectTest.assertInvariants(state1, state2);
-            }
-            assertTrue(timestamped1.equals(timestamped2) == (timestamped1.getWhen().equals(timestamped2.getWhen())
-                    && Objects.equals(state1, state2)), "equals has value semantics");
-        }
     }// class
 
     private static final UUID OBJECT_A = UUID.randomUUID();
@@ -657,7 +558,7 @@ public class ObjectHistoryTest {
         return states;
     }
 
-    public static <STATE> Flux<ObjectHistory.TimestampedState<STATE>> observeStateTransitions(
+    public static <STATE> Flux<TimestampedState<STATE>> observeStateTransitions(
             @Nonnull final ObjectHistory<STATE> history) {
         final var flux = history.observeStateTransitions();
 
