@@ -239,6 +239,26 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
         return previousTransition == null ? firstValue : previousTransition.getValue();
     }
 
+    @Override
+    @Nonnull
+    public TimestampedValue<VALUE> getTimestampedValue(@Nonnull final Duration when) {
+        Objects.requireNonNull(when, "when");
+        final SortedMap<Duration, VALUE> atOrBefore;
+        final SortedMap<Duration, VALUE> after;
+        if (END_OF_TIME.equals(when)) {
+            atOrBefore = transitions;
+            after = Collections.emptyNavigableMap();
+
+        } else {
+            atOrBefore = transitions.headMap(when.plusNanos(1));
+            after = transitions.tailMap(when.plusNanos(1));
+        }
+        final var start = atOrBefore.isEmpty() ? START_OF_TIME : atOrBefore.lastKey();
+        final Duration end = after.isEmpty() ? END_OF_TIME : after.firstKey().minusNanos(1);
+        final var value = atOrBefore.isEmpty() ? firstValue : atOrBefore.get(atOrBefore.lastKey());
+        return new TimestampedValue<>(start, end, value);
+    }
+
     /**
      * <p>
      * The first point in time when the value of this history changes.

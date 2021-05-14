@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -18,6 +18,8 @@ package uk.badamson.mc.history;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -63,6 +65,8 @@ public class ConstantValueHistoryTest {
         ValueHistoryTest.assertInvariants(history, time);// inherited
 
         assertNull(history.getTansitionTimeAtOrAfter(time), "The transition time at or after all given times is null");
+        assertThat("timestampedValue", history.getTimestampedValue(time), is(
+                new TimestampedValue<>(ValueHistory.START_OF_TIME, ValueHistory.END_OF_TIME, history.getFirstValue())));
     }
 
     private <VALUE> void constructor(@Nullable final VALUE value) {

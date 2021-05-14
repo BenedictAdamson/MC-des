@@ -26,6 +26,7 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.stream.Stream;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -88,6 +89,13 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
     public VALUE get(final Duration t) {
         Objects.requireNonNull(t, "t");
         return value;
+    }
+
+    @Override
+    @Nonnull
+    public TimestampedValue<VALUE> getTimestampedValue(@Nonnull final Duration when) {
+        Objects.requireNonNull(when, "when");
+        return new TimestampedValue<>(START_OF_TIME, END_OF_TIME, value);
     }
 
     /**

@@ -18,6 +18,8 @@ package uk.badamson.mc.history;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -154,7 +156,17 @@ public class ModifiableValueHistoryTest {
                 appendTransition(history, when2, value2);
 
                 final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
+                final var timestampedValue0 = history.getTimestampedValue(ValueHistory.START_OF_TIME);
+                final var timestampedValue1 = history.getTimestampedValue(when1);
+                final var timestampedValue2 = history.getTimestampedValue(when2);
                 assertEquals(Set.of(when1, when2), transitionTimes, "transitionTimes.");
+                assertAll("timestampedValue",
+                        () -> assertThat("at start of time", timestampedValue0,
+                                is(new TimestampedValue<>(ValueHistory.START_OF_TIME, when1.minusNanos(1), null))),
+                        () -> assertThat("at first", timestampedValue1,
+                                is(new TimestampedValue<>(when1, when2.minusNanos(1), value1))),
+                        () -> assertThat("at second", timestampedValue2,
+                                is(new TimestampedValue<>(when2, ValueHistory.END_OF_TIME, value2))));
             }
 
             @Test

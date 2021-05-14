@@ -19,6 +19,7 @@ package uk.badamson.mc.history;
  */
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.SortedSet;
@@ -83,6 +84,26 @@ abstract class AbstractValueHistory<VALUE> implements ValueHistory<VALUE> {
     @Override
     public @Nullable VALUE getLastValue() {
         return get(END_OF_TIME);
+    }
+
+    @Override
+    @Nonnull
+    public TimestampedValue<VALUE> getTimestampedValue(@Nonnull final Duration when) {
+        Objects.requireNonNull(when, "when");
+        final var transitionTimes = getTransitionTimes();
+        final SortedSet<Duration> atOrBefore;
+        final SortedSet<Duration> after;
+        if (END_OF_TIME.equals(when)) {
+            atOrBefore = transitionTimes;
+            after = Collections.emptySortedSet();
+
+        } else {
+            atOrBefore = transitionTimes.headSet(when.plusNanos(1));
+            after = transitionTimes.tailSet(when.plusNanos(1));
+        }
+        final var start = atOrBefore.isEmpty() ? START_OF_TIME : atOrBefore.last();
+        final Duration end = after.isEmpty() ? END_OF_TIME : after.first().minusNanos(1);
+        return new TimestampedValue<>(start, end, get(when));
     }
 
     @Override

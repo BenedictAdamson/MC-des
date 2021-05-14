@@ -220,6 +220,40 @@ public interface ValueHistory<VALUE> {
 
     /**
      * <p>
+     * Get a time-stamped value that includes a given point in time.
+     * </p>
+     * <ul>
+     * <li>The time-stamped value {@linkplain TimestampedValue#getStart() start
+     * time} is {@linkplain Duration#compareTo(Duration) at or before}
+     * {@code when}.</li>
+     * <li>The time-stamped value {@linkplain TimestampedValue#getEnd() end time} is
+     * {@linkplain Duration#compareTo(Duration) at or after} {@code when}.</li>
+     * <li>The time-stamped value {@linkplain TimestampedValue#getValue() value} is
+     * equivalent to the {@linkplain #get(Duration) value} at {@code when}.</li>
+     * <li>The time-stamped value {@linkplain TimestampedValue#getStart() start
+     * time} is <em>either</em> the last {@linkplain #getTransitionTimes()
+     * transition time} {@linkplain Duration#compareTo(Duration) at or before}
+     * {@code when}, <em>or<> the {@linkplain #START_OF_TIME start of time}, if
+     * there are no transition times at or before {@code when}.</li>
+     * <li>The time-stamped value {@linkplain TimestampedValue#getEnd() end time} is
+     * <em>either</em> the first {@linkplain #getTransitionTimes() transition time}
+     * {@linkplain Duration#compareTo(Duration) at or after} {@code when}, <em>or<>
+     * the {@linkplain #END_OF_TIME end of time}, if there are no transition times
+     * at or after {@code when}.</li>
+     * </ul>
+     *
+     * @param when
+     *            The point in time of interest, expressed as a duration since an
+     *            (implied) epoch.
+     * @return The time-stamped value
+     * @throws NullPointerException
+     *             If {@code when} is null.
+     */
+    @Nonnull
+    TimestampedValue<VALUE> getTimestampedValue(@Nonnull Duration when);
+
+    /**
+     * <p>
      * The transitions in the value of this history.
      * </p>
      * <ul>
