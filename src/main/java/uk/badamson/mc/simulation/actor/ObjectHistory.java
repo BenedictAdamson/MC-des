@@ -64,8 +64,8 @@ public class ObjectHistory<STATE> {
 
     /**
      * <p>
-     * The state of a simulated object, with a time-stamp indicating one of the
-     * point in time when the simulated object was in that state.
+     * The state of a simulated object, with a time-range indicating the points in
+     * time when the simulated object was in that state.
      * </p>
      *
      * @param <STATE>
@@ -77,15 +77,15 @@ public class ObjectHistory<STATE> {
     public static final class TimestampedState<STATE> {
 
         @Nonnull
-        private final Duration when;
+        private final Duration start;
         @Nullable
         private final STATE state;
 
         /**
          * Constructs a value with given attribute values.
          */
-        public TimestampedState(@Nonnull final Duration when, @Nullable final STATE state) {
-            this.when = Objects.requireNonNull(when, "when");
+        public TimestampedState(@Nonnull final Duration start, @Nullable final STATE state) {
+            this.start = Objects.requireNonNull(start, "start");
             this.state = state;
         }
 
@@ -106,12 +106,28 @@ public class ObjectHistory<STATE> {
                 return false;
             }
             final TimestampedState<?> other = (TimestampedState<?>) that;
-            return when.equals(other.when) && Objects.equals(state, other.state);
+            return start.equals(other.start) && Objects.equals(state, other.state);// FIXME
         }
 
         /**
          * <p>
-         * A state of the simulated object at the {@linkplain #getWhen() time}
+         * The point in time that the simulated object entered the
+         * {@linkplain #getState() state}
+         * </p>
+         * <p>
+         * Expressed as the duration since an (implied) epoch. All objects in a
+         * simulation should use the same epoch.
+         * </p>
+         */
+        @Nonnull
+        public Duration getStart() {
+            return start;
+        }
+
+        /**
+         * <p>
+         * The state of the simulated object, in the time-range given by the
+         * {@linkplain #getStart() start} and {@linkplain #getEnd() end} times
          * </p>
          * <ul>
          * <li>Null if the object does not exist at that time.</li>
@@ -122,30 +138,15 @@ public class ObjectHistory<STATE> {
             return state;
         }
 
-        /**
-         * <p>
-         * The point in time that the simulated object is in the {@linkplain #getState()
-         * state}
-         * </p>
-         * <p>
-         * Expressed as the duration since an (implied) epoch. All objects in a
-         * simulation should use the same epoch.
-         * </p>
-         */
-        @Nonnull
-        public Duration getWhen() {
-            return when;
-        }
-
         @Override
         public int hashCode() {
-            return Objects.hash(state, when);
+            return Objects.hash(state, start);// FIXME
         }
 
         @Nonnull
         @Override
         public String toString() {
-            return "@" + when + "=" + state + "]";
+            return "@" + start + "=" + state + "]";
         }
 
     }// class
