@@ -32,7 +32,7 @@ import javax.annotation.concurrent.Immutable;
  * </p>
  *
  * @param <VALUE>
- *            The class of the time-wise varying values. This must be
+ *            The class of the time-wise varying value. This must be
  *            {@link Immutable immutable}, or have reference semantics. It ought
  *            to have value semantics, but that is not required.
  */
@@ -40,15 +40,15 @@ import javax.annotation.concurrent.Immutable;
 public final class TimestampedValue<VALUE> {
 
     @Nonnull
-    private final Duration when;
+    private final Duration start;
     @Nullable
     private final VALUE value;
 
     /**
      * Constructs a snapshot with given attribute values.
      */
-    public TimestampedValue(@Nonnull final Duration when, @Nullable final VALUE state) {
-        this.when = Objects.requireNonNull(when, "when");
+    public TimestampedValue(@Nonnull final Duration start, @Nullable final VALUE state) {
+        this.start = Objects.requireNonNull(start, "when");
         this.value = state;
     }
 
@@ -69,12 +69,12 @@ public final class TimestampedValue<VALUE> {
             return false;
         }
         final TimestampedValue<?> other = (TimestampedValue<?>) that;
-        return when.equals(other.when) && Objects.equals(value, other.value);
+        return start.equals(other.start) && Objects.equals(value, other.value);
     }
 
     /**
      * <p>
-     * A snapshot of the time-varying value, at the {@linkplain #getWhen() time} of
+     * A snapshot of the time-varying value, at the {@linkplain #getStart() time} of
      * the snapshot.
      * </p>
      */
@@ -85,27 +85,27 @@ public final class TimestampedValue<VALUE> {
 
     /**
      * <p>
-     * The point in time that the time-varying value has the {@linkplain #getValue()
-     * value}
+     * The point in time that the time-varying value started having the
+     * {@linkplain #getValue() value}
      * </p>
      * <p>
      * Expressed as the duration since an (implied) epoch.
      * </p>
      */
     @Nonnull
-    public Duration getWhen() {
-        return when;
+    public Duration getStart() {
+        return start;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(value, when);
+        return Objects.hash(value, start);
     }
 
     @Nonnull
     @Override
     public String toString() {
-        return "@" + when + "=" + value + "]";
+        return "@" + start + "=" + value + "]";
     }
 
 }

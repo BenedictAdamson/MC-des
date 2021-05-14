@@ -47,6 +47,19 @@ public class TimestampedValueTest {
         public class Two {
 
             @Test
+            public void differentStart() {
+                final Duration startA = Duration.ofMillis(1000);
+                final Duration startB = Duration.ofMillis(2000);
+                final String value = "State";
+
+                final var timestampedA = new TimestampedValue<>(startA, value);
+                final var timestampedB = new TimestampedValue<>(startB, value);
+
+                assertInvariants(timestampedA, timestampedB);
+                assertNotEquals(timestampedA, timestampedB);
+            }
+
+            @Test
             public void differentValue() {
                 final String valueA = "A";
                 final String valueB = "B";
@@ -59,31 +72,18 @@ public class TimestampedValueTest {
             }
 
             @Test
-            public void differentWhen() {
-                final Duration whenA = Duration.ofMillis(1000);
-                final Duration whenB = Duration.ofMillis(2000);
-                final String value = "State";
-
-                final var timestampedA = new TimestampedValue<>(whenA, value);
-                final var timestampedB = new TimestampedValue<>(whenB, value);
-
-                assertInvariants(timestampedA, timestampedB);
-                assertNotEquals(timestampedA, timestampedB);
-            }
-
-            @Test
             public void equivalent() {
-                final Duration whenA = Duration.ofMillis(1000);
-                final Duration whenB = Duration.ofMillis(1000);
+                final Duration startA = Duration.ofMillis(1000);
+                final Duration startB = Duration.ofMillis(1000);
                 final String valueA = "Value";
                 final String valueB = new String(valueA);
-                assert whenA.equals(whenB);
+                assert startA.equals(startB);
                 assert valueA.equals(valueB);
-                assert whenA != whenB;// tough test
+                assert startA != startB;// tough test
                 assert valueA != valueB;// tough test
 
-                final var timestampedA = new TimestampedValue<>(whenA, valueA);
-                final var timestampedB = new TimestampedValue<>(whenB, valueB);
+                final var timestampedA = new TimestampedValue<>(startA, valueA);
+                final var timestampedB = new TimestampedValue<>(startB, valueB);
 
                 assertInvariants(timestampedA, timestampedB);
                 assertEquals(timestampedA, timestampedB);
@@ -92,7 +92,7 @@ public class TimestampedValueTest {
 
         @Test
         public void a() {
-            test(WHEN_A, "State");
+            test(WHEN_A, "Value");
         }
 
         @Test
@@ -105,11 +105,11 @@ public class TimestampedValueTest {
             test(WHEN_A, (Integer) null);
         }
 
-        private <VALUE> void test(@Nonnull final Duration when, @Nullable final VALUE value) {
-            final var timestamped = new TimestampedValue<>(when, value);
+        private <VALUE> void test(@Nonnull final Duration start, @Nullable final VALUE value) {
+            final var timestamped = new TimestampedValue<>(start, value);
 
             assertInvariants(timestamped);
-            assertAll(() -> assertSame(when, timestamped.getWhen(), "when"),
+            assertAll(() -> assertSame(start, timestamped.getStart(), "start"),
                     () -> assertSame(value, timestamped.getValue(), "value"));
         }
 
@@ -121,7 +121,7 @@ public class TimestampedValueTest {
     public static <STATE> void assertInvariants(@Nonnull final TimestampedValue<STATE> timestamped) {
         ObjectTest.assertInvariants(timestamped);// inherited
 
-        assertNotNull(timestamped.getWhen(), "Not null, when");
+        assertNotNull(timestamped.getStart(), "Not null, when");
     }
 
     public static <STATE> void assertInvariants(@Nonnull final TimestampedValue<STATE> timestamped1,
@@ -133,7 +133,7 @@ public class TimestampedValueTest {
         if (value1 != null && value2 != null) {
             ObjectTest.assertInvariants(value1, value2);
         }
-        assertTrue(timestamped1.equals(timestamped2) == (timestamped1.getWhen().equals(timestamped2.getWhen())
+        assertTrue(timestamped1.equals(timestamped2) == (timestamped1.getStart().equals(timestamped2.getStart())
                 && Objects.equals(value1, value2)), "equals has value semantics");
     }
 }// class

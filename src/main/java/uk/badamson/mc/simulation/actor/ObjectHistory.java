@@ -409,8 +409,8 @@ public class ObjectHistory<STATE> {
     }
 
     private Flux<Optional<STATE>> observeStateFromStateTransitions(@Nonnull final Duration when) {
-        return stateTransitions.asFlux().takeWhile(timeStamped -> timeStamped.getWhen().compareTo(when) <= 0)
-                .takeUntil(timeStamped -> when.compareTo(timeStamped.getWhen()) <= 0)
+        return stateTransitions.asFlux().takeWhile(timeStamped -> timeStamped.getStart().compareTo(when) <= 0)
+                .takeUntil(timeStamped -> when.compareTo(timeStamped.getStart()) <= 0)
                 .map(timeStamped -> Optional.ofNullable(timeStamped.getValue()));
     }
 
@@ -430,7 +430,7 @@ public class ObjectHistory<STATE> {
      * {@linkplain TimestampedValue#getValue() state}.</li>
      * <li>The sequence of state transitions are in
      * {@linkplain Duration#compareTo(Duration) ascending}
-     * {@linkplain TimestampedValue#getWhen() time-stamp} order.</li>
+     * {@linkplain TimestampedValue#getStart() time-stamp} order.</li>
      * <li>The sequence of state transitions does not include old state transitions;
      * it is a <i>hot</i> observable.</li>
      * </ul>
