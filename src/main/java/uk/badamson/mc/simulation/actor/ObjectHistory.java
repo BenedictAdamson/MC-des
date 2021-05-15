@@ -216,7 +216,7 @@ public class ObjectHistory<STATE> {
 
     @Nonnull
     @GuardedBy("lock")
-    private final Duration end;
+    private Duration end;
     @Nonnull
     @GuardedBy("lock")
     private final ModifiableValueHistory<STATE> stateHistory;
@@ -228,15 +228,11 @@ public class ObjectHistory<STATE> {
      */
     public ObjectHistory(@Nonnull final ObjectHistory<STATE> that) {
         Objects.requireNonNull(that, "that");
-        synchronized (that.object) {// hard to test
-            end = that.end;
-            stateHistory = new ModifiableValueHistory<>(that.stateHistory);
-        }
         object = that.object;
         start = that.start;
-
-        if (end.equals(ValueHistory.END_OF_TIME)) {
-            noMoreTimeStampedStates();
+        synchronized (that.object) {// hard to test
+            setEnd(that.end);
+            stateHistory = new ModifiableValueHistory<>(that.stateHistory);
         }
     }
 
@@ -284,7 +280,6 @@ public class ObjectHistory<STATE> {
             @Nonnull @JsonProperty("end") final Duration end,
             @Nonnull @JsonProperty("stateTransitions") final SortedMap<Duration, STATE> stateTransitions) {
         this.object = Objects.requireNonNull(object, "object");
-        this.end = Objects.requireNonNull(end, "end");
         this.stateHistory = new ModifiableValueHistory<>(null, stateTransitions);
         // Check after copy to avoid race hazards
         this.start = this.stateHistory.getFirstTansitionTime();
@@ -302,13 +297,10 @@ public class ObjectHistory<STATE> {
         if (0 < nDestructionEvents && this.stateHistory.getLastValue() != null) {
             throw new IllegalArgumentException("stateTransitions destruction event is not the last event");
         }
-        if (stateHistory.get(end) == null && !ValueHistory.END_OF_TIME.equals(end)) {
+        if (this.stateHistory.get(end) == null && !ValueHistory.END_OF_TIME.equals(end)) {
             throw new IllegalArgumentException("reliability information suggests destroyed object may be recreated");
         }
-
-        if (end.equals(ValueHistory.END_OF_TIME)) {
-            noMoreTimeStampedStates();
-        }
+        setEnd(Objects.requireNonNull(end, "end"));
     }
 
     /**
@@ -330,7 +322,7 @@ public class ObjectHistory<STATE> {
         Objects.requireNonNull(state, "state");
         this.object = Objects.requireNonNull(object, "object");
         this.start = Objects.requireNonNull(start, "start");
-        this.end = start;
+        setEnd(start);
         this.stateHistory = new ModifiableValueHistory<>();
         this.stateHistory.appendTransition(start, state);
     }
@@ -494,13 +486,6 @@ public class ObjectHistory<STATE> {
         return lock.compareTo(that.lock) < 0;
     }
 
-    private void noMoreTimeStampedStates() {
-        assert this.end.equals(ValueHistory.END_OF_TIME);
-        final var result = timestampedStates.tryEmitComplete();
-        // The sink is reliable; it should always successfully complete.
-        assert result == EmitResult.OK;
-    }
-
     /**
      * <p>
      * Provide the state of the {@linkplain #getObject() simulated object} at a
@@ -582,10 +567,10 @@ public class ObjectHistory<STATE> {
      * <li>The sequence never overrides {@linkplain TimestampedState#isReliable()
      * reliable} values: if a value is reliable, no subsequent value will overlap
      * the time range of the reliable value.</li>
-     * <li>The sequence of time-stamped states can be finite. In that case, the last
-     * state transition is a a {@linkplain TimestampedState#isReliable() reliable}
-     * indication of the destruction of the object: a transition to a null
-     * {@linkplain TimestampedState#getState() state}.</li>
+     * <li>The sequence of time-stamped states can be finite, if it is certain that
+     * there are no more states. That is the case if, and only if, the
+     * {@linkplain #getEnd() reliable states end time} is the
+     * {@linkplain ValueHistory#END_OF_TIME end of time}.</li>
      * <li>The sequence of time-stamped states are not in any time order, but will
      * tend to be in roughly ascending time order.</li>
      * <li>The sequence of time-stamped states does not include old values; it is a
@@ -597,6 +582,19 @@ public class ObjectHistory<STATE> {
     @Nonnull
     public final Flux<TimestampedState<STATE>> observeTimestampedStates() {
         return timestampedStates.asFlux();
+    }
+
+    @GuardedBy("lock")
+    private void setEnd(@Nonnull final Duration end) {
+        assert end != null;
+        assert start.compareTo(end) <= 0;
+        this.end = end;
+        if (end.equals(ValueHistory.END_OF_TIME)) {
+            // No further more states are possible.
+            final var result = timestampedStates.tryEmitComplete();
+            // The sink is reliable; it should always successfully complete.
+            assert result == EmitResult.OK;
+        }
     }
 
     @Override

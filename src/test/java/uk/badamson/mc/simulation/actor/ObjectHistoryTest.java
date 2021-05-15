@@ -53,6 +53,7 @@ import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.history.ValueHistoryTest;
+import uk.badamson.mc.simulation.actor.ObjectHistory.TimestampedState;
 
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
 public class ObjectHistoryTest {
@@ -428,13 +429,7 @@ public class ObjectHistoryTest {
 
                     final var flux = observeTimestampedStates(history);
 
-                    try {
-                        StepVerifier.create(flux).expectComplete().verify(Duration.ofMillis(100));
-                    } catch (final AssertionError e) {
-                        throw new AssertionError(
-                                "If the object is known to be reliably destroyed, there can be no further time-stamped states.",
-                                e);
-                    }
+                    assertNoMoreTimestampedStates(flux);
                 }
 
             }// class
@@ -464,22 +459,37 @@ public class ObjectHistoryTest {
         @Nested
         public class AfterConstructorGivenInitialState {
 
-            @Test
-            public void a() {
-                test(OBJECT_A, WHEN_A, Integer.valueOf(0));
-            }
+            @Nested
+            public class MoreStatesPossible {
+
+                @Test
+                public void a() {
+                    test(OBJECT_A, WHEN_A, Integer.valueOf(0));
+                }
+
+                @Test
+                public void b() {
+                    test(OBJECT_B, WHEN_B, Integer.valueOf(1));
+                }
+
+                private void test(final UUID object, final Duration start, final Integer state) {
+                    final var history = new ObjectHistory<>(object, start, state);
+
+                    final var flux = observeTimestampedStates(history);
+
+                    StepVerifier.create(flux).expectTimeout(Duration.ofMillis(100)).verify();
+                }
+
+            }// class
 
             @Test
-            public void b() {
-                test(OBJECT_B, WHEN_B, Integer.valueOf(1));
-            }
-
-            private void test(final UUID object, final Duration start, final Integer state) {
-                final var history = new ObjectHistory<>(object, start, state);
+            public void noMoreStatesPossible() {
+                final Duration start = ValueHistory.END_OF_TIME;// critical
+                final var history = new ObjectHistory<>(OBJECT_A, start, Integer.valueOf(0));
 
                 final var flux = observeTimestampedStates(history);
 
-                StepVerifier.create(flux).expectTimeout(Duration.ofMillis(100)).verify();
+                assertNoMoreTimestampedStates(flux);
             }
 
         }// class
@@ -513,13 +523,7 @@ public class ObjectHistoryTest {
 
                 final var flux = observeTimestampedStates(copy);
 
-                try {
-                    StepVerifier.create(flux).expectComplete().verify(Duration.ofMillis(100));
-                } catch (final AssertionError e) {
-                    throw new AssertionError(
-                            "If the object is known to be reliably destroyed, there can be no further time-stamped states.",
-                            e);
-                }
+                assertNoMoreTimestampedStates(flux);
             }
 
             private void test(final UUID object, final Duration start, final Integer state) {
@@ -714,6 +718,16 @@ public class ObjectHistoryTest {
         assertTrue(history1.equals(history2) == (history1.getStateTransitions().equals(history2.getStateTransitions())
                 && history1.getObject().equals(history2.getObject()) && history1.getEnd().equals(history2.getEnd())),
                 "value semantics");
+    }
+
+    private static <STATE> void assertNoMoreTimestampedStates(final Flux<TimestampedState<STATE>> timestampedStates) {
+        try {
+            StepVerifier.create(timestampedStates).expectComplete().verify(Duration.ofMillis(100));
+        } catch (final AssertionError e) {
+            throw new AssertionError(
+                    "If the object is known to have no further states, there can be no further time-stamped states.",
+                    e);
+        }
     }
 
     private static <STATE> void constructor(@Nonnull final ObjectHistory<STATE> that) {
