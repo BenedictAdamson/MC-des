@@ -19,31 +19,36 @@ package uk.badamson.mc.simulation.actor;
  */
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
 
 import javax.annotation.Nonnull;
 
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import reactor.core.publisher.Flux;
 import uk.badamson.mc.JsonTest;
+import uk.badamson.mc.ThreadTest;
 import uk.badamson.mc.history.ValueHistory;
 
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
@@ -85,6 +90,23 @@ public class ModifiableObjectHistoryTest {
             final Duration when = end0.plusDays(365);
 
             test(end0, Integer.valueOf(1), when);
+        }
+
+        @RepeatedTest(4)
+        public void multipleThreads() {
+            final int nThreads = 32;
+            final Duration end0 = WHEN_B;
+            final var history = new ModifiableObjectHistory<>(OBJECT_A, end0, Integer.valueOf(1));
+
+            final CountDownLatch ready = new CountDownLatch(1);
+            final var random = new Random(0);
+            final List<Future<Void>> futures = new ArrayList<>(nThreads);
+            for (int t = 0; t < nThreads; ++t) {
+                futures.add(ThreadTest.runInOtherThread(ready,
+                        () -> commitTo(history, end0.plusMillis(random.nextInt(1000)))));
+            }
+            ready.countDown();
+            ThreadTest.get(futures);
         }
 
         @Test
@@ -374,9 +396,7 @@ public class ModifiableObjectHistoryTest {
         assertInvariants(history);
         final var end = history.getEnd();
         assertAll("end", () -> assertThat("does not decrease", end, greaterThanOrEqualTo(end0)),
-                () -> assertThat("at least the given value", end, greaterThanOrEqualTo(when)),
-                () -> assertThat("either the old value or the given value", end,
-                        either(sameInstance(end0)).or(sameInstance(when))));
+                () -> assertThat("at least the given value", end, greaterThanOrEqualTo(when)));
     }
 
     private static <STATE> void constructor(@Nonnull final ObjectHistory<STATE> that) {

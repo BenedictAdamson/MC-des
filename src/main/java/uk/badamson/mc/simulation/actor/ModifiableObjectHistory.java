@@ -133,8 +133,9 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      */
     public void commitTo(@Nonnull final Duration when) {
         Objects.requireNonNull(when, "when");
-        // TODO thread-safety
-        commitToGuarded(when);
+        synchronized (lock) {
+            commitToGuarded(when);
+        }
     }
 
 }
