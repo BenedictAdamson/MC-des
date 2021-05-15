@@ -22,6 +22,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -284,6 +285,44 @@ public class SignalTest {
 
     }// class
 
+    @Nested
+    public class Receive {
+
+        @Test
+        public void a() {
+            test(ID_A, OBJECT_B, Integer.valueOf(0), false);
+        }
+
+        @Test
+        public void atEndOfTime() {
+            final var whenSent = Signal.NEVER_RECEIVED;// critical
+            final var sentFrom = new ObjectStateId(OBJECT_A, whenSent);
+
+            test(sentFrom, OBJECT_A, Integer.valueOf(Integer.MAX_VALUE), true);
+        }
+
+        @Test
+        public void b() {
+            test(ID_B, OBJECT_A, Integer.valueOf(1), false);
+        }
+
+        private void test(@Nonnull final ObjectStateId sentFrom, @Nonnull final UUID receiver,
+                @Nonnull final Integer receiverState, final boolean expectUnreceivableSignalException) {
+            final var signal = new TestSignal(sentFrom, receiver);
+
+            try {
+                receive(signal, receiverState);
+            } catch (final UnreceivableSignalException e) {
+                if (expectUnreceivableSignalException) {
+                    return;// OK
+                } else {
+                    throw new AssertionError("Throws UnreceivableSignalException only as specified", e);
+                }
+            }
+        }
+
+    }// class
+
     static class TestSignal extends Signal<Integer> {
 
         TestSignal(@Nonnull final ObjectStateId sentFrom, @Nonnull final UUID receiver) {
@@ -301,8 +340,14 @@ public class SignalTest {
         @Override
         protected Signal.Effect<Integer> receive(@Nonnull final Duration when, @Nonnull final Integer receiverState)
                 throws UnreceivableSignalException {
-            // TODO Auto-generated method stub
-            return null;
+            Objects.requireNonNull(when, "when");
+            Objects.requireNonNull(receiverState, "receiverState");
+            if (when.compareTo(getWhenSent()) <= 0) {
+                throw new IllegalArgumentException("when not after whenSent");
+            }
+            final Integer newState = Integer.valueOf(receiverState.intValue() + 1);
+            final Set<Signal<Integer>> signalsEmitted = Set.of();
+            return new Signal.Effect<>(new ObjectStateId(getReceiver(), when), newState, signalsEmitted);
         }
 
     }// class
@@ -388,8 +433,11 @@ public class SignalTest {
         assertNotNull(effect, "Not null, effect");// guard
         assertInvariants(signal);
         EffectTest.assertInvariants(effect);
+        final var whenOccurred = effect.getWhenOccurred();
         assertAll("effect", () -> assertEquals(signal.getReceiver(), effect.getAffectedObject(), "affectedObject"),
-                () -> assertEquals(signal.getWhenReceived(receiverState), effect.getWhenOccurred(), "whenOccurred"));
+                () -> assertThat("whenOccurred is before the maximum possible Duration value", whenOccurred,
+                        lessThan(Signal.NEVER_RECEIVED)),
+                () -> assertEquals(signal.getWhenReceived(receiverState), whenOccurred, "whenOccurred = whenReceived"));
 
         return effect;
     }

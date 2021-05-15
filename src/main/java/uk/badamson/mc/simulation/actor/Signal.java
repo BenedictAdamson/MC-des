@@ -455,6 +455,9 @@ public abstract class Signal<STATE> {
      *            The point in time that reception of the signal occurred
      * @throws NullPointerException
      *             If a {@link Nonnull} argument is null.
+     * @throws IllegalArgumentException
+     *             If {@code when} is not {@linkplain Duration#compareTo(Duration)
+     *             after} {@linkplain #getWhenSent() when this signal was sent}.
      * @throws UnreceivableSignalException
      *             If it is impossible for the receiver to receive this signal at
      *             the {@code when} time while its state is {@code receiverState}.
@@ -488,6 +491,9 @@ public abstract class Signal<STATE> {
      * <li>The {@linkplain Effect#getAffectedObject() affected object} of the
      * returned effect is {@linkplain UUID#equals(Object) equal to} the
      * {@linkplain #getReceiver() receiver} of this signal.</li>
+     * <li>The {@linkplain Effect#getWhenOccurred() occurrence time} of the returned
+     * effect is {@linkplain Duration#compareTo(Duration) before} the maximum
+     * possible {@link Duration} value.</li>
      * <li>The {@linkplain Effect#getWhenOccurred() time of occurrence} of the
      * returned effect is {@linkplain Duration#equals(Object) equal to} the
      * {@linkplain #getWhenReceived(Object) reception time} of this signal, for the
@@ -506,7 +512,13 @@ public abstract class Signal<STATE> {
      */
     @Nonnull
     public final Effect<STATE> receive(@Nonnull final STATE receiverState) throws UnreceivableSignalException {
-        return null;// FIXME
+        Objects.requireNonNull(receiverState, "receiverState");
+        final var whenReceived = getWhenReceived(receiverState);
+        if (whenReceived.compareTo(NEVER_RECEIVED) < 0) {
+            return receive(whenReceived, receiverState);
+        } else {
+            throw new UnreceivableSignalException();
+        }
     }
 
     @Override
