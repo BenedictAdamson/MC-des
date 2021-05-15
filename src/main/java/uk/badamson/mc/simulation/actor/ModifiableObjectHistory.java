@@ -121,4 +121,20 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
         super(object, start, state);
     }
 
+    /**
+     * <p>
+     * Advance the {@linkplain #getEnd() end time of reliable state information} to
+     * at least a given time.
+     * </p>
+     * <ul>
+     * <li>Changes the end time to the given time if, and only if, it is after the
+     * current end time.</li>
+     * </ul>
+     */
+    public void commitTo(@Nonnull final Duration when) {
+        Objects.requireNonNull(when, "when");
+        // TODO thread-safety
+        commitToGuarded(when);
+    }
+
 }

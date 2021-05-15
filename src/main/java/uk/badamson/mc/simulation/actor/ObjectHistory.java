@@ -231,7 +231,7 @@ public class ObjectHistory<STATE> {
         object = that.object;
         start = that.start;
         synchronized (that.object) {// hard to test
-            setEnd(that.end);
+            commitToGuarded(that.end);
             stateHistory = new ModifiableValueHistory<>(that.stateHistory);
         }
     }
@@ -300,7 +300,7 @@ public class ObjectHistory<STATE> {
         if (this.stateHistory.get(end) == null && !ValueHistory.END_OF_TIME.equals(end)) {
             throw new IllegalArgumentException("reliability information suggests destroyed object may be recreated");
         }
-        setEnd(Objects.requireNonNull(end, "end"));
+        commitToGuarded(Objects.requireNonNull(end, "end"));
     }
 
     /**
@@ -322,9 +322,23 @@ public class ObjectHistory<STATE> {
         Objects.requireNonNull(state, "state");
         this.object = Objects.requireNonNull(object, "object");
         this.start = Objects.requireNonNull(start, "start");
-        setEnd(start);
+        commitToGuarded(start);
         this.stateHistory = new ModifiableValueHistory<>();
         this.stateHistory.appendTransition(start, state);
+    }
+
+    @GuardedBy("lock")
+    protected void commitToGuarded(@Nonnull final Duration end) {
+        if (this.end != null && end.compareTo(this.end) <= 0) {
+            return;// no-op
+        }
+        this.end = end;
+        if (end.equals(ValueHistory.END_OF_TIME)) {
+            // No further more states are possible.
+            final var result = timestampedStates.tryEmitComplete();
+            // The sink is reliable; it should always successfully complete.
+            assert result == EmitResult.OK;
+        }
     }
 
     /**
@@ -582,19 +596,6 @@ public class ObjectHistory<STATE> {
     @Nonnull
     public final Flux<TimestampedState<STATE>> observeTimestampedStates() {
         return timestampedStates.asFlux();
-    }
-
-    @GuardedBy("lock")
-    private void setEnd(@Nonnull final Duration end) {
-        assert end != null;
-        assert start.compareTo(end) <= 0;
-        this.end = end;
-        if (end.equals(ValueHistory.END_OF_TIME)) {
-            // No further more states are possible.
-            final var result = timestampedStates.tryEmitComplete();
-            // The sink is reliable; it should always successfully complete.
-            assert result == EmitResult.OK;
-        }
     }
 
     @Override

@@ -19,8 +19,11 @@ package uk.badamson.mc.simulation.actor;
  */
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.either;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -41,9 +44,64 @@ import org.reactivestreams.Publisher;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import reactor.core.publisher.Flux;
 import uk.badamson.mc.JsonTest;
+import uk.badamson.mc.history.ValueHistory;
 
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
 public class ModifiableObjectHistoryTest {
+
+    @Nested
+    public class CommitTo {
+
+        @Test
+        public void before() {
+            final Duration end0 = WHEN_A;
+            final Duration when = end0.minusNanos(1);// tough test
+
+            test(end0, Integer.valueOf(0), when);
+        }
+
+        @Test
+        public void endOfTime() {
+            final Duration end0 = WHEN_A;
+            final Duration when = ValueHistory.END_OF_TIME;// critical
+
+            test(end0, Integer.valueOf(0), when);
+        }
+
+        @Test
+        public void equal() {
+            final long time = 1000;
+            final Duration end0 = Duration.ofMillis(time);
+            final Duration when = Duration.ofMillis(time);
+            assert end0.equals(when);
+            assert end0 != when;// tough test
+
+            test(end0, Integer.valueOf(0), when);
+        }
+
+        @Test
+        public void far() {
+            final Duration end0 = WHEN_B;
+            final Duration when = end0.plusDays(365);
+
+            test(end0, Integer.valueOf(1), when);
+        }
+
+        @Test
+        public void near() {
+            final Duration end0 = WHEN_A;
+            final Duration when = end0.plusNanos(1);// critical
+
+            test(end0, Integer.valueOf(0), when);
+        }
+
+        private void test(@Nonnull final Duration end0, final Integer state, @Nonnull final Duration when) {
+            final var history = new ModifiableObjectHistory<>(OBJECT_A, end0, state);
+
+            commitTo(history, when);
+        }
+
+    }// class
 
     @Nested
     public class Constructor {
@@ -305,6 +363,20 @@ public class ModifiableObjectHistoryTest {
     public static <STATE> void assertInvariants(@Nonnull final ModifiableObjectHistory<STATE> history1,
             @Nonnull final ModifiableObjectHistory<STATE> history2) {
         ObjectHistoryTest.assertInvariants(history1, history2);// inherited
+    }
+
+    private static <STATE> void commitTo(@Nonnull final ModifiableObjectHistory<STATE> history,
+            @Nonnull final Duration when) {
+        final var end0 = history.getEnd();
+
+        history.commitTo(when);
+
+        assertInvariants(history);
+        final var end = history.getEnd();
+        assertAll("end", () -> assertThat("does not decrease", end, greaterThanOrEqualTo(end0)),
+                () -> assertThat("at least the given value", end, greaterThanOrEqualTo(when)),
+                () -> assertThat("either the old value or the given value", end,
+                        either(sameInstance(end0)).or(sameInstance(when))));
     }
 
     private static <STATE> void constructor(@Nonnull final ObjectHistory<STATE> that) {
