@@ -230,8 +230,8 @@ public abstract class Signal<STATE> {
 
     /**
      * <p>
-     * A sentinel value for the {@linkplain #getPropagationTime(Object) propagation
-     * time} to indicate that it is impossible for a signal to be received.
+     * A sentinel value for the {@linkplain #getPropagationDelay(Object) propagation
+     * delay} and to indicate that it is impossible for a signal to be received.
      * </p>
      * <p>
      * The maximum possible {@link Duration}.
@@ -289,22 +289,24 @@ public abstract class Signal<STATE> {
 
     /**
      * <p>
-     * The time it takes for this signal to propagate from the
+     * The length of time it takes for this signal to propagate from the
      * {@linkplain #getSender() sender} to the {@linkplain #getReceiver() receiver},
      * for the receiver in a given state.
      * </p>
      * <p>
-     * The propagation time can depend on the receiver state to implement signals
+     * The propagation delay can depend on the receiver state to implement signals
      * sent through a medium while the receiver also moves. The method may return a
      * {@link #NEVER_RECEIVED} value to indicate that reception is impossible. For
      * example, when the receiver is moving away from the sender at faster than the
      * signal propagation speed.
      * </p>
      *
+     * @see #receive(Object)
+     * @see #getWhenReceived(Object)
      */
     @Nonnull
     @Nonnegative
-    public abstract Duration getPropagationTime(@Nonnull STATE receiverState);
+    protected abstract Duration getPropagationDelay(@Nonnull STATE receiverState);
 
     /**
      * <p>
@@ -357,6 +359,67 @@ public abstract class Signal<STATE> {
 
     /**
      * <p>
+     * The point in time when this signal will be received, if the
+     * {@linkplain #getReceiver() receiver} has a given state.
+     * </p>
+     * <p>
+     * The reception time can depend on the receiver state to implement signals sent
+     * through a medium while the receiver also moves. The method may return a
+     * {@link #NEVER_RECEIVED} value to indicate that reception is impossible. For
+     * example, when the receiver is moving away from the sender at faster than the
+     * signal propagation speed, or if the {@linkplain #getWhenSent() sending time}
+     * is too close to the end of time (the maximum {@link Duration} value), so
+     * computation of the reception time would overflow.
+     * </p>
+     * <p>
+     * This is a <i>template method</i> that delegates to the
+     * {@link #getPropagationDelay(Object)} <i>primitive operation</i>.
+     * </p>
+     * <ul>
+     * <li>If the simulated object is destroyed or removed ({@code receiverState} is
+     * null), the method returns {@link #NEVER_RECEIVED}: destroyed objects can not
+     * receive signals.</li>
+     * <li>The reception time is {@linkplain Duration#compareTo(Duration) after} the
+     * {@linkplain #getWhenSent() sending time}, unless the sending time is the
+     * maximum possible {@link Duration} value.</li>
+     * <li>If the interval between the {@linkplain #getWhenSent() sending time} and
+     * the maximum possible {@link Duration} value is less than the
+     * {@linkplain #getPropagationDelay(Object) propagation delay}, the reception
+     * time is the sending time plus the propagation delay.</li>
+     * <li>Otherwise it returns {@link #NEVER_RECEIVED}.</li>
+     * </ul>
+     *
+     * @param receiverState
+     *            The state that the simulated object has as a result of this
+     *            effect. A null state indicates that the simulated object is
+     *            destroyed or removed.
+     *
+     * @see #receive(Object)
+     */
+    @Nonnull
+    public final Duration getWhenReceived(@Nullable final STATE receiverState) {
+        if (receiverState == null) {
+            return NEVER_RECEIVED;
+        } else {
+            final var whenSent = getWhenSent();
+            final var propagationDelay = getPropagationDelay(receiverState);
+            final boolean haveEnoughTime;
+            try {
+                haveEnoughTime = whenSent.compareTo(NEVER_RECEIVED.minus(propagationDelay)) < 0;
+            } catch (final ArithmeticException e) {
+                throw new AssertionError("propagationDelay nonnegative (was negative)");
+            }
+            assert !Duration.ZERO.equals(propagationDelay);
+            if (haveEnoughTime) {
+                return whenSent.plus(propagationDelay);
+            } else {// would overflow
+                return NEVER_RECEIVED;
+            }
+        }
+    }
+
+    /**
+     * <p>
      * The point in time when this signal was sent (emitted).
      * </p>
      */
@@ -372,6 +435,78 @@ public abstract class Signal<STATE> {
         result = prime * result + sentFrom.hashCode();
         result = prime * result + receiver.hashCode();
         return result;
+    }
+
+    /**
+     * <p>
+     * The effect that his signal has if received by the {@linkplain #getReceiver()
+     * receiver} at a given point in time, with the reception having a given event
+     * ID.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain Effect#getAffectedObject() affected object} of the
+     * returned effect is {@linkplain UUID#equals(Object) equal to} the
+     * {@linkplain #getReceiver() receiver} of this signal.</li>
+     * <li>The {@linkplain Effect#getWhenOccurred() time of occurrence} of the
+     * returned effect is the same as {@code when}.</li>
+     * </ul>
+     *
+     * @param when
+     *            The point in time that reception of the signal occurred
+     * @throws NullPointerException
+     *             If a {@link Nonnull} argument is null.
+     * @throws UnreceivableSignalException
+     *             If it is impossible for the receiver to receive this signal at
+     *             the {@code when} time while its state is {@code receiverState}.
+     *             In particular, the method <em>may</em> throw this if {@code when}
+     *             is not {@linkplain Duration#equals(Object) equal to} the
+     *             {@linkplain #getWhenSent() sending time} plus the
+     *             {@linkplain #getPropagationDelay(Object) propagation delay}. This
+     *             is a non-fatal error: if this exception is thrown, all invariants
+     *             have been maintained.
+     * @throws IllegalStateException
+     *             If the {@code when} or this signal is inconsistent with
+     *             {@code receiverState} in some way.
+     *
+     * @see #receive(Object)
+     */
+    @Nonnull
+    protected abstract Effect<STATE> receive(@Nonnull Duration when, @Nonnull STATE receiverState)
+            throws UnreceivableSignalException;
+
+    /**
+     * <p>
+     * The effect that his signal has if received by the {@linkplain #getReceiver()
+     * receiver} while it is in a given state.
+     * </p>
+     * <p>
+     * This is a <i>template method</i> that delegates to the
+     * {@link #getPropagationDelay(Object)} and {@link #receive(Duration, Object)}
+     * <i>primitive operations</i>.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain Effect#getAffectedObject() affected object} of the
+     * returned effect is {@linkplain UUID#equals(Object) equal to} the
+     * {@linkplain #getReceiver() receiver} of this signal.</li>
+     * <li>The {@linkplain Effect#getWhenOccurred() time of occurrence} of the
+     * returned effect is {@linkplain Duration#equals(Object) equal to} the
+     * {@linkplain #getWhenReceived(Object) reception time} of this signal, for the
+     * receiver in the given {@code receiverState}.</li>
+     * </ul>
+     *
+     * @throws NullPointerException
+     *             If {@code receiverState} is null.
+     * @throws UnreceivableSignalException
+     *             If it is impossible for the receiver to receive this signal while
+     *             its state is {@code receiverState}. This is a non-fatal error: if
+     *             this exception is thrown, all invariants have been maintained.
+     * @throws IllegalStateException
+     *             If this signal is inconsistent with {@code receiverState} in some
+     *             way.
+     */
+    @Nonnull
+    public final Effect<STATE> receive(@Nonnull final STATE receiverState) throws UnreceivableSignalException {
+        return null;// FIXME
     }
 
     @Override

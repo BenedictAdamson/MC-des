@@ -19,7 +19,9 @@ package uk.badamson.mc.simulation.actor;
  */
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -45,6 +47,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.simulation.ObjectStateId;
 import uk.badamson.mc.simulation.ObjectStateIdTest;
+import uk.badamson.mc.simulation.actor.Signal.UnreceivableSignalException;
 
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
 public class SignalTest {
@@ -95,12 +98,25 @@ public class SignalTest {
 
         @Test
         public void a() {
-            constructor(ID_A, OBJECT_B);
+            final var signal = constructor(ID_A, OBJECT_B);
+
+            assertInvariants(signal, Integer.valueOf(0));
+            assertInvariants(signal, Integer.valueOf(Integer.MAX_VALUE));
+            assertInvariants(signal, (Integer) null);
         }
 
         @Test
         public void b() {
             constructor(ID_B, OBJECT_A);
+        }
+
+        @Test
+        public void endOfTime() {
+            final var id = new ObjectStateId(OBJECT_A, Signal.NEVER_RECEIVED);
+            final var signal = constructor(id, OBJECT_B);
+
+            assertInvariants(signal, Integer.valueOf(0));
+            assertInvariants(signal, Integer.valueOf(Integer.MAX_VALUE));
         }
 
         @Test
@@ -277,9 +293,16 @@ public class SignalTest {
         @Override
         @Nonnull
         @Nonnegative
-        public Duration getPropagationTime(@Nonnull final Integer receiverState) {
+        protected Duration getPropagationDelay(@Nonnull final Integer receiverState) {
             Objects.requireNonNull(receiverState, "receiverState");
             return Duration.ofSeconds(Integer.max(1, receiverState.intValue()));
+        }
+
+        @Override
+        protected Signal.Effect<Integer> receive(@Nonnull final Duration when, @Nonnull final Integer receiverState)
+                throws UnreceivableSignalException {
+            // TODO Auto-generated method stub
+            return null;
         }
 
     }// class
@@ -318,6 +341,31 @@ public class SignalTest {
                 () -> assertFalse(equals && !signal1.getSentFrom().equals(signal2.getSentFrom()), "sentFrom"));
     }
 
+    public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal,
+            @Nullable final STATE receiverState) {
+        final var whenSent = signal.getWhenSent();
+        final var whenReceived = signal.getWhenReceived(receiverState);
+
+        assertInvariants(signal);
+        if (receiverState == null) {
+            assertThat("destroyed objects can not receive signals", whenReceived, is(Signal.NEVER_RECEIVED));
+        } else {
+            final var propagationDelay = signal.getPropagationDelay(receiverState);
+
+            assertAll("Not null", () -> assertNotNull(propagationDelay, "propagationDelay"), // guard
+                    () -> assertNotNull(whenReceived, "whenReceived"));// guard
+            assertThat("Nonnegative propogationDelay", propagationDelay, greaterThan(Duration.ZERO));
+            assertThat(
+                    "The reception time is after the sending time, unless the sending time is the maximum possible value.",
+                    whenReceived, either(greaterThan(whenSent)).or(is(Signal.NEVER_RECEIVED)));
+            if (whenReceived.compareTo(Signal.NEVER_RECEIVED) < 0) {
+                assertThat(
+                        "If the interval between the sending time and the maximum possible value is less than thepropagation delay, the reception time is the sending time plus the propagation delay.",
+                        whenReceived, is(whenSent.plus(propagationDelay)));
+            }
+        }
+    }
+
     private static Signal<Integer> constructor(@Nonnull final ObjectStateId sentFrom, @Nonnull final UUID receiver) {
         final Signal<Integer> signal = new TestSignal(sentFrom, receiver);
 
@@ -327,15 +375,23 @@ public class SignalTest {
         return signal;
     }
 
-    public static <STATE> Duration getPropagationTime(@Nonnull final Signal<STATE> signal,
-            @Nonnull final STATE receiverState) {
-        final var propagationTime = signal.getPropagationTime(receiverState);
+    public static <STATE> Signal.Effect<STATE> receive(@Nonnull final Signal<STATE> signal,
+            @Nonnull final STATE receiverState) throws UnreceivableSignalException {
+        final Signal.Effect<STATE> effect;
+        try {
+            effect = signal.receive(receiverState);
+        } catch (final UnreceivableSignalException e) {
+            assertInvariants(signal);
+            throw e;
+        }
 
+        assertNotNull(effect, "Not null, effect");// guard
         assertInvariants(signal);
-        assertNotNull(propagationTime, "Not null, propagationTime");// guard
-        assertThat("Nonnegative", propagationTime, greaterThan(Duration.ZERO));
+        EffectTest.assertInvariants(effect);
+        assertAll("effect", () -> assertEquals(signal.getReceiver(), effect.getAffectedObject(), "affectedObject"),
+                () -> assertEquals(signal.getWhenReceived(receiverState), effect.getWhenOccurred(), "whenOccurred"));
 
-        return propagationTime;
+        return effect;
     }
 
 }
