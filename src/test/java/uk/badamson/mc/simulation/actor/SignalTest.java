@@ -18,6 +18,8 @@ package uk.badamson.mc.simulation.actor;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -26,8 +28,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 import java.time.Duration;
+import java.util.Objects;
 import java.util.UUID;
 
+import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 
 import org.junit.jupiter.api.Nested;
@@ -108,6 +112,14 @@ public class SignalTest {
             super(sentFrom, receiver);
         }
 
+        @Override
+        @Nonnull
+        @Nonnegative
+        public Duration getPropagationTime(@Nonnull final Integer receiverState) {
+            Objects.requireNonNull(receiverState, "receiverState");
+            return Duration.ofSeconds(Integer.max(1, receiverState.intValue()));
+        }
+
     }// class
 
     private static final UUID OBJECT_A = UUID.randomUUID();
@@ -151,6 +163,17 @@ public class SignalTest {
         assertAll("Attributes", () -> assertSame(sentFrom, signal.getSentFrom(), "sentFrom"),
                 () -> assertSame(receiver, signal.getReceiver(), "receiver"));
         return signal;
+    }
+
+    public static <STATE> Duration getPropagationTime(@Nonnull final Signal<STATE> signal,
+            @Nonnull final STATE receiverState) {
+        final var propagationTime = signal.getPropagationTime(receiverState);
+
+        assertInvariants(signal);
+        assertNotNull(propagationTime, "Not null, propagationTime");// guard
+        assertThat("Nonnegative", propagationTime, greaterThan(Duration.ZERO));
+
+        return propagationTime;
     }
 
 }

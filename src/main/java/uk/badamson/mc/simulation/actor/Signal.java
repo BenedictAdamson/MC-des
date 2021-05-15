@@ -3,6 +3,7 @@ package uk.badamson.mc.simulation.actor;
 import java.time.Duration;
 import java.util.UUID;
 
+import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
@@ -39,6 +40,19 @@ import uk.badamson.mc.simulation.ObjectStateId;
  */
 @Immutable
 public abstract class Signal<STATE> {
+
+    /**
+     * <p>
+     * A sentinel value for the {@linkplain #getPropagationTime(Object) propagation
+     * time} to indicate that it is impossible for a signal to be received.
+     * </p>
+     * <p>
+     * The maximum possible {@link Duration}.
+     * </p>
+     */
+    @Nonnull
+    @Nonnegative
+    public static final Duration NEVER_RECEIVED = Duration.ofSeconds(Long.MAX_VALUE, 999_999_999);
 
     @Nonnull
     private final ObjectStateId sentFrom;
@@ -85,6 +99,25 @@ public abstract class Signal<STATE> {
          */
         return sentFrom.equals(other.sentFrom) && receiver.equals(other.receiver);
     }
+
+    /**
+     * <p>
+     * The time it takes for this signal to propagate from the
+     * {@linkplain #getSender() sender} to the {@linkplain #getReceiver() receiver},
+     * for the receiver in a given state.
+     * </p>
+     * <p>
+     * The propagation time can depend on the receiver state to implement signals
+     * sent through a medium while the receiver also moves. The method may return a
+     * {@link #NEVER_RECEIVED} value to indicate that reception is impossible. For
+     * example, when the receiver is moving away from the sender at faster than the
+     * signal propagation speed.
+     * </p>
+     *
+     */
+    @Nonnull
+    @Nonnegative
+    public abstract Duration getPropagationTime(@Nonnull STATE receiverState);
 
     /**
      * <p>
@@ -158,5 +191,4 @@ public abstract class Signal<STATE> {
     public String toString() {
         return getClass().getSimpleName() + "[" + sentFrom + "⇝" + receiver + "]";
     }
-
 }
