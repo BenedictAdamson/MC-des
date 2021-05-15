@@ -407,7 +407,7 @@ public abstract class Signal<STATE> {
             try {
                 haveEnoughTime = whenSent.compareTo(NEVER_RECEIVED.minus(propagationDelay)) < 0;
             } catch (final ArithmeticException e) {
-                throw new AssertionError("propagationDelay nonnegative (was negative)");
+                throw new AssertionError("propagationDelay nonnegative (was negative)", e);
             }
             assert !Duration.ZERO.equals(propagationDelay);
             if (haveEnoughTime) {
