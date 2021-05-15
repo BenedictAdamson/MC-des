@@ -328,13 +328,13 @@ public class ObjectHistory<STATE> {
     }
 
     @GuardedBy("lock")
-    protected void commitToGuarded(@Nonnull final Duration end) {
+    protected final void commitToGuarded(@Nonnull final Duration end) {
         if (this.end != null && end.compareTo(this.end) <= 0) {
             return;// no-op
         }
         this.end = end;
         if (end.equals(ValueHistory.END_OF_TIME)) {
-            // No further more states are possible.
+            // No further states are possible.
             final var result = timestampedStates.tryEmitComplete();
             // The sink is reliable; it should always successfully complete.
             assert result == EmitResult.OK;
