@@ -212,7 +212,7 @@ public class ObjectHistory<STATE> {
      * predictable lock ordering when locking two instances.
      */
     protected final UUID lock = UUID.randomUUID();
-    private final Sinks.Many<TimestampedValue<STATE>> stateTransitions = Sinks.many().replay().latest();
+    private final Sinks.Many<TimestampedState<STATE>> stateTransitions = Sinks.many().replay().latest();
 
     @Nonnull
     @GuardedBy("lock")
@@ -331,7 +331,8 @@ public class ObjectHistory<STATE> {
     }
 
     private void emitStateTransition(@Nonnull final Duration when, @Nullable final STATE state) {
-        final var result = stateTransitions.tryEmitNext(new TimestampedValue<>(when, when, state));
+        // TODO correct end, correct reliable
+        final var result = stateTransitions.tryEmitNext(new TimestampedState<>(when, when, true, state));
         // The sink are reliable, so should always succeed.
         assert result == Sinks.EmitResult.OK;
     }
@@ -550,9 +551,10 @@ public class ObjectHistory<STATE> {
     }
 
     private Flux<Optional<STATE>> observeStateFromStateTransitions(@Nonnull final Duration when) {
+        // TODO use reliable
         return stateTransitions.asFlux().takeWhile(timeStamped -> timeStamped.getStart().compareTo(when) <= 0)
                 .takeUntil(timeStamped -> when.compareTo(timeStamped.getStart()) <= 0)
-                .map(timeStamped -> Optional.ofNullable(timeStamped.getValue()));
+                .map(timeStamped -> Optional.ofNullable(timeStamped.getState()));
     }
 
     /**
@@ -577,7 +579,7 @@ public class ObjectHistory<STATE> {
      * </ul>
      */
     @Nonnull
-    public final Flux<TimestampedValue<STATE>> observeStateTransitions() {
+    public final Flux<TimestampedState<STATE>> observeStateTransitions() {
         return stateTransitions.asFlux();
     }
 
