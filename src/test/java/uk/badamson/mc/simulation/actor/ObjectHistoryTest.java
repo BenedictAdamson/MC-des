@@ -483,28 +483,43 @@ public class ObjectHistoryTest {
             public class Two {
 
                 @Test
-                public void differentStart() {
-                    final Duration startA = Duration.ofMillis(1000);
-                    final Duration startB = Duration.ofMillis(2000);
-                    final Duration end = Duration.ofMillis(3000);
+                public void differentEnd() {
+                    final Duration start = Duration.ofMillis(1000);
+                    final Duration endA = Duration.ofMillis(3000);
+                    final Duration endB = Duration.ofMillis(4000);
                     final String state = "State";
+                    final boolean reliable = true;
 
-                    final var timestampedA = new ObjectHistory.TimestampedState<>(startA, end, state);
-                    final var timestampedB = new ObjectHistory.TimestampedState<>(startB, end, state);
+                    final var timestampedA = new ObjectHistory.TimestampedState<>(start, endA, reliable, state);
+                    final var timestampedB = new ObjectHistory.TimestampedState<>(start, endB, reliable, state);
 
                     assertInvariants(timestampedA, timestampedB);
                     assertNotEquals(timestampedA, timestampedB);
                 }
 
                 @Test
-                public void differentEnd() {
-                    final Duration start = Duration.ofMillis(1000);
-                    final Duration endA = Duration.ofMillis(3000);
-                    final Duration endB = Duration.ofMillis(4000);
+                public void differentReliable() {
                     final String state = "State";
+                    final boolean reliableA = true;
+                    final boolean reliableB = false;
 
-                    final var timestampedA = new ObjectHistory.TimestampedState<>(start, endA, state);
-                    final var timestampedB = new ObjectHistory.TimestampedState<>(start, endB, state);
+                    final var timestampedA = new ObjectHistory.TimestampedState<>(WHEN_A, WHEN_B, reliableA, state);
+                    final var timestampedB = new ObjectHistory.TimestampedState<>(WHEN_A, WHEN_B, reliableB, state);
+
+                    assertInvariants(timestampedA, timestampedB);
+                    assertNotEquals(timestampedA, timestampedB);
+                }
+
+                @Test
+                public void differentStart() {
+                    final Duration startA = Duration.ofMillis(1000);
+                    final Duration startB = Duration.ofMillis(2000);
+                    final Duration end = Duration.ofMillis(3000);
+                    final String state = "State";
+                    final boolean reliable = true;
+
+                    final var timestampedA = new ObjectHistory.TimestampedState<>(startA, end, reliable, state);
+                    final var timestampedB = new ObjectHistory.TimestampedState<>(startB, end, reliable, state);
 
                     assertInvariants(timestampedA, timestampedB);
                     assertNotEquals(timestampedA, timestampedB);
@@ -514,9 +529,10 @@ public class ObjectHistoryTest {
                 public void differentState() {
                     final String stateA = "A";
                     final String stateB = "B";
+                    final boolean reliable = true;
 
-                    final var timestampedA = new ObjectHistory.TimestampedState<>(WHEN_A, WHEN_B, stateA);
-                    final var timestampedB = new ObjectHistory.TimestampedState<>(WHEN_A, WHEN_B, stateB);
+                    final var timestampedA = new ObjectHistory.TimestampedState<>(WHEN_A, WHEN_B, reliable, stateA);
+                    final var timestampedB = new ObjectHistory.TimestampedState<>(WHEN_A, WHEN_B, reliable, stateB);
 
                     assertInvariants(timestampedA, timestampedB);
                     assertNotEquals(timestampedA, timestampedB);
@@ -530,6 +546,7 @@ public class ObjectHistoryTest {
                     final Duration endB = Duration.ofMillis(3000);
                     final String stateA = "State";
                     final String stateB = new String(stateA);
+                    final boolean reliable = true;
                     assert startA.equals(startB);
                     assert endA.equals(endB);
                     assert stateA.equals(stateB);
@@ -537,8 +554,8 @@ public class ObjectHistoryTest {
                     assert endA != endB;// tough test
                     assert stateA != stateB;// tough test
 
-                    final var timestampedA = new ObjectHistory.TimestampedState<>(startA, endA, stateA);
-                    final var timestampedB = new ObjectHistory.TimestampedState<>(startB, endB, stateB);
+                    final var timestampedA = new ObjectHistory.TimestampedState<>(startA, endA, reliable, stateA);
+                    final var timestampedB = new ObjectHistory.TimestampedState<>(startB, endB, reliable, stateB);
 
                     assertInvariants(timestampedA, timestampedB);
                     assertEquals(timestampedA, timestampedB);
@@ -546,18 +563,18 @@ public class ObjectHistoryTest {
             }// class
 
             @Test
-            public void a() {
-                constructor(WHEN_A, WHEN_B, "State");
-            }
-
-            @Test
-            public void b() {
-                constructor(WHEN_B, WHEN_C, Integer.valueOf(0));
-            }
-
-            @Test
             public void nullState() {
-                constructor(WHEN_A, WHEN_B, (Integer) null);
+                constructor(WHEN_A, WHEN_B, true, (Integer) null);
+            }
+
+            @Test
+            public void provisional() {
+                constructor(WHEN_B, WHEN_C, false, Integer.valueOf(0));
+            }
+
+            @Test
+            public void reliable() {
+                constructor(WHEN_A, WHEN_B, true, "State");
             }
 
         }// class
@@ -578,19 +595,21 @@ public class ObjectHistoryTest {
                 ObjectTest.assertInvariants(state1, state2);
             }
             assertTrue(
-                    timestamped1.equals(timestamped2) == (timestamped1.getStart().equals(timestamped2.getStart())
+                    timestamped1.equals(timestamped2) == (timestamped1.isReliable() == timestamped2.isReliable()
+                            && timestamped1.getStart().equals(timestamped2.getStart())
                             && timestamped1.getEnd().equals(timestamped2.getEnd()) && Objects.equals(state1, state2)),
-                    "equals has value semantics");
+                    "value semantics");
         }
 
         private static <STATE> void constructor(@Nonnull final Duration start, @Nonnull final Duration end,
-                @Nullable final STATE state) {
-            final var timestamped = new ObjectHistory.TimestampedState<>(start, end, state);
+                final boolean reliable, @Nullable final STATE state) {
+            final var timestamped = new ObjectHistory.TimestampedState<>(start, end, reliable, state);
 
             assertInvariants(timestamped);
             assertAll(() -> assertSame(start, timestamped.getStart(), "start"),
                     () -> assertSame(end, timestamped.getEnd(), "end"),
-                    () -> assertSame(state, timestamped.getState(), "state"));
+                    () -> assertSame(state, timestamped.getState(), "state"),
+                    () -> assertTrue(reliable == timestamped.isReliable(), "reliable"));
         }
     }// class
 

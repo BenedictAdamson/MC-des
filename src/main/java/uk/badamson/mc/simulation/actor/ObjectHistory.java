@@ -65,7 +65,8 @@ public class ObjectHistory<STATE> {
     /**
      * <p>
      * The state of a simulated object, with a time-range indicating the points in
-     * time when the simulated object was in that state.
+     * time when the simulated object was in that state, and an indication of
+     * whether the state is reliable.
      * </p>
      *
      * @param <STATE>
@@ -80,6 +81,7 @@ public class ObjectHistory<STATE> {
         private final Duration start;
         @Nonnull
         private final Duration end;
+        private final boolean reliable;
         @Nullable
         private final STATE state;
 
@@ -90,10 +92,11 @@ public class ObjectHistory<STATE> {
          *             If {@code end} {@linkplain Duration#compareTo(Duration) is
          *             before} {@code start}
          */
-        public TimestampedState(@Nonnull final Duration start, @Nonnull final Duration end,
+        public TimestampedState(@Nonnull final Duration start, @Nonnull final Duration end, final boolean reliable,
                 @Nullable final STATE state) {
             this.start = Objects.requireNonNull(start, "start");
             this.end = Objects.requireNonNull(end, "end");
+            this.reliable = reliable;
             this.state = state;
             if (end.compareTo(start) < 0) {
                 throw new IllegalArgumentException("end before start");
@@ -117,7 +120,8 @@ public class ObjectHistory<STATE> {
                 return false;
             }
             final TimestampedState<?> other = (TimestampedState<?>) that;
-            return start.equals(other.start) && end.equals(other.end) && Objects.equals(state, other.state);
+            return reliable == other.reliable && start.equals(other.start) && end.equals(other.end)
+                    && Objects.equals(state, other.state);
         }
 
         /**
@@ -170,13 +174,31 @@ public class ObjectHistory<STATE> {
 
         @Override
         public int hashCode() {
-            return Objects.hash(state, end, start);
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + start.hashCode();
+            result = prime * result + end.hashCode();
+            result = prime * result + (reliable ? 1 : 0);
+            result = prime * result + (state == null ? 0 : state.hashCode());
+            return result;
+        }
+
+        /**
+         * <p>
+         * Whether this time-stamped state is <i>reliable</i>
+         * </p>
+         * <p>
+         * The opposite of <i>reliable</i> is <i>provisional</i>.
+         * </p>
+         */
+        public boolean isReliable() {
+            return reliable;
         }
 
         @Nonnull
         @Override
         public String toString() {
-            return "@(" + start + "," + end + ")=" + state;
+            return "@(" + start + "," + end + ") " + (reliable ? "reliable" : "provisional") + "=" + state;
         }
 
     }// class
