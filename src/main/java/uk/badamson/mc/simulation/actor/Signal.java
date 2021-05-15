@@ -199,6 +199,37 @@ public abstract class Signal<STATE> {
 
     /**
      * <p>
+     * An exception class for indicating that processing reception of a
+     * {@link Signal} is impossible because the state of the
+     * {@linkplain Signal#getReceiver() receiver} indicates that reception of the
+     * signal would be impossible.
+     * </p>
+     */
+    @SuppressWarnings("serial")
+    public static class UnreceivableSignalException extends IllegalStateException {
+
+        private static final String DEFAULT_MESSAGE = "Reception of the signal would be impossible";
+
+        public UnreceivableSignalException() {
+            super(DEFAULT_MESSAGE);
+        }
+
+        public UnreceivableSignalException(final String s) {
+            super(s);
+        }
+
+        public UnreceivableSignalException(final String message, final Throwable cause) {
+            super(message, cause);
+        }
+
+        public UnreceivableSignalException(final Throwable cause) {
+            super(DEFAULT_MESSAGE, cause);
+        }
+
+    }// class
+
+    /**
+     * <p>
      * A sentinel value for the {@linkplain #getPropagationTime(Object) propagation
      * time} to indicate that it is impossible for a signal to be received.
      * </p>
