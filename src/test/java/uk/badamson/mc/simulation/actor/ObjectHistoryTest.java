@@ -673,12 +673,12 @@ public class ObjectHistoryTest {
         }
     }// class
 
-    private static final UUID OBJECT_A = UUID.randomUUID();
-    private static final UUID OBJECT_B = UUID.randomUUID();
+    static final UUID OBJECT_A = UUID.randomUUID();
+    static final UUID OBJECT_B = UUID.randomUUID();
 
-    private static final Duration WHEN_A = Duration.ofMillis(0);
-    private static final Duration WHEN_B = Duration.ofMillis(5000);
-    private static final Duration WHEN_C = Duration.ofMillis(7000);
+    static final Duration WHEN_A = Duration.ofMillis(0);
+    static final Duration WHEN_B = Duration.ofMillis(5000);
+    static final Duration WHEN_C = Duration.ofMillis(7000);
 
     public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history) {
         ObjectTest.assertInvariants(history);// inherited
