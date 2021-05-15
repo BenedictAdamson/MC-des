@@ -1,10 +1,13 @@
 package uk.badamson.mc.simulation.actor;
 
 import java.time.Duration;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import uk.badamson.mc.simulation.ObjectStateId;
@@ -40,6 +43,159 @@ import uk.badamson.mc.simulation.ObjectStateId;
  */
 @Immutable
 public abstract class Signal<STATE> {
+
+    /**
+     * <p>
+     * The effect that a {@linkplain Signal signal} has upon its
+     * {@linkplain Signal#getReceiver() receiver} when it is received.
+     * </p>
+     *
+     * @param <STATE>
+     *            The class of states of a receiver. This must be {@link Immutable
+     *            immutable}. It ought to have value semantics, but that is not
+     *            required.
+     */
+    @Immutable
+    public static final class Effect<STATE> {
+
+        @Nonnull
+        private final ObjectStateId eventId;
+        @Nullable
+        private final STATE state;
+        @Nonnull
+        private final Set<Signal<STATE>> signalsEmitted;
+
+        /**
+         * <p>
+         * Construct an effect with given attribute values.
+         * </p>
+         *
+         * @throws NullPointerException
+         *             <ul>
+         *             <li>If any {@link Nonnull} argument is null.</li>
+         *             <li>If {@code signalsEmitted} contains a null.</li>
+         *             </ul>
+         * @throws IllegalArgumentException
+         *             If {@code signalsEmitted} contains a signal that was not sent by
+         *             the event represented by this effect. That is, if the signal was
+         *             not {@linkplain Signal#getSentFrom() sent from} the same object
+         *             as the {@code eventId}.
+         */
+        public Effect(@Nonnull final ObjectStateId eventId, @Nullable final STATE state,
+                @Nonnull final Set<Signal<STATE>> signalsEmitted) {
+            this.eventId = Objects.requireNonNull(eventId, "eventId");
+            this.state = state;
+            this.signalsEmitted = Set.copyOf(signalsEmitted);
+            /* Check after copy to avoid race hazards. */
+            this.signalsEmitted.forEach(signal -> {
+                if (eventId != signal.getSentFrom()) {
+                    throw new IllegalArgumentException("signalEmitted not sent from event.");
+                }
+            });
+        }
+
+        @Override
+        public boolean equals(final Object that) {
+            if (this == that) {
+                return true;
+            }
+            if (!(that instanceof Effect)) {
+                return false;
+            }
+            final Effect<?> other = (Effect<?>) that;
+            return eventId.equals(other.eventId) && signalsEmitted.equals(other.signalsEmitted)
+                    && Objects.equals(state, other.state);
+        }
+
+        /**
+         * <p>
+         * The simulated object changed by this effect.
+         * </p>
+         */
+        @Nonnull
+        public UUID getAffectedObject() {
+            return eventId.getObject();
+        }
+
+        /**
+         * <p>
+         * The ID of the simulated object that this effect changed, and the point in
+         * time that the change occurred, combined to form a unique ID for the event
+         * that caused this effect.
+         * </p>
+         * <ul>
+         * <li>The {@linkplain ObjectStateId#getObject() object} of the event ID is the
+         * same as the {@linkplain #getAffectedObject() affected object} of this
+         * effect.</li>
+         * <li>The {@linkplain ObjectStateId#getWhen() time-stamp} of the event ID is
+         * the same as the {@linkplain #getWhenOccurred() time of occurrance} of this
+         * effect.</li>
+         * </ul>
+         */
+        @Nonnull
+        public ObjectStateId getEventId() {
+            return eventId;
+        }
+
+        /**
+         * <p>
+         * Signals emitted from the affected simulated object as part of this effect.
+         * </p>
+         * <ul>
+         * <li>The returned set of signals emitted is a constant (the method always
+         * returns a reference to the same object).</li>
+         * <li>The returned set of signals emitted is unmodifiable.</li>
+         * <li>The set of signals emitted does not contain a null signal.</li>
+         * <li>The signals emitted are all {@linkplain Signal#getSentFrom() sent from}
+         * the same {@linkplain #getEventId() event} that caused this effect.</li>
+         * <li>The returned set of signals emitted may be {@linkplain Set#isEmpty()
+         * empty}.</li>
+         * </ul>
+         */
+        @Nonnull
+        public Set<Signal<STATE>> getSignalsEmitted() {
+            return signalsEmitted;
+        }
+
+        /**
+         * <p>
+         * The state that the simulated object has as a result of this effect.
+         * </p>
+         * <p>
+         * A null state indicates that the simulated object is destroyed or removed.
+         * </p>
+         */
+        @Nullable
+        public STATE getState() {
+            return state;
+        }
+
+        /**
+         * <p>
+         * The point in time that this effect occurred.
+         * </p>
+         */
+        @Nonnull
+        public Duration getWhenOccurred() {
+            return eventId.getWhen();
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + eventId.hashCode();
+            result = prime * result + signalsEmitted.hashCode();
+            result = prime * result + (state == null ? 0 : state.hashCode());
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "Signal.Effect [" + eventId + ", →" + state + ", ⇝" + signalsEmitted + "]";
+        }
+
+    }// class
 
     /**
      * <p>
@@ -170,7 +326,7 @@ public abstract class Signal<STATE> {
 
     /**
      * <p>
-     * The point in time when this signal was sent (empitted).
+     * The point in time when this signal was sent (emitted).
      * </p>
      */
     @Nonnull

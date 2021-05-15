@@ -29,13 +29,17 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import uk.badamson.mc.ObjectTest;
@@ -102,6 +106,164 @@ public class SignalTest {
         @Test
         public void reflexive() {
             constructor(ID_A, OBJECT_A);
+        }
+
+    }// class
+
+    public static final class EffectTest {
+
+        @Nested
+        public class Two {
+
+            @Test
+            public void differentEventId() {
+                final ObjectStateId eventIdA = ID_A;
+                final ObjectStateId eventIdB = ID_B;
+                final Integer state = Integer.valueOf(Integer.MAX_VALUE);
+                final Set<Signal<Integer>> signalsEmitted = Set.of();
+
+                final var effectA = new Signal.Effect<>(eventIdA, state, signalsEmitted);
+                final var effectB = new Signal.Effect<>(eventIdB, state, signalsEmitted);
+
+                assertInvariants(effectA, effectB);
+                assertNotEquals(effectA, effectB);
+            }
+
+            @Test
+            public void differentSignalsEmitted() {
+                final ObjectStateId eventId = ID_A;
+                final Integer state = Integer.valueOf(0);
+                final Set<Signal<Integer>> signalsEmittedA = Set.of();
+                final Set<Signal<Integer>> signalsEmittedB = Set.of(new TestSignal(eventId, OBJECT_B));
+
+                final var effectA = new Signal.Effect<>(eventId, state, signalsEmittedA);
+                final var effectB = new Signal.Effect<>(eventId, state, signalsEmittedB);
+
+                assertInvariants(effectA, effectB);
+                assertNotEquals(effectA, effectB);
+            }
+
+            @Test
+            public void differentState() {
+                final Integer stateA = Integer.valueOf(0);
+                final Integer stateB = Integer.valueOf(1);
+                final Set<Signal<Integer>> signalsEmitted = Set.of();
+
+                final var effectA = new Signal.Effect<>(ID_A, stateA, signalsEmitted);
+                final var effectB = new Signal.Effect<>(ID_A, stateB, signalsEmitted);
+
+                assertInvariants(effectA, effectB);
+                assertNotEquals(effectA, effectB);
+            }
+
+            /*
+             * A faulty implementation could throw a NullPointerException for this case.
+             */
+            @Test
+            public void equivalentDestruction() {
+                final Integer state = null;
+                final Set<Signal<Integer>> signalsEmitted = Set.of();
+
+                final var effectA = new Signal.Effect<>(ID_A, state, signalsEmitted);
+                final var effectB = new Signal.Effect<>(ID_A, state, signalsEmitted);
+
+                assertInvariants(effectA, effectB);
+                assertEquals(effectA, effectB);
+            }
+
+            @Test
+            public void equivalentNotDestruction() {
+                final ObjectStateId eventIdA = ID_A;
+                final ObjectStateId eventIdB = new ObjectStateId(eventIdA.getObject(), eventIdA.getWhen());
+                final Integer stateA = Integer.valueOf(Integer.MAX_VALUE);
+                final Integer stateB = Integer.valueOf(Integer.MAX_VALUE);
+                final Set<Signal<Integer>> signalsEmittedA = Set.of(new TestSignal(eventIdA, OBJECT_B));
+                final Set<Signal<Integer>> signalsEmittedB = Set.of(new TestSignal(eventIdB, OBJECT_B));
+                assert eventIdA.equals(eventIdB);
+                assert stateA.equals(stateB);
+                assert signalsEmittedA.equals(signalsEmittedB);
+                assert eventIdA != eventIdB;// tough test
+                assert stateA != stateB;// tough test
+                assert signalsEmittedA != signalsEmittedB;// tough test
+
+                final var effectA = new Signal.Effect<>(eventIdA, stateA, signalsEmittedA);
+                final var effectB = new Signal.Effect<>(eventIdB, stateB, signalsEmittedB);
+
+                assertInvariants(effectA, effectB);
+                assertEquals(effectA, effectB);
+            }
+        }// class
+
+        public static <STATE> void assertInvariants(@Nonnull final Signal.Effect<STATE> effect) {
+            ObjectTest.assertInvariants(effect);// inherited
+
+            final var affectedObject = effect.getAffectedObject();
+            final var eventId = effect.getEventId();
+            final var signalsEmitted = effect.getSignalsEmitted();
+            final var whenOccurred = effect.getWhenOccurred();
+
+            assertAll("Not null", () -> assertNotNull(affectedObject, "affectedObject"),
+                    () -> assertNotNull(eventId, "eventId"), // guard
+                    () -> assertNotNull(signalsEmitted, "signalsEmitted"), // guard
+                    () -> assertNotNull(whenOccurred, "whenOccurred"));
+            ObjectStateIdTest.assertInvariants(eventId);
+
+            assertAll(() -> assertSame(affectedObject, eventId.getObject(), "affectedObject"),
+                    () -> assertAll("signalsEmitted", createSignalsEmittedInvariantAssertions(eventId, signalsEmitted)),
+                    () -> assertSame(whenOccurred, eventId.getWhen(), "whenOccurred"));
+        }
+
+        public static <STATE> void assertInvariants(@Nonnull final Signal.Effect<STATE> effect1,
+                @Nonnull final Signal.Effect<STATE> effect2) {
+            ObjectTest.assertInvariants(effect1, effect2);// inherited
+
+            final boolean equals = effect1.equals(effect2);
+            assertAll("Value semantics",
+                    () -> assertFalse(equals && !effect1.getEventId().equals(effect2.getEventId()), "eventId"),
+                    () -> assertFalse(equals && !effect1.getSignalsEmitted().equals(effect2.getSignalsEmitted()),
+                            "signalsEmitted"));
+        }
+
+        private static <STATE> Signal.Effect<STATE> constructor(@Nonnull final ObjectStateId eventId,
+                @Nullable final STATE state, @Nonnull final Set<Signal<STATE>> signalsEmitted) {
+            final var effect = new Signal.Effect<>(eventId, state, signalsEmitted);
+
+            assertInvariants(effect);
+            assertAll("Attributes", () -> assertSame(eventId, effect.getEventId(), "eventId"),
+                    () -> assertSame(state, effect.getState(), "state"),
+                    () -> assertEquals(signalsEmitted, effect.getSignalsEmitted(), "signalsEmitted"));
+
+            return effect;
+        }
+
+        private static <STATE> Stream<Executable> createSignalsEmittedInvariantAssertions(final ObjectStateId eventId,
+                final Set<Signal<STATE>> signalsEmitted) {
+            return signalsEmitted.stream().map(signal -> new Executable() {
+
+                @Override
+                public void execute() throws AssertionError {
+                    assertNotNull(signal, "signal");
+                    SignalTest.assertInvariants(signal);
+                    assertSame(eventId, signal.getSentFrom(), "sent from the same event that caused this effect");
+                }
+            });
+        }
+
+        @Test
+        public void destruction() {
+            constructor(ID_B, (Integer) null, Set.of());
+        }
+
+        @Test
+        public void noSignalsEmitted() {
+            constructor(ID_A, Integer.valueOf(0), Set.of());
+        }
+
+        @Test
+        public void signalEmitted() {
+            final var eventId = ID_A;
+            final Set<Signal<Integer>> signalsEmitted = Set.of(new TestSignal(eventId, OBJECT_B));
+            constructor(eventId, Integer.valueOf(0), signalsEmitted);
         }
 
     }// class
