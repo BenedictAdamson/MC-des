@@ -392,10 +392,52 @@ public class ObjectHistoryTest {
     }// class
 
     @Nested
-    public class ObserveStateTransitions {
+    public class ObserveTimestampedStates {
 
         @Nested
         public class AfterConstructorGivenHistory {
+
+            @Nested
+            public class ReliablyDestroyed {
+
+                @Test
+                public void far() {
+                    final Duration start = WHEN_B;
+                    final Duration destructionTime = start.plusDays(365);
+
+                    test(start, destructionTime, Integer.valueOf(1));
+                }
+
+                @Test
+                public void near() {
+                    final Duration start = WHEN_A;
+                    final Duration destructionTime = start.plusNanos(1);// critical
+
+                    test(start, destructionTime, Integer.valueOf(0));
+                }
+
+                private void test(final Duration start, final Duration destructionTime, final Integer state0) {
+                    assert start.compareTo(destructionTime) < 0;
+                    assert state0 != null;
+                    final UUID object = OBJECT_A;
+                    final Duration end = ValueHistory.END_OF_TIME;// critical
+                    final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>();
+                    stateTransitions.put(start, state0);
+                    stateTransitions.put(destructionTime, null);
+                    final var history = new ObjectHistory<>(object, end, stateTransitions);
+
+                    final var flux = observeTimestampedStates(history);
+
+                    try {
+                        StepVerifier.create(flux).expectComplete().verify(Duration.ofMillis(100));
+                    } catch (final AssertionError e) {
+                        throw new AssertionError(
+                                "If the object is known to be reliably destroyed, there can be no further time-stamped states.",
+                                e);
+                    }
+                }
+
+            }// class
 
             @Test
             public void a() {
@@ -408,16 +450,13 @@ public class ObjectHistoryTest {
             }
 
             private void test(final UUID object, final Duration start, final Duration end, final Integer state) {
-                // TODO correct reliable
-                final var expectedStateTransition = new ObjectHistory.TimestampedState<>(start, start, true, state);
                 final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>();
                 stateTransitions.put(start, state);
                 final var history = new ObjectHistory<>(object, end, stateTransitions);
 
-                final var flux = observeStateTransitions(history);
+                final var flux = observeTimestampedStates(history);
 
-                StepVerifier.create(flux).expectNext(expectedStateTransition).expectTimeout(Duration.ofMillis(100))
-                        .verify();
+                StepVerifier.create(flux).expectTimeout(Duration.ofMillis(100)).verify();
             }
 
         }// class
@@ -436,14 +475,11 @@ public class ObjectHistoryTest {
             }
 
             private void test(final UUID object, final Duration start, final Integer state) {
-                // TODO correct reliable
-                final var expectedStateTransition = new ObjectHistory.TimestampedState<>(start, start, true, state);
                 final var history = new ObjectHistory<>(object, start, state);
 
-                final var flux = observeStateTransitions(history);
+                final var flux = observeTimestampedStates(history);
 
-                StepVerifier.create(flux).expectNext(expectedStateTransition).expectTimeout(Duration.ofMillis(100))
-                        .verify();
+                StepVerifier.create(flux).expectTimeout(Duration.ofMillis(100)).verify();
             }
 
         }// class
@@ -461,16 +497,38 @@ public class ObjectHistoryTest {
                 test(OBJECT_B, WHEN_B, Integer.valueOf(1));
             }
 
+            @Test
+            public void reliablyDestroyed() {
+                final UUID object = OBJECT_A;
+                final Duration start = WHEN_A;
+                final Duration end = ValueHistory.END_OF_TIME;// critical
+                final Duration destructionTime = start.plusDays(365);
+                final Integer state0 = Integer.valueOf(1);
+
+                final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>();
+                stateTransitions.put(start, state0);
+                stateTransitions.put(destructionTime, null);
+                final var history = new ObjectHistory<>(object, end, stateTransitions);
+                final var copy = new ObjectHistory<>(history);
+
+                final var flux = observeTimestampedStates(copy);
+
+                try {
+                    StepVerifier.create(flux).expectComplete().verify(Duration.ofMillis(100));
+                } catch (final AssertionError e) {
+                    throw new AssertionError(
+                            "If the object is known to be reliably destroyed, there can be no further time-stamped states.",
+                            e);
+                }
+            }
+
             private void test(final UUID object, final Duration start, final Integer state) {
-                // TODO correct reliable
-                final var expectedStateTransition = new ObjectHistory.TimestampedState<>(start, start, true, state);
                 final var history = new ObjectHistory<>(object, start, state);
                 final var copy = new ObjectHistory<>(history);
 
-                final var flux = observeStateTransitions(copy);
+                final var flux = observeTimestampedStates(copy);
 
-                StepVerifier.create(flux).expectNext(expectedStateTransition).expectTimeout(Duration.ofMillis(100))
-                        .verify();
+                StepVerifier.create(flux).expectTimeout(Duration.ofMillis(100)).verify();
             }
 
         }// class
@@ -703,9 +761,9 @@ public class ObjectHistoryTest {
         return states;
     }
 
-    public static <STATE> Flux<ObjectHistory.TimestampedState<STATE>> observeStateTransitions(
+    public static <STATE> Flux<ObjectHistory.TimestampedState<STATE>> observeTimestampedStates(
             @Nonnull final ObjectHistory<STATE> history) {
-        final var flux = history.observeStateTransitions();
+        final var flux = history.observeTimestampedStates();
 
         assertInvariants(history);
         assertNotNull(flux, "Not null, result");

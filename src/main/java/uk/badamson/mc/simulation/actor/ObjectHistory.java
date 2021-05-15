@@ -39,8 +39,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
+import reactor.core.publisher.Sinks.EmitResult;
 import uk.badamson.mc.history.ModifiableValueHistory;
-import uk.badamson.mc.history.TimestampedValue;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.simulation.rx.ModifiableObjectHistory;
 
@@ -212,7 +212,7 @@ public class ObjectHistory<STATE> {
      * predictable lock ordering when locking two instances.
      */
     protected final UUID lock = UUID.randomUUID();
-    private final Sinks.Many<TimestampedState<STATE>> stateTransitions = Sinks.many().replay().latest();
+    private final Sinks.Many<TimestampedState<STATE>> timestampedStates = Sinks.many().replay().latest();
 
     @Nonnull
     @GuardedBy("lock")
@@ -231,10 +231,13 @@ public class ObjectHistory<STATE> {
         synchronized (that.object) {// hard to test
             end = that.end;
             stateHistory = new ModifiableValueHistory<>(that.stateHistory);
-            emitStateTransition(stateHistory.getLastTansitionTime(), stateHistory.getLastValue());
         }
         object = that.object;
         start = that.start;
+
+        if (end.equals(ValueHistory.END_OF_TIME)) {
+            noMoreTimeStampedStates();
+        }
     }
 
     /**
@@ -302,7 +305,10 @@ public class ObjectHistory<STATE> {
         if (stateHistory.get(end) == null && !ValueHistory.END_OF_TIME.equals(end)) {
             throw new IllegalArgumentException("reliability information suggests destroyed object may be recreated");
         }
-        emitStateTransition(stateHistory.getLastTansitionTime(), stateHistory.getLastValue());
+
+        if (end.equals(ValueHistory.END_OF_TIME)) {
+            noMoreTimeStampedStates();
+        }
     }
 
     /**
@@ -327,14 +333,6 @@ public class ObjectHistory<STATE> {
         this.end = start;
         this.stateHistory = new ModifiableValueHistory<>();
         this.stateHistory.appendTransition(start, state);
-        emitStateTransition(start, state);
-    }
-
-    private void emitStateTransition(@Nonnull final Duration when, @Nullable final STATE state) {
-        // TODO correct end, correct reliable
-        final var result = stateTransitions.tryEmitNext(new TimestampedState<>(when, when, true, state));
-        // The sink are reliable, so should always succeed.
-        assert result == Sinks.EmitResult.OK;
     }
 
     /**
@@ -496,6 +494,13 @@ public class ObjectHistory<STATE> {
         return lock.compareTo(that.lock) < 0;
     }
 
+    private void noMoreTimeStampedStates() {
+        assert this.end.equals(ValueHistory.END_OF_TIME);
+        final var result = timestampedStates.tryEmitComplete();
+        // The sink is reliable; it should always successfully complete.
+        assert result == EmitResult.OK;
+    }
+
     /**
      * <p>
      * Provide the state of the {@linkplain #getObject() simulated object} at a
@@ -552,35 +557,46 @@ public class ObjectHistory<STATE> {
 
     private Flux<Optional<STATE>> observeStateFromStateTransitions(@Nonnull final Duration when) {
         // TODO use reliable
-        return stateTransitions.asFlux().takeWhile(timeStamped -> timeStamped.getStart().compareTo(when) <= 0)
+        return timestampedStates.asFlux().takeWhile(timeStamped -> timeStamped.getStart().compareTo(when) <= 0)
                 .takeUntil(timeStamped -> when.compareTo(timeStamped.getStart()) <= 0)
                 .map(timeStamped -> Optional.ofNullable(timeStamped.getState()));
     }
 
     /**
      * <p>
-     * Provide the sequence of state transitions of the {@linkplain #getObject()
+     * Provide a sequence of time-stamped states for the {@linkplain #getObject()
      * simulated object}.
      * </p>
      * <ul>
-     * <li>Each state transition is represented by a {@linkplain TimestampedValue
-     * time-stamped state}: the state that the simulated object transitioned to, and
-     * the time that the simulated object entered that state.</li>
-     * <li>The sequence of state transitions has no null transitions.</li>
-     * <li>The sequence of state transitions can be infinite.</li>
-     * <li>The sequence of state transitions can be finite. In that case, the last
-     * state transition is the destruction of the object: a transition to a null
-     * {@linkplain TimestampedValue#getValue() state}.</li>
-     * <li>The sequence of state transitions are in
-     * {@linkplain Duration#compareTo(Duration) ascending}
-     * {@linkplain TimestampedValue#getStart() time-stamp} order.</li>
-     * <li>The sequence of state transitions does not include old state transitions;
-     * it is a <i>hot</i> observable.</li>
+     * <li>Each time-stamped provides <i>complete</i> information for a state: the
+     * {@linkplain TimestampedState#getStart() start} time is the time that the
+     * simulated object, and the {@linkplain #getEnd() end} time is the last point
+     * in time before the next next state transition (or the
+     * {@linkplain ValueHistory#END_OF_TIME end of time}, if there is no following
+     * state transition).</li>
+     * <li>The sequence of time-stamped states can be infinite.</li>
+     * <li>The sequence of time-stamped states can override
+     * {@linkplain TimestampedState#isReliable() provisional} values: if there is a
+     * provisional value in the sequence, a later value may have a time range that
+     * overlaps the time range of the provisional value.</li>
+     * <li>The sequence never overrides {@linkplain TimestampedState#isReliable()
+     * reliable} values: if a value is reliable, no subsequent value will overlap
+     * the time range of the reliable value.</li>
+     * <li>The sequence of time-stamped states can be finite. In that case, the last
+     * state transition is a a {@linkplain TimestampedState#isReliable() reliable}
+     * indication of the destruction of the object: a transition to a null
+     * {@linkplain TimestampedState#getState() state}.</li>
+     * <li>The sequence of time-stamped states are not in any time order, but will
+     * tend to be in roughly ascending time order.</li>
+     * <li>The sequence of time-stamped states does not include old values; it is a
+     * <i>hot</i> observable. The publisher emits values only when there is a change
+     * to the {@linkplain #getStateHistory() state history}. In particular, it does
+     * not emit an values for a newly constructed object history.</li>
      * </ul>
      */
     @Nonnull
-    public final Flux<TimestampedState<STATE>> observeStateTransitions() {
-        return stateTransitions.asFlux();
+    public final Flux<TimestampedState<STATE>> observeTimestampedStates() {
+        return timestampedStates.asFlux();
     }
 
     @Override
