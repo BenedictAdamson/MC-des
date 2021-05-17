@@ -35,9 +35,9 @@ import javax.annotation.Nonnull;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import uk.badamson.mc.ComparableTest;
+import uk.badamson.dbc.assertions.ComparableTest;
+import uk.badamson.dbc.assertions.ObjectTest;
 import uk.badamson.mc.JsonTest;
-import uk.badamson.mc.ObjectTest;
 
 /**
  * <p>
@@ -191,7 +191,7 @@ public class ObjectStateIdTest {
     public static void assertInvariants(final ObjectStateId id1, final ObjectStateId id2) {
         ObjectTest.assertInvariants(id1, id2);// inherited
         ComparableTest.assertInvariants(id1, id2);
-        ComparableTest.assertComparableConsistentWithEquals(id1, id2);
+        ComparableTest.assertNaturalOrderingIsConsistentWithEquals(id1, id2);
 
         final Duration when1 = id1.getWhen();
         final Duration when2 = id2.getWhen();

@@ -49,8 +49,8 @@ import org.reactivestreams.Publisher;
 
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import uk.badamson.dbc.assertions.ObjectTest;
 import uk.badamson.mc.JsonTest;
-import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.simulation.ObjectStateId;
 import uk.badamson.mc.simulation.rx.EventTest.TestEvent;
 

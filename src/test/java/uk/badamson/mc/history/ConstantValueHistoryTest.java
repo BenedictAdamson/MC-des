@@ -32,7 +32,7 @@ import java.util.Collections;
 import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
-import uk.badamson.mc.ObjectTest;
+import uk.badamson.dbc.assertions.ObjectTest;
 
 /**
  * <p>

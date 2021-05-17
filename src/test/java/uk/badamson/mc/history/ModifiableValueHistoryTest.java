@@ -46,8 +46,8 @@ import javax.annotation.Nullable;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import uk.badamson.dbc.assertions.ObjectTest;
 import uk.badamson.mc.JsonTest;
-import uk.badamson.mc.ObjectTest;
 
 /**
  * <p>

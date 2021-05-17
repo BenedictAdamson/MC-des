@@ -1,8 +1,4 @@
 package uk.badamson.mc.simulation.rx;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.lessThan;
-
 /*
  * © Copyright Benedict Adamson 2018.
  *
@@ -22,6 +18,8 @@ import static org.hamcrest.Matchers.lessThan;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.lessThan;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -47,8 +45,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import uk.badamson.dbc.assertions.ObjectTest;
 import uk.badamson.mc.JsonTest;
-import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.simulation.ObjectStateId;
 import uk.badamson.mc.simulation.ObjectStateIdTest;
 

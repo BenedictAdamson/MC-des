@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -32,7 +32,7 @@ import java.util.Set;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import uk.badamson.mc.ObjectTest;
+import uk.badamson.dbc.assertions.ObjectTest;
 
 /**
  * <p>
