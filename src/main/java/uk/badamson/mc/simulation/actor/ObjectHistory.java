@@ -231,7 +231,8 @@ public class ObjectHistory<STATE> {
         object = that.object;
         start = that.start;
         synchronized (that.object) {// hard to test
-            commitToGuarded(that.end);
+            this.end = that.end;
+            completeTimestampedStatesIfNoMoreHistory();
             stateHistory = new ModifiableValueHistory<>(that.stateHistory);
         }
     }
@@ -280,6 +281,7 @@ public class ObjectHistory<STATE> {
             @Nonnull @JsonProperty("end") final Duration end,
             @Nonnull @JsonProperty("stateTransitions") final SortedMap<Duration, STATE> stateTransitions) {
         this.object = Objects.requireNonNull(object, "object");
+        Objects.requireNonNull(end, "end");
         this.stateHistory = new ModifiableValueHistory<>(null, stateTransitions);
         // Check after copy to avoid race hazards
         this.start = this.stateHistory.getFirstTansitionTime();
@@ -300,7 +302,8 @@ public class ObjectHistory<STATE> {
         if (this.stateHistory.get(end) == null && !ValueHistory.END_OF_TIME.equals(end)) {
             throw new IllegalArgumentException("reliability information suggests destroyed object may be recreated");
         }
-        commitToGuarded(Objects.requireNonNull(end, "end"));
+        this.end = end;
+        completeTimestampedStatesIfNoMoreHistory();
     }
 
     /**
@@ -322,18 +325,23 @@ public class ObjectHistory<STATE> {
         Objects.requireNonNull(state, "state");
         this.object = Objects.requireNonNull(object, "object");
         this.start = Objects.requireNonNull(start, "start");
-        commitToGuarded(start);
         this.stateHistory = new ModifiableValueHistory<>();
         this.stateHistory.appendTransition(start, state);
+        this.end = start;
+        completeTimestampedStatesIfNoMoreHistory();
     }
 
     @GuardedBy("lock")
     protected final void commitToGuarded(@Nonnull final Duration end) {
-        if (this.end != null && end.compareTo(this.end) <= 0) {
+        if (end.compareTo(this.end) <= 0) {
             return;// no-op
         }
         this.end = end;
-        if (end.equals(ValueHistory.END_OF_TIME)) {
+        completeTimestampedStatesIfNoMoreHistory();
+    }
+
+    private void completeTimestampedStatesIfNoMoreHistory() {
+        if (this.end.equals(ValueHistory.END_OF_TIME)) {
             // No further states are possible.
             final var result = timestampedStates.tryEmitComplete();
             // The sink is reliable; it should always successfully complete.
