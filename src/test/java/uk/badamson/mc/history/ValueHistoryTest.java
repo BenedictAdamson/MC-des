@@ -61,9 +61,7 @@ public class ValueHistoryTest {
         final Duration firstTansitionTime = history.getFirstTansitionTime();
         final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
 
-        assertSame(
-
-                firstTansitionTime, transitionTimes.isEmpty() ? null : transitionTimes.first(),
+        assertSame(firstTansitionTime, transitionTimes.isEmpty() ? null : transitionTimes.first(),
                 "The first value of the set of transition times (if it is not empty) is the same as the first transition time.");
 
         return firstTansitionTime;
@@ -73,7 +71,7 @@ public class ValueHistoryTest {
         final VALUE firstValue = history.getFirstValue();
 
         assertEquals(history.get(ValueHistory.START_OF_TIME), firstValue,
-                "The first value is the equal to the value at the start of time.");
+                "The first value is equal to the value at the start of time.");
 
         return firstValue;
     }
@@ -124,9 +122,7 @@ public class ValueHistoryTest {
         final Duration lastTansitionTime = history.getLastTansitionTime();
         final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
 
-        assertSame(
-
-                lastTansitionTime, transitionTimes.isEmpty() ? null : transitionTimes.last(),
+        assertSame(lastTansitionTime, transitionTimes.isEmpty() ? null : transitionTimes.last(),
                 "The last value of the set of transition times (if it is not empty) is the same as the last transition time.");
 
         return lastTansitionTime;

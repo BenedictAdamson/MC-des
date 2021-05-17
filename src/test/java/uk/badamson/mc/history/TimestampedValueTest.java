@@ -144,8 +144,7 @@ public class TimestampedValueTest {
         final var end = timestamped.getEnd();
         assertAll("Not null", // guard
                 () -> assertNotNull(start, "start"), () -> assertNotNull(end, "end"));
-        assertThat("The end time is {@linkplain Duration#compareTo(Duration) at or after} the\n"
-                + "     * {@linkplain #getStart() start} time.", end, greaterThanOrEqualTo(start));
+        assertThat("The end time is at or after the start time.", end, greaterThanOrEqualTo(start));
     }
 
     public static <STATE> void assertInvariants(@Nonnull final TimestampedValue<STATE> timestamped1,
