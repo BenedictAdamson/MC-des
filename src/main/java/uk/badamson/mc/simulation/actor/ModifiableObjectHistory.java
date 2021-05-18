@@ -210,18 +210,15 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      * These are the <i>provisional</i> signals.
      * </p>
      * <ul>
-     * <li>The collection of provisional signals received does not contain any null
-     * elements.</li>
-     * <li>The collection of provisional signals received may be unmodifiable.</li>
-     * <li>The collection of provisional signals received returned is a snapshot; it
-     * is not updated due to subsequent changes.</li>
-     * <li>The collection of provisional signals received contains no
-     * {@linkplain Signal#equals(Object) duplicates}.</li>
-     * <li>All the provisional signals received have the {@linkplain #getObject()
-     * object} of this history as their {@linkplain Signal#getReceiver()
-     * receiver}.</li>
-     * <li>All the provisional signals received were
-     * {@linkplain Signal#getWhenSent() sent}
+     * <li>The collection of signals does not contain any null elements.</li>
+     * <li>The collection of signals may be unmodifiable.</li>
+     * <li>The collection of signals returned is a snapshot; it is not updated due
+     * to subsequent changes.</li>
+     * <li>The collection of signals contains no {@linkplain Signal#equals(Object)
+     * duplicates}.</li>
+     * <li>All the signals have the {@linkplain #getObject() object} of this history
+     * as their {@linkplain Signal#getReceiver() receiver}.</li>
+     * <li>All the signals received were {@linkplain Signal#getWhenSent() sent}
      * {@linkplain Duration#compareTo(Duration) at or after} the
      * {@linkplain #getEnd() end of the period of reliable state history}; hence the
      * {@linkplain Signal#getWhenReceived(ValueHistory) reception time} of the
