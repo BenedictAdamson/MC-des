@@ -49,6 +49,7 @@ import org.reactivestreams.Publisher;
 
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import uk.badamson.dbc.assertions.EqualsSemanticsTest;
 import uk.badamson.dbc.assertions.ObjectTest;
 import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.simulation.ObjectStateId;
@@ -634,8 +635,11 @@ public class UniverseTest {
             @Nonnull final Universe<STATE> universe2) {
         ObjectTest.assertInvariants(universe1, universe2);// inherited
 
-        assertTrue(universe1.equals(universe2) == universe1.getObjectHistories().equals(universe2.getObjectHistories()),
-                "equality requires equal objectHistories");
+        assertAll("Value semantics",
+                () -> EqualsSemanticsTest.assertValueSemantics(universe1, universe2, "objectHistories",
+                        u -> u.getObjectHistories()),
+                () -> assertTrue(universe1.equals(universe2) == universe1.getObjectHistories()
+                        .equals(universe2.getObjectHistories()), "equals"));
     }
 
     private static <STATE> Stream<Executable> createObjectHistoriesInvariantAssertions(

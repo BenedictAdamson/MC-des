@@ -37,7 +37,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import uk.badamson.mc.ObjectTest;
+import uk.badamson.dbc.assertions.EqualsSemanticsTest;
+import uk.badamson.dbc.assertions.ObjectTest;
 
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
 public class TimestampedValueTest {
@@ -156,10 +157,15 @@ public class TimestampedValueTest {
         if (value1 != null && value2 != null) {
             ObjectTest.assertInvariants(value1, value2);
         }
-        assertTrue(
-                timestamped1.equals(timestamped2) == (timestamped1.getStart().equals(timestamped2.getStart())
-                        && timestamped1.getEnd().equals(timestamped2.getEnd()) && Objects.equals(value1, value2)),
-                "equals has value semantics");
+        assertAll("Value semantics",
+                () -> EqualsSemanticsTest.assertValueSemantics(timestamped1, timestamped2, "start",
+                        ts -> ts.getStart()),
+                () -> EqualsSemanticsTest.assertValueSemantics(timestamped1, timestamped2, "end", ts -> ts.getEnd()),
+                () -> assertTrue(
+                        timestamped1.equals(timestamped2) == (timestamped1.getStart().equals(timestamped2.getStart())
+                                && timestamped1.getEnd().equals(timestamped2.getEnd())
+                                && Objects.equals(value1, value2)),
+                        "equals"));
     }
 
     private static <VALUE> void constructor(@Nonnull final Duration start, @Nonnull final Duration end,

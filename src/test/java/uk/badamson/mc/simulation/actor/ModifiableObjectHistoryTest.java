@@ -47,8 +47,8 @@ import org.reactivestreams.Publisher;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import reactor.core.publisher.Flux;
+import uk.badamson.dbc.assertions.ThreadSafetyTest;
 import uk.badamson.mc.JsonTest;
-import uk.badamson.mc.ThreadTest;
 import uk.badamson.mc.history.ValueHistory;
 
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
@@ -102,11 +102,11 @@ public class ModifiableObjectHistoryTest {
             final var random = new Random(0);
             final List<Future<Void>> futures = new ArrayList<>(nThreads);
             for (int t = 0; t < nThreads; ++t) {
-                futures.add(ThreadTest.runInOtherThread(ready,
+                futures.add(ThreadSafetyTest.runInOtherThread(ready,
                         () -> commitTo(history, end0.plusMillis(random.nextInt(1000)))));
             }
             ready.countDown();
-            ThreadTest.get(futures);
+            ThreadSafetyTest.get(futures);
         }
 
         @Test

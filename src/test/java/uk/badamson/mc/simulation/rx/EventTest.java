@@ -45,6 +45,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import uk.badamson.dbc.assertions.EqualsSemanticsTest;
 import uk.badamson.dbc.assertions.ObjectTest;
 import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.simulation.ObjectStateId;
@@ -295,9 +296,16 @@ public class EventTest {
             @Nonnull final Event<STATE> event2) {
         ObjectTest.assertInvariants(event1, event2);// inherited
 
-        assertTrue(event1.equals(event2) == (event1.getId().equals(event2.getId())
-                && Objects.equals(event1.getState(), event2.getState())
-                && event1.getNextEventDependencies().equals(event2.getNextEventDependencies())));
+        assertAll("Value semantics",
+                () -> EqualsSemanticsTest.assertValueSemantics(event1, event2, "id", e -> e.getId()),
+                () -> EqualsSemanticsTest.assertValueSemantics(event1, event2, "state", e -> e.getState()),
+                () -> EqualsSemanticsTest.assertValueSemantics(event1, event2, "nextEventDependencies",
+                        e -> e.getNextEventDependencies()),
+                () -> assertTrue(
+                        event1.equals(event2) == (event1.getId().equals(event2.getId())
+                                && Objects.equals(event1.getState(), event2.getState())
+                                && event1.getNextEventDependencies().equals(event2.getNextEventDependencies())),
+                        "equals"));
     }
 
     private static Stream<Executable> createNextEventDependenciesAssertions(

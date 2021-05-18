@@ -19,11 +19,14 @@ package uk.badamson.mc.history;
  */
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.in;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -39,6 +42,8 @@ import java.util.SortedSet;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
+
+import uk.badamson.dbc.assertions.EqualsSemanticsTest;
 
 /**
  * <p>
@@ -109,13 +114,11 @@ public class ValueHistoryTest {
 
     public static <VALUE> void assertInvariants(final ValueHistory<VALUE> history1,
             final ValueHistory<VALUE> history2) {
-        final boolean equals = history1.equals(history2);
-
-        assertAll("equals",
-                () -> assertFalse(equals && !Objects.equals(history1.getFirstValue(), history2.getFirstValue()),
-                        "Equality requires equal first values"),
-                () -> assertFalse(equals && !history1.getTransitions().equals(history2.getTransitions()),
-                        "Equality requires equal transitions"));
+        assertAll("Value semantics",
+                () -> EqualsSemanticsTest.assertValueSemantics(history1, history2, "firstValue",
+                        h -> h.getFirstValue()),
+                () -> EqualsSemanticsTest.assertValueSemantics(history1, history2, "transitions",
+                        h -> h.getTransitions()));
     }
 
     private static <VALUE> Duration assertLastTansitionTimeInvariants(final ValueHistory<VALUE> history) {
@@ -185,6 +188,24 @@ public class ValueHistoryTest {
         return transitionTime;
     }
 
+    private static <VALUE> TimestampedValue<VALUE> assertTimestampedValueInvariants(
+            @Nonnull final ValueHistory<VALUE> history, @Nonnull final Duration when) {
+        final var result = history.getTimestampedValue(when);
+
+        assertNotNull(result, "Not null, result");// guard
+        assertInvariants(history);
+        TimestampedValueTest.assertInvariants(result);
+
+        final var start = result.getStart();
+        final var end = result.getEnd();
+        final var value = result.getValue();
+        assertAll("Consistent with arguments", () -> assertThat("start", start, lessThanOrEqualTo(when)),
+                () -> assertThat("end", end, greaterThanOrEqualTo(when)));
+        assertEquals(value, history.get(when), "Value consistent with history");
+
+        return result;
+    }
+
     private static <VALUE> SortedMap<Duration, VALUE> assertTransitionsInvariants(final ValueHistory<VALUE> history) {
         final Set<Duration> transitionTimes = history.getTransitionTimes();
 
@@ -225,24 +246,6 @@ public class ValueHistoryTest {
     public static <VALUE> Map<Duration, VALUE> getTransitionValues(final ValueHistory<VALUE> history) {
         return history.streamOfTransitions().collect(HashMap::new, (m, e) -> m.put(e.getKey(), e.getValue()),
                 HashMap::putAll);
-    }
-
-    private static <VALUE> TimestampedValue<VALUE> assertTimestampedValueInvariants(
-            @Nonnull final ValueHistory<VALUE> history, @Nonnull Duration when) {
-        final var result = history.getTimestampedValue(when);
-
-        assertNotNull(result, "Not null, result");// guard
-        assertInvariants(history);
-        TimestampedValueTest.assertInvariants(result);
-
-        final var start = result.getStart();
-        final var end = result.getEnd();
-        final var value = result.getValue();
-        assertAll("Consistent with arguments", () -> assertThat("start", start, lessThanOrEqualTo(when)),
-                () -> assertThat("end", end, greaterThanOrEqualTo(when)));
-        assertEquals(value, history.get(when), "Value consistent with history");
-
-        return result;
     }
 
 }

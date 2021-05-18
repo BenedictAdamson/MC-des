@@ -45,7 +45,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import uk.badamson.mc.ObjectTest;
+import uk.badamson.dbc.assertions.EqualsSemanticsTest;
+import uk.badamson.dbc.assertions.ObjectTest;
 import uk.badamson.mc.simulation.ObjectStateId;
 import uk.badamson.mc.simulation.ObjectStateIdTest;
 import uk.badamson.mc.simulation.actor.Signal.UnreceivableSignalException;
@@ -380,10 +381,9 @@ public class SignalTest {
             @Nonnull final Signal<STATE> signal2) {
         ObjectTest.assertInvariants(signal1, signal2);// inherited
 
-        final var equals = signal1.equals(signal2);
         assertAll("value semantics",
-                () -> assertFalse(equals && !signal1.getReceiver().equals(signal2.getReceiver()), "receiver"),
-                () -> assertFalse(equals && !signal1.getSentFrom().equals(signal2.getSentFrom()), "sentFrom"));
+                () -> EqualsSemanticsTest.assertValueSemantics(signal1, signal2, "receiver", s -> s.getReceiver()),
+                () -> EqualsSemanticsTest.assertValueSemantics(signal1, signal2, "sentFrom", s -> s.getSentFrom()));
     }
 
     public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal,

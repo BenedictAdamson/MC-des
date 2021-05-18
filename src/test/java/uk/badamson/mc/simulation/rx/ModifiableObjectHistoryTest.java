@@ -46,7 +46,7 @@ import org.reactivestreams.Publisher;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
-import uk.badamson.dbc.assertions.ThreadTest;
+import uk.badamson.dbc.assertions.ThreadSafetyTest;
 import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.simulation.ObjectStateId;
 import uk.badamson.mc.simulation.rx.EventTest.TestEvent;
@@ -106,8 +106,8 @@ public class ModifiableObjectHistoryTest {
             final var future1 = testInOtherThread(history, event1, ready);
             final var future2 = testInOtherThread(history, event2, ready);
             ready.countDown();
-            ThreadTest.get(future1);
-            ThreadTest.get(future2);
+            ThreadSafetyTest.get(future1);
+            ThreadSafetyTest.get(future2);
 
             assertInvariants(history);
             assertSame(event2, history.getLastEvent(), "lastEvent");
@@ -128,7 +128,7 @@ public class ModifiableObjectHistoryTest {
 
         private Future<Void> testInOtherThread(final ModifiableObjectHistory<Integer> history, final TestEvent event,
                 final CountDownLatch ready) {
-            return ThreadTest.runInOtherThread(ready, () -> {
+            return ThreadSafetyTest.runInOtherThread(ready, () -> {
                 final var object0 = history.getObject();
                 final var start0 = history.getStart();
 

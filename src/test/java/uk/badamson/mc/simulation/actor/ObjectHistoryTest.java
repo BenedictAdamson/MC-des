@@ -49,8 +49,9 @@ import org.reactivestreams.Publisher;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+import uk.badamson.dbc.assertions.EqualsSemanticsTest;
+import uk.badamson.dbc.assertions.ObjectTest;
 import uk.badamson.mc.JsonTest;
-import uk.badamson.mc.ObjectTest;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.history.ValueHistoryTest;
 import uk.badamson.mc.simulation.actor.ObjectHistory.TimestampedState;
@@ -715,9 +716,16 @@ public class ObjectHistoryTest {
             @Nonnull final ObjectHistory<STATE> history2) {
         ObjectTest.assertInvariants(history1, history2);// inherited
 
-        assertTrue(history1.equals(history2) == (history1.getStateTransitions().equals(history2.getStateTransitions())
-                && history1.getObject().equals(history2.getObject()) && history1.getEnd().equals(history2.getEnd())),
-                "value semantics");
+        assertAll("Value semantics",
+                () -> EqualsSemanticsTest.assertValueSemantics(history1, history2, "stateTransitions",
+                        h -> h.getStateTransitions()),
+                () -> EqualsSemanticsTest.assertValueSemantics(history1, history2, "object", h -> h.getObject()),
+                () -> EqualsSemanticsTest.assertValueSemantics(history1, history2, "end", h -> h.getEnd()),
+                () -> assertTrue(history1
+                        .equals(history2) == (history1.getStateTransitions().equals(history2.getStateTransitions())
+                                && history1.getObject().equals(history2.getObject())
+                                && history1.getEnd().equals(history2.getEnd())),
+                        "equals"));
     }
 
     private static <STATE> void assertNoMoreTimestampedStates(final Flux<TimestampedState<STATE>> timestampedStates) {

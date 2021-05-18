@@ -36,6 +36,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import uk.badamson.dbc.assertions.ComparableTest;
+import uk.badamson.dbc.assertions.EqualsSemanticsTest;
 import uk.badamson.dbc.assertions.ObjectTest;
 import uk.badamson.mc.JsonTest;
 
@@ -196,13 +197,11 @@ public class ObjectStateIdTest {
         final Duration when1 = id1.getWhen();
         final Duration when2 = id2.getWhen();
         final boolean whenEquals = when1.equals(when2);
-
-        final boolean equals = id1.equals(id2);
         final int compareTo = Integer.signum(id1.compareTo(id2));
 
-        assertAll("ObjectStateId objects are equivalent only if they have equals",
-                () -> assertFalse(equals && !id1.getObject().equals(id2.getObject()), "object IDs"),
-                () -> assertFalse(equals && !whenEquals, "timestamps"));
+        assertAll("Value semantics",
+                () -> EqualsSemanticsTest.assertValueSemantics(id1, id2, "object", id -> id.getObject()),
+                () -> EqualsSemanticsTest.assertValueSemantics(id1, id2, "when", id -> id.getWhen()));
         assertFalse(!whenEquals && compareTo != Integer.signum(when1.compareTo(when2)),
                 "The natural ordering orders by time-stamp.");
         assertFalse(whenEquals && compareTo != Integer.signum(id1.getObject().compareTo(id2.getObject())),

@@ -51,6 +51,7 @@ import org.reactivestreams.Publisher;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+import uk.badamson.dbc.assertions.EqualsSemanticsTest;
 import uk.badamson.dbc.assertions.ObjectTest;
 import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.history.ValueHistory;
@@ -760,10 +761,13 @@ public class ObjectHistoryTest {
             @Nonnull final ObjectHistory<STATE> history2) {
         ObjectTest.assertInvariants(history1, history2);// inherited
 
-        assertTrue(history1.equals(
-                history2) == (history1.getPreviousStateTransitions().equals(history2.getPreviousStateTransitions())
-                        && history1.getLastEvent().equals(history2.getLastEvent())),
-                "value semantics");
+        assertAll("Value semantics",
+                () -> EqualsSemanticsTest.assertValueSemantics(history1, history2, "previousStateTransitions",
+                        h -> h.getPreviousStateTransitions()),
+                () -> EqualsSemanticsTest.assertValueSemantics(history1, history2, "lastEvent", h -> h.getLastEvent()),
+                () -> assertTrue(history1.equals(history2) == (history1.getPreviousStateTransitions()
+                        .equals(history2.getPreviousStateTransitions())
+                        && history1.getLastEvent().equals(history2.getLastEvent())), "equals"));
     }
 
     public static <STATE> Flux<Event<STATE>> observeEvents(@Nonnull final ObjectHistory<STATE> history) {
