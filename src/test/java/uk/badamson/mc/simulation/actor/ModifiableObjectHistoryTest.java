@@ -152,6 +152,27 @@ public class ModifiableObjectHistoryTest {
             addProvisionalSignalsRecieved(history, signal);
         }
 
+        @RepeatedTest(4)
+        public void multipleThreads() {
+            final int nThreads = 32;
+            final UUID receiver = OBJECT_B;
+            final Duration end = WHEN_A;
+            final var history = new ModifiableObjectHistory<>(receiver, end, Integer.valueOf(1));
+
+            final CountDownLatch ready = new CountDownLatch(1);
+            final var random = new Random(0);
+            final List<Future<Void>> futures = new ArrayList<>(nThreads);
+            for (int t = 0; t < nThreads; ++t) {
+                final UUID sender = UUID.randomUUID();
+                final Duration sent = end.plusSeconds(1 + random.nextInt(128));
+                final var signal = new SignalTest.TestSignal(new ObjectStateId(sender, sent), receiver);
+                futures.add(
+                        ThreadSafetyTest.runInOtherThread(ready, () -> addProvisionalSignalsRecieved(history, signal)));
+            }
+            ready.countDown();
+            ThreadSafetyTest.get(futures);
+        }
+
         @Test
         public void two() {
             final UUID sender = OBJECT_A;

@@ -176,12 +176,13 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
         if (!getObject().equals(signal.getReceiver())) {
             throw new IllegalArgumentException("signal.receiver");
         }
-        // TODO: thread-safety
-        if (signal.getWhenSent().compareTo(getEnd()) < 0) {
-            throw new Signal.UnreceivableSignalException("signal.whenSent before this.end");
-        }
-        if (!provisionalSignalsRecieved.stream().anyMatch(s -> signal.equals(s))) {
-            provisionalSignalsRecieved.addLast(signal);
+        synchronized (lock) {
+            if (signal.getWhenSent().compareTo(getEnd()) < 0) {
+                throw new Signal.UnreceivableSignalException("signal.whenSent before this.end");
+            }
+            if (!provisionalSignalsRecieved.stream().anyMatch(s -> signal.equals(s))) {
+                provisionalSignalsRecieved.addLast(signal);
+            }
         }
     }
 
@@ -233,8 +234,9 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      */
     @Nonnull
     public Collection<Signal<STATE>> getProvisionalSignalsRecieved() {
-        // TODO: thread-safety
-        return List.copyOf(provisionalSignalsRecieved);
+        synchronized (lock) {
+            return List.copyOf(provisionalSignalsRecieved);
+        }
     }
 
 }
