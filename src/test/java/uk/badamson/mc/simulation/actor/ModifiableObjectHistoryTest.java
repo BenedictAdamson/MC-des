@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -55,9 +56,120 @@ import reactor.core.publisher.Flux;
 import uk.badamson.dbc.assertions.ThreadSafetyTest;
 import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.history.ValueHistory;
+import uk.badamson.mc.simulation.ObjectStateId;
 
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
 public class ModifiableObjectHistoryTest {
+
+    @Nested
+    public class AddProvisionalSignalsRecieved {
+
+        @Nested
+        public class One {
+
+            @Test
+            public void far() {
+                final Duration end = WHEN_A;
+                final Duration sent = end.plusDays(365);
+
+                test(OBJECT_A, OBJECT_B, end, sent);
+            }
+
+            @Test
+            public void reflexive() {
+                final Duration end = WHEN_A;
+                final Duration sent = end.plusSeconds(1);
+
+                test(OBJECT_A, OBJECT_A, end, sent);
+            }
+
+            @Test
+            public void sentAtEnd() {
+                final Duration end = WHEN_A;
+                final Duration sent = end;
+
+                test(OBJECT_A, OBJECT_B, end, sent);
+            }
+
+            private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver, @Nonnull final Duration end,
+                    @Nonnull final Duration sent) {
+                assert end.compareTo(sent) <= 0;
+                final Integer state = Integer.valueOf(1);
+                final var history = new ModifiableObjectHistory<>(receiver, end, state);
+                final var signal = new SignalTest.TestSignal(new ObjectStateId(sender, sent), receiver);
+                assert history.getEnd().equals(end);
+
+                addProvisionalSignalsRecieved(history, signal);
+            }
+
+        }// class
+
+        @Nested
+        public class Unreceivable {
+
+            @Test
+            public void close() {
+                final Duration sent = WHEN_A;
+                final Duration end = sent.plusNanos(1);// critical
+
+                test(sent, end);
+            }
+
+            @Test
+            public void far() {
+                final Duration sent = WHEN_B;
+                final Duration end = sent.plusDays(365);
+
+                test(sent, end);
+            }
+
+            private void test(@Nonnull final Duration sent, @Nonnull final Duration end) {
+                assert sent.compareTo(end) < 0;
+                final UUID sender = OBJECT_A;
+                final UUID receiver = OBJECT_B;
+                final Integer state = Integer.valueOf(1);
+                final var history = new ModifiableObjectHistory<>(receiver, end, state);
+                final var signal = new SignalTest.TestSignal(new ObjectStateId(sender, sent), receiver);
+                assert history.getEnd().equals(end);
+
+                assertThrows(Signal.UnreceivableSignalException.class,
+                        () -> addProvisionalSignalsRecieved(history, signal));
+            }
+        }// class
+
+        @Test
+        public void duplicate() {
+            final UUID sender = OBJECT_A;
+            final UUID receiver = OBJECT_B;
+            final Duration end = WHEN_A;
+            final Duration sent = WHEN_B;
+            final Integer state = Integer.valueOf(1);
+            final var history = new ModifiableObjectHistory<>(receiver, end, state);
+            final var signal = new SignalTest.TestSignal(new ObjectStateId(sender, sent), receiver);
+            assert history.getEnd().equals(end);
+            history.addProvisionalSignalsRecieved(signal);
+
+            addProvisionalSignalsRecieved(history, signal);
+        }
+
+        @Test
+        public void two() {
+            final UUID sender = OBJECT_A;
+            final UUID receiver = OBJECT_B;
+            final Duration end = WHEN_A;
+            final Duration sent1 = end.plusSeconds(1);
+            final Duration sent2 = end.plusSeconds(2);
+            final Integer state = Integer.valueOf(1);
+            final var history = new ModifiableObjectHistory<>(receiver, end, state);
+            final var signal1 = new SignalTest.TestSignal(new ObjectStateId(sender, sent1), receiver);
+            final var signal2 = new SignalTest.TestSignal(new ObjectStateId(sender, sent2), receiver);
+            assert history.getEnd().equals(end);
+            history.addProvisionalSignalsRecieved(signal1);
+
+            addProvisionalSignalsRecieved(history, signal2);
+        }
+
+    }// class
 
     @Nested
     public class CommitTo {
@@ -378,9 +490,10 @@ public class ModifiableObjectHistoryTest {
     }// class
 
     private static final UUID OBJECT_A = ObjectHistoryTest.OBJECT_A;
-    private static final UUID OBJECT_B = ObjectHistoryTest.OBJECT_B;
 
+    private static final UUID OBJECT_B = ObjectHistoryTest.OBJECT_B;
     private static final Duration WHEN_A = ObjectHistoryTest.WHEN_A;
+
     private static final Duration WHEN_B = ObjectHistoryTest.WHEN_B;
 
     public static <STATE> void assertInvariants(@Nonnull final ModifiableObjectHistory<STATE> history) {
@@ -483,5 +596,18 @@ public class ModifiableObjectHistoryTest {
 
         assertInvariants(history);
         return flux;
+    }
+
+    private <STATE> void addProvisionalSignalsRecieved(@Nonnull final ModifiableObjectHistory<STATE> history,
+            @Nonnull final Signal<STATE> signal) throws Signal.UnreceivableSignalException {
+        try {
+            history.addProvisionalSignalsRecieved(signal);
+        } catch (final Signal.UnreceivableSignalException e) {
+            assertInvariants(history);
+            throw e;
+        }
+
+        assertInvariants(history);
+        assertThat("added", count(history.getProvisionalSignalsRecieved(), signal) == 1);
     }
 }

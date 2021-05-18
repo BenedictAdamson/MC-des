@@ -145,6 +145,48 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
 
     /**
      * <p>
+     * Add a signal to the {@linkplain #getProvisionalSignalsRecieved() collection
+     * of provisional signals received}.
+     * </p>
+     * <ul>
+     * <li>If the collection already {@linkplain Collection#contains(Object)
+     * contains} a signal {@linkplain Signal#equals(Object) equal} to the given
+     * {@code signal}, this has no effect.</li>
+     * </ul>
+     *
+     * @param signal
+     *            The signal to add
+     * @throws NullPointerException
+     *             If {@code signal} is null.
+     * @throws IllegalArgumentException
+     *             If the {@linkplain Signal#getReceiver() receiver} of the
+     *             {@code signal} is not {@linkplain UUID#equals(Object) equal to}
+     *             the {@linkplain #getObject() object} of this history.
+     * @throws Signal.UnreceivableSignalException
+     *             If the {@code signal} {@linkplain Signal#getWhenSent() sending
+     *             time} is {@linkplain Duration#compareTo(Duration) before} the
+     *             {@linkplain #getEnd() end} of the period of reliable
+     *             {@linkplain #getStateHistory() state history}. This is a
+     *             non-fatal error: if this exception is thrown, all invariants have
+     *             been maintained.
+     */
+    public void addProvisionalSignalsRecieved(@Nonnull final Signal<STATE> signal)
+            throws Signal.UnreceivableSignalException {
+        Objects.requireNonNull(signal, "signal");
+        if (!getObject().equals(signal.getReceiver())) {
+            throw new IllegalArgumentException("signal.receiver");
+        }
+        // TODO: thread-safety
+        if (signal.getWhenSent().compareTo(getEnd()) < 0) {
+            throw new Signal.UnreceivableSignalException("signal.whenSent before this.end");
+        }
+        if (!provisionalSignalsRecieved.stream().anyMatch(s -> signal.equals(s))) {
+            provisionalSignalsRecieved.addLast(signal);
+        }
+    }
+
+    /**
+     * <p>
      * Advance the {@linkplain #getEnd() end time of reliable state information} to
      * at least a given time.
      * </p>
