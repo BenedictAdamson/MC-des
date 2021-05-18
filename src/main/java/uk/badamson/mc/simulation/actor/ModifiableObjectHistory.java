@@ -52,16 +52,15 @@ import uk.badamson.mc.history.ValueHistory;
 public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
 
     @GuardedBy("lock")
-    private final Deque<Signal<STATE>> provisionalSignalsRecieved = new ArrayDeque<>();
+    private final Deque<Signal<STATE>> signals = new ArrayDeque<>();
 
     /**
      * <p>
      * Copy an object history.
      * </p>
      * <ul>
-     * <li>The {@linkplain #getProvisionalSignalsRecieved() collection of
-     * provisional signals received} {@linkplain Collection#isEmpty() is
-     * empty}.</li>
+     * <li>The {@linkplain #getSignals() collection of signals}
+     * {@linkplain Collection#isEmpty() is empty}.</li>
      * </ul>
      */
     public ModifiableObjectHistory(@Nonnull final ObjectHistory<STATE> that) {
@@ -73,9 +72,8 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      * Construct an object history with given history information.
      * </p>
      * <ul>
-     * <li>The {@linkplain #getProvisionalSignalsRecieved() collection of
-     * provisional signals received} {@linkplain Collection#isEmpty() is
-     * empty}.</li>
+     * <li>The {@linkplain #getSignals() collection of signals}
+     * {@linkplain Collection#isEmpty() is empty}.</li>
      * </ul>
      *
      * @param object
@@ -123,9 +121,8 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      * Construct an object history with given start information.
      * </p>
      * <ul>
-     * <li>The {@linkplain #getProvisionalSignalsRecieved() collection of
-     * provisional signals received} {@linkplain Collection#isEmpty() is
-     * empty}.</li>
+     * <li>The {@linkplain #getSignals() collection of signals}
+     * {@linkplain Collection#isEmpty() is empty}.</li>
      * </ul>
      *
      * @param object
@@ -145,8 +142,7 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
 
     /**
      * <p>
-     * Add a signal to the {@linkplain #getProvisionalSignalsRecieved() collection
-     * of provisional signals received}.
+     * Add a signal to the {@linkplain #getSignals() collection of signals}.
      * </p>
      * <ul>
      * <li>If the collection already {@linkplain Collection#contains(Object)
@@ -170,8 +166,7 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      *             non-fatal error: if this exception is thrown, all invariants have
      *             been maintained.
      */
-    public void addProvisionalSignalsRecieved(@Nonnull final Signal<STATE> signal)
-            throws Signal.UnreceivableSignalException {
+    public void addSignal(@Nonnull final Signal<STATE> signal) throws Signal.UnreceivableSignalException {
         Objects.requireNonNull(signal, "signal");
         if (!getObject().equals(signal.getReceiver())) {
             throw new IllegalArgumentException("signal.receiver");
@@ -180,8 +175,8 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
             if (signal.getWhenSent().compareTo(getEnd()) < 0) {
                 throw new Signal.UnreceivableSignalException("signal.whenSent before this.end");
             }
-            if (!provisionalSignalsRecieved.stream().anyMatch(s -> signal.equals(s))) {
-                provisionalSignalsRecieved.addLast(signal);
+            if (!signals.stream().anyMatch(s -> signal.equals(s))) {
+                signals.addLast(signal);
             }
         }
     }
@@ -211,6 +206,9 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      * {@linkplain #getEnd() reliable} {@linkplain #getStateHistory() state history}
      * of the object.
      * </p>
+     * <p>
+     * These are the <i>provisional</i> signals.
+     * </p>
      * <ul>
      * <li>The collection of provisional signals received does not contain any null
      * elements.</li>
@@ -233,9 +231,9 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      * </ul>
      */
     @Nonnull
-    public Collection<Signal<STATE>> getProvisionalSignalsRecieved() {
+    public Collection<Signal<STATE>> getSignals() {
         synchronized (lock) {
-            return List.copyOf(provisionalSignalsRecieved);
+            return List.copyOf(signals);
         }
     }
 

@@ -62,7 +62,7 @@ import uk.badamson.mc.simulation.ObjectStateId;
 public class ModifiableObjectHistoryTest {
 
     @Nested
-    public class AddProvisionalSignalsRecieved {
+    public class AddSignal {
 
         @Nested
         public class One {
@@ -99,7 +99,7 @@ public class ModifiableObjectHistoryTest {
                 final var signal = new SignalTest.TestSignal(new ObjectStateId(sender, sent), receiver);
                 assert history.getEnd().equals(end);
 
-                addProvisionalSignalsRecieved(history, signal);
+                addSignal(history, signal);
             }
 
         }// class
@@ -132,8 +132,7 @@ public class ModifiableObjectHistoryTest {
                 final var signal = new SignalTest.TestSignal(new ObjectStateId(sender, sent), receiver);
                 assert history.getEnd().equals(end);
 
-                assertThrows(Signal.UnreceivableSignalException.class,
-                        () -> addProvisionalSignalsRecieved(history, signal));
+                assertThrows(Signal.UnreceivableSignalException.class, () -> addSignal(history, signal));
             }
         }// class
 
@@ -147,9 +146,9 @@ public class ModifiableObjectHistoryTest {
             final var history = new ModifiableObjectHistory<>(receiver, end, state);
             final var signal = new SignalTest.TestSignal(new ObjectStateId(sender, sent), receiver);
             assert history.getEnd().equals(end);
-            history.addProvisionalSignalsRecieved(signal);
+            history.addSignal(signal);
 
-            addProvisionalSignalsRecieved(history, signal);
+            addSignal(history, signal);
         }
 
         @RepeatedTest(4)
@@ -166,8 +165,7 @@ public class ModifiableObjectHistoryTest {
                 final UUID sender = UUID.randomUUID();
                 final Duration sent = end.plusSeconds(1 + random.nextInt(128));
                 final var signal = new SignalTest.TestSignal(new ObjectStateId(sender, sent), receiver);
-                futures.add(
-                        ThreadSafetyTest.runInOtherThread(ready, () -> addProvisionalSignalsRecieved(history, signal)));
+                futures.add(ThreadSafetyTest.runInOtherThread(ready, () -> addSignal(history, signal)));
             }
             ready.countDown();
             ThreadSafetyTest.get(futures);
@@ -185,9 +183,9 @@ public class ModifiableObjectHistoryTest {
             final var signal1 = new SignalTest.TestSignal(new ObjectStateId(sender, sent1), receiver);
             final var signal2 = new SignalTest.TestSignal(new ObjectStateId(sender, sent2), receiver);
             assert history.getEnd().equals(end);
-            history.addProvisionalSignalsRecieved(signal1);
+            history.addSignal(signal1);
 
-            addProvisionalSignalsRecieved(history, signal2);
+            addSignal(history, signal2);
         }
 
     }// class
@@ -520,10 +518,9 @@ public class ModifiableObjectHistoryTest {
     public static <STATE> void assertInvariants(@Nonnull final ModifiableObjectHistory<STATE> history) {
         ObjectHistoryTest.assertInvariants(history);// inherited
 
-        final Collection<Signal<STATE>> provisionalSignalsRecieved = history.getProvisionalSignalsRecieved();
-        assertNotNull(provisionalSignalsRecieved, "provisionalSignalsRecieved");// guard
-        assertAll("provisionalSignalsRecieved", createProvisionalSignalsRecievedAssertions(provisionalSignalsRecieved,
-                history.getObject(), history.getEnd()));
+        final Collection<Signal<STATE>> signals = history.getSignals();
+        assertNotNull(signals, "signals");// guard
+        assertAll("signals", createSignalsAssertions(signals, history.getObject(), history.getEnd()));
     }
 
     public static <STATE> void assertInvariants(@Nonnull final ModifiableObjectHistory<STATE> history1,
@@ -553,7 +550,7 @@ public class ModifiableObjectHistoryTest {
                 () -> assertSame(that.getObject(), copy.getObject(), "object"),
                 () -> assertSame(that.getStart(), copy.getStart(), "start"),
                 () -> assertEquals(that.getStateHistory(), copy.getStateHistory(), "stateHistory"));
-        assertThat("provisionalSignalsRecieved", copy.getProvisionalSignalsRecieved(), empty());
+        assertThat("signals", copy.getSignals(), empty());
     }
 
     private static <STATE> void constructor(@Nonnull final UUID object, @Nonnull final Duration end,
@@ -565,7 +562,7 @@ public class ModifiableObjectHistoryTest {
                 () -> assertSame(end, history.getEnd(), "end"),
                 () -> assertSame(stateTransitions.firstKey(), history.getStart(), "start"),
                 () -> assertEquals(stateTransitions, history.getStateTransitions(), "stateTransitions"),
-                () -> assertThat("provisionalSignalsRecieved", history.getProvisionalSignalsRecieved(), empty()));
+                () -> assertThat("signals", history.getSignals(), empty()));
     }
 
     private static <STATE> void constructor(@Nonnull final UUID object, @Nonnull final Duration start,
@@ -578,23 +575,23 @@ public class ModifiableObjectHistoryTest {
                 () -> assertSame(start, history.getStart(), "start"), () -> assertSame(start, history.getEnd(), "end"),
                 () -> assertSame(stateTransitions.firstKey(), history.getStart(), "start"),
                 () -> assertEquals(stateTransitions, Map.of(start, state), "stateTransitions"),
-                () -> assertThat("provisionalSignalsRecieved", history.getProvisionalSignalsRecieved(), empty()));
+                () -> assertThat("signals", history.getSignals(), empty()));
     }
 
     private static <STATE> long count(final Collection<Signal<STATE>> collection, final Signal<STATE> signal) {
         return collection.stream().filter(s -> signal.equals(s)).count();
     }
 
-    private static <STATE> Stream<Executable> createProvisionalSignalsRecievedAssertions(
-            @Nonnull final Collection<Signal<STATE>> provisionalSignalsRecieved, @Nonnull final UUID object,
+    private static <STATE> Stream<Executable> createSignalsAssertions(
+            @Nonnull final Collection<Signal<STATE>> signalsRecieved, @Nonnull final UUID object,
             @Nonnull final Duration end) {
-        return provisionalSignalsRecieved.stream().map(signal -> new Executable() {
+        return signalsRecieved.stream().map(signal -> new Executable() {
 
             @Override
             public void execute() throws Throwable {
-                assertNotNull(signal, "provisionalSignalRecieved not null");// guard
-                assertAll("provisionalSignalRecieved", () -> SignalTest.assertInvariants(signal),
-                        () -> assertThat("not duplicated", count(provisionalSignalsRecieved, signal) == 1),
+                assertNotNull(signal, "signals not null");// guard
+                assertAll("signals", () -> SignalTest.assertInvariants(signal),
+                        () -> assertThat("not duplicated", count(signalsRecieved, signal) == 1),
                         () -> assertThat("has the object of this history as their receiver.", signal.getReceiver(),
                                 is(object)),
                         () -> assertThat("was sent at or after the end of the period of reliable state history",
@@ -619,16 +616,16 @@ public class ModifiableObjectHistoryTest {
         return flux;
     }
 
-    private <STATE> void addProvisionalSignalsRecieved(@Nonnull final ModifiableObjectHistory<STATE> history,
+    private <STATE> void addSignal(@Nonnull final ModifiableObjectHistory<STATE> history,
             @Nonnull final Signal<STATE> signal) throws Signal.UnreceivableSignalException {
         try {
-            history.addProvisionalSignalsRecieved(signal);
+            history.addSignal(signal);
         } catch (final Signal.UnreceivableSignalException e) {
             assertInvariants(history);
             throw e;
         }
 
         assertInvariants(history);
-        assertThat("added", count(history.getProvisionalSignalsRecieved(), signal) == 1);
+        assertThat("added", count(history.getSignals(), signal) == 1);
     }
 }
