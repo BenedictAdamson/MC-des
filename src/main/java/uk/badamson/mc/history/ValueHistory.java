@@ -233,13 +233,13 @@ public interface ValueHistory<VALUE> {
      * <li>The time-stamped value {@linkplain TimestampedValue#getStart() start
      * time} is <em>either</em> the last {@linkplain #getTransitionTimes()
      * transition time} {@linkplain Duration#compareTo(Duration) at or before}
-     * {@code when}, <em>or<> the {@linkplain #START_OF_TIME start of time}, if
+     * {@code when}, <em>or</em> the {@linkplain #START_OF_TIME start of time}, if
      * there are no transition times at or before {@code when}.</li>
      * <li>The time-stamped value {@linkplain TimestampedValue#getEnd() end time} is
      * <em>either</em> the first {@linkplain #getTransitionTimes() transition time}
-     * {@linkplain Duration#compareTo(Duration) at or after} {@code when}, <em>or<>
-     * the {@linkplain #END_OF_TIME end of time}, if there are no transition times
-     * at or after {@code when}.</li>
+     * {@linkplain Duration#compareTo(Duration) at or after} {@code when},
+     * <em>or</em> the {@linkplain #END_OF_TIME end of time}, if there are no
+     * transition times at or after {@code when}.</li>
      * </ul>
      *
      * @param when

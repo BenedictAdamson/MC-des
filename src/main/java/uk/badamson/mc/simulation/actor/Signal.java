@@ -564,6 +564,9 @@ public abstract class Signal<STATE> {
      * receiver in the given {@code receiverState}.</li>
      * </ul>
      *
+     * @param receiverState
+     *            The state of the {@linkplain #getReceiver() receiver} for which to
+     *            compute the {@linkplain Effect effect} of this signal.
      * @throws NullPointerException
      *             If {@code receiverState} is null.
      * @throws UnreceivableSignalException
