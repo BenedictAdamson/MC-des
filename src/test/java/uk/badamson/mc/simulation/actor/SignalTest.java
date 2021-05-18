@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -47,6 +48,8 @@ import org.junit.jupiter.api.function.Executable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import uk.badamson.dbc.assertions.EqualsSemanticsTest;
 import uk.badamson.dbc.assertions.ObjectTest;
+import uk.badamson.mc.history.ConstantValueHistory;
+import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.simulation.ObjectStateId;
 import uk.badamson.mc.simulation.ObjectStateIdTest;
 import uk.badamson.mc.simulation.actor.Signal.UnreceivableSignalException;
@@ -353,13 +356,52 @@ public class SignalTest {
 
     }// class
 
+    @Nested
+    public class WhenReceived {
+
+        @Nested
+        public class ForHistory {
+
+            @Nested
+            public class Constant {
+                @Test
+                public void a() {
+                    test(WHEN_A, Integer.valueOf(1));
+                }
+
+                @Test
+                public void alwaysDestroyed() {
+                    test(WHEN_A, null);
+                }
+
+                @Test
+                public void b() {
+                    test(WHEN_B, Integer.valueOf(2));
+                }
+
+                private void test(@Nonnull final Duration whenSet, @Nonnull final Integer receiverState) {
+                    final var signal = new TestSignal(new ObjectStateId(OBJECT_A, whenSet), OBJECT_B);
+                    final ValueHistory<Integer> receiverStateHistory = new ConstantValueHistory<Integer>(receiverState);
+
+                    final var whenReceived = getWhenReceived(signal, receiverStateHistory);
+
+                    assertEquals(signal.getWhenReceived(receiverState), whenReceived, "when received");
+                }
+
+            }// class
+
+        }// class
+
+    }// class
+
     private static final UUID OBJECT_A = UUID.randomUUID();
+
     private static final UUID OBJECT_B = UUID.randomUUID();
-
     private static final Duration WHEN_A = Duration.ofMillis(0);
-    private static final Duration WHEN_B = Duration.ofMillis(5000);
 
+    private static final Duration WHEN_B = Duration.ofMillis(5000);
     private static final ObjectStateId ID_A = new ObjectStateId(OBJECT_A, WHEN_A);
+
     private static final ObjectStateId ID_B = new ObjectStateId(OBJECT_B, WHEN_B);
 
     public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal) {
@@ -418,6 +460,24 @@ public class SignalTest {
         assertAll("Attributes", () -> assertSame(sentFrom, signal.getSentFrom(), "sentFrom"),
                 () -> assertSame(receiver, signal.getReceiver(), "receiver"));
         return signal;
+    }
+
+    public static <STATE> Duration getWhenReceived(@Nonnull final Signal<STATE> signal,
+            @Nonnull final ValueHistory<STATE> receiverStateHistory) {
+        final var whenReceived = signal.getWhenReceived(receiverStateHistory);
+
+        assertNotNull(whenReceived, "Not null, whenReceived");// guard
+        assertInvariants(signal);
+        final var stateWhenReceived = receiverStateHistory.get(whenReceived);
+        assertThat(
+                "The reception time is after the sending time, unless the sending time is the maximum possible value.",
+                whenReceived, either(greaterThan(signal.getWhenSent())).or(is(Signal.NEVER_RECEIVED)));
+        assertFalse(stateWhenReceived == null && !Signal.NEVER_RECEIVED.equals(whenReceived),
+                "If the simulated object is destroyed or removed it can not receive a signal.");
+        assertThat("The reception time is consistent with the receiver history",
+                signal.getWhenReceived(stateWhenReceived), lessThanOrEqualTo(whenReceived));
+
+        return whenReceived;
     }
 
     public static <STATE> Signal.Effect<STATE> receive(@Nonnull final Signal<STATE> signal,

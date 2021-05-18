@@ -10,6 +10,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.simulation.ObjectStateId;
 
 /*
@@ -395,6 +396,7 @@ public abstract class Signal<STATE> {
      *            destroyed or removed.
      *
      * @see #receive(Object)
+     * @see #getWhenReceived(ValueHistory)
      */
     @Nonnull
     public final Duration getWhenReceived(@Nullable final STATE receiverState) {
@@ -416,6 +418,68 @@ public abstract class Signal<STATE> {
                 return NEVER_RECEIVED;
             }
         }
+    }
+
+    /**
+     * <p>
+     * The point in time when this signal will be received, if the
+     * {@linkplain #getReceiver() receiver} has a given {@linkplain ValueHistory
+     * time-varying state}
+     * </p>
+     * <p>
+     * The reception time can depend on the receiver state to implement signals sent
+     * through a medium while the receiver also moves. The method may return a
+     * {@link #NEVER_RECEIVED} value to indicate that reception is impossible. The
+     * computed reception time can be {@linkplain ValueHistory#get(Duration)
+     * combined} with the given {@code receiverStateHistory} to compute the state of
+     * the receiver when it receives the signal.
+     * </p>
+     * <p>
+     * This is a <i>template method</i> that delegates to the
+     * {@link #getPropagationDelay(Object)} <i>primitive operation</i>.
+     * </p>
+     * <ul>
+     * <li>If the simulated object is destroyed or removed it can not receive a
+     * signal. Therefore the reception time may indicate a {@code null} receiver
+     * state only if the reception time is {@link #NEVER_RECEIVED}.</li>
+     * <li>The reception time is {@linkplain Duration#compareTo(Duration) after} the
+     * {@linkplain #getWhenSent() sending time}, unless the sending time is the
+     * maximum possible {@link Duration} value.</li>
+     * <li>The reception time is consistent with the receiver history: the returned
+     * reception time indicates the earliest state after the
+     * {@linkplain #getWhenSent() sending} of the signal for which the
+     * {@linkplain #getWhenReceived(Object) reception time for that state} is
+     * {@linkplain Duration#compareTo(Duration) at or before} the returned reception
+     * time. The possibility that it is <em>before</em> is to allow for
+     * discontinuities in the {@linkplain #getPropagationDelay(Object) propagation
+     * delay}.</li>
+     * </ul>
+     *
+     * @param receiverStateHistory
+     *            The time-wise variation of the state of the receiver. A null
+     *            {@linkplain ValueHistory#get(Duration) value at a point in time}
+     *            indicates that the simulated object was destroyed or removed at or
+     *            before that point in time.
+     * @throws NullPointerException
+     *             If {@code receiverStateHistory} is null.
+     * @throws IllegalArgumentException
+     *             If the {@code receiverStateHistory} has a
+     *             {@linkplain ValueHistory#getTransitions() transition} to a null
+     *             state at a time before the last transition. That is, if
+     *             {@code receiverStateHistory} indicates resurrection of a
+     *             destroyed object.
+     *
+     * @see #getWhenReceived(Object)
+     */
+    @Nonnull
+    public final Duration getWhenReceived(@Nonnull final ValueHistory<STATE> receiverStateHistory) {
+        Objects.requireNonNull(receiverStateHistory, "receiverStateHistory");
+
+        final Duration t = getWhenSent();
+        final STATE receiverState = receiverStateHistory.get(t);
+        final Duration whenReceived = getWhenReceived(receiverState);
+        // TODO: iterate
+        return whenReceived;
     }
 
     /**
