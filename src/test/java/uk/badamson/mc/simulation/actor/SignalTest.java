@@ -49,6 +49,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import uk.badamson.dbc.assertions.EqualsSemanticsTest;
 import uk.badamson.dbc.assertions.ObjectTest;
 import uk.badamson.mc.history.ConstantValueHistory;
+import uk.badamson.mc.history.ModifiableValueHistory;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.simulation.ObjectStateId;
 import uk.badamson.mc.simulation.ObjectStateIdTest;
@@ -386,6 +387,62 @@ public class SignalTest {
                     final var whenReceived = getWhenReceived(signal, receiverStateHistory);
 
                     assertEquals(signal.getWhenReceived(receiverState), whenReceived, "when received");
+                }
+
+            }// class
+
+            @Nested
+            public class OneChange {
+
+                @Test
+                public void arriveAtTransition() {
+                    final Duration whenSent = WHEN_A;
+                    final Duration transitionTime = whenSent.plusSeconds(4);
+                    final Integer receiverState0 = Integer.valueOf(16);
+                    final Integer receiverState1 = Integer.valueOf(1);
+
+                    test(whenSent, transitionTime, receiverState0, receiverState1);
+                }
+
+                @Test
+                public void close() {
+                    final Duration whenSent = WHEN_A;
+                    final Duration transitionTime = whenSent.plusNanos(1);// critical
+                    final Integer receiverState0 = Integer.valueOf(1);
+                    final Integer receiverState1 = Integer.valueOf(100);
+
+                    test(whenSent, transitionTime, receiverState0, receiverState1);
+                }
+
+                @Test
+                public void decreasingPropagationDelay() {
+                    final Duration whenSent = WHEN_A;
+                    final Duration transitionTime = whenSent.plusMillis(400);
+                    final Integer receiverState0 = Integer.valueOf(16);
+                    final Integer receiverState1 = Integer.valueOf(4);
+
+                    test(whenSent, transitionTime, receiverState0, receiverState1);
+                }
+
+                @Test
+                public void increasingPropagationDelay() {
+                    final Duration whenSent = WHEN_B;
+                    final Duration transitionTime = whenSent.plusMillis(100);
+                    final Integer receiverState0 = Integer.valueOf(4);
+                    final Integer receiverState1 = Integer.valueOf(16);
+
+                    test(whenSent, transitionTime, receiverState0, receiverState1);
+                }
+
+                private void test(@Nonnull final Duration whenSet, @Nonnull final Duration transitionTime,
+                        @Nonnull final Integer receiverState0, @Nonnull final Integer receiverState1) {
+                    assert whenSet.compareTo(transitionTime) < 0;
+                    final var signal = new TestSignal(new ObjectStateId(OBJECT_A, whenSet), OBJECT_B);
+                    final ModifiableValueHistory<Integer> receiverStateHistory = new ModifiableValueHistory<Integer>(
+                            receiverState0);
+                    receiverStateHistory.appendTransition(transitionTime, receiverState1);
+
+                    getWhenReceived(signal, receiverStateHistory);
                 }
 
             }// class

@@ -10,6 +10,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import uk.badamson.mc.history.TimestampedValue;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.simulation.ObjectStateId;
 
@@ -475,11 +476,23 @@ public abstract class Signal<STATE> {
     public final Duration getWhenReceived(@Nonnull final ValueHistory<STATE> receiverStateHistory) {
         Objects.requireNonNull(receiverStateHistory, "receiverStateHistory");
 
-        final Duration t = getWhenSent();
-        final STATE receiverState = receiverStateHistory.get(t);
-        final Duration whenReceived = getWhenReceived(receiverState);
-        // TODO: iterate
-        return whenReceived;
+        Duration tProbe = getWhenSent();
+        while (tProbe.compareTo(NEVER_RECEIVED) < 0) {
+            final TimestampedValue<STATE> timestampedValue = receiverStateHistory.getTimestampedValue(tProbe);
+            final STATE receiverState = timestampedValue.getValue();
+            final Duration whenReceived = getWhenReceived(receiverState);
+            assert getWhenSent().compareTo(whenReceived) < 0;
+            if (whenReceived.compareTo(timestampedValue.getStart()) <= 0) {
+                assert getWhenSent().compareTo(timestampedValue.getStart()) < 0;
+                return timestampedValue.getStart();
+            } else if (whenReceived.compareTo(timestampedValue.getEnd()) <= 0) {
+                return whenReceived;
+            } // else must iterate
+            assert timestampedValue.getEnd().compareTo(NEVER_RECEIVED) < 0;
+            tProbe = receiverStateHistory.getTansitionTimeAtOrAfter(tProbe);
+            assert tProbe != null;
+        } // while
+        return NEVER_RECEIVED;
     }
 
     /**
