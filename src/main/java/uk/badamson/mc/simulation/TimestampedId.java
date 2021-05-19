@@ -30,7 +30,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * <p>
- * An identifier (unique key) for the state of a simulated object.
+ * An identifier (unique key) of an object with a time-stamp.
  * </p>
  */
 @Immutable
@@ -43,25 +43,9 @@ public final class TimestampedId implements Comparable<TimestampedId> {
      * <p>
      * Construct an object with given attribute values.
      * </p>
-     * <ul>
-     * <li>The {@linkplain #getObject() object ID} of this ID is the given object
-     * ID.</li>
-     * <li>The {@linkplain #getWhen() time-stamp} of this ID is the given
-     * time-stamp.</li>
-     * </ul>
      *
-     * @param object
-     *            The unique ID of the object for which this identifies a state.
-     * @param when
-     *            The point in time that the {@linkplain #getObject() object} has
-     *            the state identified by this ID, expressed as a duration since an
-     *            (implied) epoch. All objects in a simulation should use the same
-     *            epoch.
      * @throws NullPointerException
-     *             <ul>
-     *             <li>If {@code object} is null.</li>
-     *             <li>If {@code when} is null.</li>
-     *             </ul>
+     *             If any argument is null.
      */
     @JsonCreator
     public TimestampedId(@Nonnull @JsonProperty("object") final UUID object,
@@ -72,7 +56,7 @@ public final class TimestampedId implements Comparable<TimestampedId> {
 
     /**
      * <p>
-     * The <i>natural ordering</i> relation of this ID with a given ID.
+     * The <i>natural ordering</i> relation of this ID.
      * </p>
      * <ul>
      * <li>The <i>natural ordering</i> of {@link TimestampedId} is consistent with
@@ -130,10 +114,8 @@ public final class TimestampedId implements Comparable<TimestampedId> {
 
     /**
      * <p>
-     * The unique ID of the object for which this identifies a state.
+     * The unique ID of the object.
      * </p>
-     *
-     * @return The object ID; not null.
      */
     @Nonnull
     public UUID getObject() {
@@ -142,15 +124,12 @@ public final class TimestampedId implements Comparable<TimestampedId> {
 
     /**
      * <p>
-     * The point in time that the {@linkplain #getObject() object} has the state
-     * identified by this ID.
+     * The time-stamp.
      * </p>
      * <p>
      * Expressed as the duration since an (implied) epoch. All objects in a
      * simulation should use the same epoch.
      * </p>
-     *
-     * @return the amount of time since the epoch; not null.
      */
     @Nonnull
     public Duration getWhen() {
