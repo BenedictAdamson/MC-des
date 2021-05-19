@@ -65,21 +65,23 @@ public class SignalTest {
         public class Two {
 
             @Test
-            public void differentReceiver() {
+            public void different() {
+                // Tough test: non ID attributes are the same
                 final Signal<Integer> signalA = new TestSignal(ID_A, OBJECT_STATE_ID_A, OBJECT_A);
-                final Signal<Integer> signalB = new TestSignal(ID_A, OBJECT_STATE_ID_A, OBJECT_B);
+                final Signal<Integer> signalB = new TestSignal(ID_B, OBJECT_STATE_ID_A, OBJECT_A);
 
                 assertInvariants(signalA, signalB);
                 assertNotEquals(signalA, signalB);
             }
 
             @Test
-            public void differentSentFrom() {
+            public void equivalent() {
+                // Tough test: non ID attributes are the different
                 final Signal<Integer> signalA = new TestSignal(ID_A, OBJECT_STATE_ID_A, OBJECT_A);
-                final Signal<Integer> signalB = new TestSignal(ID_A, OBJECT_STATE_ID_B, OBJECT_A);
+                final Signal<Integer> signalB = new TestSignal(ID_A, OBJECT_STATE_ID_B, OBJECT_B);
 
                 assertInvariants(signalA, signalB);
-                assertNotEquals(signalA, signalB);
+                assertEquals(signalA, signalB);
             }
 
         }// class
@@ -470,9 +472,7 @@ public class SignalTest {
             @Nonnull final Signal<STATE> signal2) {
         ObjectTest.assertInvariants(signal1, signal2);// inherited
 
-        assertAll("value semantics",
-                () -> EqualsSemanticsTest.assertValueSemantics(signal1, signal2, "receiver", s -> s.getReceiver()),
-                () -> EqualsSemanticsTest.assertValueSemantics(signal1, signal2, "sentFrom", s -> s.getSentFrom()));
+        EqualsSemanticsTest.assertEntitySemantics(signal1, signal2, signal -> signal.getId());
     }
 
     public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal,

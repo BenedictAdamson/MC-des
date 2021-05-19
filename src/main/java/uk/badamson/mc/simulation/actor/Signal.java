@@ -249,6 +249,27 @@ public abstract class Signal<STATE> {
     }
 
     /**
+     * <p>
+     * Whether this signal is <dfn>equivalent to</dfn> a given other object.
+     * </p>
+     * <p>
+     * The {@link Signal} class has <i>entity semantics</i> with the
+     * {@linkplain #getId() ID} attribute acting as the unique ID.
+     * </p>
+     */
+    @Override
+    public final boolean equals(final Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof Signal)) {
+            return false;
+        }
+        final Signal<?> other = (Signal<?>) obj;
+        return id.equals(other.id);
+    }
+
+    /**
      * The unique ID for this signal.
      */
     @Nonnull
@@ -472,6 +493,11 @@ public abstract class Signal<STATE> {
         return sentFrom.getWhen();
     }
 
+    @Override
+    public final int hashCode() {
+        return id.hashCode();
+    }
+
     /**
      * <p>
      * The effect that his signal has if received by the {@linkplain #getReceiver()
@@ -563,4 +589,5 @@ public abstract class Signal<STATE> {
     public String toString() {
         return getClass().getSimpleName() + "[" + sentFrom + "⇝" + receiver + "]";
     }
+
 }
