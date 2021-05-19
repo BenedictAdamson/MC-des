@@ -21,6 +21,7 @@ package uk.badamson.mc.simulation.actor;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
@@ -222,15 +223,14 @@ public class ObjectHistory<STATE> {
     @GuardedBy("lock")
     protected final ModifiableValueHistory<STATE> stateHistory;
 
-    private final Sinks.Many<TimestampedState<STATE>> timestampedStates = Sinks.many().replay().latest();
+    @Nullable
+    @GuardedBy("lock")
+    protected TimestampedId lastSignalApplied;
+    protected final Sinks.Many<TimestampedState<STATE>> timestampedStates = Sinks.many().replay().latest();
 
     @Nonnull
     @GuardedBy("lock")
     private Duration end;
-
-    @Nullable
-    @GuardedBy("lock")
-    private TimestampedId lastSignalApplied;
 
     /*
      * Keyed by the signal reception time and signal ID
@@ -519,14 +519,19 @@ public class ObjectHistory<STATE> {
     @JsonIgnore
     public final Signal<STATE> getNextSignalToApply() {
         // TODO thread-safety
-        final NavigableMap<TimestampedId, Signal<STATE>> remainingSignals = lastSignalApplied == null ? signals
-                : signals.tailMap(lastSignalApplied, false);
-        final var firstEntry = remainingSignals.firstEntry();
-        if (firstEntry == null) {
+        final var nextEntry =  getNextSignalToApplyUnguarded();
+        if (nextEntry == null) {
             return null;
         } else {
-            return firstEntry.getValue();
+            return nextEntry.getValue();
         }
+    }
+
+    @GuardedBy("lock")
+    protected final Map.Entry<TimestampedId, Signal<STATE>> getNextSignalToApplyUnguarded() {
+        final NavigableMap<TimestampedId, Signal<STATE>> remainingSignals = lastSignalApplied == null ? signals
+                : signals.tailMap(lastSignalApplied, false);
+        return remainingSignals.firstEntry();
     }
 
     /**

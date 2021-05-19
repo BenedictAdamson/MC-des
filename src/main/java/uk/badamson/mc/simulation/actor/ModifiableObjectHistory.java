@@ -32,6 +32,7 @@ import javax.annotation.concurrent.ThreadSafe;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import uk.badamson.mc.history.ModifiableValueHistory;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.simulation.TimestampedId;
 
@@ -184,6 +185,81 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
 
     /**
      * <p>
+     * {@linkplain Signal#receive(Object) Compute the effect} of the
+     * {@linkplain #getNextSignalToApply() next signal to be applied}, and apply
+     * that effect to the {@linkplain #getStateHistory() state history}
+     * </p>
+     * <ul>
+     * <li>If there is a next signal to apply, the method
+     * {@linkplain ModifiableValueHistory#setValueFrom(Duration, Object) sets the
+     * state} of the {@linkplain #getStateHistory() state history} to the
+     * {@linkplain Signal.Effect#getState() state resulting } from the effect, for
+     * times at and after the {@linkplain Signal#getWhenReceived(ValueHistory)
+     * reception time} of the the signal.</li>
+     * <li>If this returns a null effect, the state history is unchanged.</li>
+     * <li>If this returns a null effect, the {@linkplain #getLastSignalApplied()
+     * last signal applied} is unchanged.</li>
+     * <li>If this returns a (non null) effect, the
+     * {@linkplain Signal.Effect#getAffectedObject() affected object} of the effect
+     * is the same as the {@linkplain #getObject() object} of this history.</li>
+     * <li>If this returns a (non null) effect, the
+     * {@linkplain Signal.Effect#getWhenOccurred() time that the effect occurred} is
+     * {@linkplain Duration#equals(Object) equal to} the reception time of the
+     * signal.</li>
+     * <li>If this returns a (non null) effect, the
+     * {@linkplain ValueHistory#getLastValue() last state} in the the state history
+     * is {@linkplain Objects#equals(Object, Object) equivalent to} the
+     * {@linkplain Signal.Effect#getState() state resulting} from the effect.</li>
+     * <li>If this returns a (non null) effect, the state history will either have
+     * no {@linkplain ValueHistory#getLastTansitionTime() last transition time}, or
+     * the last transition time will be {@linkplain Duration#compareTo(Duration) at
+     * or before} the reception time of the signal.</li>
+     * <li>If this returns a (non null) effect, {@linkplain #getLastSignalApplied()
+     * last signal applied} is updated to indicate the signal and time of the
+     * effect.</li>
+     * <li>If this returns a (non null) effect, and the effect causes a state
+     * change, this history emits a new value to the
+     * {@linkplain #observeTimestampedStates() time-stamped states observable},
+     * indicating the new state
+     * {@linkplain ObjectHistory.TimestampedState#getStart() from} the state
+     * transition {@linkplain ObjectHistory.TimestampedState#getEnd() until}
+     * {@linkplain ValueHistory#END_OF_TIME the end of time} as
+     * {@linkplain ObjectHistory.TimestampedState#isReliable() unreliable}
+     * information.</li>
+     * <li>If this returns a (non null) effect, typically the state history will
+     * have a new {@linkplain ValueHistory#getLastTansitionTime() final transition}
+     * at the time of the reception of the signal. However, that will not be the
+     * case if the signal effect does not cause a state change.</li>
+     * </ul>
+     *
+     * @return the effect of the next signal to apply; or null if there is no such
+     *         signal.
+     */
+    @Nullable
+    public Signal.Effect<STATE> applyNextSignal() {
+        // TODO thread-safety
+        final var entry = getNextSignalToApplyUnguarded();
+        if (entry == null) {
+            return null;
+        } else {
+            final var timestampedId = entry.getKey();
+            final var whenReceived = timestampedId.getWhen();
+            final var signal = entry.getValue();
+            final var state0 = stateHistory.get(whenReceived);
+            final var effect = signal.receive(whenReceived, state0);
+            final var state = effect.getState();
+            if (!Objects.equals(state0, state)) {
+                stateHistory.setValueFrom(whenReceived, state);
+                timestampedStates
+                        .tryEmitNext(new TimestampedState<>(whenReceived, ValueHistory.END_OF_TIME, false, state));
+                lastSignalApplied = timestampedId;
+            }
+            return effect;
+        }
+    }
+
+    /**
+     * <p>
      * Advance the {@linkplain #getEnd() end time of reliable state information} to
      * at least a given time.
      * </p>
@@ -198,5 +274,4 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
             commitToGuarded(when);
         }
     }
-
 }

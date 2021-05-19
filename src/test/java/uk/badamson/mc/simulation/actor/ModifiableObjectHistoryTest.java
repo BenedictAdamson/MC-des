@@ -19,10 +19,7 @@ package uk.badamson.mc.simulation.actor;
  */
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -52,6 +49,7 @@ import org.reactivestreams.Publisher;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 import uk.badamson.dbc.assertions.ThreadSafetyTest;
 import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.history.ValueHistory;
@@ -233,6 +231,65 @@ public class ModifiableObjectHistoryTest {
             history.addSignal(signal1);
 
             addSignal(history, signal2);
+        }
+
+    }// class
+
+    @Nested
+    public class ApplyNextSignal {
+
+        @Test
+        public void a() {
+            testOne(OBJECT_A, OBJECT_B, WHEN_A, WHEN_B, Integer.valueOf(1), SIGNAL_ID_A);
+        }
+
+        @Test
+        public void b() {
+            testOne(OBJECT_B, OBJECT_A, WHEN_B, WHEN_C, Integer.valueOf(10), SIGNAL_ID_B);
+        }
+
+        @Test
+        public void none() {
+            final var history = new ModifiableObjectHistory<>(OBJECT_A, WHEN_A, Integer.valueOf(0));
+            assert history.getSignals().isEmpty();
+
+            final var effect = applyNextSignal(history);
+
+            assertNull(effect, "no effect");
+        }
+
+        private void testOne(@Nonnull final UUID receiver, @Nonnull final UUID sender, @Nonnull final Duration start,
+                @Nonnull final Duration whenSent, @Nonnull final Integer state0, @Nonnull final UUID signalId) {
+            assert start.compareTo(whenSent) <= 0;
+            final TimestampedId lastSignalApplied0 = null;
+            final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>();
+            stateTransitions.put(start, state0);
+            final var signal = new SignalTest.TestSignal(signalId, new TimestampedId(sender, whenSent), receiver);
+            final Collection<Signal<Integer>> signals = List.of(signal);
+            final var whenReceived = signal.getWhenReceived(state0);
+            final var expectedState = signal.receive(state0).getState();
+            final Duration end = whenReceived.minusNanos(1);
+            final var expectedTimestampedState = new ObjectHistory.TimestampedState<>(whenReceived,
+                    ValueHistory.END_OF_TIME, false, expectedState);
+
+            final var history = new ModifiableObjectHistory<>(receiver, end, lastSignalApplied0, stateTransitions,
+                    signals);
+            final var timestampedStates = history.observeTimestampedStates();
+            final var timestampedStatesVerifier = StepVerifier.create(timestampedStates);
+
+            final var effect = applyNextSignal(history);
+
+            final var lastSignalApplied = history.getLastSignalApplied();
+            assertThat("effect", effect, notNullValue());// guard
+            final var resultState = effect.getState();
+            assertAll(() -> assertThat("when effect occurred", effect.getWhenOccurred(), is(whenReceived)),
+                    () -> assertThat("no state change or the reception time of the signal is the last transition time",
+                            state0.equals(resultState)
+                                    || whenReceived.equals(history.getStateHistory().getLastTansitionTime())),
+                    () -> assertThat("last signal applied ID", lastSignalApplied.getObject(), is(signalId)));
+
+            timestampedStatesVerifier.expectNext(expectedTimestampedState).expectTimeout(Duration.ofMillis(100))
+                    .verify();
         }
 
     }// class
@@ -692,6 +749,34 @@ public class ModifiableObjectHistoryTest {
     private static final UUID SIGNAL_ID_B = ObjectHistoryTest.SIGNAL_ID_B;
     private static final TimestampedId LAST_SIGNAL_APPLIED_A = ObjectHistoryTest.LAST_SIGNAL_APPLIED_A;
     private static final TimestampedId LAST_SIGNAL_APPLIED_B = ObjectHistoryTest.LAST_SIGNAL_APPLIED_B;
+
+    @Nullable
+    private static <STATE> Signal.Effect<STATE> applyNextSignal(@Nonnull final ModifiableObjectHistory<STATE> history) {
+        final var stateHistory0 = history.getStateHistory();
+        final var lastSignalApplied0 = history.getLastSignalApplied();
+
+        final var effect = history.applyNextSignal();
+
+        assertInvariants(history);
+        final var stateHistory = history.getStateHistory();
+        final var lastSignalApplied = history.getLastSignalApplied();
+        if (effect == null) {
+            assertThat("State history", stateHistory, is(stateHistory0));
+            assertThat("last signal applied", lastSignalApplied, is(lastSignalApplied0));
+        } else {
+            SignalTest.EffectTest.assertInvariants(effect);
+            final var resultState = effect.getState();
+            final var whenOccurred = effect.getWhenOccurred();// signal reception time
+            final var lastTransitionTime = stateHistory.getLastTansitionTime();
+            assertThat("The last state in the the state history", stateHistory.getLastValue(), is(resultState));
+            assertThat("last transition time", lastTransitionTime,
+                    either(nullValue(Duration.class)).or(lessThanOrEqualTo(whenOccurred)));
+            assertThat("last signal applied", lastSignalApplied, allOf(notNullValue(), not(is(lastSignalApplied0))));
+            assertThat("when last signal applied", lastSignalApplied.getWhen(), is(whenOccurred));
+        }
+
+        return effect;
+    }
 
     public static <STATE> void assertInvariants(@Nonnull final ModifiableObjectHistory<STATE> history) {
         ObjectHistoryTest.assertInvariants(history);// inherited
