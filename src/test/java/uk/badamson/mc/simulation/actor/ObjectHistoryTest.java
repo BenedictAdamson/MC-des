@@ -21,6 +21,7 @@ package uk.badamson.mc.simulation.actor;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -799,6 +800,7 @@ public class ObjectHistoryTest {
         final var stateTransitions = history.getStateTransitions();
         final Collection<Signal<STATE>> signals = history.getSignals();
         final var lastSignalApplied = history.getLastSignalApplied();
+        final var nextSignalToApply = history.getNextSignalToApply();
 
         assertAll("Not null", () -> assertNotNull(object, "object"), () -> assertNotNull(start, "start"), // guard
                 () -> assertNotNull(end, "end"), // guard
@@ -810,6 +812,10 @@ public class ObjectHistoryTest {
         if (lastSignalApplied != null) {
             TimestampedIdTest.assertInvariants(lastSignalApplied);
         }
+        if (nextSignalToApply != null) {
+            SignalTest.assertInvariants(nextSignalToApply);
+        }
+
         assertAll(() -> assertThat("The end time is at or after the start time.", end, greaterThanOrEqualTo(start)),
                 () -> assertAll("stateHistory", () -> assertSame(start, stateHistory.getFirstTansitionTime(),
                         "The first transition time of the state history is the same as the start time of this history."),
@@ -821,6 +827,22 @@ public class ObjectHistoryTest {
                                 !(stateHistory.get(end) == null && !ValueHistory.END_OF_TIME.equals(end)))),
                 () -> assertEquals(stateTransitions, stateHistory.getTransitions(), "stateTransitions"),
                 () -> assertAll("signals", createSignalsAssertions(signals, object, start, stateHistory)));
+
+        if (lastSignalApplied == null && !signals.isEmpty()) {
+            final var firstSignal = signals.iterator().next();
+            assertSame(firstSignal, nextSignalToApply,
+                    "If and there is no last signal applied, and the collection of signals is not empty, the next signal to apply will be first of the signals.");
+        }
+        if (nextSignalToApply != null) {
+            assertThat("If there is a next signal to apply, it is one of the signals.", signals,
+                    hasItem(nextSignalToApply));// guard
+            if (lastSignalApplied != null) {
+                final Duration whenReceived = nextSignalToApply.getWhenReceived(stateHistory);
+                assertThat(
+                        "If there is a next signal to apply, and there was a last signal applied, the next signal to apply will be at or after the last signal applied",
+                        whenReceived, greaterThanOrEqualTo(lastSignalApplied.getWhen()));
+            }
+        }
     }
 
     public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history1,

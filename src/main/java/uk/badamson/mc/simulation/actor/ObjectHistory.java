@@ -492,6 +492,44 @@ public class ObjectHistory<STATE> {
 
     /**
      * <p>
+     * The next of the {@linkplain #getSignals() signals} that have not had their
+     * {@linkplain Signal.Effect effect} applied to the
+     * {@linkplain #getStateHistory() state history}
+     * </p>
+     * <ul>
+     * <li>Returns null if, and only iff, all the signals have been applied. That
+     * includes the case of there being no signals to apply.</li>
+     * <li>If there is a (non null) next signal to apply, it is one of the
+     * {@linkplain #getSignals() signals}.</li>
+     * <li>If and there is no {@linkplain #getLastSignalApplied() last signal
+     * applied}, and the collection of signals is not
+     * {@linkplain Collection#isEmpty() empty}, the next signal to apply will be
+     * first of the signals.</li>
+     * <li>If there is a (non null) next signal to apply, and there was a (non null)
+     * {@linkplain #getLastSignalApplied() last signal applied}, the next signal to
+     * apply will be received {@linkplain Duration#compareTo(Duration) at or after}
+     * the last signal applied. That is, its
+     * {@linkplain Signal#getWhenReceived(ValueHistory) reception time} (for the
+     * current {@linkplain #getStateHistory() state history}) will be at or after
+     * the {@linkplain TimestampedId#getWhen() time} that the last signal was
+     * applied.</li>
+     * </ul>
+     */
+    @Nullable
+    @JsonIgnore
+    public final Signal<STATE> getNextSignalToApply() {
+        // TODO thread-safety
+        // TODO handle non-null lastSignalApplied.
+        final var firstEntry = signals.firstEntry();
+        if (firstEntry == null) {
+            return null;
+        } else {
+            return firstEntry.getValue();
+        }
+    }
+
+    /**
+     * <p>
      * The unique ID of the object for which this is the history.
      * </p>
      * <ul>
