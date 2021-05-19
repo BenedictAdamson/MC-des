@@ -1,19 +1,4 @@
 package uk.badamson.mc.simulation.actor;
-
-import java.time.Duration;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-
-import javax.annotation.Nonnegative;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
-
-import uk.badamson.mc.history.TimestampedValue;
-import uk.badamson.mc.history.ValueHistory;
-import uk.badamson.mc.simulation.ObjectStateId;
-
 /*
  * © Copyright Benedict Adamson 2021.
  *
@@ -32,6 +17,20 @@ import uk.badamson.mc.simulation.ObjectStateId;
  * You should have received a copy of the GNU General Public License
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+import java.time.Duration;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+
+import javax.annotation.Nonnegative;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+
+import uk.badamson.mc.history.TimestampedValue;
+import uk.badamson.mc.history.ValueHistory;
+import uk.badamson.mc.simulation.ObjectStateId;
 
 /**
  * <p>
