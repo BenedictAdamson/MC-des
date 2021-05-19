@@ -104,29 +104,37 @@ public class ModifiableObjectHistoryTest {
         public class Unreceivable {
 
             @Test
-            public void close() {
-                final Duration sent = WHEN_A;
-                final Duration end = sent.plusNanos(1);// critical
+            public void beforeStart() {
+                final Duration start = WHEN_A;
+                final Duration end = WHEN_B;
+                final Duration sent = start.minusNanos(1);// tough test
+                final Integer state = Integer.valueOf(1);
 
-                test(sent, end);
+                test(sent, start, end, state);
+                ;
             }
 
             @Test
-            public void far() {
-                final Duration sent = WHEN_B;
-                final Duration end = sent.plusDays(365);
+            public void receivedAtEnd() {
+                final Duration start = WHEN_A;
+                final Integer state = Integer.valueOf(1);
+                final Duration sent = start.plusSeconds(1);
+                final var signal = new SignalTest.TestSignal(new ObjectStateId(OBJECT_B, sent), OBJECT_A);
+                final Duration end = signal.getWhenReceived(state);// tough test
 
-                test(sent, end);
+                test(sent, start, end, state);
+                ;
             }
 
-            private void test(@Nonnull final Duration sent, @Nonnull final Duration end) {
-                assert sent.compareTo(end) < 0;
+            private void test(@Nonnull final Duration sent, @Nonnull final Duration start, @Nonnull final Duration end,
+                    @Nonnull final Integer state) {
+                assert start.compareTo(end) < 0;
                 final UUID sender = OBJECT_A;
                 final UUID receiver = OBJECT_B;
-                final Integer state = Integer.valueOf(1);
-                final var history = new ModifiableObjectHistory<>(receiver, end, state);
+                final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>();
+                stateTransitions.put(start, state);
+                final var history = new ModifiableObjectHistory<>(receiver, end, stateTransitions);
                 final var signal = new SignalTest.TestSignal(new ObjectStateId(sender, sent), receiver);
-                assert history.getEnd().equals(end);
 
                 assertThrows(Signal.UnreceivableSignalException.class, () -> addSignal(history, signal));
             }

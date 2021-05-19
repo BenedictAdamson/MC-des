@@ -715,7 +715,7 @@ public class ObjectHistoryTest {
                                 "If reliable state information indicates that the simulated object was destroyed, it is guaranteed that the simulated object will never be recreated.",
                                 !(stateHistory.get(end) == null && !ValueHistory.END_OF_TIME.equals(end)))),
                 () -> assertEquals(stateTransitions, stateHistory.getTransitions(), "stateTransitions"),
-                () -> assertAll("signals", createSignalsAssertions(signals, history.getObject(), history.getEnd())));
+                () -> assertAll("signals", createSignalsAssertions(signals, history.getObject(), history.getStart())));
     }
 
     public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history1,
@@ -785,18 +785,18 @@ public class ObjectHistoryTest {
 
     private static <STATE> Stream<Executable> createSignalsAssertions(
             @Nonnull final Collection<Signal<STATE>> signalsRecieved, @Nonnull final UUID object,
-            @Nonnull final Duration end) {
+            @Nonnull final Duration start) {
         return signalsRecieved.stream().map(signal -> new Executable() {
 
             @Override
             public void execute() throws Throwable {
                 assertNotNull(signal, "signals not null");// guard
-                assertAll("signals", () -> SignalTest.assertInvariants(signal),
+                assertAll("signal", () -> SignalTest.assertInvariants(signal),
                         () -> assertThat("not duplicated", count(signalsRecieved, signal) == 1),
+                        () -> assertThat("sent at or after the start time", signal.getWhenSent(),
+                                greaterThanOrEqualTo(start)),
                         () -> assertThat("has the object of this history as their receiver.", signal.getReceiver(),
-                                is(object)),
-                        () -> assertThat("was sent at or after the end of the period of reliable state history",
-                                signal.getWhenSent(), greaterThanOrEqualTo(end)));
+                                is(object)));
             }
         });
     }

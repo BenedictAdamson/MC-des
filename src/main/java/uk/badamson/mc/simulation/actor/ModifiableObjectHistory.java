@@ -123,7 +123,8 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
 
     /**
      * <p>
-     * Add a signal to the {@linkplain #getSignals() collection of signals}.
+     * Add a signal to the {@linkplain #getSignals() collection of signals} known to
+     * have been sent to the {@linkplain #getObject() object} of this history.
      * </p>
      * <ul>
      * <li>If the collection already {@linkplain Collection#contains(Object)
@@ -140,12 +141,23 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      *             {@code signal} is not {@linkplain UUID#equals(Object) equal to}
      *             the {@linkplain #getObject() object} of this history.
      * @throws Signal.UnreceivableSignalException
-     *             If the {@code signal} {@linkplain Signal#getWhenSent() sending
-     *             time} is {@linkplain Duration#compareTo(Duration) before} the
-     *             {@linkplain #getEnd() end} of the period of reliable
-     *             {@linkplain #getStateHistory() state history}. This is a
-     *             non-fatal error: if this exception is thrown, all invariants have
-     *             been maintained.
+     *             <ul>
+     *             <li>If the signal was {@linkplain Signal#getWhenSent() sent}
+     *             {@linkplain Duration#compareTo(Duration) before} the
+     *             {@linkplain #getStart() start time} of this history. This ensures
+     *             it is possible to compute the
+     *             {@linkplain Signal#getWhenReceived(ValueHistory) reception time}
+     *             of the signal.</li>
+     *             <li>If the {@code signal}
+     *             {@linkplain Signal#getWhenReceived(ValueHistory) reception time}
+     *             (for the {@linkplain #getStateHistory() state history} of this
+     *             history) is {@linkplain Duration#compareTo(Duration) at or
+     *             before} the {@linkplain #getEnd() end} of the period of reliable
+     *             {@linkplain #getStateHistory() state history}. That is, if
+     *             handling the signal would imply altering the (committed) reliable
+     *             part of the state history. This is a non-fatal error: if this
+     *             exception is thrown, all invariants have been maintained.</li>
+     *             </ul>
      */
     public void addSignal(@Nonnull final Signal<STATE> signal) throws Signal.UnreceivableSignalException {
         Objects.requireNonNull(signal, "signal");
@@ -153,8 +165,8 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
             throw new IllegalArgumentException("signal.receiver");
         }
         synchronized (lock) {
-            if (signal.getWhenSent().compareTo(getEnd()) < 0) {
-                throw new Signal.UnreceivableSignalException("signal.whenSent before this.end");
+            if (signal.getWhenReceived(stateHistory).compareTo(getEnd()) <= 0) {
+                throw new Signal.UnreceivableSignalException("signal.whenReceived at or before this.end");
             }
             if (!signals.stream().anyMatch(s -> signal.equals(s))) {
                 signals.addLast(signal);
