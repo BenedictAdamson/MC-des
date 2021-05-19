@@ -25,6 +25,7 @@ import java.util.SortedMap;
 import java.util.UUID;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -32,6 +33,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import uk.badamson.mc.history.ValueHistory;
+import uk.badamson.mc.simulation.TimestampedId;
 
 /**
  * <p>
@@ -54,6 +56,33 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      */
     public ModifiableObjectHistory(@Nonnull final ObjectHistory<STATE> that) {
         super(that);
+    }
+
+    /**
+     * <p>
+     * Construct an object history with given start information and no signals.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getEnd() end} time is the same as the given
+     * {@code start} time.</li>
+     * <li>The {@linkplain #getLastSignalApplied() time that the last signal was
+     * applied} is the same as the given {@code start} time.</li>
+     * <li>There are no {@linkplain #getSignals() signals}.</li>
+     * </ul>
+     *
+     * @param object
+     *            The unique ID of the object for which this is the history.
+     * @param start
+     *            The point in time that this history starts.
+     * @param state
+     *            The first (known) state transition of the {@code
+     *            object}.
+     * @throws NullPointerException
+     *             If a {@link Nonnull} argument is null
+     */
+    public ModifiableObjectHistory(@Nonnull final UUID object, @Nonnull final Duration start,
+            @Nonnull final STATE state) {
+        super(object, start, state);
     }
 
     /**
@@ -103,37 +132,10 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
     @JsonCreator
     public ModifiableObjectHistory(@Nonnull @JsonProperty("object") final UUID object,
             @Nonnull @JsonProperty("end") final Duration end,
-            @Nonnull @JsonProperty("lastSignalApplied") final Duration whenLastSignalApplied,
+            @Nullable @JsonProperty("lastSignalApplied") final TimestampedId lastSignalApplied,
             @Nonnull @JsonProperty("stateTransitions") final SortedMap<Duration, STATE> stateTransitions,
             @Nonnull @JsonProperty("signals") final Collection<Signal<STATE>> signals) {
-        super(object, end, whenLastSignalApplied, stateTransitions, signals);
-    }
-
-    /**
-     * <p>
-     * Construct an object history with given start information and no signals.
-     * </p>
-     * <ul>
-     * <li>The {@linkplain #getEnd() end} time is the same as the given
-     * {@code start} time.</li>
-     * <li>The {@linkplain #getLastSignalApplied() time that the last signal was
-     * applied} is the same as the given {@code start} time.</li>
-     * <li>There are no {@linkplain #getSignals() signals}.</li>
-     * </ul>
-     *
-     * @param object
-     *            The unique ID of the object for which this is the history.
-     * @param start
-     *            The point in time that this history starts.
-     * @param state
-     *            The first (known) state transition of the {@code
-     *            object}.
-     * @throws NullPointerException
-     *             If a {@link Nonnull} argument is null
-     */
-    public ModifiableObjectHistory(@Nonnull final UUID object, @Nonnull final Duration start,
-            @Nonnull final STATE state) {
-        super(object, start, state);
+        super(object, end, lastSignalApplied, stateTransitions, signals);
     }
 
     /**

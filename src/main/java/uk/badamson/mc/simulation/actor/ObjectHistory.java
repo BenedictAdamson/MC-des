@@ -228,9 +228,9 @@ public class ObjectHistory<STATE> {
     @GuardedBy("lock")
     private Duration end;
 
-    @Nonnull
+    @Nullable
     @GuardedBy("lock")
-    private Duration lastSignalApplied;
+    private TimestampedId lastSignalApplied;
 
     /*
      * Keyed by the signal reception time and signal ID
@@ -253,6 +253,39 @@ public class ObjectHistory<STATE> {
             completeTimestampedStatesIfNoMoreHistory();
             stateHistory = new ModifiableValueHistory<>(that.stateHistory);
         }
+    }
+
+    /**
+     * <p>
+     * Construct an object history with given start information and no signals.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getEnd() end} time is the same as the given
+     * {@code start} time.</li>
+     * <li>The {@linkplain #getLastSignalApplied() last signal applied} is
+     * null.</li>
+     * <li>There are no {@linkplain #getSignals() signals}.</li>
+     * </ul>
+     *
+     * @param object
+     *            The unique ID of the object for which this is the history.
+     * @param start
+     *            The point in time that this history starts.
+     * @param state
+     *            The first (known) state transition of the {@code
+     *            object}.
+     * @throws NullPointerException
+     *             If a {@link Nonnull} argument is null
+     */
+    public ObjectHistory(@Nonnull final UUID object, @Nonnull final Duration start, @Nonnull final STATE state) {
+        Objects.requireNonNull(state, "state");
+        this.object = Objects.requireNonNull(object, "object");
+        this.start = Objects.requireNonNull(start, "start");
+        this.stateHistory = new ModifiableValueHistory<>();
+        this.stateHistory.appendTransition(start, state);
+        this.end = start;
+        this.lastSignalApplied = null;
+        completeTimestampedStatesIfNoMoreHistory();
     }
 
     /**
@@ -305,12 +338,12 @@ public class ObjectHistory<STATE> {
     @JsonCreator
     public ObjectHistory(@Nonnull @JsonProperty("object") final UUID object,
             @Nonnull @JsonProperty("end") final Duration end,
-            @Nonnull @JsonProperty("lastSignalApplied") final Duration lastSignalApplied,
+            @Nullable @JsonProperty("lastSignalApplied") final TimestampedId lastSignalApplied,
             @Nonnull @JsonProperty("stateTransitions") final SortedMap<Duration, STATE> stateTransitions,
             @Nonnull @JsonProperty("signals") final Collection<Signal<STATE>> signals) {
         this.object = Objects.requireNonNull(object, "object");
         Objects.requireNonNull(end, "end");
-        this.lastSignalApplied = Objects.requireNonNull(lastSignalApplied, "lastSignalApplied");
+        this.lastSignalApplied = lastSignalApplied;
         this.stateHistory = new ModifiableValueHistory<>(null, stateTransitions);
         // Check after copy to avoid race hazards
         this.start = this.stateHistory.getFirstTansitionTime();
@@ -338,39 +371,6 @@ public class ObjectHistory<STATE> {
         } catch (final Signal.UnreceivableSignalException e) {
             throw new IllegalArgumentException("signals", e);
         }
-    }
-
-    /**
-     * <p>
-     * Construct an object history with given start information and no signals.
-     * </p>
-     * <ul>
-     * <li>The {@linkplain #getEnd() end} time is the same as the given
-     * {@code start} time.</li>
-     * <li>The {@linkplain #getLastSignalApplied() time that the last signal was
-     * applied} is the same as the given {@code start} time.</li>
-     * <li>There are no {@linkplain #getSignals() signals}.</li>
-     * </ul>
-     *
-     * @param object
-     *            The unique ID of the object for which this is the history.
-     * @param start
-     *            The point in time that this history starts.
-     * @param state
-     *            The first (known) state transition of the {@code
-     *            object}.
-     * @throws NullPointerException
-     *             If a {@link Nonnull} argument is null
-     */
-    public ObjectHistory(@Nonnull final UUID object, @Nonnull final Duration start, @Nonnull final STATE state) {
-        Objects.requireNonNull(state, "state");
-        this.object = Objects.requireNonNull(object, "object");
-        this.start = Objects.requireNonNull(start, "start");
-        this.stateHistory = new ModifiableValueHistory<>();
-        this.stateHistory.appendTransition(start, state);
-        this.end = start;
-        this.lastSignalApplied = start;
-        completeTimestampedStatesIfNoMoreHistory();
     }
 
     @GuardedBy("lock")
@@ -436,7 +436,7 @@ public class ObjectHistory<STATE> {
         // hard to test the thread safety
         synchronized (lock) {
             synchronized (that.lock) {
-                return end.equals(that.end) && lastSignalApplied.equals(that.lastSignalApplied)
+                return end.equals(that.end) && Objects.equals(lastSignalApplied, that.lastSignalApplied)
                         && signals.equals(that.signals) && stateHistory.equals(that.stateHistory);
             }
         }
@@ -461,12 +461,11 @@ public class ObjectHistory<STATE> {
 
     /**
      * <p>
-     * The last point in time that the {@linkplain Signal.Effect effect of a signal}
-     * was applied to the {@linkplain #getStateHistory() state history}.
+     * The {@linkplain Signal#getId() ID} of the last signal applied to the
+     * {@linkplain #getStateHistory() state history}. and the point in time that the
+     * signal was {@linkplain Signal#getWhenReceived(ValueHistory) received}.
      * </p>
      * <ul>
-     * <li>Expressed as the duration since an (implied) epoch. All objects in a
-     * simulation should use the same epoch.</li>
      * <li>The time of the last applied signal is typically
      * {@linkplain Duration#equals(Object) equivalent} to one of the
      * {@linkplain #getStateTransitions() state transition}
@@ -487,7 +486,7 @@ public class ObjectHistory<STATE> {
      */
     @Nonnull
     @JsonProperty("lastSignalApplied")
-    public final Duration getLastSignalApplied() {
+    public final TimestampedId getLastSignalApplied() {
         return lastSignalApplied;
     }
 
@@ -625,7 +624,7 @@ public class ObjectHistory<STATE> {
         synchronized (lock) {// hard to test thread safety
             result = prime * result + object.hashCode();
             result = prime * result + end.hashCode();
-            result = prime * result + lastSignalApplied.hashCode();
+            result = prime * result + (lastSignalApplied == null ? 0 : lastSignalApplied.hashCode());
             result = prime * result + stateHistory.hashCode();
             result = prime * result + signals.hashCode();
         }
@@ -738,9 +737,8 @@ public class ObjectHistory<STATE> {
     @Override
     public String toString() {
         synchronized (lock) {
-            return getClass().getSimpleName() + " [" + object + "from " + start + " to " + end
-                    + ", whenLastSignalApplied=" + lastSignalApplied + ", stateHistory=" + stateHistory + ", signals="
-                    + signals + "]";
+            return getClass().getSimpleName() + " [" + object + "from " + start + " to " + end + ", lastSignalApplied="
+                    + lastSignalApplied + ", stateHistory=" + stateHistory + ", signals=" + signals + "]";
         }
     }
 }

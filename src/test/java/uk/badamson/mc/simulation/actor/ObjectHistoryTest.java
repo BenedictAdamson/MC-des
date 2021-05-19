@@ -62,6 +62,7 @@ import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.history.ValueHistoryTest;
 import uk.badamson.mc.simulation.TimestampedId;
+import uk.badamson.mc.simulation.TimestampedIdTest;
 import uk.badamson.mc.simulation.actor.ObjectHistory.TimestampedState;
 
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
@@ -102,22 +103,20 @@ public class ObjectHistoryTest {
                 public void sentAfterEnd() {
                     final var start = WHEN_B;
                     final var end = WHEN_C;
-                    final Duration whenLastSignalApplied = WHEN_A;
                     final var sentFrom = new TimestampedId(OBJECT_A, end.plusSeconds(5));
-                    test(OBJECT_B, start, end, whenLastSignalApplied, SIGNAL_ID_B, sentFrom);
+                    test(OBJECT_B, start, end, LAST_SIGNAL_APPLIED_A, SIGNAL_ID_B, sentFrom);
                 }
 
                 @Test
                 public void sentAtEnd() {
                     final var start = WHEN_A;
                     final var end = WHEN_B;
-                    final Duration whenLastSignalApplied = WHEN_C;
                     final var sentFrom = new TimestampedId(OBJECT_B, end);
-                    test(OBJECT_A, start, end, whenLastSignalApplied, SIGNAL_ID_A, sentFrom);
+                    test(OBJECT_A, start, end, LAST_SIGNAL_APPLIED_B, SIGNAL_ID_A, sentFrom);
                 }
 
                 private void test(@Nonnull final UUID object, @Nonnull final Duration start,
-                        @Nonnull final Duration end, @Nonnull final Duration whenLastSignalApplied,
+                        @Nonnull final Duration end, @Nonnull final TimestampedId lastSignalApplied,
                         @Nonnull final UUID signalId, @Nonnull final TimestampedId sentFrom) {
                     final Integer state = Integer.valueOf(0);
                     final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>();
@@ -125,7 +124,7 @@ public class ObjectHistoryTest {
                     final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, object);
                     final Collection<Signal<Integer>> signals = List.of(signal);
 
-                    constructor(object, end, whenLastSignalApplied, stateTransitions, signals);
+                    constructor(object, end, lastSignalApplied, stateTransitions, signals);
                 }
 
             }// class
@@ -164,8 +163,25 @@ public class ObjectHistoryTest {
                     final var endA = WHEN_A.plusMillis(10);
                     final var endB = WHEN_A.plusMillis(20);
 
-                    final var historyA = new ObjectHistory<>(OBJECT_A, endA, WHEN_B, stateTransitions, signals);
-                    final var historyB = new ObjectHistory<>(OBJECT_A, endB, WHEN_B, stateTransitions, signals);
+                    final var historyA = new ObjectHistory<>(OBJECT_A, endA, LAST_SIGNAL_APPLIED_A, stateTransitions,
+                            signals);
+                    final var historyB = new ObjectHistory<>(OBJECT_A, endB, LAST_SIGNAL_APPLIED_B, stateTransitions,
+                            signals);
+
+                    assertInvariants(historyA, historyB);
+                    assertThat("not equals", historyA, not(is(historyB)));
+                }
+
+                @Test
+                public void differentLastSignalApplied() {
+                    final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>(
+                            Map.of(WHEN_A, Integer.valueOf(-1)));
+                    final Collection<Signal<Integer>> signals = List.of();
+
+                    final var historyA = new ObjectHistory<>(OBJECT_A, WHEN_B, LAST_SIGNAL_APPLIED_A, stateTransitions,
+                            signals);
+                    final var historyB = new ObjectHistory<>(OBJECT_A, WHEN_B, LAST_SIGNAL_APPLIED_B, stateTransitions,
+                            signals);
 
                     assertInvariants(historyA, historyB);
                     assertThat("not equals", historyA, not(is(historyB)));
@@ -178,8 +194,10 @@ public class ObjectHistoryTest {
                     final Collection<Signal<Integer>> signals = List.of();
                     final var end = WHEN_A.plusMillis(10);
 
-                    final var historyA = new ObjectHistory<>(OBJECT_A, end, WHEN_B, stateTransitions, signals);
-                    final var historyB = new ObjectHistory<>(OBJECT_B, end, WHEN_B, stateTransitions, signals);
+                    final var historyA = new ObjectHistory<>(OBJECT_A, end, LAST_SIGNAL_APPLIED_A, stateTransitions,
+                            signals);
+                    final var historyB = new ObjectHistory<>(OBJECT_B, end, LAST_SIGNAL_APPLIED_B, stateTransitions,
+                            signals);
 
                     assertInvariants(historyA, historyB);
                     assertThat("not equals", historyA, not(is(historyB)));
@@ -192,7 +210,7 @@ public class ObjectHistoryTest {
                     final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>(
                             Map.of(start, Integer.valueOf(-1)));
                     final var end = start.plusMillis(10);
-                    final Duration whenLastSignalApplied = WHEN_B;
+                    final var whenLastSignalApplied = LAST_SIGNAL_APPLIED_A;
                     final Collection<Signal<Integer>> signalsA = List.of();
                     final Collection<Signal<Integer>> signalsB = List
                             .of(new SignalTest.TestSignal(SIGNAL_ID_A, new TimestampedId(OBJECT_B, end), object));
@@ -218,24 +236,9 @@ public class ObjectHistoryTest {
                     final var end = start.plusMillis(10);
                     assert !stateTransitionsA.equals(stateTransitionsB);
 
-                    final var historyA = new ObjectHistory<>(OBJECT_A, end, WHEN_B, stateTransitionsA, signals);
-                    final var historyB = new ObjectHistory<>(OBJECT_A, end, WHEN_B, stateTransitionsB, signals);
-
-                    assertInvariants(historyA, historyB);
-                    assertThat("not equals", historyA, not(is(historyB)));
-                }
-
-                @Test
-                public void differentWhenLastSignalApplied() {
-                    final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>(
-                            Map.of(WHEN_A, Integer.valueOf(-1)));
-                    final Collection<Signal<Integer>> signals = List.of();
-                    final var whenLastSignalAppliedA = WHEN_A.plusMillis(10);
-                    final var whenLastSignalAppliedB = WHEN_A.plusMillis(20);
-
-                    final var historyA = new ObjectHistory<>(OBJECT_A, WHEN_B, whenLastSignalAppliedA, stateTransitions,
+                    final var historyA = new ObjectHistory<>(OBJECT_A, end, LAST_SIGNAL_APPLIED_A, stateTransitionsA,
                             signals);
-                    final var historyB = new ObjectHistory<>(OBJECT_A, WHEN_B, whenLastSignalAppliedB, stateTransitions,
+                    final var historyB = new ObjectHistory<>(OBJECT_A, end, LAST_SIGNAL_APPLIED_A, stateTransitionsB,
                             signals);
 
                     assertInvariants(historyA, historyB);
@@ -247,11 +250,10 @@ public class ObjectHistoryTest {
                     final var objectA = OBJECT_A;
                     final var objectB = new UUID(objectA.getMostSignificantBits(), objectA.getLeastSignificantBits());
                     final long endMillis = 6000;
-                    final long whenLastSignalAppliedMillis = 4100;
                     final var endA = Duration.ofMillis(endMillis);
                     final var endB = Duration.ofMillis(endMillis);
-                    final Duration whenLastSignalAppliedA = Duration.ofMillis(whenLastSignalAppliedMillis);
-                    final Duration whenLastSignalAppliedB = Duration.ofMillis(whenLastSignalAppliedMillis);
+                    final var lastSignalAppliedA = new TimestampedId(SIGNAL_ID_A, WHEN_A);
+                    final var lastSignalAppliedB = new TimestampedId(SIGNAL_ID_A, WHEN_A);
                     final SortedMap<Duration, Integer> stateTransitionsA = new TreeMap<>(
                             Map.of(Duration.ofMillis(5000), Integer.valueOf(Integer.MAX_VALUE)));
                     final SortedMap<Duration, Integer> stateTransitionsB = new TreeMap<>(stateTransitionsA);
@@ -261,18 +263,18 @@ public class ObjectHistoryTest {
 
                     assert objectA.equals(objectB);
                     assert endA.equals(endB);
-                    assert whenLastSignalAppliedA.equals(whenLastSignalAppliedB);
+                    assert lastSignalAppliedA.equals(lastSignalAppliedB);
                     assert stateTransitionsA.equals(stateTransitionsB);
                     assert signalsA.equals(signalsB);
                     assert objectA != objectB;// tough test
                     assert endA != endB;// tough test
-                    assert whenLastSignalAppliedA != whenLastSignalAppliedB;// tough test
+                    assert lastSignalAppliedA != lastSignalAppliedB;// tough test
                     assert stateTransitionsA != stateTransitionsB;// tough test
                     assert signalsA != signalsB;// tough test
 
-                    final var historyA = new ObjectHistory<>(OBJECT_A, endA, whenLastSignalAppliedA, stateTransitionsA,
+                    final var historyA = new ObjectHistory<>(OBJECT_A, endA, lastSignalAppliedA, stateTransitionsA,
                             signalsA);
-                    final var historyB = new ObjectHistory<>(OBJECT_A, endB, whenLastSignalAppliedB, stateTransitionsB,
+                    final var historyB = new ObjectHistory<>(OBJECT_A, endB, lastSignalAppliedB, stateTransitionsB,
                             signalsB);
 
                     assertInvariants(historyA, historyB);
@@ -288,7 +290,7 @@ public class ObjectHistoryTest {
                 stateTransitions.put(WHEN_A.plusSeconds(1), Integer.valueOf(1));
                 final Collection<Signal<Integer>> signals = List.of();
 
-                constructor(OBJECT_A, WHEN_A.plusSeconds(2), WHEN_B, stateTransitions, signals);
+                constructor(OBJECT_A, WHEN_A.plusSeconds(2), LAST_SIGNAL_APPLIED_A, stateTransitions, signals);
             }
 
         }// class
@@ -784,6 +786,8 @@ public class ObjectHistoryTest {
     static final Duration WHEN_C = Duration.ofMillis(7000);
     static final UUID SIGNAL_ID_A = UUID.randomUUID();
     static final UUID SIGNAL_ID_B = UUID.randomUUID();
+    static final TimestampedId LAST_SIGNAL_APPLIED_A = new TimestampedId(SIGNAL_ID_A, WHEN_A);
+    static final TimestampedId LAST_SIGNAL_APPLIED_B = new TimestampedId(SIGNAL_ID_B, WHEN_B);
 
     public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history) {
         ObjectTest.assertInvariants(history);// inherited
@@ -798,12 +802,14 @@ public class ObjectHistoryTest {
 
         assertAll("Not null", () -> assertNotNull(object, "object"), () -> assertNotNull(start, "start"), // guard
                 () -> assertNotNull(end, "end"), // guard
-                () -> assertNotNull(lastSignalApplied, "lastSignalApplied"),
                 () -> assertNotNull(stateHistory, "stateHistory"), // guard
                 () -> assertNotNull(stateTransitions, "stateTransitions"), // guard
                 () -> assertNotNull(signals, "signals")// guard
         );
         ValueHistoryTest.assertInvariants(stateHistory);
+        if (lastSignalApplied != null) {
+            TimestampedIdTest.assertInvariants(lastSignalApplied);
+        }
         assertAll(() -> assertThat("The end time is at or after the start time.", end, greaterThanOrEqualTo(start)),
                 () -> assertAll("stateHistory", () -> assertSame(start, stateHistory.getFirstTansitionTime(),
                         "The first transition time of the state history is the same as the start time of this history."),
@@ -834,8 +840,8 @@ public class ObjectHistoryTest {
                                 history2) == (history1.getStateTransitions().equals(history2.getStateTransitions())
                                         && history1.getSignals().equals(history2.getSignals())
                                         && history1.getObject().equals(history2.getObject())
-                                        && history1.getEnd().equals(history2.getEnd())
-                                        && history1.getLastSignalApplied().equals(history2.getLastSignalApplied())),
+                                        && history1.getEnd().equals(history2.getEnd()) && Objects.equals(
+                                                history1.getLastSignalApplied(), history2.getLastSignalApplied())),
                         "equals"));
     }
 
@@ -862,8 +868,22 @@ public class ObjectHistoryTest {
                 () -> assertSame(that.getLastSignalApplied(), copy.getLastSignalApplied(), "lastSignalApplied"));
     }
 
+    private static <STATE> void constructor(@Nonnull final UUID object, @Nonnull final Duration start,
+            @Nonnull final STATE state) {
+        final var history = new ObjectHistory<>(object, start, state);
+
+        assertInvariants(history);
+        final var stateTransitions = history.getStateTransitions();
+        assertAll(() -> assertSame(object, history.getObject(), "object"),
+                () -> assertSame(start, history.getStart(), "start"), () -> assertSame(start, history.getEnd(), "end"),
+                () -> assertNull(history.getLastSignalApplied(), "lastSignalApplied"),
+                () -> assertSame(stateTransitions.firstKey(), history.getStart(), "start"),
+                () -> assertEquals(stateTransitions, Map.of(start, state), "stateTransitions"),
+                () -> assertThat("No signals", history.getSignals(), empty()));
+    }
+
     private static <STATE> void constructor(@Nonnull final UUID object, @Nonnull final Duration end,
-            @Nonnull final Duration lastSignalApplied, @Nonnull final SortedMap<Duration, STATE> stateTransitions,
+            @Nullable final TimestampedId lastSignalApplied, @Nonnull final SortedMap<Duration, STATE> stateTransitions,
             @Nonnull final Collection<Signal<STATE>> signals) {
         final var history = new ObjectHistory<>(object, end, lastSignalApplied, stateTransitions, signals);
 
@@ -874,20 +894,6 @@ public class ObjectHistoryTest {
                 () -> assertSame(stateTransitions.firstKey(), history.getStart(), "start"),
                 () -> assertEquals(stateTransitions, history.getStateTransitions(), "stateTransitions"),
                 () -> assertEquals(signals, history.getSignals(), "signals"));
-    }
-
-    private static <STATE> void constructor(@Nonnull final UUID object, @Nonnull final Duration start,
-            @Nonnull final STATE state) {
-        final var history = new ObjectHistory<>(object, start, state);
-
-        assertInvariants(history);
-        final var stateTransitions = history.getStateTransitions();
-        assertAll(() -> assertSame(object, history.getObject(), "object"),
-                () -> assertSame(start, history.getStart(), "start"), () -> assertSame(start, history.getEnd(), "end"),
-                () -> assertSame(start, history.getLastSignalApplied(), "lastSignalApplied"),
-                () -> assertSame(stateTransitions.firstKey(), history.getStart(), "start"),
-                () -> assertEquals(stateTransitions, Map.of(start, state), "stateTransitions"),
-                () -> assertThat("No signals", history.getSignals(), empty()));
     }
 
     static <STATE> long count(final Collection<Signal<STATE>> collection, final Signal<STATE> signal) {
