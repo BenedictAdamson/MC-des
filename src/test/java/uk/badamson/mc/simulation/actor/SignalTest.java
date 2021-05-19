@@ -82,24 +82,6 @@ public class SignalTest {
                 assertNotEquals(signalA, signalB);
             }
 
-            @Test
-            public void equivalent() {
-                final ObjectStateId sentFromA = ID_A;
-                final ObjectStateId sentFromB = new ObjectStateId(ID_A.getObject(), ID_A.getWhen());
-                final UUID receiverA = OBJECT_B;
-                final UUID receiverB = new UUID(receiverA.getMostSignificantBits(),
-                        receiverA.getLeastSignificantBits());
-                assert sentFromA.equals(sentFromB);
-                assert receiverA.equals(receiverB);
-                assert sentFromA != sentFromB; // tough test
-                assert receiverA != receiverB; // tough test
-
-                final Signal<Integer> signalA = new TestSignal(sentFromA, receiverA);
-                final Signal<Integer> signalB = new TestSignal(sentFromB, receiverB);
-
-                assertInvariants(signalA, signalB);
-                assertEquals(signalA, signalB);
-            }
         }// class
 
         @Test
@@ -190,7 +172,7 @@ public class SignalTest {
                 final var effectB = new Signal.Effect<>(ID_A, state, signalsEmitted);
 
                 assertInvariants(effectA, effectB);
-                assertEquals(effectA, effectB);
+                assertEquivalent(effectA, effectB);
             }
 
             @Test
@@ -203,7 +185,6 @@ public class SignalTest {
                 final Set<Signal<Integer>> signalsEmittedB = Set.of(new TestSignal(eventIdB, OBJECT_B));
                 assert eventIdA.equals(eventIdB);
                 assert stateA.equals(stateB);
-                assert signalsEmittedA.equals(signalsEmittedB);
                 assert eventIdA != eventIdB;// tough test
                 assert stateA != stateB;// tough test
                 assert signalsEmittedA != signalsEmittedB;// tough test
@@ -212,9 +193,15 @@ public class SignalTest {
                 final var effectB = new Signal.Effect<>(eventIdB, stateB, signalsEmittedB);
 
                 assertInvariants(effectA, effectB);
-                assertEquals(effectA, effectB);
+                assertEquivalent(effectA, effectB);
             }
         }// class
+
+        private static <STATE> void assertEquivalent(@Nonnull final Signal.Effect<STATE> effect1,
+                @Nonnull final Signal.Effect<STATE> effect2) {
+            assertAll(() -> assertEquals(effect1.getEventId(), effect2.getEventId(), "eventId"),
+                    () -> assertEquals(effect1.getState(), effect2.getState(), "state"));
+        }
 
         public static <STATE> void assertInvariants(@Nonnull final Signal.Effect<STATE> effect) {
             ObjectTest.assertInvariants(effect);// inherited

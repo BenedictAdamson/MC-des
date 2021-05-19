@@ -96,19 +96,6 @@ public abstract class Signal<STATE> {
             });
         }
 
-        @Override
-        public boolean equals(final Object that) {
-            if (this == that) {
-                return true;
-            }
-            if (!(that instanceof Effect)) {
-                return false;
-            }
-            final Effect<?> other = (Effect<?>) that;
-            return eventId.equals(other.eventId) && signalsEmitted.equals(other.signalsEmitted)
-                    && Objects.equals(state, other.state);
-        }
-
         /**
          * <p>
          * The simulated object changed by this effect.
@@ -183,16 +170,6 @@ public abstract class Signal<STATE> {
         }
 
         @Override
-        public int hashCode() {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + eventId.hashCode();
-            result = prime * result + signalsEmitted.hashCode();
-            result = prime * result + (state == null ? 0 : state.hashCode());
-            return result;
-        }
-
-        @Override
         public String toString() {
             return "Signal.Effect [" + eventId + ", →" + state + ", ⇝" + signalsEmitted + "]";
         }
@@ -263,30 +240,6 @@ public abstract class Signal<STATE> {
     protected Signal(@Nonnull final ObjectStateId sentFrom, @Nonnull final UUID receiver) {
         this.sentFrom = sentFrom;
         this.receiver = receiver;
-    }
-
-    /**
-     * <p>
-     * Whether this object is <dfn>equivalent</dfn> to a given object.
-     * </p>
-     * <p>
-     * The {@link Signal} class has <i>value semantics</i>.
-     * </p>
-     */
-    @Override
-    public boolean equals(final Object that) {
-        if (this == that) {
-            return true;
-        }
-        if (!(that instanceof Signal)) {
-            return false;
-        }
-        final Signal<?> other = (Signal<?>) that;
-        /*
-         * Checking sentFrom first is more efficient, because a sender may send many
-         * signals to the same receiver, which would differ only in their sending times.
-         */
-        return sentFrom.equals(other.sentFrom) && receiver.equals(other.receiver);
     }
 
     /**
@@ -503,15 +456,6 @@ public abstract class Signal<STATE> {
     @Nonnull
     public final Duration getWhenSent() {
         return sentFrom.getWhen();
-    }
-
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + sentFrom.hashCode();
-        result = prime * result + receiver.hashCode();
-        return result;
     }
 
     /**
