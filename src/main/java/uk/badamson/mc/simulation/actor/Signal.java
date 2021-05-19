@@ -220,6 +220,8 @@ public abstract class Signal<STATE> {
     public static final Duration NEVER_RECEIVED = Duration.ofSeconds(Long.MAX_VALUE, 999_999_999);
 
     @Nonnull
+    private final UUID id;
+    @Nonnull
     private final ObjectStateId sentFrom;
     @Nonnull
     private final UUID receiver;
@@ -229,16 +231,29 @@ public abstract class Signal<STATE> {
      * Construct a signal with given attribute values.
      * </p>
      *
+     * @param id
+     *            The unique ID for this signal.
      * @param sentFrom
      *            The ID of the simulated object that sent this signal, and the
      *            point in time that it sent (emitted) the signal.
      * @param receiver
      *            The ID of the simulated object that this signal was sent to; the
      *            object that will receive it.
+     * @throws NullPointerException
+     *             If an {@linkplain Nonnull} argument is null
      */
-    protected Signal(@Nonnull final ObjectStateId sentFrom, @Nonnull final UUID receiver) {
-        this.sentFrom = sentFrom;
-        this.receiver = receiver;
+    protected Signal(@Nonnull final UUID id, @Nonnull final ObjectStateId sentFrom, @Nonnull final UUID receiver) {
+        this.id = Objects.requireNonNull(id, "id");
+        this.sentFrom = Objects.requireNonNull(sentFrom, "sentFrom");
+        this.receiver = Objects.requireNonNull(receiver, "receiver");
+    }
+
+    /**
+     * The unique ID for this signal.
+     */
+    @Nonnull
+    public final UUID getId() {
+        return id;
     }
 
     /**

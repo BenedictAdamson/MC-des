@@ -68,7 +68,7 @@ public class ModifiableObjectHistoryTest {
                 final Duration end = WHEN_A;
                 final Duration sent = end.plusDays(365);
 
-                test(OBJECT_A, OBJECT_B, end, sent);
+                test(SIGNAL_ID_A, OBJECT_A, OBJECT_B, end, sent);
             }
 
             @Test
@@ -76,7 +76,7 @@ public class ModifiableObjectHistoryTest {
                 final Duration end = WHEN_A;
                 final Duration sent = end.plusSeconds(1);
 
-                test(OBJECT_A, OBJECT_A, end, sent);
+                test(SIGNAL_ID_A, OBJECT_A, OBJECT_A, end, sent);
             }
 
             @Test
@@ -84,15 +84,15 @@ public class ModifiableObjectHistoryTest {
                 final Duration end = WHEN_A;
                 final Duration sent = end;
 
-                test(OBJECT_A, OBJECT_B, end, sent);
+                test(SIGNAL_ID_B, OBJECT_A, OBJECT_B, end, sent);
             }
 
-            private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver, @Nonnull final Duration end,
-                    @Nonnull final Duration sent) {
+            private void test(@Nonnull final UUID id, @Nonnull final UUID sender, @Nonnull final UUID receiver,
+                    @Nonnull final Duration end, @Nonnull final Duration sent) {
                 assert end.compareTo(sent) <= 0;
                 final Integer state = Integer.valueOf(1);
                 final var history = new ModifiableObjectHistory<>(receiver, end, state);
-                final var signal = new SignalTest.TestSignal(new ObjectStateId(sender, sent), receiver);
+                final var signal = new SignalTest.TestSignal(id, new ObjectStateId(sender, sent), receiver);
                 assert history.getEnd().equals(end);
 
                 addSignal(history, signal);
@@ -119,7 +119,7 @@ public class ModifiableObjectHistoryTest {
                 final Duration start = WHEN_A;
                 final Integer state = Integer.valueOf(1);
                 final Duration sent = start.plusSeconds(1);
-                final var signal = new SignalTest.TestSignal(new ObjectStateId(OBJECT_B, sent), OBJECT_A);
+                final var signal = new SignalTest.TestSignal(SIGNAL_ID_A, new ObjectStateId(OBJECT_B, sent), OBJECT_A);
                 final Duration end = signal.getWhenReceived(state);// tough test
 
                 test(sent, start, end, state);
@@ -134,7 +134,7 @@ public class ModifiableObjectHistoryTest {
                 final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>();
                 stateTransitions.put(start, state);
                 final var history = new ModifiableObjectHistory<>(receiver, end, stateTransitions);
-                final var signal = new SignalTest.TestSignal(new ObjectStateId(sender, sent), receiver);
+                final var signal = new SignalTest.TestSignal(SIGNAL_ID_A, new ObjectStateId(sender, sent), receiver);
 
                 assertThrows(Signal.UnreceivableSignalException.class, () -> addSignal(history, signal));
             }
@@ -142,13 +142,14 @@ public class ModifiableObjectHistoryTest {
 
         @Test
         public void duplicate() {
+            final UUID id = SIGNAL_ID_A;
             final UUID sender = OBJECT_A;
             final UUID receiver = OBJECT_B;
             final Duration end = WHEN_A;
             final Duration sent = WHEN_B;
             final Integer state = Integer.valueOf(1);
             final var history = new ModifiableObjectHistory<>(receiver, end, state);
-            final var signal = new SignalTest.TestSignal(new ObjectStateId(sender, sent), receiver);
+            final var signal = new SignalTest.TestSignal(id, new ObjectStateId(sender, sent), receiver);
             assert history.getEnd().equals(end);
             history.addSignal(signal);
 
@@ -166,9 +167,10 @@ public class ModifiableObjectHistoryTest {
             final var random = new Random(0);
             final List<Future<Void>> futures = new ArrayList<>(nThreads);
             for (int t = 0; t < nThreads; ++t) {
+                final UUID id = UUID.randomUUID();
                 final UUID sender = UUID.randomUUID();
                 final Duration sent = end.plusSeconds(1 + random.nextInt(128));
-                final var signal = new SignalTest.TestSignal(new ObjectStateId(sender, sent), receiver);
+                final var signal = new SignalTest.TestSignal(id, new ObjectStateId(sender, sent), receiver);
                 futures.add(ThreadSafetyTest.runInOtherThread(ready, () -> addSignal(history, signal)));
             }
             ready.countDown();
@@ -184,8 +186,8 @@ public class ModifiableObjectHistoryTest {
             final Duration sent2 = end.plusSeconds(2);
             final Integer state = Integer.valueOf(1);
             final var history = new ModifiableObjectHistory<>(receiver, end, state);
-            final var signal1 = new SignalTest.TestSignal(new ObjectStateId(sender, sent1), receiver);
-            final var signal2 = new SignalTest.TestSignal(new ObjectStateId(sender, sent2), receiver);
+            final var signal1 = new SignalTest.TestSignal(SIGNAL_ID_A, new ObjectStateId(sender, sent1), receiver);
+            final var signal2 = new SignalTest.TestSignal(SIGNAL_ID_B, new ObjectStateId(sender, sent2), receiver);
             assert history.getEnd().equals(end);
             history.addSignal(signal1);
 
@@ -513,11 +515,11 @@ public class ModifiableObjectHistoryTest {
     }// class
 
     private static final UUID OBJECT_A = ObjectHistoryTest.OBJECT_A;
-
     private static final UUID OBJECT_B = ObjectHistoryTest.OBJECT_B;
     private static final Duration WHEN_A = ObjectHistoryTest.WHEN_A;
-
     private static final Duration WHEN_B = ObjectHistoryTest.WHEN_B;
+    private static final UUID SIGNAL_ID_A = UUID.randomUUID();
+    private static final UUID SIGNAL_ID_B = UUID.randomUUID();
 
     public static <STATE> void assertInvariants(@Nonnull final ModifiableObjectHistory<STATE> history) {
         ObjectHistoryTest.assertInvariants(history);// inherited

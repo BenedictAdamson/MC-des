@@ -66,8 +66,8 @@ public class SignalTest {
 
             @Test
             public void differentReceiver() {
-                final Signal<Integer> signalA = new TestSignal(ID_A, OBJECT_A);
-                final Signal<Integer> signalB = new TestSignal(ID_A, OBJECT_B);
+                final Signal<Integer> signalA = new TestSignal(ID_A, OBJECT_STATE_ID_A, OBJECT_A);
+                final Signal<Integer> signalB = new TestSignal(ID_A, OBJECT_STATE_ID_A, OBJECT_B);
 
                 assertInvariants(signalA, signalB);
                 assertNotEquals(signalA, signalB);
@@ -75,8 +75,8 @@ public class SignalTest {
 
             @Test
             public void differentSentFrom() {
-                final Signal<Integer> signalA = new TestSignal(ID_A, OBJECT_A);
-                final Signal<Integer> signalB = new TestSignal(ID_B, OBJECT_A);
+                final Signal<Integer> signalA = new TestSignal(ID_A, OBJECT_STATE_ID_A, OBJECT_A);
+                final Signal<Integer> signalB = new TestSignal(ID_A, OBJECT_STATE_ID_B, OBJECT_A);
 
                 assertInvariants(signalA, signalB);
                 assertNotEquals(signalA, signalB);
@@ -86,7 +86,7 @@ public class SignalTest {
 
         @Test
         public void a() {
-            final var signal = constructor(ID_A, OBJECT_B);
+            final var signal = constructor(ID_A, OBJECT_STATE_ID_A, OBJECT_B);
 
             assertInvariants(signal, Integer.valueOf(0));
             assertInvariants(signal, Integer.valueOf(Integer.MAX_VALUE));
@@ -95,13 +95,13 @@ public class SignalTest {
 
         @Test
         public void b() {
-            constructor(ID_B, OBJECT_A);
+            constructor(ID_B, OBJECT_STATE_ID_B, OBJECT_A);
         }
 
         @Test
         public void endOfTime() {
-            final var id = new ObjectStateId(OBJECT_A, Signal.NEVER_RECEIVED);
-            final var signal = constructor(id, OBJECT_B);
+            final var sentFrom = new ObjectStateId(OBJECT_A, Signal.NEVER_RECEIVED);
+            final var signal = constructor(ID_A, sentFrom, OBJECT_B);
 
             assertInvariants(signal, Integer.valueOf(0));
             assertInvariants(signal, Integer.valueOf(Integer.MAX_VALUE));
@@ -109,7 +109,7 @@ public class SignalTest {
 
         @Test
         public void reflexive() {
-            constructor(ID_A, OBJECT_A);
+            constructor(ID_A, OBJECT_STATE_ID_A, OBJECT_A);
         }
 
     }// class
@@ -121,8 +121,8 @@ public class SignalTest {
 
             @Test
             public void differentEventId() {
-                final ObjectStateId eventIdA = ID_A;
-                final ObjectStateId eventIdB = ID_B;
+                final ObjectStateId eventIdA = OBJECT_STATE_ID_A;
+                final ObjectStateId eventIdB = OBJECT_STATE_ID_B;
                 final Integer state = Integer.valueOf(Integer.MAX_VALUE);
                 final Set<Signal<Integer>> signalsEmitted = Set.of();
 
@@ -135,10 +135,10 @@ public class SignalTest {
 
             @Test
             public void differentSignalsEmitted() {
-                final ObjectStateId eventId = ID_A;
+                final ObjectStateId eventId = OBJECT_STATE_ID_A;
                 final Integer state = Integer.valueOf(0);
                 final Set<Signal<Integer>> signalsEmittedA = Set.of();
-                final Set<Signal<Integer>> signalsEmittedB = Set.of(new TestSignal(eventId, OBJECT_B));
+                final Set<Signal<Integer>> signalsEmittedB = Set.of(new TestSignal(ID_A, eventId, OBJECT_B));
 
                 final var effectA = new Signal.Effect<>(eventId, state, signalsEmittedA);
                 final var effectB = new Signal.Effect<>(eventId, state, signalsEmittedB);
@@ -153,8 +153,8 @@ public class SignalTest {
                 final Integer stateB = Integer.valueOf(1);
                 final Set<Signal<Integer>> signalsEmitted = Set.of();
 
-                final var effectA = new Signal.Effect<>(ID_A, stateA, signalsEmitted);
-                final var effectB = new Signal.Effect<>(ID_A, stateB, signalsEmitted);
+                final var effectA = new Signal.Effect<>(OBJECT_STATE_ID_A, stateA, signalsEmitted);
+                final var effectB = new Signal.Effect<>(OBJECT_STATE_ID_A, stateB, signalsEmitted);
 
                 assertInvariants(effectA, effectB);
                 assertNotEquals(effectA, effectB);
@@ -168,8 +168,8 @@ public class SignalTest {
                 final Integer state = null;
                 final Set<Signal<Integer>> signalsEmitted = Set.of();
 
-                final var effectA = new Signal.Effect<>(ID_A, state, signalsEmitted);
-                final var effectB = new Signal.Effect<>(ID_A, state, signalsEmitted);
+                final var effectA = new Signal.Effect<>(OBJECT_STATE_ID_A, state, signalsEmitted);
+                final var effectB = new Signal.Effect<>(OBJECT_STATE_ID_A, state, signalsEmitted);
 
                 assertInvariants(effectA, effectB);
                 assertEquivalent(effectA, effectB);
@@ -177,12 +177,12 @@ public class SignalTest {
 
             @Test
             public void equivalentNotDestruction() {
-                final ObjectStateId eventIdA = ID_A;
+                final ObjectStateId eventIdA = OBJECT_STATE_ID_A;
                 final ObjectStateId eventIdB = new ObjectStateId(eventIdA.getObject(), eventIdA.getWhen());
                 final Integer stateA = Integer.valueOf(Integer.MAX_VALUE);
                 final Integer stateB = Integer.valueOf(Integer.MAX_VALUE);
-                final Set<Signal<Integer>> signalsEmittedA = Set.of(new TestSignal(eventIdA, OBJECT_B));
-                final Set<Signal<Integer>> signalsEmittedB = Set.of(new TestSignal(eventIdB, OBJECT_B));
+                final Set<Signal<Integer>> signalsEmittedA = Set.of(new TestSignal(ID_A, eventIdA, OBJECT_B));
+                final Set<Signal<Integer>> signalsEmittedB = Set.of(new TestSignal(ID_B, eventIdB, OBJECT_B));
                 assert eventIdA.equals(eventIdB);
                 assert stateA.equals(stateB);
                 assert eventIdA != eventIdB;// tough test
@@ -260,18 +260,18 @@ public class SignalTest {
 
         @Test
         public void destruction() {
-            constructor(ID_B, (Integer) null, Set.of());
+            constructor(OBJECT_STATE_ID_B, (Integer) null, Set.of());
         }
 
         @Test
         public void noSignalsEmitted() {
-            constructor(ID_A, Integer.valueOf(0), Set.of());
+            constructor(OBJECT_STATE_ID_A, Integer.valueOf(0), Set.of());
         }
 
         @Test
         public void signalEmitted() {
-            final var eventId = ID_A;
-            final Set<Signal<Integer>> signalsEmitted = Set.of(new TestSignal(eventId, OBJECT_B));
+            final var eventId = OBJECT_STATE_ID_A;
+            final Set<Signal<Integer>> signalsEmitted = Set.of(new TestSignal(ID_A, eventId, OBJECT_B));
             constructor(eventId, Integer.valueOf(0), signalsEmitted);
         }
 
@@ -282,7 +282,7 @@ public class SignalTest {
 
         @Test
         public void a() {
-            test(ID_A, OBJECT_B, Integer.valueOf(0), false);
+            test(ID_A, OBJECT_STATE_ID_A, OBJECT_B, Integer.valueOf(0), false);
         }
 
         @Test
@@ -290,17 +290,17 @@ public class SignalTest {
             final var whenSent = Signal.NEVER_RECEIVED;// critical
             final var sentFrom = new ObjectStateId(OBJECT_A, whenSent);
 
-            test(sentFrom, OBJECT_A, Integer.valueOf(Integer.MAX_VALUE), true);
+            test(ID_A, sentFrom, OBJECT_A, Integer.valueOf(Integer.MAX_VALUE), true);
         }
 
         @Test
         public void b() {
-            test(ID_B, OBJECT_A, Integer.valueOf(1), false);
+            test(ID_B, OBJECT_STATE_ID_B, OBJECT_A, Integer.valueOf(1), false);
         }
 
-        private void test(@Nonnull final ObjectStateId sentFrom, @Nonnull final UUID receiver,
+        private void test(@Nonnull final UUID id, @Nonnull final ObjectStateId sentFrom, @Nonnull final UUID receiver,
                 @Nonnull final Integer receiverState, final boolean expectUnreceivableSignalException) {
-            final var signal = new TestSignal(sentFrom, receiver);
+            final var signal = new TestSignal(id, sentFrom, receiver);
 
             try {
                 receive(signal, receiverState);
@@ -317,8 +317,8 @@ public class SignalTest {
 
     static class TestSignal extends Signal<Integer> {
 
-        TestSignal(@Nonnull final ObjectStateId sentFrom, @Nonnull final UUID receiver) {
-            super(sentFrom, receiver);
+        TestSignal(@Nonnull final UUID id, @Nonnull final ObjectStateId sentFrom, @Nonnull final UUID receiver) {
+            super(id, sentFrom, receiver);
         }
 
         @Override
@@ -368,7 +368,7 @@ public class SignalTest {
                 }
 
                 private void test(@Nonnull final Duration whenSet, @Nonnull final Integer receiverState) {
-                    final var signal = new TestSignal(new ObjectStateId(OBJECT_A, whenSet), OBJECT_B);
+                    final var signal = new TestSignal(ID_A, new ObjectStateId(OBJECT_A, whenSet), OBJECT_B);
                     final ValueHistory<Integer> receiverStateHistory = new ConstantValueHistory<Integer>(receiverState);
 
                     final var whenReceived = getWhenReceived(signal, receiverStateHistory);
@@ -424,7 +424,7 @@ public class SignalTest {
                 private void test(@Nonnull final Duration whenSet, @Nonnull final Duration transitionTime,
                         @Nonnull final Integer receiverState0, @Nonnull final Integer receiverState1) {
                     assert whenSet.compareTo(transitionTime) < 0;
-                    final var signal = new TestSignal(new ObjectStateId(OBJECT_A, whenSet), OBJECT_B);
+                    final var signal = new TestSignal(ID_A, new ObjectStateId(OBJECT_A, whenSet), OBJECT_B);
                     final ModifiableValueHistory<Integer> receiverStateHistory = new ModifiableValueHistory<Integer>(
                             receiverState0);
                     receiverStateHistory.appendTransition(transitionTime, receiverState1);
@@ -438,25 +438,28 @@ public class SignalTest {
 
     }// class
 
+    private static final UUID ID_A = UUID.randomUUID();
+    private static final UUID ID_B = UUID.randomUUID();
+
     private static final UUID OBJECT_A = UUID.randomUUID();
-
     private static final UUID OBJECT_B = UUID.randomUUID();
+
     private static final Duration WHEN_A = Duration.ofMillis(0);
-
     private static final Duration WHEN_B = Duration.ofMillis(5000);
-    private static final ObjectStateId ID_A = new ObjectStateId(OBJECT_A, WHEN_A);
 
-    private static final ObjectStateId ID_B = new ObjectStateId(OBJECT_B, WHEN_B);
+    private static final ObjectStateId OBJECT_STATE_ID_A = new ObjectStateId(OBJECT_A, WHEN_A);
+    private static final ObjectStateId OBJECT_STATE_ID_B = new ObjectStateId(OBJECT_B, WHEN_B);
 
     public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal) {
         ObjectTest.assertInvariants(signal);// inherited
 
+        final var id = signal.getId();
         final var receiver = signal.getReceiver();
         final var sender = signal.getSender();
         final var sentFrom = signal.getSentFrom();
         final var whenSent = signal.getWhenSent();
-        assertAll("Not null", () -> assertNotNull(receiver, "receiver"), () -> assertNotNull(sender, "sender"),
-                () -> assertNotNull(sentFrom, "sentFrom"), // guard
+        assertAll("Not null", () -> assertNotNull(id, "id"), () -> assertNotNull(receiver, "receiver"),
+                () -> assertNotNull(sender, "sender"), () -> assertNotNull(sentFrom, "sentFrom"), // guard
                 () -> assertNotNull(whenSent, "whenSent"));
         ObjectStateIdTest.assertInvariants(sentFrom);
         assertAll("consistent attributes", () -> assertSame(sender, sentFrom.getObject(), "sender with SentFrom"),
@@ -497,11 +500,13 @@ public class SignalTest {
         }
     }
 
-    private static Signal<Integer> constructor(@Nonnull final ObjectStateId sentFrom, @Nonnull final UUID receiver) {
-        final Signal<Integer> signal = new TestSignal(sentFrom, receiver);
+    private static Signal<Integer> constructor(@Nonnull final UUID id, @Nonnull final ObjectStateId sentFrom,
+            @Nonnull final UUID receiver) {
+        final Signal<Integer> signal = new TestSignal(id, sentFrom, receiver);
 
         assertInvariants(signal);
-        assertAll("Attributes", () -> assertSame(sentFrom, signal.getSentFrom(), "sentFrom"),
+        assertAll("Attributes", () -> assertSame(id, signal.getId(), "id"),
+                () -> assertSame(sentFrom, signal.getSentFrom(), "sentFrom"),
                 () -> assertSame(receiver, signal.getReceiver(), "receiver"));
         return signal;
     }
