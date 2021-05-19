@@ -47,7 +47,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
-import uk.badamson.mc.simulation.ObjectStateId;
+import uk.badamson.mc.simulation.TimestampedId;
 
 /**
  * <p>
@@ -76,7 +76,7 @@ public final class Universe<STATE> {
     private static final int MAX_SORT = 32;
 
     @Nonnull
-    private static Collection<ObjectStateId> sortIfSmall(@Nonnull final Collection<ObjectStateId> ids) {
+    private static Collection<TimestampedId> sortIfSmall(@Nonnull final Collection<TimestampedId> ids) {
         final var size = ids.size();
         if (1 < size && size <= MAX_SORT) {
             return new TreeSet<>(ids);
@@ -317,13 +317,13 @@ public final class Universe<STATE> {
         return objectHistories.equals(other.objectHistories);
     }
 
-    private Collection<ObjectStateId> expandAdvanceStep(@Nonnull final ObjectStateId step) {
+    private Collection<TimestampedId> expandAdvanceStep(@Nonnull final TimestampedId step) {
         final var history = objectHistories.get(step.getObject());
         final var when = step.getWhen();
         while (history.getEnd().compareTo(when) < 0) {// (advancing is necessary)
             final var lastEvent = history.getLastEvent();
             final var dependencies = lastEvent.getNextEventDependencies();
-            final var subSteps = new ArrayList<ObjectStateId>(dependencies.size());
+            final var subSteps = new ArrayList<TimestampedId>(dependencies.size());
             dependencies.entrySet().stream().filter(entry -> {
                 final var dependent = entry.getKey();
                 final var dependentTime = entry.getValue();
@@ -332,7 +332,7 @@ public final class Universe<STATE> {
                  * sub step.
                  */
                 return objectHistories.get(dependent).getEnd().compareTo(dependentTime) < 0;
-            }).forEach(entry -> subSteps.add(new ObjectStateId(entry.getKey(), entry.getValue())));
+            }).forEach(entry -> subSteps.add(new TimestampedId(entry.getKey(), entry.getValue())));
             if (subSteps.isEmpty()) {
                 // Can advance right now
                 observeNextEvents(lastEvent).doOnNext(events -> applyNextEvents(lastEvent, events)).then().block();
@@ -351,9 +351,9 @@ public final class Universe<STATE> {
         return List.of();
     }
 
-    private Stream<ObjectStateId> getInitialAdvanceObjectives(@Nonnull final Duration when) {
+    private Stream<TimestampedId> getInitialAdvanceObjectives(@Nonnull final Duration when) {
         return List.copyOf(objectHistories.values()).stream().filter(history -> history.getEnd().compareTo(when) < 0)
-                .map(history -> new ObjectStateId(history.getObject(), when));
+                .map(history -> new TimestampedId(history.getObject(), when));
     }
 
     /**

@@ -52,7 +52,7 @@ import reactor.test.StepVerifier;
 import uk.badamson.dbc.assertions.EqualsSemanticsTest;
 import uk.badamson.dbc.assertions.ObjectTest;
 import uk.badamson.mc.JsonTest;
-import uk.badamson.mc.simulation.ObjectStateId;
+import uk.badamson.mc.simulation.TimestampedId;
 import uk.badamson.mc.simulation.rx.EventTest.TestEvent;
 
 public class UniverseTest {
@@ -168,7 +168,7 @@ public class UniverseTest {
 
             private void test(@Nonnull final UUID object, @Nonnull final Duration start, @Nonnull final Integer state0,
                     @Nonnull final Duration when) {
-                final var event0 = new TestEvent(new ObjectStateId(object, start), state0, Map.of());
+                final var event0 = new TestEvent(new TimestampedId(object, start), state0, Map.of());
                 final var universe = new Universe<Integer>();
                 universe.addObject(event0);
 
@@ -187,7 +187,7 @@ public class UniverseTest {
             final Duration start = WHEN_A;
             final Duration when = start.plusSeconds(5);
             final var state0 = Integer.valueOf(Integer.MIN_VALUE);// magic number
-            final var event0 = new TestEvent(new ObjectStateId(object1, start), state0, Map.of());
+            final var event0 = new TestEvent(new TimestampedId(object1, start), state0, Map.of());
             final var universe = new Universe<Integer>();
             universe.addObject(event0);
 
@@ -216,7 +216,7 @@ public class UniverseTest {
             final var universe = new Universe<Integer>();
             for (int s = 0; s < nObjects; ++s) {
                 final var state = Integer.valueOf(s);
-                final var event = new TestEvent(new ObjectStateId(UUID.randomUUID(), WHEN_A), state, Map.of());
+                final var event = new TestEvent(new TimestampedId(UUID.randomUUID(), WHEN_A), state, Map.of());
                 universe.addObject(event);
             }
 
@@ -299,7 +299,7 @@ public class UniverseTest {
                 final var universe = new Universe<Integer>();
                 for (int s = 0; s < nObjects; ++s) {
                     final var state = Integer.valueOf(s);
-                    final var event = new TestEvent(new ObjectStateId(UUID.randomUUID(), WHEN_A), state, Map.of());
+                    final var event = new TestEvent(new TimestampedId(UUID.randomUUID(), WHEN_A), state, Map.of());
                     universe.addObject(event);
                 }
                 final var end = WHEN_A.plusSeconds(16);
@@ -317,7 +317,7 @@ public class UniverseTest {
                 final var timeout = Duration.ofMillis(100);
                 final Duration when = start.plusSeconds(32);
                 final var state0 = Integer.valueOf(Integer.MIN_VALUE);// magic number
-                final var event0 = new TestEvent(new ObjectStateId(object1, start), state0, Map.of());
+                final var event0 = new TestEvent(new TimestampedId(object1, start), state0, Map.of());
                 final var universe = new Universe<Integer>();
                 universe.addObject(event0);
                 final var copy = new AtomicReference<Universe<Integer>>();
@@ -390,8 +390,8 @@ public class UniverseTest {
             @Test
             public void differentEventTimes() {
                 final var state = Integer.valueOf(0);
-                final var eventA = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A), state, Map.of());
-                final var eventB = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_B), state, Map.of());
+                final var eventA = new TestEvent(new TimestampedId(OBJECT_A, WHEN_A), state, Map.of());
+                final var eventB = new TestEvent(new TimestampedId(OBJECT_A, WHEN_B), state, Map.of());
                 final var universeA = new Universe<Integer>();
                 universeA.addObject(eventA);
                 final var universeB = new Universe<Integer>();
@@ -404,8 +404,8 @@ public class UniverseTest {
             @Test
             public void differentObjects() {
                 final var state = Integer.valueOf(0);
-                final var eventA = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A), state, Map.of());
-                final var eventB = new TestEvent(new ObjectStateId(OBJECT_B, WHEN_A), state, Map.of());
+                final var eventA = new TestEvent(new TimestampedId(OBJECT_A, WHEN_A), state, Map.of());
+                final var eventB = new TestEvent(new TimestampedId(OBJECT_B, WHEN_A), state, Map.of());
                 final var universeA = new Universe<Integer>();
                 universeA.addObject(eventA);
                 final var universeB = new Universe<Integer>();
@@ -500,7 +500,7 @@ public class UniverseTest {
                 test(OBJECT_STATE_ID_B, Integer.valueOf(1));
             }
 
-            private void test(@Nonnull final ObjectStateId id, @Nonnull final Integer state) {
+            private void test(@Nonnull final TimestampedId id, @Nonnull final Integer state) {
                 final var event = new TestEvent(id, state, Map.of());
                 final var expectedNextEvent = event.computeNextEvents(Map.of());
                 final Universe<Integer> universe = new Universe<>();
@@ -531,8 +531,8 @@ public class UniverseTest {
                 assert !eventObject.equals(dependentObject);
                 assert dependentObjectTime.compareTo(eventTime) < 0;
                 final var dependentObjectInitialEvent = new TestEvent(
-                        new ObjectStateId(dependentObject, dependentObjectTime), dependentState, Map.of());
-                final var event = new TestEvent(new ObjectStateId(eventObject, eventTime), eventState,
+                        new TimestampedId(dependentObject, dependentObjectTime), dependentState, Map.of());
+                final var event = new TestEvent(new TimestampedId(eventObject, eventTime), eventState,
                         Map.of(dependentObject, dependentObjectTime));
                 final var expectedNextEvent = event.computeNextEvents(Map.of(dependentObject, dependentState));
                 assert !expectedNextEvent.equals(event.computeNextEvents(Map.of()));// critical
@@ -605,8 +605,8 @@ public class UniverseTest {
     private static final Duration WHEN_A = Duration.ofMillis(0);
     private static final Duration WHEN_B = Duration.ofMillis(5000);
 
-    private static final ObjectStateId OBJECT_STATE_ID_A = new ObjectStateId(OBJECT_A, WHEN_A);
-    private static final ObjectStateId OBJECT_STATE_ID_B = new ObjectStateId(OBJECT_B, WHEN_B);
+    private static final TimestampedId OBJECT_STATE_ID_A = new TimestampedId(OBJECT_A, WHEN_A);
+    private static final TimestampedId OBJECT_STATE_ID_B = new TimestampedId(OBJECT_B, WHEN_B);
 
     private static final TestEvent EVENT_A = new TestEvent(OBJECT_STATE_ID_A, Integer.valueOf(0), Map.of());
     private static final TestEvent EVENT_B = new TestEvent(OBJECT_STATE_ID_B, Integer.valueOf(1), Map.of());

@@ -34,7 +34,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * </p>
  */
 @Immutable
-public final class ObjectStateId implements Comparable<ObjectStateId> {
+public final class TimestampedId implements Comparable<TimestampedId> {
 
     private final UUID object;
     private final Duration when;
@@ -64,7 +64,7 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
      *             </ul>
      */
     @JsonCreator
-    public ObjectStateId(@Nonnull @JsonProperty("object") final UUID object,
+    public TimestampedId(@Nonnull @JsonProperty("object") final UUID object,
             @Nonnull @JsonProperty("when") final Duration when) {
         this.object = Objects.requireNonNull(object, "object");
         this.when = Objects.requireNonNull(when, "when");
@@ -75,7 +75,7 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
      * The <i>natural ordering</i> relation of this ID with a given ID.
      * </p>
      * <ul>
-     * <li>The <i>natural ordering</i> of {@link ObjectStateId} is consistent with
+     * <li>The <i>natural ordering</i> of {@link TimestampedId} is consistent with
      * {@linkplain #equals(Object) equals}.</li>
      * <li>The <i>natural ordering</i> orders by {@linkplain #getWhen() time-stamp};
      * if two IDs have different time-stamps, their ordering is equivalent to the
@@ -94,7 +94,7 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
      *             If {@code that} is null.
      */
     @Override
-    public int compareTo(final ObjectStateId that) {
+    public int compareTo(final TimestampedId that) {
         Objects.requireNonNull(that, "that");
         int c = when.compareTo(that.when);
         if (c == 0) {
@@ -105,10 +105,10 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
 
     /**
      * <p>
-     * Whether this {@link ObjectStateId} is equivalent to another object.
+     * Whether this {@link TimestampedId} is equivalent to another object.
      * </p>
      * <p>
-     * {@link ObjectStateId} objects have value semantics: two IDs are equivalent
+     * {@link TimestampedId} objects have value semantics: two IDs are equivalent
      * if, and only if, they have equivalent {@linkplain #getObject() object IDs}
      * and {@linkplain #getWhen() time-stamps}.
      * </p>
@@ -124,7 +124,7 @@ public final class ObjectStateId implements Comparable<ObjectStateId> {
         if (getClass() != that.getClass()) {
             return false;
         }
-        final ObjectStateId other = (ObjectStateId) that;
+        final TimestampedId other = (TimestampedId) that;
         return when.equals(other.when) && object.equals(other.object);
     }
 

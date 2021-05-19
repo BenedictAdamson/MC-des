@@ -61,7 +61,7 @@ import uk.badamson.dbc.assertions.ObjectTest;
 import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.history.ValueHistoryTest;
-import uk.badamson.mc.simulation.ObjectStateId;
+import uk.badamson.mc.simulation.TimestampedId;
 import uk.badamson.mc.simulation.actor.ObjectHistory.TimestampedState;
 
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
@@ -103,7 +103,7 @@ public class ObjectHistoryTest {
                     final var start = WHEN_B;
                     final var end = WHEN_C;
                     final Duration whenLastSignalApplied = WHEN_A;
-                    final var sentFrom = new ObjectStateId(OBJECT_A, end.plusSeconds(5));
+                    final var sentFrom = new TimestampedId(OBJECT_A, end.plusSeconds(5));
                     test(OBJECT_B, start, end, whenLastSignalApplied, SIGNAL_ID_B, sentFrom);
                 }
 
@@ -112,13 +112,13 @@ public class ObjectHistoryTest {
                     final var start = WHEN_A;
                     final var end = WHEN_B;
                     final Duration whenLastSignalApplied = WHEN_C;
-                    final var sentFrom = new ObjectStateId(OBJECT_B, end);
+                    final var sentFrom = new TimestampedId(OBJECT_B, end);
                     test(OBJECT_A, start, end, whenLastSignalApplied, SIGNAL_ID_A, sentFrom);
                 }
 
                 private void test(@Nonnull final UUID object, @Nonnull final Duration start,
                         @Nonnull final Duration end, @Nonnull final Duration whenLastSignalApplied,
-                        @Nonnull final UUID signalId, @Nonnull final ObjectStateId sentFrom) {
+                        @Nonnull final UUID signalId, @Nonnull final TimestampedId sentFrom) {
                     final Integer state = Integer.valueOf(0);
                     final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>();
                     stateTransitions.put(start, state);
@@ -195,7 +195,7 @@ public class ObjectHistoryTest {
                     final Duration whenLastSignalApplied = WHEN_B;
                     final Collection<Signal<Integer>> signalsA = List.of();
                     final Collection<Signal<Integer>> signalsB = List
-                            .of(new SignalTest.TestSignal(SIGNAL_ID_A, new ObjectStateId(OBJECT_B, end), object));
+                            .of(new SignalTest.TestSignal(SIGNAL_ID_A, new TimestampedId(OBJECT_B, end), object));
                     assert !signalsA.equals(signalsB);
 
                     final var historyA = new ObjectHistory<>(object, end, whenLastSignalApplied, stateTransitions,
@@ -256,7 +256,7 @@ public class ObjectHistoryTest {
                             Map.of(Duration.ofMillis(5000), Integer.valueOf(Integer.MAX_VALUE)));
                     final SortedMap<Duration, Integer> stateTransitionsB = new TreeMap<>(stateTransitionsA);
                     final Collection<Signal<Integer>> signalsA = List
-                            .of(new SignalTest.TestSignal(SIGNAL_ID_A, new ObjectStateId(OBJECT_B, endA), objectA));
+                            .of(new SignalTest.TestSignal(SIGNAL_ID_A, new TimestampedId(OBJECT_B, endA), objectA));
                     final Collection<Signal<Integer>> signalsB = new ArrayList<>(signalsA);
 
                     assert objectA.equals(objectB);

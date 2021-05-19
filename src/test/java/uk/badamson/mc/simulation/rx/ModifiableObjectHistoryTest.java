@@ -48,7 +48,7 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import uk.badamson.dbc.assertions.ThreadSafetyTest;
 import uk.badamson.mc.JsonTest;
-import uk.badamson.mc.simulation.ObjectStateId;
+import uk.badamson.mc.simulation.TimestampedId;
 import uk.badamson.mc.simulation.rx.EventTest.TestEvent;
 import uk.badamson.mc.simulation.rx.ObjectHistory.TimestampedState;
 
@@ -84,8 +84,8 @@ public class ModifiableObjectHistoryTest {
 
             private void test(final UUID object, final Duration when0, final Integer state0, final Duration when1,
                     final Integer state1) {
-                final var event0 = new TestEvent(new ObjectStateId(object, when0), state0, Map.of());
-                final var event1 = new TestEvent(new ObjectStateId(object, when1), state1, Map.of());
+                final var event0 = new TestEvent(new TimestampedId(object, when0), state0, Map.of());
+                final var event1 = new TestEvent(new TimestampedId(object, when1), state1, Map.of());
                 final var history = new ModifiableObjectHistory<>(event0);
 
                 Append.this.test(history, event1);
@@ -95,10 +95,10 @@ public class ModifiableObjectHistoryTest {
 
         @RepeatedTest(32)
         public void multiThreaded() {
-            final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A), Integer.valueOf(0), Map.of());
-            final var event1 = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A.plusMillis(1)), Integer.valueOf(1),
+            final var event0 = new TestEvent(new TimestampedId(OBJECT_A, WHEN_A), Integer.valueOf(0), Map.of());
+            final var event1 = new TestEvent(new TimestampedId(OBJECT_A, WHEN_A.plusMillis(1)), Integer.valueOf(1),
                     Map.of());
-            final var event2 = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A.plusMillis(2)), Integer.valueOf(2),
+            final var event2 = new TestEvent(new TimestampedId(OBJECT_A, WHEN_A.plusMillis(2)), Integer.valueOf(2),
                     Map.of());
             final var history = new ModifiableObjectHistory<>(event0);
 
@@ -145,10 +145,10 @@ public class ModifiableObjectHistoryTest {
 
         @Test
         public void two() {
-            final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A), Integer.valueOf(0), Map.of());
-            final var event1 = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A.plusMillis(1)), Integer.valueOf(1),
+            final var event0 = new TestEvent(new TimestampedId(OBJECT_A, WHEN_A), Integer.valueOf(0), Map.of());
+            final var event1 = new TestEvent(new TimestampedId(OBJECT_A, WHEN_A.plusMillis(1)), Integer.valueOf(1),
                     Map.of());
-            final var event2 = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A.plusMillis(2)), Integer.valueOf(2),
+            final var event2 = new TestEvent(new TimestampedId(OBJECT_A, WHEN_A.plusMillis(2)), Integer.valueOf(2),
                     Map.of());
             final var history = new ModifiableObjectHistory<>(event0);
             history.append(event1);
@@ -185,8 +185,8 @@ public class ModifiableObjectHistoryTest {
 
             private void test(final UUID object, final Duration time1, final Integer state1, final Duration time2,
                     final Integer state2) {
-                final var event1 = new TestEvent(new ObjectStateId(object, time1), state1, Map.of());
-                final var event2 = new TestEvent(new ObjectStateId(object, time2), state2, Map.of());
+                final var event1 = new TestEvent(new TimestampedId(object, time1), state1, Map.of());
+                final var event2 = new TestEvent(new TimestampedId(object, time2), state2, Map.of());
 
                 test(event1, event2);
             }
@@ -249,10 +249,10 @@ public class ModifiableObjectHistoryTest {
             private void test(final UUID object, final Duration lastEventTime, final Integer lastEventState,
                     final Duration expectedLastEventTime, final Integer expectedLastEventState,
                     final Duration eventTime, final Integer eventState) {
-                final var lastEvent = new TestEvent(new ObjectStateId(object, lastEventTime), lastEventState, Map.of());
-                final var expectedLastEvent = new TestEvent(new ObjectStateId(object, expectedLastEventTime),
+                final var lastEvent = new TestEvent(new TimestampedId(object, lastEventTime), lastEventState, Map.of());
+                final var expectedLastEvent = new TestEvent(new TimestampedId(object, expectedLastEventTime),
                         expectedLastEventState, Map.of());
-                final var event = new TestEvent(new ObjectStateId(object, eventTime), eventState, Map.of());
+                final var event = new TestEvent(new TimestampedId(object, eventTime), eventState, Map.of());
 
                 test(lastEvent, expectedLastEvent, event);
             }
@@ -306,7 +306,7 @@ public class ModifiableObjectHistoryTest {
 
                 private void test(final UUID object, final Duration start, final Integer state,
                         final Map<UUID, Duration> nextEventDependencies) {
-                    final var event = new TestEvent(new ObjectStateId(object, start), state, nextEventDependencies);
+                    final var event = new TestEvent(new TimestampedId(object, start), state, nextEventDependencies);
 
                     test(event);
                 }
@@ -344,7 +344,7 @@ public class ModifiableObjectHistoryTest {
 
                 private void test(final UUID object, final Duration start, final Integer state) {
                     final SortedMap<Duration, Integer> previousStateTransitions = Collections.emptySortedMap();
-                    final var event = new TestEvent(new ObjectStateId(object, start), state, Map.of());
+                    final var event = new TestEvent(new TimestampedId(object, start), state, Map.of());
 
                     History.this.test(previousStateTransitions, event);
                 }
@@ -375,7 +375,7 @@ public class ModifiableObjectHistoryTest {
                         final Integer state2) {
                     final SortedMap<Duration, Integer> previousStateTransitions = new TreeMap<>();
                     previousStateTransitions.put(start, state1);
-                    final var event = new TestEvent(new ObjectStateId(object, end), state2, Map.of());
+                    final var event = new TestEvent(new TimestampedId(object, end), state2, Map.of());
 
                     History.this.test(previousStateTransitions, event);
                 }
@@ -397,7 +397,7 @@ public class ModifiableObjectHistoryTest {
                 final SortedMap<Duration, Integer> previousStateTransitions = new TreeMap<>();
                 previousStateTransitions.put(WHEN_A, Integer.valueOf(0));
                 previousStateTransitions.put(WHEN_B, Integer.valueOf(1));
-                final var event = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_C), Integer.valueOf(3), Map.of());
+                final var event = new TestEvent(new TimestampedId(OBJECT_A, WHEN_C), Integer.valueOf(3), Map.of());
 
                 History.this.test(previousStateTransitions, event);
             }
@@ -426,7 +426,7 @@ public class ModifiableObjectHistoryTest {
 
             private void test(final UUID object, final Duration start, final Integer state,
                     final Map<UUID, Duration> nextEventDependencies) {
-                final var event = new TestEvent(new ObjectStateId(object, start), state, nextEventDependencies);
+                final var event = new TestEvent(new TimestampedId(object, start), state, nextEventDependencies);
                 test(event);
             }
 
@@ -458,7 +458,7 @@ public class ModifiableObjectHistoryTest {
 
             private void test(final UUID object, final Duration start, final Integer state,
                     final Map<UUID, Duration> nextEventDependencies) {
-                final var event = new TestEvent(new ObjectStateId(object, start), state, nextEventDependencies);
+                final var event = new TestEvent(new TimestampedId(object, start), state, nextEventDependencies);
 
                 test(event);
             }
@@ -489,7 +489,7 @@ public class ModifiableObjectHistoryTest {
                     final Integer state2) {
                 final SortedMap<Duration, Integer> previousStateTransitions = new TreeMap<>();
                 previousStateTransitions.put(start, state1);
-                final var event = new TestEvent(new ObjectStateId(object, end), state2, Map.of());
+                final var event = new TestEvent(new TimestampedId(object, end), state2, Map.of());
                 final var history = new ModifiableObjectHistory<>(previousStateTransitions, event);
 
                 JSON.this.test(history);
@@ -528,8 +528,8 @@ public class ModifiableObjectHistoryTest {
         @Test
         public void destruction() {
             final UUID object = OBJECT_A;
-            final var event0 = new TestEvent(new ObjectStateId(object, WHEN_A), Integer.valueOf(0), Map.of());
-            final var event1 = new TestEvent(new ObjectStateId(object, WHEN_A.plusMillis(10)), null, Map.of());
+            final var event0 = new TestEvent(new TimestampedId(object, WHEN_A), Integer.valueOf(0), Map.of());
+            final var event1 = new TestEvent(new TimestampedId(object, WHEN_A.plusMillis(10)), null, Map.of());
             final var history = new ModifiableObjectHistory<>(event0);
             history.append(event1);
 
@@ -540,8 +540,8 @@ public class ModifiableObjectHistoryTest {
 
         private void testNonDestruction(final UUID object, final Duration when0, final Integer state0,
                 final Duration when1, final Integer state1) {
-            final var event0 = new TestEvent(new ObjectStateId(object, when0), state0, Map.of());
-            final var event1 = new TestEvent(new ObjectStateId(object, when1), state1, Map.of());
+            final var event0 = new TestEvent(new TimestampedId(object, when0), state0, Map.of());
+            final var event1 = new TestEvent(new TimestampedId(object, when1), state1, Map.of());
             final var history = new ModifiableObjectHistory<>(event0);
             history.append(event1);
 
@@ -581,8 +581,8 @@ public class ModifiableObjectHistoryTest {
                 assert time0.compareTo(when) < 0;// provisional
                 assert when.compareTo(time1) <= 0;// becomes reliable
                 final var expectedState = Optional.of(state0);
-                final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, time0), state0, Map.of());
-                final var event1 = new TestEvent(new ObjectStateId(OBJECT_A, time1), state1, Map.of());
+                final var event0 = new TestEvent(new TimestampedId(OBJECT_A, time0), state0, Map.of());
+                final var event1 = new TestEvent(new TimestampedId(OBJECT_A, time1), state1, Map.of());
                 final var history = new ModifiableObjectHistory<>(event0);
 
                 final var states = observeState(history, when);
@@ -633,9 +633,9 @@ public class ModifiableObjectHistoryTest {
                 assert time1.compareTo(when) <= 0;// between events
                 assert when.compareTo(time2) < 0;
                 final var expectedState = Optional.of(state1);
-                final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, time0), state0, Map.of());
-                final var event1 = new TestEvent(new ObjectStateId(OBJECT_A, time1), state1, Map.of());
-                final var event2 = new TestEvent(new ObjectStateId(OBJECT_A, time2), state2, Map.of());
+                final var event0 = new TestEvent(new TimestampedId(OBJECT_A, time0), state0, Map.of());
+                final var event1 = new TestEvent(new TimestampedId(OBJECT_A, time1), state1, Map.of());
+                final var event2 = new TestEvent(new TimestampedId(OBJECT_A, time2), state2, Map.of());
                 final var history = new ModifiableObjectHistory<>(event0);
                 history.append(event1);
                 history.append(event2);
@@ -660,9 +660,9 @@ public class ModifiableObjectHistoryTest {
                 final var state2 = Integer.valueOf(1);
 
                 final var expectedState0 = Optional.of(state0);
-                final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, time0), state0, Map.of());
-                final var event1 = new TestEvent(new ObjectStateId(OBJECT_A, time1), state1, Map.of());
-                final var event2 = new TestEvent(new ObjectStateId(OBJECT_A, time2), state2, Map.of());
+                final var event0 = new TestEvent(new TimestampedId(OBJECT_A, time0), state0, Map.of());
+                final var event1 = new TestEvent(new TimestampedId(OBJECT_A, time1), state1, Map.of());
+                final var event2 = new TestEvent(new TimestampedId(OBJECT_A, time2), state2, Map.of());
                 final var history = new ModifiableObjectHistory<>(event0);
 
                 final var states = observeState(history, when);
@@ -701,9 +701,9 @@ public class ModifiableObjectHistoryTest {
                 assert when.compareTo(time2) < 0;// becomes reliable
                 final var expectedState0 = Optional.of(state0);
                 final var expectedState1 = Optional.of(state1);
-                final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, time0), state0, Map.of());
-                final var event1 = new TestEvent(new ObjectStateId(OBJECT_A, time1), state1, Map.of());
-                final var event2 = new TestEvent(new ObjectStateId(OBJECT_A, time2), state2, Map.of());
+                final var event0 = new TestEvent(new TimestampedId(OBJECT_A, time0), state0, Map.of());
+                final var event1 = new TestEvent(new TimestampedId(OBJECT_A, time1), state1, Map.of());
+                final var event2 = new TestEvent(new TimestampedId(OBJECT_A, time2), state2, Map.of());
                 final var history = new ModifiableObjectHistory<>(event0);
 
                 final var states = observeState(history, when);
@@ -739,8 +739,8 @@ public class ModifiableObjectHistoryTest {
                 final var when = time1;// the update is reliable
                 final var expectedState0 = Optional.of(state0);
                 final var expectedState1 = Optional.of(state1);
-                final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, time0), state0, Map.of());
-                final var event1 = new TestEvent(new ObjectStateId(OBJECT_A, time1), state1, Map.of());
+                final var event0 = new TestEvent(new TimestampedId(OBJECT_A, time0), state0, Map.of());
+                final var event1 = new TestEvent(new TimestampedId(OBJECT_A, time1), state1, Map.of());
                 final var history = new ModifiableObjectHistory<>(event0);
 
                 final var states = observeState(history, when);
@@ -772,9 +772,9 @@ public class ModifiableObjectHistoryTest {
             final var when1 = WHEN_A;
             final Integer state1 = null;// critical
             final var expectedStateTransition = new ModifiableObjectHistory.TimestampedState<>(when1, state1);
-            final var event0 = new TestEvent(new ObjectStateId(object, when1.minusMillis(10)), Integer.valueOf(0),
+            final var event0 = new TestEvent(new TimestampedId(object, when1.minusMillis(10)), Integer.valueOf(0),
                     Map.of());
-            final var event1 = new TestEvent(new ObjectStateId(object, when1), state1, Map.of());
+            final var event1 = new TestEvent(new TimestampedId(object, when1), state1, Map.of());
             final var history = new ModifiableObjectHistory<>(event0);
             history.append(event1);
 
@@ -787,8 +787,8 @@ public class ModifiableObjectHistoryTest {
         private void testNonDestruction(final UUID object, final Duration when0, final Integer state0,
                 final Duration when1, final Integer state1) {
             final var expectedStateTransition = new ModifiableObjectHistory.TimestampedState<>(when1, state1);
-            final var event0 = new TestEvent(new ObjectStateId(object, when0), state0, Map.of());
-            final var event1 = new TestEvent(new ObjectStateId(object, when1), state1, Map.of());
+            final var event0 = new TestEvent(new TimestampedId(object, when0), state0, Map.of());
+            final var event1 = new TestEvent(new TimestampedId(object, when1), state1, Map.of());
             final var history = new ModifiableObjectHistory<>(event0);
             history.append(event1);
 

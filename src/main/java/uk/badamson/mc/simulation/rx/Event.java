@@ -30,7 +30,7 @@ import javax.annotation.concurrent.Immutable;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
-import uk.badamson.mc.simulation.ObjectStateId;
+import uk.badamson.mc.simulation.TimestampedId;
 
 /**
  * <p>
@@ -47,7 +47,7 @@ import uk.badamson.mc.simulation.ObjectStateId;
 public abstract class Event<STATE> {
 
     private static <STATE> Map<UUID, Duration> requireValidNextEventDependencies(
-            final Map<UUID, Duration> nextEventDependencies, @Nonnull final ObjectStateId id, final STATE state) {
+            final Map<UUID, Duration> nextEventDependencies, @Nonnull final TimestampedId id, final STATE state) {
         Objects.requireNonNull(nextEventDependencies, "nextEventDependencies");
         final var object = id.getObject();
         final var when = id.getWhen();
@@ -66,7 +66,7 @@ public abstract class Event<STATE> {
         return nextEventDependencies;
     }
 
-    private final ObjectStateId id;
+    private final TimestampedId id;
     private final STATE state;
     private final Map<UUID, Duration> nextEventDependencies;
 
@@ -107,7 +107,7 @@ public abstract class Event<STATE> {
      *             not {@linkplain Map#isEmpty() empty}.</li>
      *             </ul>
      */
-    protected Event(@Nonnull final ObjectStateId id, @Nullable final STATE state,
+    protected Event(@Nonnull final TimestampedId id, @Nullable final STATE state,
             @Nonnull final Map<UUID, Duration> nextEventDependencies) {
         this.id = Objects.requireNonNull(id, "id");
         this.state = state;
@@ -213,14 +213,14 @@ public abstract class Event<STATE> {
      * as a result of this event.
      * </p>
      * <ul>
-     * <li>The {@linkplain ObjectStateId#getWhen() time-stamp} of the ID is point in
+     * <li>The {@linkplain TimestampedId#getWhen() time-stamp} of the ID is point in
      * time that the this event occurs.</li>
-     * <li>The {@linkplain ObjectStateId#getObject() object} of the ID is the ID of
+     * <li>The {@linkplain TimestampedId#getObject() object} of the ID is the ID of
      * the object for which this event occurs.</li>
      * </ul>
      */
     @Nonnull
-    public final ObjectStateId getId() {
+    public final TimestampedId getId() {
         return id;
     }
 
@@ -262,7 +262,7 @@ public abstract class Event<STATE> {
      * The unique ID of the object for which this is an event
      * </p>
      * <ul>
-     * <li>The same as the {@linkplain ObjectStateId#getObject() object ID} of the
+     * <li>The same as the {@linkplain TimestampedId#getObject() object ID} of the
      * {@linkplain #getId() ID} of this event.</li>
      * </ul>
      */
@@ -298,7 +298,7 @@ public abstract class Event<STATE> {
      * simulation should use the same epoch.
      * </p>
      * <ul>
-     * <li>The same as the {@linkplain ObjectStateId#getWhen() time-stamp} of the
+     * <li>The same as the {@linkplain TimestampedId#getWhen() time-stamp} of the
      * {@linkplain #getId() ID} of this event.</li>
      * </ul>
      */

@@ -34,7 +34,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import uk.badamson.mc.history.TimestampedValue;
 import uk.badamson.mc.history.ValueHistory;
-import uk.badamson.mc.simulation.ObjectStateId;
+import uk.badamson.mc.simulation.TimestampedId;
 
 /**
  * <p>
@@ -65,7 +65,7 @@ public abstract class Signal<STATE> {
     public static final class Effect<STATE> {
 
         @Nonnull
-        private final ObjectStateId eventId;
+        private final TimestampedId eventId;
         @Nullable
         private final STATE state;
         @Nonnull
@@ -87,7 +87,7 @@ public abstract class Signal<STATE> {
          *             not {@linkplain Signal#getSentFrom() sent from} the same object
          *             as the {@code eventId}.
          */
-        public Effect(@Nonnull final ObjectStateId eventId, @Nullable final STATE state,
+        public Effect(@Nonnull final TimestampedId eventId, @Nullable final STATE state,
                 @Nonnull final Set<Signal<STATE>> signalsEmitted) {
             this.eventId = Objects.requireNonNull(eventId, "eventId");
             this.state = state;
@@ -117,16 +117,16 @@ public abstract class Signal<STATE> {
          * that caused this effect.
          * </p>
          * <ul>
-         * <li>The {@linkplain ObjectStateId#getObject() object} of the event ID is the
+         * <li>The {@linkplain TimestampedId#getObject() object} of the event ID is the
          * same as the {@linkplain #getAffectedObject() affected object} of this
          * effect.</li>
-         * <li>The {@linkplain ObjectStateId#getWhen() time-stamp} of the event ID is
+         * <li>The {@linkplain TimestampedId#getWhen() time-stamp} of the event ID is
          * the same as the {@linkplain #getWhenOccurred() time of occurrance} of this
          * effect.</li>
          * </ul>
          */
         @Nonnull
-        public ObjectStateId getEventId() {
+        public TimestampedId getEventId() {
             return eventId;
         }
 
@@ -227,7 +227,7 @@ public abstract class Signal<STATE> {
     @Nonnull
     private final UUID id;
     @Nonnull
-    private final ObjectStateId sentFrom;
+    private final TimestampedId sentFrom;
     @Nonnull
     private final UUID receiver;
 
@@ -247,7 +247,7 @@ public abstract class Signal<STATE> {
      * @throws NullPointerException
      *             If an {@linkplain Nonnull} argument is null
      */
-    protected Signal(@Nonnull final UUID id, @Nonnull final ObjectStateId sentFrom, @Nonnull final UUID receiver) {
+    protected Signal(@Nonnull final UUID id, @Nonnull final TimestampedId sentFrom, @Nonnull final UUID receiver) {
         this.id = Objects.requireNonNull(id, "id");
         this.sentFrom = Objects.requireNonNull(sentFrom, "sentFrom");
         this.receiver = Objects.requireNonNull(receiver, "receiver");
@@ -342,17 +342,17 @@ public abstract class Signal<STATE> {
      * that it sent (emitted) the signal.
      * </p>
      * <ul>
-     * <li>The {@linkplain ObjectStateId#getObject() object} of the sent-from
+     * <li>The {@linkplain TimestampedId#getObject() object} of the sent-from
      * information is the same as the {@linkplain #getSender() sender} of this
      * signal.</li>
-     * <li>The {@linkplain ObjectStateId#getWhen() time-stamp} of the sent-from
+     * <li>The {@linkplain TimestampedId#getWhen() time-stamp} of the sent-from
      * information is the same as the {@linkplain #getWhenSent() sending time} of
      * this signal.</li>
      * </ul>
      */
     @Nonnull
     @JsonProperty("sentFrom")
-    public final ObjectStateId getSentFrom() {
+    public final TimestampedId getSentFrom() {
         return sentFrom;
     }
 

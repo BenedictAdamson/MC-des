@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation.rx;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *
@@ -48,8 +48,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import uk.badamson.dbc.assertions.EqualsSemanticsTest;
 import uk.badamson.dbc.assertions.ObjectTest;
 import uk.badamson.mc.JsonTest;
-import uk.badamson.mc.simulation.ObjectStateId;
-import uk.badamson.mc.simulation.ObjectStateIdTest;
+import uk.badamson.mc.simulation.TimestampedId;
+import uk.badamson.mc.simulation.TimestampedIdTest;
 
 /**
  * <p>
@@ -68,7 +68,7 @@ public class EventTest {
             @Test
             public void differentNextEventDependencies() {
                 // Tough test: all other attributes and aggregates the same
-                final var id = new ObjectStateId(OBJECT_A, WHEN_A);
+                final var id = new TimestampedId(OBJECT_A, WHEN_A);
                 final Integer state = Integer.valueOf(0);
                 final Map<UUID, Duration> nextEventDependenciesA = Map.of();
                 final Map<UUID, Duration> nextEventDependenciesB = Map.of(OBJECT_B, Duration.ofMillis(-100));
@@ -83,8 +83,8 @@ public class EventTest {
             @Test
             public void differentObjects() {
                 // Tough test: all other attributes and aggregates the same
-                final var idA = new ObjectStateId(OBJECT_A, WHEN_A);
-                final var idB = new ObjectStateId(OBJECT_B, WHEN_A);
+                final var idA = new TimestampedId(OBJECT_A, WHEN_A);
+                final var idB = new TimestampedId(OBJECT_B, WHEN_A);
                 final Integer state = Integer.valueOf(0);
                 final Map<UUID, Duration> nextEventDependencies = Map.of();
 
@@ -98,7 +98,7 @@ public class EventTest {
             @Test
             public void differentState() {
                 // Tough test: all other attributes and aggregates the same
-                final var id = new ObjectStateId(OBJECT_A, WHEN_A);
+                final var id = new TimestampedId(OBJECT_A, WHEN_A);
                 final Integer stateA = Integer.valueOf(0);
                 final Integer stateB = Integer.valueOf(1);
                 final Map<UUID, Duration> nextEventDependencies = Map.of();
@@ -113,8 +113,8 @@ public class EventTest {
             @Test
             public void differentWhen() {
                 // Tough test: all other attributes and aggregates the same
-                final var idA = new ObjectStateId(OBJECT_A, WHEN_A);
-                final var idB = new ObjectStateId(OBJECT_A, WHEN_B);
+                final var idA = new TimestampedId(OBJECT_A, WHEN_A);
+                final var idB = new TimestampedId(OBJECT_A, WHEN_B);
                 final Integer state = Integer.valueOf(0);
                 final Map<UUID, Duration> nextEventDependencies = Map.of();
 
@@ -131,8 +131,8 @@ public class EventTest {
                 final Integer stateB = Integer.valueOf(Integer.MAX_VALUE);
                 final Map<UUID, Duration> nextEventDependenciesA = Map.of(OBJECT_B, Duration.ofMillis(-100));
                 final Map<UUID, Duration> nextEventDependenciesB = new HashMap<>(nextEventDependenciesA);
-                final ObjectStateId idA = ID_A;
-                final ObjectStateId idB = new ObjectStateId(ID_A.getObject(), ID_A.getWhen());
+                final TimestampedId idA = ID_A;
+                final TimestampedId idB = new TimestampedId(ID_A.getObject(), ID_A.getWhen());
                 assert idA.equals(idB);
                 assert idA != idB;// tough test
                 assert stateA.equals(stateB);
@@ -179,7 +179,7 @@ public class EventTest {
             test(ID_A, Integer.valueOf(0), Map.of());
         }
 
-        private void test(final ObjectStateId id, final Integer state,
+        private void test(final TimestampedId id, final Integer state,
                 final Map<UUID, Duration> nextEventDependencies) {
             final var event = new TestEvent(id, state, nextEventDependencies);
             assertInvariants(event);
@@ -210,7 +210,7 @@ public class EventTest {
             assertEquals(event, deserialized);
         }
 
-        private void test(final ObjectStateId id, final Integer state,
+        private void test(final TimestampedId id, final Integer state,
                 final Map<UUID, Duration> nextEventDependencies) {
             final var event = new TestEvent(id, state, nextEventDependencies);
             test(event);
@@ -220,7 +220,7 @@ public class EventTest {
     static final class TestEvent extends Event<Integer> {
 
         @JsonCreator
-        public TestEvent(@JsonProperty("id") final ObjectStateId id, @JsonProperty("state") final Integer state,
+        public TestEvent(@JsonProperty("id") final TimestampedId id, @JsonProperty("state") final Integer state,
                 @JsonProperty("nextEventDependencies") final Map<UUID, Duration> nextEventDependencies) {
             super(id, state, nextEventDependencies);
         }
@@ -236,14 +236,14 @@ public class EventTest {
             if (value == Integer.MAX_VALUE) {
                 // Magic number to trigger a destruction event
                 final var whenNext = getWhen().plusMillis(250);
-                return Map.of(getObject(), new TestEvent(new ObjectStateId(getObject(), whenNext), null, Map.of()));
+                return Map.of(getObject(), new TestEvent(new TimestampedId(getObject(), whenNext), null, Map.of()));
             } else if (value == Integer.MIN_VALUE) {
                 // Magic number to trigger a creation event
                 final var whenNext = getWhen().plusMillis(250);
-                final var successorEvent = new TestEvent(new ObjectStateId(getObject(), whenNext), Integer.valueOf(0),
+                final var successorEvent = new TestEvent(new TimestampedId(getObject(), whenNext), Integer.valueOf(0),
                         Map.of());
                 final var createdObject = UUID.randomUUID();
-                final var creationEvent = new TestEvent(new ObjectStateId(createdObject, whenNext), Integer.valueOf(1),
+                final var creationEvent = new TestEvent(new TimestampedId(createdObject, whenNext), Integer.valueOf(1),
                         Map.of());
                 return Map.of(getObject(), successorEvent, createdObject, creationEvent);
             } else {
@@ -255,7 +255,7 @@ public class EventTest {
                         .mapToInt(dependentState -> dependentState == null ? 0 : dependentState.intValue()).sum();
                 final var nextValue = value + dependentValuesSum + 1;
                 final var delay = 250 * (1 + Math.abs(nextValue));
-                return Map.of(getObject(), new TestEvent(new ObjectStateId(getObject(), getWhen().plusMillis(delay)),
+                return Map.of(getObject(), new TestEvent(new TimestampedId(getObject(), getWhen().plusMillis(delay)),
                         Integer.valueOf(nextValue), nextEventDependencies));
             }
         }
@@ -268,8 +268,8 @@ public class EventTest {
     private static final Duration WHEN_A = Duration.ofMillis(0);
     private static final Duration WHEN_B = Duration.ofMillis(750);
 
-    private static final ObjectStateId ID_A = new ObjectStateId(OBJECT_A, WHEN_A);
-    private static final ObjectStateId ID_B = new ObjectStateId(OBJECT_B, WHEN_B);
+    private static final TimestampedId ID_A = new TimestampedId(OBJECT_A, WHEN_A);
+    private static final TimestampedId ID_B = new TimestampedId(OBJECT_B, WHEN_B);
 
     public static <STATE> void assertInvariants(@Nonnull final Event<STATE> event) {
         ObjectTest.assertInvariants(event);// inherited
@@ -282,7 +282,7 @@ public class EventTest {
         assertAll("Not null", () -> assertNotNull(id, "id"), // guard
                 () -> assertNotNull(nextEventDependencies, "nextEventDependencies"),
                 () -> assertNotNull(object, "object"), () -> assertNotNull(when, "when"));
-        ObjectStateIdTest.assertInvariants(id);
+        TimestampedIdTest.assertInvariants(id);
         assertAll(
                 () -> assertAll("Delgates", () -> assertSame(id.getObject(), object, "object"),
                         () -> assertSame(id.getWhen(), when, "when")),

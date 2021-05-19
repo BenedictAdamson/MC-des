@@ -42,11 +42,11 @@ import uk.badamson.mc.JsonTest;
 
 /**
  * <p>
- * Auxiliary test code for classes implementing the {@link ObjectStateId}
+ * Auxiliary test code for classes implementing the {@link TimestampedId}
  * interface.
  * </p>
  */
-public class ObjectStateIdTest {
+public class TimestampedIdTest {
 
     @Nested
     public class Constructor {
@@ -65,7 +65,7 @@ public class ObjectStateIdTest {
             }
 
             private void test(final UUID object, final Duration when) {
-                final ObjectStateId id = new ObjectStateId(object, when);
+                final TimestampedId id = new TimestampedId(object, when);
 
                 assertInvariants(id);
                 assertAll(
@@ -97,8 +97,8 @@ public class ObjectStateIdTest {
                     final UUID object2 = new UUID(object.getMostSignificantBits(), object.getLeastSignificantBits());
                     final Duration when2 = when.plus(Duration.ZERO);
 
-                    final ObjectStateId id1 = new ObjectStateId(object, when);
-                    final ObjectStateId id2 = new ObjectStateId(object2, when2);
+                    final TimestampedId id1 = new TimestampedId(object, when);
+                    final TimestampedId id2 = new TimestampedId(object2, when2);
 
                     assertInvariants(id1, id2);
                     assertThat("Equal.", id1, equalTo(id2));
@@ -108,8 +108,8 @@ public class ObjectStateIdTest {
 
             @Test
             public void differentObjectA() {
-                final ObjectStateId id1 = new ObjectStateId(OBJECT_A, DURATION_A);
-                final ObjectStateId id2 = new ObjectStateId(OBJECT_B, DURATION_A);
+                final TimestampedId id1 = new TimestampedId(OBJECT_A, DURATION_A);
+                final TimestampedId id2 = new TimestampedId(OBJECT_B, DURATION_A);
 
                 assertInvariants(id1, id2);
                 assertThat("Not equal.", id1, not(id2));
@@ -117,8 +117,8 @@ public class ObjectStateIdTest {
 
             @Test
             public void differentObjectB() {
-                final ObjectStateId id1 = new ObjectStateId(OBJECT_B, DURATION_A);
-                final ObjectStateId id2 = new ObjectStateId(OBJECT_A, DURATION_A);
+                final TimestampedId id1 = new TimestampedId(OBJECT_B, DURATION_A);
+                final TimestampedId id2 = new TimestampedId(OBJECT_A, DURATION_A);
 
                 assertInvariants(id1, id2);
                 assertThat("Not equal.", id1, not(id2));
@@ -126,8 +126,8 @@ public class ObjectStateIdTest {
 
             @Test
             public void differentWhenA() {
-                final ObjectStateId id1 = new ObjectStateId(OBJECT_A, DURATION_A);
-                final ObjectStateId id2 = new ObjectStateId(OBJECT_A, DURATION_B);
+                final TimestampedId id1 = new TimestampedId(OBJECT_A, DURATION_A);
+                final TimestampedId id2 = new TimestampedId(OBJECT_A, DURATION_B);
 
                 assertInvariants(id1, id2);
                 assertThat("Not equal.", id1, not(id2));
@@ -135,8 +135,8 @@ public class ObjectStateIdTest {
 
             @Test
             public void differentWhenB() {
-                final ObjectStateId id1 = new ObjectStateId(OBJECT_B, DURATION_B);
-                final ObjectStateId id2 = new ObjectStateId(OBJECT_B, DURATION_A);
+                final TimestampedId id1 = new TimestampedId(OBJECT_B, DURATION_B);
+                final TimestampedId id2 = new TimestampedId(OBJECT_B, DURATION_A);
 
                 assertInvariants(id1, id2);
                 assertThat("Not equal.", id1, not(id2));
@@ -158,7 +158,7 @@ public class ObjectStateIdTest {
             test(OBJECT_B, DURATION_B);
         }
 
-        private <VALUE> void test(@Nonnull final ObjectStateId id) {
+        private <VALUE> void test(@Nonnull final TimestampedId id) {
             final var deserialized = JsonTest.serializeAndDeserialize(id);
 
             assertInvariants(id);
@@ -167,7 +167,7 @@ public class ObjectStateIdTest {
         }
 
         private void test(@Nonnull final UUID object, @Nonnull final Duration when) {
-            final ObjectStateId id = new ObjectStateId(object, when);
+            final TimestampedId id = new TimestampedId(object, when);
             test(id);
         }
 
@@ -179,7 +179,7 @@ public class ObjectStateIdTest {
     static final Duration DURATION_A = Duration.ZERO;
     static final Duration DURATION_B = Duration.ofSeconds(15);
 
-    public static void assertInvariants(final ObjectStateId id) {
+    public static void assertInvariants(final TimestampedId id) {
         ObjectTest.assertInvariants(id);// inherited
         ComparableTest.assertInvariants(id);
 
@@ -189,7 +189,7 @@ public class ObjectStateIdTest {
         assertAll(() -> assertNotNull(objectId, "objectId"), () -> assertNotNull(when, "when"));
     }
 
-    public static void assertInvariants(final ObjectStateId id1, final ObjectStateId id2) {
+    public static void assertInvariants(final TimestampedId id1, final TimestampedId id2) {
         ObjectTest.assertInvariants(id1, id2);// inherited
         ComparableTest.assertInvariants(id1, id2);
         ComparableTest.assertNaturalOrderingIsConsistentWithEquals(id1, id2);

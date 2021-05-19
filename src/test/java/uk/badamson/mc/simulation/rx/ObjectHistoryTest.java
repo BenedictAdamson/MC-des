@@ -56,7 +56,7 @@ import uk.badamson.dbc.assertions.ObjectTest;
 import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.history.ValueHistoryTest;
-import uk.badamson.mc.simulation.ObjectStateId;
+import uk.badamson.mc.simulation.TimestampedId;
 import uk.badamson.mc.simulation.rx.EventTest.TestEvent;
 import uk.badamson.mc.simulation.rx.ObjectHistory.TimestampedState;
 
@@ -90,7 +90,7 @@ public class ObjectHistoryTest {
 
                 private void test(final UUID object, final Duration start, final Integer state,
                         final Map<UUID, Duration> nextEventDependencies) {
-                    final var event = new TestEvent(new ObjectStateId(object, start), state, nextEventDependencies);
+                    final var event = new TestEvent(new TimestampedId(object, start), state, nextEventDependencies);
 
                     test(event);
                 }
@@ -129,7 +129,7 @@ public class ObjectHistoryTest {
 
                 private void test(final UUID object, final Duration start, final Integer state) {
                     final SortedMap<Duration, Integer> previousStateTransitions = Collections.emptySortedMap();
-                    final var event = new TestEvent(new ObjectStateId(object, start), state, Map.of());
+                    final var event = new TestEvent(new TimestampedId(object, start), state, Map.of());
 
                     History.this.test(previousStateTransitions, event);
                 }
@@ -160,7 +160,7 @@ public class ObjectHistoryTest {
                         final Integer state2) {
                     final SortedMap<Duration, Integer> previousStateTransitions = new TreeMap<>();
                     previousStateTransitions.put(start, state1);
-                    final var event = new TestEvent(new ObjectStateId(object, end), state2, Map.of());
+                    final var event = new TestEvent(new TimestampedId(object, end), state2, Map.of());
 
                     History.this.test(previousStateTransitions, event);
                 }
@@ -174,9 +174,9 @@ public class ObjectHistoryTest {
                 public void differentLastEvent() {
                     final SortedMap<Duration, Integer> previousStateTransitions = new TreeMap<>(
                             Map.of(WHEN_A.minusMillis(10), Integer.valueOf(-1)));
-                    final var lastEventA = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A), Integer.valueOf(0),
+                    final var lastEventA = new TestEvent(new TimestampedId(OBJECT_A, WHEN_A), Integer.valueOf(0),
                             Map.of());
-                    final var lastEventB = new TestEvent(new ObjectStateId(OBJECT_B, WHEN_B), Integer.valueOf(1),
+                    final var lastEventB = new TestEvent(new TimestampedId(OBJECT_B, WHEN_B), Integer.valueOf(1),
                             Map.of());
                     assert !lastEventA.equals(lastEventB);
 
@@ -193,7 +193,7 @@ public class ObjectHistoryTest {
                             Map.of(WHEN_A.minusMillis(10), Integer.valueOf(-1)));
                     final SortedMap<Duration, Integer> previousStateTransitionsB = new TreeMap<>(
                             Map.of(WHEN_A.minusMillis(20), Integer.valueOf(-2)));
-                    final var lastEvent = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A),
+                    final var lastEvent = new TestEvent(new TimestampedId(OBJECT_A, WHEN_A),
                             Integer.valueOf(Integer.MAX_VALUE), Map.of());
                     assert !previousStateTransitionsA.equals(previousStateTransitionsB);
 
@@ -213,9 +213,9 @@ public class ObjectHistoryTest {
                             Map.of(WHEN_A.minusMillis(10), Integer.valueOf(-1)));
                     final SortedMap<Duration, Integer> previousStateTransitionsB = new TreeMap<>(
                             previousStateTransitionsA);
-                    final var lastEventA = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A),
+                    final var lastEventA = new TestEvent(new TimestampedId(OBJECT_A, WHEN_A),
                             Integer.valueOf(Integer.MAX_VALUE), nextEventDependenciesA);
-                    final var lastEventB = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A),
+                    final var lastEventB = new TestEvent(new TimestampedId(OBJECT_A, WHEN_A),
                             Integer.valueOf(Integer.MAX_VALUE), nextEventDependenciesB);
 
                     assert previousStateTransitionsA.equals(previousStateTransitionsB);
@@ -247,7 +247,7 @@ public class ObjectHistoryTest {
                 final SortedMap<Duration, Integer> previousStateTransitions = new TreeMap<>();
                 previousStateTransitions.put(WHEN_A, Integer.valueOf(0));
                 previousStateTransitions.put(WHEN_B, Integer.valueOf(1));
-                final var event = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_C), Integer.valueOf(3), Map.of());
+                final var event = new TestEvent(new TimestampedId(OBJECT_A, WHEN_C), Integer.valueOf(3), Map.of());
 
                 History.this.test(previousStateTransitions, event);
             }
@@ -262,8 +262,8 @@ public class ObjectHistoryTest {
 
                 @Test
                 public void different() {
-                    final var eventA = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A), Integer.valueOf(0), Map.of());
-                    final var eventB = new TestEvent(new ObjectStateId(OBJECT_B, WHEN_B), Integer.valueOf(1),
+                    final var eventA = new TestEvent(new TimestampedId(OBJECT_A, WHEN_A), Integer.valueOf(0), Map.of());
+                    final var eventB = new TestEvent(new TimestampedId(OBJECT_B, WHEN_B), Integer.valueOf(1),
                             Map.of(OBJECT_A, WHEN_B.minusMillis(10)));
 
                     final var historyA = new ObjectHistory<>(eventA);
@@ -277,9 +277,9 @@ public class ObjectHistoryTest {
                 public void equivalent() {
                     final var nextEventDependenciesA = Map.of(OBJECT_B, WHEN_A.minusMillis(10));
                     final var nextEventDependenciesB = new HashMap<>(nextEventDependenciesA);
-                    final var eventA = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A),
+                    final var eventA = new TestEvent(new TimestampedId(OBJECT_A, WHEN_A),
                             Integer.valueOf(Integer.MAX_VALUE), nextEventDependenciesA);
-                    final var eventB = new TestEvent(new ObjectStateId(OBJECT_A, WHEN_A),
+                    final var eventB = new TestEvent(new TimestampedId(OBJECT_A, WHEN_A),
                             Integer.valueOf(Integer.MAX_VALUE), nextEventDependenciesB);
                     assert eventA.equals(eventB);
                     assert eventA != eventB;// tough test
@@ -311,7 +311,7 @@ public class ObjectHistoryTest {
 
             private void test(final UUID object, final Duration start, final Integer state,
                     final Map<UUID, Duration> nextEventDependencies) {
-                final var event = new TestEvent(new ObjectStateId(object, start), state, nextEventDependencies);
+                final var event = new TestEvent(new TimestampedId(object, start), state, nextEventDependencies);
                 test(event);
             }
 
@@ -343,7 +343,7 @@ public class ObjectHistoryTest {
 
             private void test(final UUID object, final Duration start, final Integer state,
                     final Map<UUID, Duration> nextEventDependencies) {
-                final var event = new TestEvent(new ObjectStateId(object, start), state, nextEventDependencies);
+                final var event = new TestEvent(new TimestampedId(object, start), state, nextEventDependencies);
 
                 test(event);
             }
@@ -374,7 +374,7 @@ public class ObjectHistoryTest {
                     final Integer state2) {
                 final SortedMap<Duration, Integer> previousStateTransitions = new TreeMap<>();
                 previousStateTransitions.put(start, state1);
-                final var event = new TestEvent(new ObjectStateId(object, end), state2, Map.of());
+                final var event = new TestEvent(new TimestampedId(object, end), state2, Map.of());
                 final var history = new ObjectHistory<>(previousStateTransitions, event);
 
                 JSON.this.test(history);
@@ -413,7 +413,7 @@ public class ObjectHistoryTest {
             }
 
             private void test(final UUID object, final Duration start, final Integer state) {
-                final var event = new TestEvent(new ObjectStateId(object, start), state, Map.of());
+                final var event = new TestEvent(new TimestampedId(object, start), state, Map.of());
                 final var history = new ObjectHistory<>(event);
 
                 final var flux = observeEvents(history);
@@ -437,7 +437,7 @@ public class ObjectHistoryTest {
             }
 
             private void test(final UUID object, final Duration start, final Integer state) {
-                final var event = new TestEvent(new ObjectStateId(object, start), state, Map.of());
+                final var event = new TestEvent(new TimestampedId(object, start), state, Map.of());
                 final var history = new ObjectHistory<>(event);
                 final var copy = new ObjectHistory<>(history);
 
@@ -466,7 +466,7 @@ public class ObjectHistoryTest {
             }
 
             private void test(@Nonnull final Duration start, @Nonnull final Integer state) {
-                final var event = new TestEvent(new ObjectStateId(OBJECT_A, start), state, Map.of());
+                final var event = new TestEvent(new TimestampedId(OBJECT_A, start), state, Map.of());
                 test(event);
             }
 
@@ -501,7 +501,7 @@ public class ObjectHistoryTest {
 
             private void test(@Nonnull final Duration start, @Nonnull final Duration when) {
                 assert when.compareTo(start) < 0;
-                final var event = new TestEvent(new ObjectStateId(OBJECT_A, start), Integer.valueOf(0), Map.of());
+                final var event = new TestEvent(new TimestampedId(OBJECT_A, start), Integer.valueOf(0), Map.of());
 
                 test(event, when);
             }
@@ -541,7 +541,7 @@ public class ObjectHistoryTest {
                     @Nonnull final Integer state0) {
                 assert time0.compareTo(when) < 0;// provisional
                 final var expectedState = Optional.of(state0);
-                final var event0 = new TestEvent(new ObjectStateId(OBJECT_A, time0), state0, Map.of());
+                final var event0 = new TestEvent(new TimestampedId(OBJECT_A, time0), state0, Map.of());
                 final var history = new ObjectHistory<>(event0);
 
                 final var states = observeState(history, when);
@@ -571,7 +571,7 @@ public class ObjectHistoryTest {
 
             private void test(final UUID object, final Duration start, final Integer state) {
                 final var expectedStateTransition = new ObjectHistory.TimestampedState<>(start, state);
-                final var event = new TestEvent(new ObjectStateId(object, start), state, Map.of());
+                final var event = new TestEvent(new TimestampedId(object, start), state, Map.of());
                 final var history = new ObjectHistory<>(event);
 
                 final var flux = observeStateTransitions(history);
@@ -597,7 +597,7 @@ public class ObjectHistoryTest {
 
             private void test(final UUID object, final Duration start, final Integer state) {
                 final var expectedStateTransition = new ObjectHistory.TimestampedState<>(start, state);
-                final var event = new TestEvent(new ObjectStateId(object, start), state, Map.of());
+                final var event = new TestEvent(new TimestampedId(object, start), state, Map.of());
                 final var history = new ObjectHistory<>(event);
                 final var copy = new ObjectHistory<>(history);
 
