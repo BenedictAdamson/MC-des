@@ -88,9 +88,6 @@ public class ObjectHistory<STATE> {
 
             int c = whenReceived.compareTo(that.whenReceived);
             if (c == 0) {
-                c = signal.getWhenSent().compareTo(that.signal.getWhenSent());
-            }
-            if (c == 0) {
                 c = signal.getId().compareTo(that.signal.getId());
             }
 
@@ -106,20 +103,7 @@ public class ObjectHistory<STATE> {
                 return false;
             }
             final SignalEntry<?> other = (SignalEntry<?>) that;
-            if (signal == null) {
-                if (other.signal != null) {
-                    return false;
-                }
-            } else if (!signal.equals(other.signal)) {
-                return false;
-            }
-            if (whenReceived == null) {
-                if (other.whenReceived != null) {
-                    return false;
-                }
-            } else if (!whenReceived.equals(other.whenReceived)) {
-                return false;
-            }
+            /* Check signal first because it contains a unique ID. */
             return signal.equals(other.signal) && whenReceived.equals(other.whenReceived);
         }
 
