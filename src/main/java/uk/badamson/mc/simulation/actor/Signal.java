@@ -473,6 +473,7 @@ public abstract class Signal<STATE> {
     public final Duration getWhenReceived(@Nonnull final ValueHistory<STATE> receiverStateHistory) {
         Objects.requireNonNull(receiverStateHistory, "receiverStateHistory");
 
+        final var transitionTimes = receiverStateHistory.getTransitionTimes();
         Duration tProbe = getWhenSent();
         while (tProbe.compareTo(NEVER_RECEIVED) < 0) {
             final TimestampedValue<STATE> timestampedValue = receiverStateHistory.getTimestampedValue(tProbe);
@@ -485,8 +486,7 @@ public abstract class Signal<STATE> {
             } else if (whenReceived.compareTo(timestampedValue.getEnd()) <= 0) {
                 return whenReceived;
             } // else must iterate
-            assert timestampedValue.getEnd().compareTo(NEVER_RECEIVED) < 0;
-            tProbe = receiverStateHistory.getTansitionTimeAtOrAfter(tProbe);
+            tProbe = transitionTimes.tailSet(tProbe.plusNanos(1)).first();
             assert tProbe != null;
         } // while
         return NEVER_RECEIVED;
@@ -597,7 +597,7 @@ public abstract class Signal<STATE> {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[" + sentFrom + "⇝" + receiver + "]";
+        return getClass().getSimpleName() + "[" + id + ": " + sentFrom + "⇝" + receiver + "]";
     }
 
 }
