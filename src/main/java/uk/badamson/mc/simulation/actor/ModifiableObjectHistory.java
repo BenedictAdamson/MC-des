@@ -103,15 +103,23 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
     @JsonCreator
     public ModifiableObjectHistory(@Nonnull @JsonProperty("object") final UUID object,
             @Nonnull @JsonProperty("end") final Duration end,
+            @Nonnull @JsonProperty("whenLastSignalApplied") final Duration whenLastSignalApplied,
             @Nonnull @JsonProperty("stateTransitions") final SortedMap<Duration, STATE> stateTransitions,
             @Nonnull @JsonProperty("signals") final Collection<Signal<STATE>> signals) {
-        super(object, end, stateTransitions, signals);
+        super(object, end, whenLastSignalApplied, stateTransitions, signals);
     }
 
     /**
      * <p>
      * Construct an object history with given start information and no signals.
      * </p>
+     * <ul>
+     * <li>The {@linkplain #getEnd() end} time is the same as the given
+     * {@code start} time.</li>
+     * <li>The {@linkplain #getWhenLastSignalApplied() time that the last signal was
+     * applied} is the same as the given {@code start} time.</li>
+     * <li>There are no {@linkplain #getSignals() signals}.</li>
+     * </ul>
      *
      * @param object
      *            The unique ID of the object for which this is the history.

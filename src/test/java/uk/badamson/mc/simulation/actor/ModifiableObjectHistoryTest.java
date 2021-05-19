@@ -130,12 +130,14 @@ public class ModifiableObjectHistoryTest {
             private void test(@Nonnull final Duration sent, @Nonnull final Duration start, @Nonnull final Duration end,
                     @Nonnull final Integer state) {
                 assert start.compareTo(end) < 0;
+                final Duration whenLastSignalApplied = start;
                 final UUID sender = OBJECT_A;
                 final UUID receiver = OBJECT_B;
                 final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>();
                 stateTransitions.put(start, state);
                 final Collection<Signal<Integer>> signals = List.of();
-                final var history = new ModifiableObjectHistory<>(receiver, end, stateTransitions, signals);
+                final var history = new ModifiableObjectHistory<>(receiver, end, whenLastSignalApplied,
+                        stateTransitions, signals);
                 final var signal = new SignalTest.TestSignal(SIGNAL_ID_A, new ObjectStateId(sender, sent), receiver);
 
                 assertThrows(Signal.UnreceivableSignalException.class, () -> addSignal(history, signal));
@@ -307,28 +309,31 @@ public class ModifiableObjectHistoryTest {
                 public void sentAfterEnd() {
                     final var start = WHEN_B;
                     final var end = WHEN_C;
+                    final Duration whenLastSignalApplied = start;
                     final var sentFrom = new ObjectStateId(OBJECT_A, end.plusSeconds(5));
-                    test(OBJECT_B, start, end, SIGNAL_ID_B, sentFrom);
+                    test(OBJECT_B, start, end, whenLastSignalApplied, SIGNAL_ID_B, sentFrom);
                 }
 
                 @Test
                 public void sentAtEnd() {
                     final var start = WHEN_A;
                     final var end = WHEN_B;
+                    @Nonnull
+                    final Duration whenLastSignalApplied = WHEN_C;
                     final var sentFrom = new ObjectStateId(OBJECT_B, end);
-                    test(OBJECT_A, start, end, SIGNAL_ID_A, sentFrom);
+                    test(OBJECT_A, start, end, whenLastSignalApplied, SIGNAL_ID_A, sentFrom);
                 }
 
                 private void test(@Nonnull final UUID object, @Nonnull final Duration start,
-                        @Nonnull final Duration end, @Nonnull final UUID signalId,
-                        @Nonnull final ObjectStateId sentFrom) {
+                        @Nonnull final Duration end, @Nonnull final Duration whenLastSignalApplied,
+                        @Nonnull final UUID signalId, @Nonnull final ObjectStateId sentFrom) {
                     final Integer state = Integer.valueOf(0);
                     final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>();
                     stateTransitions.put(start, state);
                     final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, object);
                     final Collection<Signal<Integer>> signals = List.of(signal);
 
-                    constructor(object, end, stateTransitions, signals);
+                    constructor(object, end, whenLastSignalApplied, stateTransitions, signals);
                 }
 
             }// class
@@ -351,8 +356,9 @@ public class ModifiableObjectHistoryTest {
                     final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>();
                     stateTransitions.put(start, state);
                     final Collection<Signal<Integer>> signals = List.of();
+                    final Duration whenLastSignalApplied = start;
 
-                    constructor(object, end, stateTransitions, signals);
+                    constructor(object, end, whenLastSignalApplied, stateTransitions, signals);
                 }
 
             }// class
@@ -366,10 +372,13 @@ public class ModifiableObjectHistoryTest {
                             Map.of(WHEN_A, Integer.valueOf(-1)));
                     final var endA = WHEN_A.plusMillis(10);
                     final var endB = WHEN_A.plusMillis(20);
+                    final Duration whenLastSignalApplied = WHEN_B;
                     final Collection<Signal<Integer>> signals = List.of();
 
-                    final var historyA = new ModifiableObjectHistory<>(OBJECT_A, endA, stateTransitions, signals);
-                    final var historyB = new ModifiableObjectHistory<>(OBJECT_A, endB, stateTransitions, signals);
+                    final var historyA = new ModifiableObjectHistory<>(OBJECT_A, endA, whenLastSignalApplied,
+                            stateTransitions, signals);
+                    final var historyB = new ModifiableObjectHistory<>(OBJECT_A, endB, whenLastSignalApplied,
+                            stateTransitions, signals);
 
                     assertInvariants(historyA, historyB);
                     assertThat("not equals", historyA, not(is(historyB)));
@@ -380,10 +389,13 @@ public class ModifiableObjectHistoryTest {
                     final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>(
                             Map.of(WHEN_A, Integer.valueOf(-1)));
                     final var end = WHEN_A.plusMillis(10);
+                    final Duration whenLastSignalApplied = WHEN_B;
                     final Collection<Signal<Integer>> signals = List.of();
 
-                    final var historyA = new ModifiableObjectHistory<>(OBJECT_A, end, stateTransitions, signals);
-                    final var historyB = new ModifiableObjectHistory<>(OBJECT_B, end, stateTransitions, signals);
+                    final var historyA = new ModifiableObjectHistory<>(OBJECT_A, end, whenLastSignalApplied,
+                            stateTransitions, signals);
+                    final var historyB = new ModifiableObjectHistory<>(OBJECT_B, end, whenLastSignalApplied,
+                            stateTransitions, signals);
 
                     assertInvariants(historyA, historyB);
                     assertThat("not equals", historyA, not(is(historyB)));
@@ -396,13 +408,16 @@ public class ModifiableObjectHistoryTest {
                     final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>(
                             Map.of(start, Integer.valueOf(-1)));
                     final var end = start.plusMillis(10);
+                    final Duration whenLastSignalApplied = WHEN_B;
                     final Collection<Signal<Integer>> signalsA = List.of();
                     final Collection<Signal<Integer>> signalsB = List
                             .of(new SignalTest.TestSignal(SIGNAL_ID_A, new ObjectStateId(OBJECT_B, end), object));
                     assert !signalsA.equals(signalsB);
 
-                    final var historyA = new ModifiableObjectHistory<>(object, end, stateTransitions, signalsA);
-                    final var historyB = new ModifiableObjectHistory<>(object, end, stateTransitions, signalsB);
+                    final var historyA = new ModifiableObjectHistory<>(object, end, whenLastSignalApplied,
+                            stateTransitions, signalsA);
+                    final var historyB = new ModifiableObjectHistory<>(object, end, whenLastSignalApplied,
+                            stateTransitions, signalsB);
 
                     assertInvariants(historyA, historyB);
                     assertThat("not equals", historyA, not(is(historyB)));
@@ -416,11 +431,31 @@ public class ModifiableObjectHistoryTest {
                     final SortedMap<Duration, Integer> stateTransitionsB = new TreeMap<>(
                             Map.of(start, Integer.valueOf(-2)));
                     final var end = start.plusMillis(10);
+                    final Duration whenLastSignalApplied = WHEN_B;
                     final Collection<Signal<Integer>> signals = List.of();
                     assert !stateTransitionsA.equals(stateTransitionsB);
 
-                    final var historyA = new ModifiableObjectHistory<>(OBJECT_A, end, stateTransitionsA, signals);
-                    final var historyB = new ModifiableObjectHistory<>(OBJECT_A, end, stateTransitionsB, signals);
+                    final var historyA = new ModifiableObjectHistory<>(OBJECT_A, end, whenLastSignalApplied,
+                            stateTransitionsA, signals);
+                    final var historyB = new ModifiableObjectHistory<>(OBJECT_A, end, whenLastSignalApplied,
+                            stateTransitionsB, signals);
+
+                    assertInvariants(historyA, historyB);
+                    assertThat("not equals", historyA, not(is(historyB)));
+                }
+
+                @Test
+                public void differentWhenLastSignalApplied() {
+                    final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>(
+                            Map.of(WHEN_A, Integer.valueOf(-1)));
+                    final Collection<Signal<Integer>> signals = List.of();
+                    final var whenLastSignalAppliedA = WHEN_A.plusMillis(10);
+                    final var whenLastSignalAppliedB = WHEN_A.plusMillis(20);
+
+                    final var historyA = new ModifiableObjectHistory<>(OBJECT_A, WHEN_B, whenLastSignalAppliedA,
+                            stateTransitions, signals);
+                    final var historyB = new ModifiableObjectHistory<>(OBJECT_A, WHEN_B, whenLastSignalAppliedB,
+                            stateTransitions, signals);
 
                     assertInvariants(historyA, historyB);
                     assertThat("not equals", historyA, not(is(historyB)));
@@ -431,8 +466,11 @@ public class ModifiableObjectHistoryTest {
                     final var objectA = OBJECT_A;
                     final var objectB = new UUID(objectA.getMostSignificantBits(), objectA.getLeastSignificantBits());
                     final long endMillis = 6000;
+                    final long whenLastSignalAppliedMillis = 4100;
                     final var endA = Duration.ofMillis(endMillis);
                     final var endB = Duration.ofMillis(endMillis);
+                    final Duration whenLastSignalAppliedA = Duration.ofMillis(whenLastSignalAppliedMillis);
+                    final Duration whenLastSignalAppliedB = Duration.ofMillis(whenLastSignalAppliedMillis);
                     final SortedMap<Duration, Integer> stateTransitionsA = new TreeMap<>(
                             Map.of(Duration.ofMillis(5000), Integer.valueOf(Integer.MAX_VALUE)));
                     final SortedMap<Duration, Integer> stateTransitionsB = new TreeMap<>(stateTransitionsA);
@@ -447,8 +485,10 @@ public class ModifiableObjectHistoryTest {
                     assert endA != endB;// tough test
                     assert stateTransitionsA != stateTransitionsB;// tough test
 
-                    final var historyA = new ModifiableObjectHistory<>(OBJECT_A, endA, stateTransitionsA, signalsA);
-                    final var historyB = new ModifiableObjectHistory<>(OBJECT_A, endA, stateTransitionsA, signalsB);
+                    final var historyA = new ModifiableObjectHistory<>(OBJECT_A, endA, whenLastSignalAppliedA,
+                            stateTransitionsA, signalsA);
+                    final var historyB = new ModifiableObjectHistory<>(OBJECT_A, endB, whenLastSignalAppliedB,
+                            stateTransitionsB, signalsB);
 
                     assertInvariants(historyA, historyB);
                     assertThat("equals", historyA, is(historyB));
@@ -463,7 +503,7 @@ public class ModifiableObjectHistoryTest {
                 stateTransitions.put(WHEN_A.plusSeconds(1), Integer.valueOf(1));
                 final Collection<Signal<Integer>> signals = List.of();
 
-                constructor(OBJECT_A, WHEN_A.plusSeconds(2), stateTransitions, signals);
+                constructor(OBJECT_A, WHEN_A.plusSeconds(2), WHEN_B, stateTransitions, signals);
             }
 
         }// class
@@ -652,22 +692,26 @@ public class ModifiableObjectHistoryTest {
         assertEquals(copy, that);
         assertAll("Copied", () -> assertSame(that.getEnd(), copy.getEnd(), "end"),
                 () -> assertSame(that.getObject(), copy.getObject(), "object"),
+                () -> assertEquals(that.getSignals(), copy.getSignals(), "signals"),
                 () -> assertSame(that.getStart(), copy.getStart(), "start"),
-                () -> assertEquals(that.getStateHistory(), copy.getStateHistory(), "stateHistory"));
-        assertThat("signals", copy.getSignals(), empty());
+                () -> assertEquals(that.getStateHistory(), copy.getStateHistory(), "stateHistory"),
+                () -> assertSame(that.getWhenLastSignalApplied(), copy.getWhenLastSignalApplied(),
+                        "whenLastSignalApplied"));
     }
 
     private static <STATE> void constructor(@Nonnull final UUID object, @Nonnull final Duration end,
-            @Nonnull final SortedMap<Duration, STATE> stateTransitions,
+            @Nonnull final Duration whenLastSignalApplied, @Nonnull final SortedMap<Duration, STATE> stateTransitions,
             @Nonnull final Collection<Signal<STATE>> signals) {
-        final var history = new ModifiableObjectHistory<>(object, end, stateTransitions, signals);
+        final var history = new ModifiableObjectHistory<>(object, end, whenLastSignalApplied, stateTransitions,
+                signals);
 
         assertInvariants(history);
         assertAll(() -> assertSame(object, history.getObject(), "object"),
                 () -> assertSame(end, history.getEnd(), "end"),
                 () -> assertSame(stateTransitions.firstKey(), history.getStart(), "start"),
                 () -> assertEquals(stateTransitions, history.getStateTransitions(), "stateTransitions"),
-                () -> assertEquals(signals, history.getSignals(), "signals"));
+                () -> assertEquals(signals, history.getSignals(), "signals"),
+                () -> assertSame(whenLastSignalApplied, history.getWhenLastSignalApplied(), "whenLastSignalApplied"));
     }
 
     private static <STATE> void constructor(@Nonnull final UUID object, @Nonnull final Duration start,
@@ -678,9 +722,10 @@ public class ModifiableObjectHistoryTest {
         final var stateTransitions = history.getStateTransitions();
         assertAll(() -> assertSame(object, history.getObject(), "object"),
                 () -> assertSame(start, history.getStart(), "start"), () -> assertSame(start, history.getEnd(), "end"),
+                () -> assertSame(start, history.getWhenLastSignalApplied(), "whenLastSignalApplied"),
                 () -> assertSame(stateTransitions.firstKey(), history.getStart(), "start"),
                 () -> assertEquals(stateTransitions, Map.of(start, state), "stateTransitions"),
-                () -> assertThat("signals", history.getSignals(), empty()));
+                () -> assertThat("No signals", history.getSignals(), empty()));
     }
 
     public static <STATE> Publisher<Optional<STATE>> observeState(@Nonnull final ModifiableObjectHistory<STATE> history,

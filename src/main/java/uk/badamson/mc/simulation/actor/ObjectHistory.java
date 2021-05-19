@@ -227,6 +227,10 @@ public class ObjectHistory<STATE> {
     @GuardedBy("lock")
     private Duration end;
 
+    @Nonnull
+    @GuardedBy("lock")
+    private Duration whenLastSignalApplied;
+
     /**
      * <p>
      * Copy an object history.
@@ -238,6 +242,7 @@ public class ObjectHistory<STATE> {
         start = that.start;
         synchronized (that.object) {// hard to test
             this.end = that.end;
+            whenLastSignalApplied = that.whenLastSignalApplied;
             completeTimestampedStatesIfNoMoreHistory();
             stateHistory = new ModifiableValueHistory<>(that.stateHistory);
         }
@@ -293,10 +298,12 @@ public class ObjectHistory<STATE> {
     @JsonCreator
     public ObjectHistory(@Nonnull @JsonProperty("object") final UUID object,
             @Nonnull @JsonProperty("end") final Duration end,
+            @Nonnull @JsonProperty("whenLastSignalApplied") final Duration whenLastSignalApplied,
             @Nonnull @JsonProperty("stateTransitions") final SortedMap<Duration, STATE> stateTransitions,
             @Nonnull @JsonProperty("signals") final Collection<Signal<STATE>> signals) {
         this.object = Objects.requireNonNull(object, "object");
         Objects.requireNonNull(end, "end");
+        this.whenLastSignalApplied = Objects.requireNonNull(whenLastSignalApplied, "whenLastSignalApplied");
         this.stateHistory = new ModifiableValueHistory<>(null, stateTransitions);
         // Check after copy to avoid race hazards
         this.start = this.stateHistory.getFirstTansitionTime();
@@ -330,6 +337,13 @@ public class ObjectHistory<STATE> {
      * <p>
      * Construct an object history with given start information and no signals.
      * </p>
+     * <ul>
+     * <li>The {@linkplain #getEnd() end} time is the same as the given
+     * {@code start} time.</li>
+     * <li>The {@linkplain #getWhenLastSignalApplied() time that the last signal was
+     * applied} is the same as the given {@code start} time.</li>
+     * <li>There are no {@linkplain #getSignals() signals}.</li>
+     * </ul>
      *
      * @param object
      *            The unique ID of the object for which this is the history.
@@ -348,6 +362,7 @@ public class ObjectHistory<STATE> {
         this.stateHistory = new ModifiableValueHistory<>();
         this.stateHistory.appendTransition(start, state);
         this.end = start;
+        this.whenLastSignalApplied = start;
         completeTimestampedStatesIfNoMoreHistory();
     }
 
@@ -411,12 +426,12 @@ public class ObjectHistory<STATE> {
         }
     }
 
-    private boolean equalsGuarded(@Nonnull final ObjectHistory<?> other) {
+    private boolean equalsGuarded(@Nonnull final ObjectHistory<?> that) {
         // hard to test the thread safety
         synchronized (lock) {
-            synchronized (other.lock) {
-                return end.equals(other.end) && signals.equals(other.signals)
-                        && stateHistory.equals(other.stateHistory);
+            synchronized (that.lock) {
+                return end.equals(that.end) && whenLastSignalApplied.equals(that.whenLastSignalApplied)
+                        && signals.equals(that.signals) && stateHistory.equals(that.stateHistory);
             }
         }
     }
@@ -471,6 +486,11 @@ public class ObjectHistory<STATE> {
      * {@linkplain #getStart() start time} of this history. This ensures it is
      * possible to compute the {@linkplain Signal#getWhenReceived(ValueHistory)
      * reception time} of the signal.</li>
+     * <li>The collection of signals need not contain all signals
+     * {@linkplain Signal#getWhenReceived(ValueHistory) received} at or before the
+     * {@linkplain #getEnd() end} of the reliable history period.</li>
+     * <li>The collection of signals contains all known signals received after the
+     * end of the reliable history period.</li></li>
      * </ul>
      */
     @Nonnull
@@ -556,6 +576,38 @@ public class ObjectHistory<STATE> {
         }
     }
 
+    /**
+     * <p>
+     * The last point in time that the {@linkplain Signal.Effect effect of a signal}
+     * was applied to the {@linkplain #getStateHistory() state history}.
+     * </p>
+     * <ul>
+     * <li>Expressed as the duration since an (implied) epoch. All objects in a
+     * simulation should use the same epoch.</li>
+     * <li>The time of the last applied signal is typically
+     * {@linkplain Duration#equals(Object) equivalent} to one of the
+     * {@linkplain #getStateTransitions() state transition}
+     * {@linkplain SortedMap#keySet() times}, because the effect of a signal
+     * typically includes a state transition. However, that need not be the case:
+     * the effect might not have caused a state transition.</li>
+     * <li>The time of the last applied signal is <em>either</em>
+     * {@linkplain Duration#compareTo(Duration) at or before} the
+     * {@linkplain #getEnd() end} of the reliable state period <em>or</em> is
+     * {@linkplain Duration#equals(Object) equal to} to the
+     * {@linkplain Signal#getWhenReceived(ValueHistory) reception time} of one of
+     * the {@linkplain #getSignals() signals}. However, time of the last applied
+     * signal need not be the the reception time of a signal, if it is at or before
+     * the end of the reliable state period because the collection of signals need
+     * not include all the signals that were received before the end of the reliable
+     * state period.</li>
+     * </ul>
+     */
+    @Nonnull
+    @JsonProperty("whenLastSignalApplied")
+    public final Duration getWhenLastSignalApplied() {
+        return whenLastSignalApplied;
+    }
+
     @Override
     public final int hashCode() {
         final int prime = 31;
@@ -563,6 +615,7 @@ public class ObjectHistory<STATE> {
         synchronized (lock) {// hard to test thread safety
             result = prime * result + object.hashCode();
             result = prime * result + end.hashCode();
+            result = prime * result + whenLastSignalApplied.hashCode();
             result = prime * result + stateHistory.hashCode();
             result = prime * result + signals.hashCode();
         }
@@ -675,8 +728,9 @@ public class ObjectHistory<STATE> {
     @Override
     public String toString() {
         synchronized (lock) {
-            return getClass().getSimpleName() + " [" + object + "from " + start + " to " + end + ", stateHistory="
-                    + stateHistory + ", signals=" + signals + "]";
+            return getClass().getSimpleName() + " [" + object + "from " + start + " to " + end
+                    + ", whenLastSignalApplied=" + whenLastSignalApplied + ", stateHistory=" + stateHistory
+                    + ", signals=" + signals + "]";
         }
     }
 }
