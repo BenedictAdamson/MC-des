@@ -218,12 +218,6 @@ public class ObjectHistory<STATE> {
      */
     protected final UUID lock = UUID.randomUUID();
 
-    /*
-     * Keyed by the signal reception time and signal ID
-     */
-    @GuardedBy("lock")
-    protected final NavigableMap<TimestampedId, Signal<STATE>> signals = new TreeMap<>();
-
     @Nonnull
     @GuardedBy("lock")
     protected final ModifiableValueHistory<STATE> stateHistory;
@@ -237,6 +231,12 @@ public class ObjectHistory<STATE> {
     @Nonnull
     @GuardedBy("lock")
     private Duration whenLastSignalApplied;
+
+    /*
+     * Keyed by the signal reception time and signal ID
+     */
+    @GuardedBy("lock")
+    private final NavigableMap<TimestampedId, Signal<STATE>> signals = new TreeMap<>();
 
     /**
      * <p>
