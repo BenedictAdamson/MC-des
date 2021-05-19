@@ -28,6 +28,10 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
 import uk.badamson.mc.history.TimestampedValue;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.simulation.ObjectStateId;
@@ -43,6 +47,7 @@ import uk.badamson.mc.simulation.ObjectStateId;
  *            required.
  */
 @Immutable
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "class")
 public abstract class Signal<STATE> {
 
     /**
@@ -273,6 +278,7 @@ public abstract class Signal<STATE> {
      * The unique ID for this signal.
      */
     @Nonnull
+    @JsonProperty("id")
     public final UUID getId() {
         return id;
     }
@@ -307,6 +313,7 @@ public abstract class Signal<STATE> {
      * @see #getSender()
      */
     @Nonnull
+    @JsonProperty("receiver")
     public final UUID getReceiver() {
         return receiver;
     }
@@ -324,6 +331,7 @@ public abstract class Signal<STATE> {
      * @see #getReceiver()
      */
     @Nonnull
+    @JsonIgnore
     public final UUID getSender() {
         return sentFrom.getObject();
     }
@@ -343,6 +351,7 @@ public abstract class Signal<STATE> {
      * </ul>
      */
     @Nonnull
+    @JsonProperty("sentFrom")
     public final ObjectStateId getSentFrom() {
         return sentFrom;
     }
@@ -489,6 +498,7 @@ public abstract class Signal<STATE> {
      * </p>
      */
     @Nonnull
+    @JsonIgnore
     public final Duration getWhenSent() {
         return sentFrom.getWhen();
     }

@@ -45,9 +45,13 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import uk.badamson.dbc.assertions.EqualsSemanticsTest;
 import uk.badamson.dbc.assertions.ObjectTest;
+import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.history.ConstantValueHistory;
 import uk.badamson.mc.history.ModifiableValueHistory;
 import uk.badamson.mc.history.ValueHistory;
@@ -280,6 +284,33 @@ public class SignalTest {
     }// class
 
     @Nested
+    public class JSON {
+
+        @Test
+        public void a() {
+            test(ID_A, OBJECT_STATE_ID_A, OBJECT_A);
+        }
+
+        @Test
+        public void b() {
+            test(ID_B, OBJECT_STATE_ID_B, OBJECT_B);
+        }
+
+        private <STATE> void test(@Nonnull final UUID id, @Nonnull final ObjectStateId sentFrom,
+                @Nonnull final UUID receiver) {
+            final var signal = new TestSignal(id, sentFrom, receiver);
+            final var deserialized = JsonTest.serializeAndDeserialize(signal);
+
+            assertInvariants(signal);
+            assertInvariants(signal, deserialized);
+            assertAll(() -> assertThat("equals", deserialized, is(signal)),
+                    () -> assertEquals(signal.getId(), deserialized.getId(), "id"),
+                    () -> assertEquals(signal.getSentFrom(), deserialized.getSentFrom(), "sentFrom"),
+                    () -> assertEquals(signal.getReceiver(), deserialized.getReceiver(), "receiver"));
+        }
+    }// class
+
+    @Nested
     public class Receive {
 
         @Test
@@ -319,7 +350,10 @@ public class SignalTest {
 
     static class TestSignal extends Signal<Integer> {
 
-        TestSignal(@Nonnull final UUID id, @Nonnull final ObjectStateId sentFrom, @Nonnull final UUID receiver) {
+        @JsonCreator
+        TestSignal(@Nonnull @JsonProperty("id") final UUID id,
+                @Nonnull @JsonProperty("sentFrom") final ObjectStateId sentFrom,
+                @JsonProperty("receiver") @Nonnull final UUID receiver) {
             super(id, sentFrom, receiver);
         }
 
