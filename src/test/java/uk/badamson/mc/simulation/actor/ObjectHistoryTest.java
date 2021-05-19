@@ -98,6 +98,45 @@ public class ObjectHistoryTest {
         public class GivenHistoryAndSignals {
 
             @Nested
+            public class HasAppliedSignal {
+
+                @Test
+                public void a() {
+                    test(OBJECT_A, WHEN_A, WHEN_B, SIGNAL_ID_A, SIGNAL_ID_B, Integer.valueOf(0), Integer.valueOf(1));
+                }
+
+                @Test
+                public void b() {
+                    test(OBJECT_B, WHEN_B, WHEN_C, SIGNAL_ID_B, SIGNAL_ID_A, Integer.valueOf(4), Integer.valueOf(2));
+                }
+
+                private void test(@Nonnull final UUID sender1, @Nonnull final Duration whenSent1,
+                        @Nonnull final Duration whenSent2, @Nonnull final UUID signalId1, @Nonnull final UUID signalId2,
+                        @Nonnull final Integer state2, @Nonnull final Integer state1) {
+                    final UUID receiver = OBJECT_A;
+                    final var signal1 = new SignalTest.TestSignal(signalId1, new TimestampedId(sender1, whenSent1),
+                            receiver);
+                    final var signal2 = new SignalTest.TestSignal(signalId2, new TimestampedId(sender1, whenSent2),
+                            receiver);
+                    final Collection<Signal<Integer>> signals = List.of(signal1, signal2);
+                    final var whenReceived1 = signal1.getWhenReceived(state2);
+                    final var whenReceived2 = signal2.getWhenReceived(state2);
+                    final Duration start = whenSent1;
+                    final Duration end = whenReceived1;
+                    final TimestampedId lastSignalApplied = new TimestampedId(signalId1, whenReceived1);
+                    final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>();
+                    stateTransitions.put(start, state1);
+                    stateTransitions.put(whenReceived1, state2);
+                    assert whenReceived1.compareTo(whenReceived2) <= 0;
+                    assert whenReceived1.compareTo(whenReceived2) < 0 || signalId1.compareTo(signalId2) < 0;
+
+                    final var history = constructor(receiver, end, lastSignalApplied, stateTransitions, signals);
+
+                    assertSame(signal2, history.getNextSignalToApply(), "nextSignalToApply");
+                }
+            }// class
+
+            @Nested
             public class OneSignal {
 
                 @Test
@@ -877,7 +916,7 @@ public class ObjectHistoryTest {
         }
     }
 
-    private static <STATE> void constructor(@Nonnull final ObjectHistory<STATE> that) {
+    private static <STATE> ObjectHistory<STATE> constructor(@Nonnull final ObjectHistory<STATE> that) {
         final var copy = new ObjectHistory<>(that);
 
         assertInvariants(copy);
@@ -888,9 +927,11 @@ public class ObjectHistoryTest {
                 () -> assertSame(that.getStart(), copy.getStart(), "start"),
                 () -> assertEquals(that.getStateHistory(), copy.getStateHistory(), "stateHistory"),
                 () -> assertSame(that.getLastSignalApplied(), copy.getLastSignalApplied(), "lastSignalApplied"));
+
+        return copy;
     }
 
-    private static <STATE> void constructor(@Nonnull final UUID object, @Nonnull final Duration start,
+    private static <STATE> ObjectHistory<STATE> constructor(@Nonnull final UUID object, @Nonnull final Duration start,
             @Nonnull final STATE state) {
         final var history = new ObjectHistory<>(object, start, state);
 
@@ -902,9 +943,11 @@ public class ObjectHistoryTest {
                 () -> assertSame(stateTransitions.firstKey(), history.getStart(), "start"),
                 () -> assertEquals(stateTransitions, Map.of(start, state), "stateTransitions"),
                 () -> assertThat("No signals", history.getSignals(), empty()));
+
+        return history;
     }
 
-    private static <STATE> void constructor(@Nonnull final UUID object, @Nonnull final Duration end,
+    private static <STATE> ObjectHistory<STATE> constructor(@Nonnull final UUID object, @Nonnull final Duration end,
             @Nullable final TimestampedId lastSignalApplied, @Nonnull final SortedMap<Duration, STATE> stateTransitions,
             @Nonnull final Collection<Signal<STATE>> signals) {
         final var history = new ObjectHistory<>(object, end, lastSignalApplied, stateTransitions, signals);
@@ -916,6 +959,8 @@ public class ObjectHistoryTest {
                 () -> assertSame(stateTransitions.firstKey(), history.getStart(), "start"),
                 () -> assertEquals(stateTransitions, history.getStateTransitions(), "stateTransitions"),
                 () -> assertEquals(signals, history.getSignals(), "signals"));
+
+        return history;
     }
 
     static <STATE> long count(final Collection<Signal<STATE>> collection, final Signal<STATE> signal) {

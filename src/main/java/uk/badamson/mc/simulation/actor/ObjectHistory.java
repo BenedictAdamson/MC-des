@@ -367,21 +367,21 @@ public class ObjectHistory<STATE> {
         this.end = end;
         completeTimestampedStatesIfNoMoreHistory();
         try {
-            signals.forEach(signal -> addSignalUnguarded(signal));
+            signals.forEach(signal -> addSignalUnguarded(signal, false));
         } catch (final Signal.UnreceivableSignalException e) {
             throw new IllegalArgumentException("signals", e);
         }
     }
 
     @GuardedBy("lock")
-    protected final void addSignalUnguarded(@Nonnull final Signal<STATE> signal)
+    protected final void addSignalUnguarded(@Nonnull final Signal<STATE> signal, final boolean requireAfterEnd)
             throws Signal.UnreceivableSignalException {
         Objects.requireNonNull(signal, "signal");
         if (!getObject().equals(signal.getReceiver())) {
             throw new IllegalArgumentException("signal.receiver");
         }
         final var whenReceived = signal.getWhenReceived(stateHistory);
-        if (whenReceived.compareTo(getEnd()) <= 0) {
+        if (requireAfterEnd && whenReceived.compareTo(getEnd()) <= 0) {
             throw new Signal.UnreceivableSignalException("signal.whenReceived at or before this.end");
         }
         signals.put(new TimestampedId(signal.getId(), whenReceived), signal);
@@ -519,8 +519,9 @@ public class ObjectHistory<STATE> {
     @JsonIgnore
     public final Signal<STATE> getNextSignalToApply() {
         // TODO thread-safety
-        // TODO handle non-null lastSignalApplied.
-        final var firstEntry = signals.firstEntry();
+        final NavigableMap<TimestampedId, Signal<STATE>> remainingSignals = lastSignalApplied == null ? signals
+                : signals.tailMap(lastSignalApplied, false);
+        final var firstEntry = remainingSignals.firstEntry();
         if (firstEntry == null) {
             return null;
         } else {

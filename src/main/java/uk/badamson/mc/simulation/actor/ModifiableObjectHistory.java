@@ -178,7 +178,7 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      */
     public void addSignal(@Nonnull final Signal<STATE> signal) throws Signal.UnreceivableSignalException {
         synchronized (lock) {
-            addSignalUnguarded(signal);
+            addSignalUnguarded(signal, true);
         }
     }
 
