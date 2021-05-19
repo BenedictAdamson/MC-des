@@ -230,7 +230,7 @@ public class ObjectHistory<STATE> {
 
     @Nonnull
     @GuardedBy("lock")
-    private Duration whenLastSignalApplied;
+    private Duration lastSignalApplied;
 
     /*
      * Keyed by the signal reception time and signal ID
@@ -249,7 +249,7 @@ public class ObjectHistory<STATE> {
         start = that.start;
         synchronized (that.object) {// hard to test
             this.end = that.end;
-            whenLastSignalApplied = that.whenLastSignalApplied;
+            lastSignalApplied = that.lastSignalApplied;
             completeTimestampedStatesIfNoMoreHistory();
             stateHistory = new ModifiableValueHistory<>(that.stateHistory);
         }
@@ -305,12 +305,12 @@ public class ObjectHistory<STATE> {
     @JsonCreator
     public ObjectHistory(@Nonnull @JsonProperty("object") final UUID object,
             @Nonnull @JsonProperty("end") final Duration end,
-            @Nonnull @JsonProperty("whenLastSignalApplied") final Duration whenLastSignalApplied,
+            @Nonnull @JsonProperty("lastSignalApplied") final Duration lastSignalApplied,
             @Nonnull @JsonProperty("stateTransitions") final SortedMap<Duration, STATE> stateTransitions,
             @Nonnull @JsonProperty("signals") final Collection<Signal<STATE>> signals) {
         this.object = Objects.requireNonNull(object, "object");
         Objects.requireNonNull(end, "end");
-        this.whenLastSignalApplied = Objects.requireNonNull(whenLastSignalApplied, "whenLastSignalApplied");
+        this.lastSignalApplied = Objects.requireNonNull(lastSignalApplied, "lastSignalApplied");
         this.stateHistory = new ModifiableValueHistory<>(null, stateTransitions);
         // Check after copy to avoid race hazards
         this.start = this.stateHistory.getFirstTansitionTime();
@@ -347,7 +347,7 @@ public class ObjectHistory<STATE> {
      * <ul>
      * <li>The {@linkplain #getEnd() end} time is the same as the given
      * {@code start} time.</li>
-     * <li>The {@linkplain #getWhenLastSignalApplied() time that the last signal was
+     * <li>The {@linkplain #getLastSignalApplied() time that the last signal was
      * applied} is the same as the given {@code start} time.</li>
      * <li>There are no {@linkplain #getSignals() signals}.</li>
      * </ul>
@@ -369,7 +369,7 @@ public class ObjectHistory<STATE> {
         this.stateHistory = new ModifiableValueHistory<>();
         this.stateHistory.appendTransition(start, state);
         this.end = start;
-        this.whenLastSignalApplied = start;
+        this.lastSignalApplied = start;
         completeTimestampedStatesIfNoMoreHistory();
     }
 
@@ -436,7 +436,7 @@ public class ObjectHistory<STATE> {
         // hard to test the thread safety
         synchronized (lock) {
             synchronized (that.lock) {
-                return end.equals(that.end) && whenLastSignalApplied.equals(that.whenLastSignalApplied)
+                return end.equals(that.end) && lastSignalApplied.equals(that.lastSignalApplied)
                         && signals.equals(that.signals) && stateHistory.equals(that.stateHistory);
             }
         }
@@ -457,6 +457,38 @@ public class ObjectHistory<STATE> {
     @JsonProperty("end")
     public final Duration getEnd() {
         return end;
+    }
+
+    /**
+     * <p>
+     * The last point in time that the {@linkplain Signal.Effect effect of a signal}
+     * was applied to the {@linkplain #getStateHistory() state history}.
+     * </p>
+     * <ul>
+     * <li>Expressed as the duration since an (implied) epoch. All objects in a
+     * simulation should use the same epoch.</li>
+     * <li>The time of the last applied signal is typically
+     * {@linkplain Duration#equals(Object) equivalent} to one of the
+     * {@linkplain #getStateTransitions() state transition}
+     * {@linkplain SortedMap#keySet() times}, because the effect of a signal
+     * typically includes a state transition. However, that need not be the case:
+     * the effect might not have caused a state transition.</li>
+     * <li>The time of the last applied signal is <em>either</em>
+     * {@linkplain Duration#compareTo(Duration) at or before} the
+     * {@linkplain #getEnd() end} of the reliable state period <em>or</em> is
+     * {@linkplain Duration#equals(Object) equal to} to the
+     * {@linkplain Signal#getWhenReceived(ValueHistory) reception time} of one of
+     * the {@linkplain #getSignals() signals}. However, time of the last applied
+     * signal need not be the the reception time of a signal, if it is at or before
+     * the end of the reliable state period because the collection of signals need
+     * not include all the signals that were received before the end of the reliable
+     * state period.</li>
+     * </ul>
+     */
+    @Nonnull
+    @JsonProperty("lastSignalApplied")
+    public final Duration getLastSignalApplied() {
+        return lastSignalApplied;
     }
 
     /**
@@ -586,38 +618,6 @@ public class ObjectHistory<STATE> {
         }
     }
 
-    /**
-     * <p>
-     * The last point in time that the {@linkplain Signal.Effect effect of a signal}
-     * was applied to the {@linkplain #getStateHistory() state history}.
-     * </p>
-     * <ul>
-     * <li>Expressed as the duration since an (implied) epoch. All objects in a
-     * simulation should use the same epoch.</li>
-     * <li>The time of the last applied signal is typically
-     * {@linkplain Duration#equals(Object) equivalent} to one of the
-     * {@linkplain #getStateTransitions() state transition}
-     * {@linkplain SortedMap#keySet() times}, because the effect of a signal
-     * typically includes a state transition. However, that need not be the case:
-     * the effect might not have caused a state transition.</li>
-     * <li>The time of the last applied signal is <em>either</em>
-     * {@linkplain Duration#compareTo(Duration) at or before} the
-     * {@linkplain #getEnd() end} of the reliable state period <em>or</em> is
-     * {@linkplain Duration#equals(Object) equal to} to the
-     * {@linkplain Signal#getWhenReceived(ValueHistory) reception time} of one of
-     * the {@linkplain #getSignals() signals}. However, time of the last applied
-     * signal need not be the the reception time of a signal, if it is at or before
-     * the end of the reliable state period because the collection of signals need
-     * not include all the signals that were received before the end of the reliable
-     * state period.</li>
-     * </ul>
-     */
-    @Nonnull
-    @JsonProperty("whenLastSignalApplied")
-    public final Duration getWhenLastSignalApplied() {
-        return whenLastSignalApplied;
-    }
-
     @Override
     public final int hashCode() {
         final int prime = 31;
@@ -625,7 +625,7 @@ public class ObjectHistory<STATE> {
         synchronized (lock) {// hard to test thread safety
             result = prime * result + object.hashCode();
             result = prime * result + end.hashCode();
-            result = prime * result + whenLastSignalApplied.hashCode();
+            result = prime * result + lastSignalApplied.hashCode();
             result = prime * result + stateHistory.hashCode();
             result = prime * result + signals.hashCode();
         }
@@ -739,8 +739,8 @@ public class ObjectHistory<STATE> {
     public String toString() {
         synchronized (lock) {
             return getClass().getSimpleName() + " [" + object + "from " + start + " to " + end
-                    + ", whenLastSignalApplied=" + whenLastSignalApplied + ", stateHistory=" + stateHistory
-                    + ", signals=" + signals + "]";
+                    + ", whenLastSignalApplied=" + lastSignalApplied + ", stateHistory=" + stateHistory + ", signals="
+                    + signals + "]";
         }
     }
 }

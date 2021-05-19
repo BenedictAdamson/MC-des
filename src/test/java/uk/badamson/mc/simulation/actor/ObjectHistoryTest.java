@@ -794,11 +794,11 @@ public class ObjectHistoryTest {
         final var stateHistory = history.getStateHistory();
         final var stateTransitions = history.getStateTransitions();
         final Collection<Signal<STATE>> signals = history.getSignals();
-        final var wenLastSignalApplied = history.getWhenLastSignalApplied();
+        final var lastSignalApplied = history.getLastSignalApplied();
 
         assertAll("Not null", () -> assertNotNull(object, "object"), () -> assertNotNull(start, "start"), // guard
                 () -> assertNotNull(end, "end"), // guard
-                () -> assertNotNull(wenLastSignalApplied, "wenLastSignalApplied"),
+                () -> assertNotNull(lastSignalApplied, "lastSignalApplied"),
                 () -> assertNotNull(stateHistory, "stateHistory"), // guard
                 () -> assertNotNull(stateTransitions, "stateTransitions"), // guard
                 () -> assertNotNull(signals, "signals")// guard
@@ -826,15 +826,16 @@ public class ObjectHistoryTest {
                         h -> h.getStateTransitions()),
                 () -> EqualsSemanticsTest.assertValueSemantics(history1, history2, "object", h -> h.getObject()),
                 () -> EqualsSemanticsTest.assertValueSemantics(history1, history2, "end", h -> h.getEnd()),
-                () -> EqualsSemanticsTest.assertValueSemantics(history1, history2, "whenLastSignalApplied",
-                        h -> h.getWhenLastSignalApplied()),
+                () -> EqualsSemanticsTest.assertValueSemantics(history1, history2, "lastSignalApplied",
+                        h -> h.getLastSignalApplied()),
                 () -> EqualsSemanticsTest.assertValueSemantics(history1, history2, "signals", h -> h.getSignals()),
                 () -> assertTrue(
-                        history1.equals(history2) == (history1.getStateTransitions().equals(
-                                history2.getStateTransitions()) && history1.getSignals().equals(history2.getSignals())
-                                && history1.getObject().equals(history2.getObject())
-                                && history1.getEnd().equals(history2.getEnd())
-                                && history1.getWhenLastSignalApplied().equals(history2.getWhenLastSignalApplied())),
+                        history1.equals(
+                                history2) == (history1.getStateTransitions().equals(history2.getStateTransitions())
+                                        && history1.getSignals().equals(history2.getSignals())
+                                        && history1.getObject().equals(history2.getObject())
+                                        && history1.getEnd().equals(history2.getEnd())
+                                        && history1.getLastSignalApplied().equals(history2.getLastSignalApplied())),
                         "equals"));
     }
 
@@ -858,19 +859,18 @@ public class ObjectHistoryTest {
                 () -> assertSame(that.getObject(), copy.getObject(), "object"),
                 () -> assertSame(that.getStart(), copy.getStart(), "start"),
                 () -> assertEquals(that.getStateHistory(), copy.getStateHistory(), "stateHistory"),
-                () -> assertSame(that.getWhenLastSignalApplied(), copy.getWhenLastSignalApplied(),
-                        "whenLastSignalApplied"));
+                () -> assertSame(that.getLastSignalApplied(), copy.getLastSignalApplied(), "lastSignalApplied"));
     }
 
     private static <STATE> void constructor(@Nonnull final UUID object, @Nonnull final Duration end,
-            @Nonnull final Duration whenLastSignalApplied, @Nonnull final SortedMap<Duration, STATE> stateTransitions,
+            @Nonnull final Duration lastSignalApplied, @Nonnull final SortedMap<Duration, STATE> stateTransitions,
             @Nonnull final Collection<Signal<STATE>> signals) {
-        final var history = new ObjectHistory<>(object, end, whenLastSignalApplied, stateTransitions, signals);
+        final var history = new ObjectHistory<>(object, end, lastSignalApplied, stateTransitions, signals);
 
         assertInvariants(history);
         assertAll(() -> assertSame(object, history.getObject(), "object"),
                 () -> assertSame(end, history.getEnd(), "end"),
-                () -> assertSame(whenLastSignalApplied, history.getWhenLastSignalApplied(), "whenLastSignalApplied"),
+                () -> assertSame(lastSignalApplied, history.getLastSignalApplied(), "lastSignalApplied"),
                 () -> assertSame(stateTransitions.firstKey(), history.getStart(), "start"),
                 () -> assertEquals(stateTransitions, history.getStateTransitions(), "stateTransitions"),
                 () -> assertEquals(signals, history.getSignals(), "signals"));
@@ -884,7 +884,7 @@ public class ObjectHistoryTest {
         final var stateTransitions = history.getStateTransitions();
         assertAll(() -> assertSame(object, history.getObject(), "object"),
                 () -> assertSame(start, history.getStart(), "start"), () -> assertSame(start, history.getEnd(), "end"),
-                () -> assertSame(start, history.getWhenLastSignalApplied(), "whenLastSignalApplied"),
+                () -> assertSame(start, history.getLastSignalApplied(), "lastSignalApplied"),
                 () -> assertSame(stateTransitions.firstKey(), history.getStart(), "start"),
                 () -> assertEquals(stateTransitions, Map.of(start, state), "stateTransitions"),
                 () -> assertThat("No signals", history.getSignals(), empty()));

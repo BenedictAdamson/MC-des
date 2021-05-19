@@ -731,15 +731,13 @@ public class ModifiableObjectHistoryTest {
                 () -> assertEquals(that.getSignals(), copy.getSignals(), "signals"),
                 () -> assertSame(that.getStart(), copy.getStart(), "start"),
                 () -> assertEquals(that.getStateHistory(), copy.getStateHistory(), "stateHistory"),
-                () -> assertSame(that.getWhenLastSignalApplied(), copy.getWhenLastSignalApplied(),
-                        "whenLastSignalApplied"));
+                () -> assertSame(that.getLastSignalApplied(), copy.getLastSignalApplied(), "lastSignalApplied"));
     }
 
     private static <STATE> void constructor(@Nonnull final UUID object, @Nonnull final Duration end,
-            @Nonnull final Duration whenLastSignalApplied, @Nonnull final SortedMap<Duration, STATE> stateTransitions,
+            @Nonnull final Duration lastSignalApplied, @Nonnull final SortedMap<Duration, STATE> stateTransitions,
             @Nonnull final Collection<Signal<STATE>> signals) {
-        final var history = new ModifiableObjectHistory<>(object, end, whenLastSignalApplied, stateTransitions,
-                signals);
+        final var history = new ModifiableObjectHistory<>(object, end, lastSignalApplied, stateTransitions, signals);
 
         assertInvariants(history);
         assertAll(() -> assertSame(object, history.getObject(), "object"),
@@ -747,7 +745,7 @@ public class ModifiableObjectHistoryTest {
                 () -> assertSame(stateTransitions.firstKey(), history.getStart(), "start"),
                 () -> assertEquals(stateTransitions, history.getStateTransitions(), "stateTransitions"),
                 () -> assertEquals(signals, history.getSignals(), "signals"),
-                () -> assertSame(whenLastSignalApplied, history.getWhenLastSignalApplied(), "whenLastSignalApplied"));
+                () -> assertSame(lastSignalApplied, history.getLastSignalApplied(), "lastSignalApplied"));
     }
 
     private static <STATE> void constructor(@Nonnull final UUID object, @Nonnull final Duration start,
@@ -758,7 +756,7 @@ public class ModifiableObjectHistoryTest {
         final var stateTransitions = history.getStateTransitions();
         assertAll(() -> assertSame(object, history.getObject(), "object"),
                 () -> assertSame(start, history.getStart(), "start"), () -> assertSame(start, history.getEnd(), "end"),
-                () -> assertSame(start, history.getWhenLastSignalApplied(), "whenLastSignalApplied"),
+                () -> assertSame(start, history.getLastSignalApplied(), "lastSignalApplied"),
                 () -> assertSame(stateTransitions.firstKey(), history.getStart(), "start"),
                 () -> assertEquals(stateTransitions, Map.of(start, state), "stateTransitions"),
                 () -> assertThat("No signals", history.getSignals(), empty()));
