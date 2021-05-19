@@ -18,22 +18,20 @@ package uk.badamson.mc.simulation.actor;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import static java.util.stream.Collectors.toUnmodifiableList;
-
 import java.time.Duration;
 import java.util.Collection;
+import java.util.List;
+import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.SortedMap;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.Immutable;
-import javax.annotation.concurrent.NotThreadSafe;
 import javax.annotation.concurrent.ThreadSafe;
 
 import org.reactivestreams.Publisher;
@@ -48,6 +46,7 @@ import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.EmitResult;
 import uk.badamson.mc.history.ModifiableValueHistory;
 import uk.badamson.mc.history.ValueHistory;
+import uk.badamson.mc.simulation.TimestampedId;
 import uk.badamson.mc.simulation.rx.ModifiableObjectHistory;
 
 /**
@@ -67,56 +66,6 @@ import uk.badamson.mc.simulation.rx.ModifiableObjectHistory;
  */
 @ThreadSafe
 public class ObjectHistory<STATE> {
-
-    @NotThreadSafe
-    private static final class SignalEntry<STATE> implements Comparable<SignalEntry<STATE>> {
-
-        @Nonnull
-        final Signal<STATE> signal;
-        @Nonnull
-
-        Duration whenReceived;
-
-        SignalEntry(final Signal<STATE> signal, final Duration whenReceived) {
-            this.signal = signal;
-            this.whenReceived = whenReceived;
-        }
-
-        @Override
-        public int compareTo(final SignalEntry<STATE> that) {
-            Objects.requireNonNull(that, "that");
-
-            int c = whenReceived.compareTo(that.whenReceived);
-            if (c == 0) {
-                c = signal.getId().compareTo(that.signal.getId());
-            }
-
-            return c;
-        }
-
-        @Override
-        public boolean equals(final Object that) {
-            if (this == that) {
-                return true;
-            }
-            if (!(that instanceof SignalEntry)) {
-                return false;
-            }
-            final SignalEntry<?> other = (SignalEntry<?>) that;
-            /* Check signal first because it contains a unique ID. */
-            return signal.equals(other.signal) && whenReceived.equals(other.whenReceived);
-        }
-
-        @Override
-        public int hashCode() {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + whenReceived.hashCode();
-            result = prime * result + signal.hashCode();
-            return result;
-        }
-
-    }// class
 
     /**
      * <p>
@@ -268,8 +217,13 @@ public class ObjectHistory<STATE> {
      * predictable lock ordering when locking two instances.
      */
     protected final UUID lock = UUID.randomUUID();
+
+    /*
+     * Keyed by the signal reception time and signal ID
+     */
     @GuardedBy("lock")
-    protected final SortedSet<SignalEntry<STATE>> signals = new TreeSet<>();
+    protected final NavigableMap<TimestampedId, Signal<STATE>> signals = new TreeMap<>();
+
     @Nonnull
     @GuardedBy("lock")
     protected final ModifiableValueHistory<STATE> stateHistory;
@@ -430,7 +384,7 @@ public class ObjectHistory<STATE> {
         if (whenReceived.compareTo(getEnd()) <= 0) {
             throw new Signal.UnreceivableSignalException("signal.whenReceived at or before this.end");
         }
-        signals.add(new SignalEntry<>(signal, whenReceived));
+        signals.put(new TimestampedId(signal.getId(), whenReceived), signal);
     }
 
     @GuardedBy("lock")
@@ -553,7 +507,7 @@ public class ObjectHistory<STATE> {
     @JsonProperty("signals")
     public final Collection<Signal<STATE>> getSignals() {
         synchronized (lock) {
-            return signals.stream().map(entry -> entry.signal).collect(toUnmodifiableList());
+            return List.copyOf(signals.values());
         }
     }
 
