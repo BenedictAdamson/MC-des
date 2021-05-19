@@ -32,18 +32,21 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.reactivestreams.Publisher;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -693,11 +696,13 @@ public class ObjectHistoryTest {
         final var end = history.getEnd();
         final var stateHistory = history.getStateHistory();
         final var stateTransitions = history.getStateTransitions();
+        final Collection<Signal<STATE>> signals = history.getSignals();
 
         assertAll("Not null", () -> assertNotNull(object, "object"), () -> assertNotNull(start, "start"), // guard
                 () -> assertNotNull(end, "end"), // guard
                 () -> assertNotNull(stateHistory, "stateHistory"), // guard
-                () -> assertNotNull(stateTransitions, "stateTransitions")// guard
+                () -> assertNotNull(stateTransitions, "stateTransitions"), // guard
+                () -> assertNotNull(signals, "signals")// guard
         );
         ValueHistoryTest.assertInvariants(stateHistory);
         assertAll(() -> assertThat("The end time is at or after the start time.", end, greaterThanOrEqualTo(start)),
@@ -709,7 +714,8 @@ public class ObjectHistoryTest {
                         () -> assertThat(
                                 "If reliable state information indicates that the simulated object was destroyed, it is guaranteed that the simulated object will never be recreated.",
                                 !(stateHistory.get(end) == null && !ValueHistory.END_OF_TIME.equals(end)))),
-                () -> assertEquals(stateTransitions, stateHistory.getTransitions(), "stateTransitions"));
+                () -> assertEquals(stateTransitions, stateHistory.getTransitions(), "stateTransitions"),
+                () -> assertAll("signals", createSignalsAssertions(signals, history.getObject(), history.getEnd())));
     }
 
     public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history1,
@@ -771,6 +777,28 @@ public class ObjectHistoryTest {
                 () -> assertSame(start, history.getStart(), "start"), () -> assertSame(start, history.getEnd(), "end"),
                 () -> assertSame(stateTransitions.firstKey(), history.getStart(), "start"),
                 () -> assertEquals(stateTransitions, Map.of(start, state), "stateTransitions"));
+    }
+
+    static <STATE> long count(final Collection<Signal<STATE>> collection, final Signal<STATE> signal) {
+        return collection.stream().filter(s -> signal.equals(s)).count();
+    }
+
+    private static <STATE> Stream<Executable> createSignalsAssertions(
+            @Nonnull final Collection<Signal<STATE>> signalsRecieved, @Nonnull final UUID object,
+            @Nonnull final Duration end) {
+        return signalsRecieved.stream().map(signal -> new Executable() {
+
+            @Override
+            public void execute() throws Throwable {
+                assertNotNull(signal, "signals not null");// guard
+                assertAll("signals", () -> SignalTest.assertInvariants(signal),
+                        () -> assertThat("not duplicated", count(signalsRecieved, signal) == 1),
+                        () -> assertThat("has the object of this history as their receiver.", signal.getReceiver(),
+                                is(object)),
+                        () -> assertThat("was sent at or after the end of the period of reliable state history",
+                                signal.getWhenSent(), greaterThanOrEqualTo(end)));
+            }
+        });
     }
 
     public static <STATE> Publisher<Optional<STATE>> observeState(@Nonnull final ObjectHistory<STATE> history,

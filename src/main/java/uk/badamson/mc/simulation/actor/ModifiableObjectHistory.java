@@ -19,16 +19,12 @@ package uk.badamson.mc.simulation.actor;
  */
 
 import java.time.Duration;
-import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.Deque;
-import java.util.List;
 import java.util.Objects;
 import java.util.SortedMap;
 import java.util.UUID;
 
 import javax.annotation.Nonnull;
-import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -51,17 +47,10 @@ import uk.badamson.mc.history.ValueHistory;
 @ThreadSafe
 public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
 
-    @GuardedBy("lock")
-    private final Deque<Signal<STATE>> signals = new ArrayDeque<>();
-
     /**
      * <p>
      * Copy an object history.
      * </p>
-     * <ul>
-     * <li>The {@linkplain #getSignals() collection of signals}
-     * {@linkplain Collection#isEmpty() is empty}.</li>
-     * </ul>
      */
     public ModifiableObjectHistory(@Nonnull final ObjectHistory<STATE> that) {
         super(that);
@@ -71,10 +60,6 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      * <p>
      * Construct an object history with given history information.
      * </p>
-     * <ul>
-     * <li>The {@linkplain #getSignals() collection of signals}
-     * {@linkplain Collection#isEmpty() is empty}.</li>
-     * </ul>
      *
      * @param object
      *            The unique ID of the object for which this is the history.
@@ -120,10 +105,6 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      * <p>
      * Construct an object history with given start information.
      * </p>
-     * <ul>
-     * <li>The {@linkplain #getSignals() collection of signals}
-     * {@linkplain Collection#isEmpty() is empty}.</li>
-     * </ul>
      *
      * @param object
      *            The unique ID of the object for which this is the history.
@@ -195,42 +176,6 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
         Objects.requireNonNull(when, "when");
         synchronized (lock) {
             commitToGuarded(when);
-        }
-    }
-
-    /**
-     * <p>
-     * The signals that have been {@linkplain Signal#getReceiver() sent to} the
-     * {@linkplain #getObject() object}, but have not yet had their
-     * {@linkplain Signal#receive(Object) effect} incorporated into the
-     * {@linkplain #getEnd() reliable} {@linkplain #getStateHistory() state history}
-     * of the object.
-     * </p>
-     * <p>
-     * These are the <i>provisional</i> signals.
-     * </p>
-     * <ul>
-     * <li>The collection of signals does not contain any null elements.</li>
-     * <li>The collection of signals may be unmodifiable.</li>
-     * <li>The collection of signals returned is a snapshot; it is not updated due
-     * to subsequent changes.</li>
-     * <li>The collection of signals contains no {@linkplain Signal#equals(Object)
-     * duplicates}.</li>
-     * <li>All the signals have the {@linkplain #getObject() object} of this history
-     * as their {@linkplain Signal#getReceiver() receiver}.</li>
-     * <li>All the signals received were {@linkplain Signal#getWhenSent() sent}
-     * {@linkplain Duration#compareTo(Duration) at or after} the
-     * {@linkplain #getEnd() end of the period of reliable state history}; hence the
-     * {@linkplain Signal#getWhenReceived(ValueHistory) reception time} of the
-     * provisional signals received are all in the period in which the
-     * {@linkplain #getStateHistory() state history} of the object is only
-     * provisional.</li>
-     * </ul>
-     */
-    @Nonnull
-    public Collection<Signal<STATE>> getSignals() {
-        synchronized (lock) {
-            return List.copyOf(signals);
         }
     }
 

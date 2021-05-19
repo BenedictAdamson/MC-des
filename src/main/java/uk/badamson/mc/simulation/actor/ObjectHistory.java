@@ -19,6 +19,10 @@ package uk.badamson.mc.simulation.actor;
  */
 
 import java.time.Duration;
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.SortedMap;
@@ -212,6 +216,9 @@ public class ObjectHistory<STATE> {
      * predictable lock ordering when locking two instances.
      */
     protected final UUID lock = UUID.randomUUID();
+    @GuardedBy("lock")
+    protected final Deque<Signal<STATE>> signals = new ArrayDeque<>();
+
     private final Sinks.Many<TimestampedState<STATE>> timestampedStates = Sinks.many().replay().latest();
 
     @Nonnull
@@ -418,6 +425,42 @@ public class ObjectHistory<STATE> {
 
     /**
      * <p>
+     * The signals that have been {@linkplain Signal#getReceiver() sent to} the
+     * {@linkplain #getObject() object}, but have not yet had their
+     * {@linkplain Signal#receive(Object) effect} incorporated into the
+     * {@linkplain #getEnd() reliable} {@linkplain #getStateHistory() state history}
+     * of the object.
+     * </p>
+     * <p>
+     * These are the <i>provisional</i> signals.
+     * </p>
+     * <ul>
+     * <li>The collection of signals does not contain any null elements.</li>
+     * <li>The collection of signals may be unmodifiable.</li>
+     * <li>The collection of signals returned is a snapshot; it is not updated due
+     * to subsequent changes.</li>
+     * <li>The collection of signals contains no {@linkplain Signal#equals(Object)
+     * duplicates}.</li>
+     * <li>All the signals have the {@linkplain #getObject() object} of this history
+     * as their {@linkplain Signal#getReceiver() receiver}.</li>
+     * <li>All the signals received were {@linkplain Signal#getWhenSent() sent}
+     * {@linkplain Duration#compareTo(Duration) at or after} the
+     * {@linkplain #getEnd() end of the period of reliable state history}; hence the
+     * {@linkplain Signal#getWhenReceived(ValueHistory) reception time} of the
+     * provisional signals received are all in the period in which the
+     * {@linkplain #getStateHistory() state history} of the object is only
+     * provisional.</li>
+     * </ul>
+     */
+    @Nonnull
+    public Collection<Signal<STATE>> getSignals() {
+        synchronized (lock) {
+            return List.copyOf(signals);
+        }
+    }
+
+    /**
+     * <p>
      * The point in time that this history starts.
      * </p>
      * <p>
@@ -611,5 +654,4 @@ public class ObjectHistory<STATE> {
         return getClass().getSimpleName() + " [" + object + "from " + start + " to " + end + "stateHistory="
                 + stateHistory + "]";
     }
-
 }
