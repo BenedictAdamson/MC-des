@@ -33,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -57,6 +58,7 @@ import uk.badamson.dbc.assertions.ObjectTest;
 import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.history.ValueHistoryTest;
+import uk.badamson.mc.simulation.ObjectStateId;
 import uk.badamson.mc.simulation.actor.ObjectHistory.TimestampedState;
 
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
@@ -88,7 +90,40 @@ public class ObjectHistoryTest {
         }// class
 
         @Nested
-        public class History {
+        public class GivenHistoryAndSignals {
+
+            @Nested
+            public class OneSignal {
+
+                @Test
+                public void sentAfterEnd() {
+                    final var start = WHEN_B;
+                    final var end = WHEN_C;
+                    final var sentFrom = new ObjectStateId(OBJECT_A, end.plusSeconds(5));
+                    test(OBJECT_B, start, end, SIGNAL_ID_B, sentFrom);
+                }
+
+                @Test
+                public void sentAtEnd() {
+                    final var start = WHEN_A;
+                    final var end = WHEN_B;
+                    final var sentFrom = new ObjectStateId(OBJECT_B, end);
+                    test(OBJECT_A, start, end, SIGNAL_ID_A, sentFrom);
+                }
+
+                private void test(@Nonnull final UUID object, @Nonnull final Duration start,
+                        @Nonnull final Duration end, @Nonnull final UUID signalId,
+                        @Nonnull final ObjectStateId sentFrom) {
+                    final Integer state = Integer.valueOf(0);
+                    final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>();
+                    stateTransitions.put(start, state);
+                    final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, object);
+                    final Collection<Signal<Integer>> signals = List.of(signal);
+
+                    constructor(object, end, stateTransitions, signals);
+                }
+
+            }// class
 
             @Nested
             public class OneStateTransition {
@@ -192,8 +227,9 @@ public class ObjectHistoryTest {
                 final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>();
                 stateTransitions.put(WHEN_A, Integer.valueOf(0));
                 stateTransitions.put(WHEN_A.plusSeconds(1), Integer.valueOf(1));
+                final Collection<Signal<Integer>> signals = List.of();
 
-                constructor(OBJECT_A, WHEN_A.plusSeconds(2), stateTransitions);
+                constructor(OBJECT_A, WHEN_A.plusSeconds(2), stateTransitions, signals);
             }
 
         }// class
@@ -687,6 +723,8 @@ public class ObjectHistoryTest {
     static final Duration WHEN_A = Duration.ofMillis(0);
     static final Duration WHEN_B = Duration.ofMillis(5000);
     static final Duration WHEN_C = Duration.ofMillis(7000);
+    static final UUID SIGNAL_ID_A = UUID.randomUUID();
+    static final UUID SIGNAL_ID_B = UUID.randomUUID();
 
     public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history) {
         ObjectTest.assertInvariants(history);// inherited
@@ -727,8 +765,10 @@ public class ObjectHistoryTest {
                         h -> h.getStateTransitions()),
                 () -> EqualsSemanticsTest.assertValueSemantics(history1, history2, "object", h -> h.getObject()),
                 () -> EqualsSemanticsTest.assertValueSemantics(history1, history2, "end", h -> h.getEnd()),
+                () -> EqualsSemanticsTest.assertValueSemantics(history1, history2, "signals", h -> h.getSignals()),
                 () -> assertTrue(history1
                         .equals(history2) == (history1.getStateTransitions().equals(history2.getStateTransitions())
+                                && history1.getSignals().equals(history2.getSignals())
                                 && history1.getObject().equals(history2.getObject())
                                 && history1.getEnd().equals(history2.getEnd())),
                         "equals"));
@@ -757,14 +797,16 @@ public class ObjectHistoryTest {
     }
 
     private static <STATE> void constructor(@Nonnull final UUID object, @Nonnull final Duration end,
-            @Nonnull final SortedMap<Duration, STATE> stateTransitions) {
-        final var history = new ObjectHistory<>(object, end, stateTransitions);
+            @Nonnull final SortedMap<Duration, STATE> stateTransitions,
+            @Nonnull final Collection<Signal<STATE>> signals) {
+        final var history = new ObjectHistory<>(object, end, stateTransitions, signals);
 
         assertInvariants(history);
         assertAll(() -> assertSame(object, history.getObject(), "object"),
                 () -> assertSame(end, history.getEnd(), "end"),
                 () -> assertSame(stateTransitions.firstKey(), history.getStart(), "start"),
-                () -> assertEquals(stateTransitions, history.getStateTransitions(), "stateTransitions"));
+                () -> assertEquals(stateTransitions, history.getStateTransitions(), "stateTransitions"),
+                () -> assertEquals(signals, history.getSignals(), "signals"));
     }
 
     private static <STATE> void constructor(@Nonnull final UUID object, @Nonnull final Duration start,

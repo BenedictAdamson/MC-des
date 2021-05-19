@@ -19,9 +19,8 @@ package uk.badamson.mc.simulation.actor;
  */
 
 import java.time.Duration;
-import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -217,7 +216,7 @@ public class ObjectHistory<STATE> {
      */
     protected final UUID lock = UUID.randomUUID();
     @GuardedBy("lock")
-    protected final Deque<Signal<STATE>> signals = new ArrayDeque<>();
+    protected final List<Signal<STATE>> signals = new ArrayList<>();
     @Nonnull
     @GuardedBy("lock")
     protected final ModifiableValueHistory<STATE> stateHistory;
@@ -246,18 +245,14 @@ public class ObjectHistory<STATE> {
 
     /**
      * <p>
-     * Construct an object history with given history information.
+     * Construct an object history with given history and signals information.
      * </p>
-     * <ul>
      *
-     * @param object
-     *            The unique ID of the object for which this is the history.
-     * @param end
-     *            The last point in time for which this history is reliable.
-     * @param stateTransitions
-     *            The state transitions
      * @throws NullPointerException
-     *             If any {@link Nonnull} argument is null.
+     *             <ul>
+     *             <li>If any {@link Nonnull} argument is null.</li>
+     *             <li>If {@code signals} contains a null.</li>
+     *             </ul>
      * @throws IllegalArgumentException
      *             <ul>
      *             <li>If {@code stateTransitions} is empty.</li>
@@ -281,12 +276,25 @@ public class ObjectHistory<STATE> {
      *             indicating destruction of the simulated object, but the
      *             reliability information suggests it might be resurrected at a
      *             later time.</li>
+     *             <li>If {@code signals} contains {@linkplain Signal#equals(Object)
+     *             duplicates}.</li>
+     *             <li>If any signal in {@code signals} does not have the
+     *             {@linkplain #getObject() object} of this history as their
+     *             {@linkplain Signal#getReceiver() receiver}.</li>
+     *             <li>If any signal in {@code signals} were
+     *             {@linkplain Signal#getWhenSent() sent}
+     *             {@linkplain Duration#compareTo(Duration) before} the
+     *             {@linkplain SortedMap#firstKey() first time-stamp} of
+     *             {@code stateTransitions} This ensures it is possible to compute
+     *             the {@linkplain Signal#getWhenReceived(ValueHistory) reception
+     *             time} of the signal.</li>
      *             </ul>
      */
     @JsonCreator
     public ObjectHistory(@Nonnull @JsonProperty("object") final UUID object,
             @Nonnull @JsonProperty("end") final Duration end,
-            @Nonnull @JsonProperty("stateTransitions") final SortedMap<Duration, STATE> stateTransitions) {
+            @Nonnull @JsonProperty("stateTransitions") final SortedMap<Duration, STATE> stateTransitions,
+            @Nonnull @JsonProperty("signals") final Collection<Signal<STATE>> signals) {
         this.object = Objects.requireNonNull(object, "object");
         Objects.requireNonNull(end, "end");
         this.stateHistory = new ModifiableValueHistory<>(null, stateTransitions);
@@ -311,11 +319,16 @@ public class ObjectHistory<STATE> {
         }
         this.end = end;
         completeTimestampedStatesIfNoMoreHistory();
+        try {
+            signals.forEach(signal -> addSignalUnguarded(signal));
+        } catch (final Signal.UnreceivableSignalException e) {
+            throw new IllegalArgumentException("signals", e);
+        }
     }
 
     /**
      * <p>
-     * Construct an object history with given start information.
+     * Construct an object history with given start information and no signals.
      * </p>
      *
      * @param object
@@ -336,6 +349,21 @@ public class ObjectHistory<STATE> {
         this.stateHistory.appendTransition(start, state);
         this.end = start;
         completeTimestampedStatesIfNoMoreHistory();
+    }
+
+    @GuardedBy("lock")
+    protected final void addSignalUnguarded(@Nonnull final Signal<STATE> signal)
+            throws Signal.UnreceivableSignalException {
+        Objects.requireNonNull(signal, "signal");
+        if (!getObject().equals(signal.getReceiver())) {
+            throw new IllegalArgumentException("signal.receiver");
+        }
+        if (signal.getWhenReceived(stateHistory).compareTo(getEnd()) <= 0) {
+            throw new Signal.UnreceivableSignalException("signal.whenReceived at or before this.end");
+        }
+        if (!signals.stream().anyMatch(s -> signal.equals(s))) {
+            signals.add(signal);
+        }
     }
 
     @GuardedBy("lock")
@@ -387,7 +415,8 @@ public class ObjectHistory<STATE> {
         // hard to test the thread safety
         synchronized (lock) {
             synchronized (other.lock) {
-                return end.equals(other.end) && stateHistory.equals(other.stateHistory);
+                return end.equals(other.end) && signals.equals(other.signals)
+                        && stateHistory.equals(other.stateHistory);
             }
         }
     }
@@ -445,7 +474,8 @@ public class ObjectHistory<STATE> {
      * </ul>
      */
     @Nonnull
-    public Collection<Signal<STATE>> getSignals() {
+    @JsonProperty("signals")
+    public final Collection<Signal<STATE>> getSignals() {
         synchronized (lock) {
             return List.copyOf(signals);
         }
@@ -534,6 +564,7 @@ public class ObjectHistory<STATE> {
             result = prime * result + object.hashCode();
             result = prime * result + end.hashCode();
             result = prime * result + stateHistory.hashCode();
+            result = prime * result + signals.hashCode();
         }
         return result;
     }
@@ -643,7 +674,9 @@ public class ObjectHistory<STATE> {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" + object + "from " + start + " to " + end + "stateHistory="
-                + stateHistory + "]";
+        synchronized (lock) {
+            return getClass().getSimpleName() + " [" + object + "from " + start + " to " + end + ", stateHistory="
+                    + stateHistory + ", signals=" + signals + "]";
+        }
     }
 }

@@ -58,15 +58,9 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
 
     /**
      * <p>
-     * Construct an object history with given history information.
+     * Construct an object history with given history and signals information.
      * </p>
      *
-     * @param object
-     *            The unique ID of the object for which this is the history.
-     * @param end
-     *            The last point in time for which this history is reliable.
-     * @param stateTransitions
-     *            The state transitions
      * @throws NullPointerException
      *             If any {@link Nonnull} argument is null.
      * @throws IllegalArgumentException
@@ -92,18 +86,31 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      *             indicating destruction of the simulated object, but the
      *             reliability information suggests it might be resurrected at a
      *             later time.</li>
+     *             <li>If {@code signals} contains {@linkplain Signal#equals(Object)
+     *             duplicates}.</li>
+     *             <li>If any signal in {@code signals} does not have the
+     *             {@linkplain #getObject() object} of this history as their
+     *             {@linkplain Signal#getReceiver() receiver}.</li>
+     *             <li>If any signal in {@code signals} were
+     *             {@linkplain Signal#getWhenSent() sent}
+     *             {@linkplain Duration#compareTo(Duration) before} the
+     *             {@linkplain SortedMap#firstKey() first time-stamp} of
+     *             {@code stateTransitions} This ensures it is possible to compute
+     *             the {@linkplain Signal#getWhenReceived(ValueHistory) reception
+     *             time} of the signal.</li>
      *             </ul>
      */
     @JsonCreator
     public ModifiableObjectHistory(@Nonnull @JsonProperty("object") final UUID object,
             @Nonnull @JsonProperty("end") final Duration end,
-            @Nonnull @JsonProperty("stateTransitions") final SortedMap<Duration, STATE> stateTransitions) {
-        super(object, end, stateTransitions);
+            @Nonnull @JsonProperty("stateTransitions") final SortedMap<Duration, STATE> stateTransitions,
+            @Nonnull @JsonProperty("signals") final Collection<Signal<STATE>> signals) {
+        super(object, end, stateTransitions, signals);
     }
 
     /**
      * <p>
-     * Construct an object history with given start information.
+     * Construct an object history with given start information and no signals.
      * </p>
      *
      * @param object
@@ -160,17 +167,8 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      *             </ul>
      */
     public void addSignal(@Nonnull final Signal<STATE> signal) throws Signal.UnreceivableSignalException {
-        Objects.requireNonNull(signal, "signal");
-        if (!getObject().equals(signal.getReceiver())) {
-            throw new IllegalArgumentException("signal.receiver");
-        }
         synchronized (lock) {
-            if (signal.getWhenReceived(stateHistory).compareTo(getEnd()) <= 0) {
-                throw new Signal.UnreceivableSignalException("signal.whenReceived at or before this.end");
-            }
-            if (!signals.stream().anyMatch(s -> signal.equals(s))) {
-                signals.addLast(signal);
-            }
+            addSignalUnguarded(signal);
         }
     }
 
