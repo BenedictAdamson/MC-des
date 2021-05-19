@@ -18,19 +18,22 @@ package uk.badamson.mc.simulation.actor;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import static java.util.stream.Collectors.toUnmodifiableList;
+
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.UUID;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.NotThreadSafe;
 import javax.annotation.concurrent.ThreadSafe;
 
 import org.reactivestreams.Publisher;
@@ -64,6 +67,72 @@ import uk.badamson.mc.simulation.rx.ModifiableObjectHistory;
  */
 @ThreadSafe
 public class ObjectHistory<STATE> {
+
+    @NotThreadSafe
+    private static final class SignalEntry<STATE> implements Comparable<SignalEntry<STATE>> {
+
+        @Nonnull
+        final Signal<STATE> signal;
+        @Nonnull
+
+        Duration whenReceived;
+
+        SignalEntry(final Signal<STATE> signal, final Duration whenReceived) {
+            this.signal = signal;
+            this.whenReceived = whenReceived;
+        }
+
+        @Override
+        public int compareTo(final SignalEntry<STATE> that) {
+            Objects.requireNonNull(that, "that");
+
+            int c = whenReceived.compareTo(that.whenReceived);
+            if (c == 0) {
+                c = signal.getWhenSent().compareTo(that.signal.getWhenSent());
+            }
+            if (c == 0) {
+                c = signal.getId().compareTo(that.signal.getId());
+            }
+
+            return c;
+        }
+
+        @Override
+        public boolean equals(final Object that) {
+            if (this == that) {
+                return true;
+            }
+            if (!(that instanceof SignalEntry)) {
+                return false;
+            }
+            final SignalEntry<?> other = (SignalEntry<?>) that;
+            if (signal == null) {
+                if (other.signal != null) {
+                    return false;
+                }
+            } else if (!signal.equals(other.signal)) {
+                return false;
+            }
+            if (whenReceived == null) {
+                if (other.whenReceived != null) {
+                    return false;
+                }
+            } else if (!whenReceived.equals(other.whenReceived)) {
+                return false;
+            }
+            return signal.equals(other.signal) && whenReceived.equals(other.whenReceived);
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + whenReceived.hashCode();
+            result = prime * result + signal.hashCode();
+            return result;
+        }
+
+    }// class
 
     /**
      * <p>
@@ -216,7 +285,7 @@ public class ObjectHistory<STATE> {
      */
     protected final UUID lock = UUID.randomUUID();
     @GuardedBy("lock")
-    protected final List<Signal<STATE>> signals = new ArrayList<>();
+    protected final SortedSet<SignalEntry<STATE>> signals = new TreeSet<>();
     @Nonnull
     @GuardedBy("lock")
     protected final ModifiableValueHistory<STATE> stateHistory;
@@ -373,12 +442,11 @@ public class ObjectHistory<STATE> {
         if (!getObject().equals(signal.getReceiver())) {
             throw new IllegalArgumentException("signal.receiver");
         }
-        if (signal.getWhenReceived(stateHistory).compareTo(getEnd()) <= 0) {
+        final var whenReceived = signal.getWhenReceived(stateHistory);
+        if (whenReceived.compareTo(getEnd()) <= 0) {
             throw new Signal.UnreceivableSignalException("signal.whenReceived at or before this.end");
         }
-        if (!signals.stream().anyMatch(s -> signal.equals(s))) {
-            signals.add(signal);
-        }
+        signals.add(new SignalEntry<>(signal, whenReceived));
     }
 
     @GuardedBy("lock")
@@ -486,6 +554,10 @@ public class ObjectHistory<STATE> {
      * {@linkplain #getStart() start time} of this history. This ensures it is
      * possible to compute the {@linkplain Signal#getWhenReceived(ValueHistory)
      * reception time} of the signal.</li>
+     * <li>The collection of signals is sorted in
+     * {@linkplain Duration#compareTo(Duration) ascending order} of their
+     * {@linkplain Signal#getWhenReceived(ValueHistory) reception time} (given the
+     * current {@linkplain #getStateHistory() state history}).</li>
      * <li>The collection of signals need not contain all signals
      * {@linkplain Signal#getWhenReceived(ValueHistory) received} at or before the
      * {@linkplain #getEnd() end} of the reliable history period.</li>
@@ -497,7 +569,7 @@ public class ObjectHistory<STATE> {
     @JsonProperty("signals")
     public final Collection<Signal<STATE>> getSignals() {
         synchronized (lock) {
-            return List.copyOf(signals);
+            return signals.stream().map(entry -> entry.signal).collect(toUnmodifiableList());
         }
     }
 

@@ -102,6 +102,42 @@ public class ModifiableObjectHistoryTest {
         }// class
 
         @Nested
+        public class Two {
+
+            @Test
+            public void ascendingTime() {
+                test(SIGNAL_ID_A, SIGNAL_ID_B, OBJECT_A, OBJECT_B, WHEN_A, WHEN_B);
+            }
+
+            @Test
+            public void descendingTime() {
+                test(SIGNAL_ID_A, SIGNAL_ID_B, OBJECT_A, OBJECT_B, WHEN_B, WHEN_A);
+            }
+
+            @Test
+            public void simultaneous() {
+                test(SIGNAL_ID_A, SIGNAL_ID_B, OBJECT_A, OBJECT_B, WHEN_A, WHEN_A);
+            }
+
+            private void test(@Nonnull final UUID signalIdA, @Nonnull final UUID signalIdB, @Nonnull final UUID sender1,
+                    @Nonnull final UUID sender2, @Nonnull final Duration whenSent1, @Nonnull final Duration whenSent2) {
+                final UUID receiver = OBJECT_B;
+                final Duration end = WHEN_A;
+                final Integer state = Integer.valueOf(1);
+                final var history = new ModifiableObjectHistory<>(receiver, end, state);
+                final var signal1 = new SignalTest.TestSignal(signalIdA, new ObjectStateId(sender1, whenSent1),
+                        receiver);
+                final var signal2 = new SignalTest.TestSignal(signalIdB, new ObjectStateId(sender2, whenSent2),
+                        receiver);
+                assert history.getEnd().equals(end);
+                history.addSignal(signal1);
+
+                addSignal(history, signal2);
+            }
+
+        }// class
+
+        @Nested
         public class Unreceivable {
 
             @Test
