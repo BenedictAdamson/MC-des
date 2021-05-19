@@ -519,7 +519,7 @@ public class ObjectHistory<STATE> {
     @JsonIgnore
     public final Signal<STATE> getNextSignalToApply() {
         // TODO thread-safety
-        final var nextEntry =  getNextSignalToApplyUnguarded();
+        final var nextEntry = getNextSignalToApplyUnguarded();
         if (nextEntry == null) {
             return null;
         } else {
@@ -735,9 +735,11 @@ public class ObjectHistory<STATE> {
     }
 
     private Flux<Optional<STATE>> observeStateFromStateTransitions(@Nonnull final Duration when) {
-        // TODO use reliable
-        return timestampedStates.asFlux().takeWhile(timeStamped -> timeStamped.getStart().compareTo(when) <= 0)
-                .takeUntil(timeStamped -> when.compareTo(timeStamped.getStart()) <= 0)
+        Objects.requireNonNull(when, "when");
+        return timestampedStates.asFlux()
+                .filter(timeStamped -> timeStamped.getStart().compareTo(when) <= 0
+                        && when.compareTo(timeStamped.getEnd()) <= 0)
+                .takeUntil(timeStamped -> timeStamped.isReliable())
                 .map(timeStamped -> Optional.ofNullable(timeStamped.getState()));
     }
 

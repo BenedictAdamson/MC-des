@@ -19,7 +19,15 @@ package uk.badamson.mc.simulation.actor;
  */
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.either;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -274,8 +282,8 @@ public class ModifiableObjectHistoryTest {
 
             final var history = new ModifiableObjectHistory<>(receiver, end, lastSignalApplied0, stateTransitions,
                     signals);
-            final var timestampedStates = history.observeTimestampedStates();
-            final var timestampedStatesVerifier = StepVerifier.create(timestampedStates);
+            final var timestampedStatesVerifier = StepVerifier.create(history.observeTimestampedStates());
+            final var stateVerifier = StepVerifier.create(history.observeState(whenReceived));// tough test
 
             final var effect = applyNextSignal(history);
 
@@ -290,6 +298,8 @@ public class ModifiableObjectHistoryTest {
 
             timestampedStatesVerifier.expectNext(expectedTimestampedState).expectTimeout(Duration.ofMillis(100))
                     .verify();
+            stateVerifier.expectNext(Optional.of(state0)).expectNext(Optional.ofNullable(expectedState))
+                    .expectTimeout(Duration.ofMillis(100)).verify();
         }
 
     }// class

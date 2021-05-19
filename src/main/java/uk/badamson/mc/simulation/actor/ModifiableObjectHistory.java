@@ -226,6 +226,11 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      * {@linkplain ValueHistory#END_OF_TIME the end of time} as
      * {@linkplain ObjectHistory.TimestampedState#isReliable() unreliable}
      * information.</li>
+     * <li>If this returns a (non null) effect, and the effect causes a state
+     * change, this history emits a new value to every
+     * {@linkplain #observeState(Duration) state observable} for a time-stamp at or
+     * after the reception time of the signal, with the emitted value being the same
+     * as the state resulting from the effect.</li>
      * <li>If this returns a (non null) effect, typically the state history will
      * have a new {@linkplain ValueHistory#getLastTansitionTime() final transition}
      * at the time of the reception of the signal. However, that will not be the
