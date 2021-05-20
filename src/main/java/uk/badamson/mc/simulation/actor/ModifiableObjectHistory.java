@@ -247,18 +247,17 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
         if (entry == null) {
             return null;
         } else {
-            final var timestampedId = entry.getKey();
-            final var whenReceived = timestampedId.getWhen();
+            final var signalApplied = entry.getKey();
+            final var whenReceived = signalApplied.getWhen();
             final var signal = entry.getValue();
-            final var state0 = stateHistory.get(whenReceived);
-            final var effect = signal.receive(whenReceived, state0);
-            final var state = effect.getState();
-            if (!Objects.equals(state0, state)) {
-                stateHistory.setValueFrom(whenReceived, state);
-                timestampedStates
-                        .tryEmitNext(new TimestampedState<>(whenReceived, ValueHistory.END_OF_TIME, false, state));
-                lastSignalApplied = timestampedId;
-            }
+            final var oldState = stateHistory.get(whenReceived);
+            final TimestampedId lastSignalApplied0 = this.lastSignalApplied;
+
+            final var effect = signal.receive(whenReceived, oldState);// expensive
+            final var newState = effect.getState();
+
+            // TODO handle failure to set
+            compareAndSetState(lastSignalApplied0, signalApplied, oldState, newState);
             return effect;
         }
     }
@@ -278,5 +277,27 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
         synchronized (lock) {
             commitToGuarded(when);
         }
+    }
+
+    private boolean compareAndSetState(@Nullable final TimestampedId lastSignalApplied,
+            @Nonnull final TimestampedId signalApplied, @Nonnull final STATE oldState, @Nullable final STATE newState) {
+        Objects.requireNonNull(signalApplied, "signalApplied");
+        Objects.requireNonNull(oldState, "oldState");
+        // TODO thread-safety
+        final var whenReceived = signalApplied.getWhen();
+        final STATE currentState = stateHistory.get(whenReceived);
+        final boolean maySet = Objects.equals(lastSignalApplied, this.lastSignalApplied)
+                && Objects.equals(oldState, currentState);
+
+        if (maySet) {
+            this.lastSignalApplied = signalApplied;
+            if (!Objects.equals(currentState, newState)) {
+                stateHistory.setValueFrom(whenReceived, newState);
+                timestampedStates
+                        .tryEmitNext(new TimestampedState<>(whenReceived, ValueHistory.END_OF_TIME, false, newState));
+            }
+        }
+
+        return maySet;
     }
 }
