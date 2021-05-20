@@ -218,10 +218,11 @@ public class ModifiableObjectHistoryTest {
                 final UUID sender = UUID.randomUUID();
                 final Duration sent = end.plusSeconds(1 + random.nextInt(128));
                 final var signal = new SignalTest.TestSignal(id, new TimestampedId(sender, sent), receiver);
-                futures.add(ThreadSafetyTest.runInOtherThread(ready, () -> addSignal(history, signal)));
+                futures.add(ThreadSafetyTest.runInOtherThread(ready, () -> history.addSignal(signal)));
             }
             ready.countDown();
             ThreadSafetyTest.get(futures);
+            assertInvariants(history);
         }
 
         @Test
