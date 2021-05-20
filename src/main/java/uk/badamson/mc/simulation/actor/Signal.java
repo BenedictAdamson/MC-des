@@ -520,6 +520,9 @@ public abstract class Signal<STATE> {
      * {@linkplain #getReceiver() receiver} of this signal.</li>
      * <li>The {@linkplain Effect#getWhenOccurred() time of occurrence} of the
      * returned effect is the same as {@code when}.</li>
+     * <li>The implementation must be deterministic: the returned value may depend
+     * only on the ({@linkplain Immutable immutable}) state of this signal and the
+     * (also immutable) arguments of the method.</li>
      * </ul>
      *
      * @param when
