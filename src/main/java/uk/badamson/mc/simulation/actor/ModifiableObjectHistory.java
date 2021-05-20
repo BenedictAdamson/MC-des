@@ -179,7 +179,7 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      */
     public void addSignal(@Nonnull final Signal<STATE> signal) throws Signal.UnreceivableSignalException {
         synchronized (lock) {
-            addSignalUnguarded(signal, true);
+            addSignalGuarded(signal, true);
         }
     }
 
@@ -253,14 +253,14 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
              * to.
              */
             synchronized (lock) {
-                final var entry = getNextSignalToApplyUnguarded();
+                final var entry = getNextSignalToApplyGuarded();
                 if (entry == null) {// no more signals
                     return null;
                 }
                 signalApplied = entry.getKey();
                 signal = entry.getValue();
-                oldState = stateHistory.get(signalApplied.getWhen());
-                lastSignalApplied0 = this.lastSignalApplied;
+                oldState = getStateGuarded(signalApplied.getWhen());
+                lastSignalApplied0 = getLastSignalAppliedGuarded();
             }
 
             /*
@@ -298,25 +298,4 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
         }
     }
 
-    private boolean compareAndSetState(@Nullable final TimestampedId lastSignalApplied,
-            @Nonnull final TimestampedId signalApplied, @Nonnull final STATE oldState, @Nullable final STATE newState) {
-        Objects.requireNonNull(signalApplied, "signalApplied");
-        Objects.requireNonNull(oldState, "oldState");
-        final var whenReceived = signalApplied.getWhen();
-
-        synchronized (lock) {
-            final STATE currentState = stateHistory.get(whenReceived);
-            final boolean maySet = Objects.equals(lastSignalApplied, this.lastSignalApplied)
-                    && Objects.equals(oldState, currentState);
-            if (maySet) {
-                this.lastSignalApplied = signalApplied;
-                if (!Objects.equals(currentState, newState)) {
-                    stateHistory.setValueFrom(whenReceived, newState);
-                    timestampedStates.tryEmitNext(
-                            new TimestampedState<>(whenReceived, ValueHistory.END_OF_TIME, false, newState));
-                }
-            }
-            return maySet;
-        }
-    }
 }

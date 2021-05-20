@@ -221,22 +221,23 @@ public class ObjectHistory<STATE> {
 
     @Nonnull
     @GuardedBy("lock")
-    protected final ModifiableValueHistory<STATE> stateHistory;
+    private Duration end;
 
     @Nullable
     @GuardedBy("lock")
-    protected TimestampedId lastSignalApplied;
-    protected final Sinks.Many<TimestampedState<STATE>> timestampedStates = Sinks.many().replay().latest();
-
-    @Nonnull
-    @GuardedBy("lock")
-    private Duration end;
+    private TimestampedId lastSignalApplied;
 
     /*
      * Keyed by the signal reception time and signal ID
      */
     @GuardedBy("lock")
     private final NavigableMap<TimestampedId, Signal<STATE>> signals = new TreeMap<>();
+
+    @Nonnull
+    @GuardedBy("lock")
+    private final ModifiableValueHistory<STATE> stateHistory;
+
+    private final Sinks.Many<TimestampedState<STATE>> timestampedStates = Sinks.many().replay().latest();
 
     /**
      * <p>
@@ -367,14 +368,14 @@ public class ObjectHistory<STATE> {
         this.end = end;
         completeTimestampedStatesIfNoMoreHistory();
         try {
-            signals.forEach(signal -> addSignalUnguarded(signal, false));
+            signals.forEach(signal -> addSignalGuarded(signal, false));
         } catch (final Signal.UnreceivableSignalException e) {
             throw new IllegalArgumentException("signals", e);
         }
     }
 
     @GuardedBy("lock")
-    protected final void addSignalUnguarded(@Nonnull final Signal<STATE> signal, final boolean requireAfterEnd)
+    protected final void addSignalGuarded(@Nonnull final Signal<STATE> signal, final boolean requireAfterEnd)
             throws Signal.UnreceivableSignalException {
         Objects.requireNonNull(signal, "signal");
         if (!getObject().equals(signal.getReceiver())) {
@@ -394,6 +395,30 @@ public class ObjectHistory<STATE> {
         }
         this.end = end;
         completeTimestampedStatesIfNoMoreHistory();
+    }
+
+    protected final boolean compareAndSetState(@Nullable final TimestampedId lastSignalApplied,
+            @Nonnull final TimestampedId signalApplied, @Nonnull final STATE oldState, @Nullable final STATE newState) {
+        Objects.requireNonNull(signalApplied, "signalApplied");
+        Objects.requireNonNull(oldState, "oldState");
+        final var whenReceived = signalApplied.getWhen();
+
+        synchronized (lock) {
+            final STATE currentState = getStateGuarded(whenReceived);
+            final boolean maySet = Objects.equals(lastSignalApplied, this.lastSignalApplied)
+                    && Objects.equals(oldState, currentState);
+            if (maySet) {
+                this.lastSignalApplied = signalApplied;
+                if (!Objects.equals(currentState, newState)) {
+                    stateHistory.setValueFrom(whenReceived, newState);
+                    final var result = timestampedStates.tryEmitNext(
+                            new TimestampedState<>(whenReceived, ValueHistory.END_OF_TIME, false, newState));
+                    // The sink is reliable; it should always successfully complete.
+                    assert result == EmitResult.OK;
+                }
+            }
+            return maySet;
+        }
     }
 
     private void completeTimestampedStatesIfNoMoreHistory() {
@@ -487,6 +512,13 @@ public class ObjectHistory<STATE> {
     @Nonnull
     @JsonProperty("lastSignalApplied")
     public final TimestampedId getLastSignalApplied() {
+        synchronized (lock) {// hard to test
+            return getLastSignalAppliedGuarded();
+        }
+    }
+
+    @GuardedBy("lock")
+    protected final TimestampedId getLastSignalAppliedGuarded() {
         return lastSignalApplied;
     }
 
@@ -519,7 +551,7 @@ public class ObjectHistory<STATE> {
     @JsonIgnore
     public final Signal<STATE> getNextSignalToApply() {
         // TODO thread-safety
-        final var nextEntry = getNextSignalToApplyUnguarded();
+        final var nextEntry = getNextSignalToApplyGuarded();
         if (nextEntry == null) {
             return null;
         } else {
@@ -528,7 +560,7 @@ public class ObjectHistory<STATE> {
     }
 
     @GuardedBy("lock")
-    protected final Map.Entry<TimestampedId, Signal<STATE>> getNextSignalToApplyUnguarded() {
+    protected final Map.Entry<TimestampedId, Signal<STATE>> getNextSignalToApplyGuarded() {
         final NavigableMap<TimestampedId, Signal<STATE>> remainingSignals = lastSignalApplied == null ? signals
                 : signals.tailMap(lastSignalApplied, false);
         return remainingSignals.firstEntry();
@@ -603,6 +635,12 @@ public class ObjectHistory<STATE> {
     @JsonIgnore
     public final Duration getStart() {
         return start;
+    }
+
+    @GuardedBy("lock")
+    @Nullable
+    protected final STATE getStateGuarded(@Nonnull final Duration when) {
+        return stateHistory.get(when);
     }
 
     /**
