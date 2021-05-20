@@ -257,6 +257,62 @@ public class ModifiableObjectHistoryTest {
         }
 
         @Test
+        public void multipleThreads() {
+            final int nIterations = 32;
+            final int nThreads = 8;
+
+            final UUID receiver = OBJECT_A;
+            final UUID sender = receiver;
+            final Duration start = WHEN_A;
+            final Duration whenSent0 = WHEN_B;
+            final Integer state0 = Integer.valueOf(0);
+            final UUID signalId0 = SIGNAL_ID_A;
+            final boolean strobe = true;// critical
+
+            final TimestampedId lastSignalApplied0 = null;
+            final SortedMap<Duration, Integer> stateTransitions0 = new TreeMap<>();
+            stateTransitions0.put(start, state0);
+            final var signal0 = new SignalTest.TestSignal(signalId0, new TimestampedId(sender, whenSent0), receiver,
+                    strobe);
+            final Collection<Signal<Integer>> signals0 = List.of(signal0);
+            final var whenReceived0 = signal0.getWhenReceived(state0);
+            final Duration end = whenReceived0.minusNanos(1);
+
+            final var history = new ModifiableObjectHistory<>(receiver, end, lastSignalApplied0, stateTransitions0,
+                    signals0);
+            final CountDownLatch ready = new CountDownLatch(1);
+            final List<Future<Void>> futures = new ArrayList<>(nThreads);
+
+            for (int t = 0; t < nThreads; ++t) {
+                futures.add(ThreadSafetyTest.runInOtherThread(ready, () -> {
+                    for (int i = 0; i < nIterations; ++i) {
+                        final var lastSignalAppliedBefore = history.getLastSignalApplied();
+
+                        final var effect = history.applyNextSignal();
+
+                        if (effect != null) {
+                            final var lastSignalAppliedAfter = history.getLastSignalApplied();
+                            assertThat("effect", effect, notNullValue());// guard
+                            final var signalsEmitted = effect.getSignalsEmitted();
+                            assertThat("effect.signalsEmitted", signalsEmitted, allOf(notNullValue(), not(empty())));// guard
+                            final var signalEmitted = signalsEmitted.iterator().next();
+                            assertThat("signalEmitted.receiver", signalEmitted.getReceiver(), is(receiver));
+                            assertThat("Signals applied in order", lastSignalAppliedBefore == null
+                                    || lastSignalAppliedBefore.compareTo(lastSignalAppliedAfter) < 0);
+
+                            history.addSignal(signalEmitted);
+                        }
+                        /* else another thread applied the signal before we could. */
+                    } // for
+
+                }));
+            }
+
+            ready.countDown();
+            ThreadSafetyTest.get(futures);
+        }
+
+        @Test
         public void none() {
             final var history = new ModifiableObjectHistory<>(OBJECT_A, WHEN_A, Integer.valueOf(0));
             assert history.getSignals().isEmpty();
@@ -760,6 +816,19 @@ public class ModifiableObjectHistoryTest {
     private static final TimestampedId LAST_SIGNAL_APPLIED_A = ObjectHistoryTest.LAST_SIGNAL_APPLIED_A;
     private static final TimestampedId LAST_SIGNAL_APPLIED_B = ObjectHistoryTest.LAST_SIGNAL_APPLIED_B;
 
+    private static <STATE> void addSignal(@Nonnull final ModifiableObjectHistory<STATE> history,
+            @Nonnull final Signal<STATE> signal) throws Signal.UnreceivableSignalException {
+        try {
+            history.addSignal(signal);
+        } catch (final Signal.UnreceivableSignalException e) {
+            assertInvariants(history);
+            throw e;
+        }
+
+        assertInvariants(history);
+        assertThat("added", ObjectHistoryTest.count(history.getSignals(), signal) == 1);
+    }
+
     @Nullable
     private static <STATE> Signal.Effect<STATE> applyNextSignal(@Nonnull final ModifiableObjectHistory<STATE> history) {
         final var stateHistory0 = history.getStateHistory();
@@ -865,18 +934,5 @@ public class ModifiableObjectHistoryTest {
 
         assertInvariants(history);
         return flux;
-    }
-
-    private <STATE> void addSignal(@Nonnull final ModifiableObjectHistory<STATE> history,
-            @Nonnull final Signal<STATE> signal) throws Signal.UnreceivableSignalException {
-        try {
-            history.addSignal(signal);
-        } catch (final Signal.UnreceivableSignalException e) {
-            assertInvariants(history);
-            throw e;
-        }
-
-        assertInvariants(history);
-        assertThat("added", ObjectHistoryTest.count(history.getSignals(), signal) == 1);
     }
 }

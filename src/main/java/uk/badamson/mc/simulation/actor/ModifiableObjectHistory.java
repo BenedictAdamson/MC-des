@@ -242,24 +242,43 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      */
     @Nullable
     public Signal.Effect<STATE> applyNextSignal() {
-        // TODO thread-safety
-        final var entry = getNextSignalToApplyUnguarded();
-        if (entry == null) {
-            return null;
-        } else {
-            final var signalApplied = entry.getKey();
-            final var whenReceived = signalApplied.getWhen();
-            final var signal = entry.getValue();
-            final var oldState = stateHistory.get(whenReceived);
-            final TimestampedId lastSignalApplied0 = this.lastSignalApplied;
+        while (true) {
+            final TimestampedId signalApplied;
+            final Signal<STATE> signal;
+            final STATE oldState;
+            final TimestampedId lastSignalApplied0;
 
-            final var effect = signal.receive(whenReceived, oldState);// expensive
+            /*
+             * Determine which signal to apply next, and the state information it applies
+             * to.
+             */
+            synchronized (lock) {
+                final var entry = getNextSignalToApplyUnguarded();
+                if (entry == null) {// no more signals
+                    return null;
+                }
+                signalApplied = entry.getKey();
+                signal = entry.getValue();
+                oldState = stateHistory.get(signalApplied.getWhen());
+                lastSignalApplied0 = this.lastSignalApplied;
+            }
+
+            /*
+             * signal.receive is an expensive alien method, so should not hold a lock while
+             * delegating to it.
+             */
+            final var effect = signal.receive(signalApplied.getWhen(), oldState);
+            if (effect == null) {
+                /* Provide good diagnostics for abstract class delegated to. */
+                throw new NullPointerException("Signal.receive(Duration,STATE) from " + signal);
+            }
             final var newState = effect.getState();
 
-            // TODO handle failure to set
-            compareAndSetState(lastSignalApplied0, signalApplied, oldState, newState);
-            return effect;
-        }
+            if (compareAndSetState(lastSignalApplied0, signalApplied, oldState, newState)) {
+                return effect;// success
+            }
+            /* else lost a data race: try again (hard to test) */
+        } // while
     }
 
     /**
@@ -283,21 +302,21 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
             @Nonnull final TimestampedId signalApplied, @Nonnull final STATE oldState, @Nullable final STATE newState) {
         Objects.requireNonNull(signalApplied, "signalApplied");
         Objects.requireNonNull(oldState, "oldState");
-        // TODO thread-safety
         final var whenReceived = signalApplied.getWhen();
-        final STATE currentState = stateHistory.get(whenReceived);
-        final boolean maySet = Objects.equals(lastSignalApplied, this.lastSignalApplied)
-                && Objects.equals(oldState, currentState);
 
-        if (maySet) {
-            this.lastSignalApplied = signalApplied;
-            if (!Objects.equals(currentState, newState)) {
-                stateHistory.setValueFrom(whenReceived, newState);
-                timestampedStates
-                        .tryEmitNext(new TimestampedState<>(whenReceived, ValueHistory.END_OF_TIME, false, newState));
+        synchronized (lock) {
+            final STATE currentState = stateHistory.get(whenReceived);
+            final boolean maySet = Objects.equals(lastSignalApplied, this.lastSignalApplied)
+                    && Objects.equals(oldState, currentState);
+            if (maySet) {
+                this.lastSignalApplied = signalApplied;
+                if (!Objects.equals(currentState, newState)) {
+                    stateHistory.setValueFrom(whenReceived, newState);
+                    timestampedStates.tryEmitNext(
+                            new TimestampedState<>(whenReceived, ValueHistory.END_OF_TIME, false, newState));
+                }
             }
+            return maySet;
         }
-
-        return maySet;
     }
 }
