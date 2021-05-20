@@ -350,11 +350,20 @@ public class SignalTest {
 
     static class TestSignal extends Signal<Integer> {
 
+        private final boolean strobe;
+
         @JsonCreator
         TestSignal(@Nonnull @JsonProperty("id") final UUID id,
                 @Nonnull @JsonProperty("sentFrom") final TimestampedId sentFrom,
-                @JsonProperty("receiver") @Nonnull final UUID receiver) {
+                @Nonnull @JsonProperty("receiver") final UUID receiver) {
             super(id, sentFrom, receiver);
+            strobe = false;
+        }
+
+        TestSignal(@Nonnull final UUID id, @Nonnull final TimestampedId sentFrom, @Nonnull final UUID receiver,
+                final boolean strobe) {
+            super(id, sentFrom, receiver);
+            this.strobe = strobe;
         }
 
         @Override
@@ -370,12 +379,21 @@ public class SignalTest {
                 throws UnreceivableSignalException {
             Objects.requireNonNull(when, "when");
             Objects.requireNonNull(receiverState, "receiverState");
+
             if (when.compareTo(getWhenSent()) <= 0) {
                 throw new IllegalArgumentException("when not after whenSent");
             }
             final Integer newState = Integer.valueOf(receiverState.intValue() + 1);
-            final Set<Signal<Integer>> signalsEmitted = Set.of();
-            return new Signal.Effect<>(new TimestampedId(getReceiver(), when), newState, signalsEmitted);
+            final Set<Signal<Integer>> signalsEmitted;
+            final var eventId = new TimestampedId(getReceiver(), when);
+            if (strobe) {
+                final UUID emittedSignalId = UUID.randomUUID();
+                final Signal<Integer> signalEmitted = new TestSignal(emittedSignalId, eventId, getReceiver(), strobe);
+                signalsEmitted = Set.of(signalEmitted);
+            } else {
+                signalsEmitted = Set.of();
+            }
+            return new Signal.Effect<>(eventId, newState, signalsEmitted);
         }
 
     }// class
