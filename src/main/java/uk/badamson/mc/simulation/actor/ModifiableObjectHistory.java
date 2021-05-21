@@ -32,6 +32,7 @@ import javax.annotation.concurrent.ThreadSafe;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import uk.badamson.mc.history.ModifiableValueHistory;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.simulation.TimestampedId;
@@ -241,6 +242,7 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      *         signal.
      */
     @Nullable
+    @SuppressFBWarnings(justification = "Provide good diagnostics for abstract class delegated to", value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     public Signal.Effect<STATE> applyNextSignal() {
         while (true) {
             final TimestampedId signalApplied;
@@ -269,7 +271,6 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
              */
             final var effect = signal.receive(signalApplied.getWhen(), oldState);
             if (effect == null) {
-                /* Provide good diagnostics for abstract class delegated to. */
                 throw new NullPointerException("Signal.receive(Duration,STATE) from " + signal);
             }
             final var newState = effect.getState();
