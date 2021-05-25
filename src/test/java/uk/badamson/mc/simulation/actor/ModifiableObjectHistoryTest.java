@@ -831,7 +831,7 @@ public class ModifiableObjectHistoryTest {
     }
 
     @Nullable
-    private static <STATE> Signal.Effect<STATE> applyNextSignal(@Nonnull final ModifiableObjectHistory<STATE> history) {
+    private static <STATE> Event<STATE> applyNextSignal(@Nonnull final ModifiableObjectHistory<STATE> history) {
         final var stateHistory0 = history.getStateHistory();
         final var lastSignalApplied0 = history.getLastSignalApplied();
 
@@ -844,7 +844,7 @@ public class ModifiableObjectHistoryTest {
             assertThat("State history", stateHistory, is(stateHistory0));
             assertThat("last signal applied", lastSignalApplied, is(lastSignalApplied0));
         } else {
-            SignalTest.EffectTest.assertInvariants(effect);
+            EventTest.assertInvariants(effect);
             final var resultState = effect.getState();
             final var whenOccurred = effect.getWhenOccurred();// signal reception time
             final var lastTransitionTime = stateHistory.getLastTansitionTime();

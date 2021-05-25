@@ -194,23 +194,23 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      * <li>If there is a next signal to apply, the method
      * {@linkplain ModifiableValueHistory#setValueFrom(Duration, Object) sets the
      * state} of the {@linkplain #getStateHistory() state history} to the
-     * {@linkplain Signal.Effect#getState() state resulting } from the effect, for
-     * times at and after the {@linkplain Signal#getWhenReceived(ValueHistory)
-     * reception time} of the the signal.</li>
+     * {@linkplain Event#getState() state resulting } from the effect, for times at
+     * and after the {@linkplain Signal#getWhenReceived(ValueHistory) reception
+     * time} of the the signal.</li>
      * <li>If this returns a null effect, the state history is unchanged.</li>
      * <li>If this returns a null effect, the {@linkplain #getLastSignalApplied()
      * last signal applied} is unchanged.</li>
      * <li>If this returns a (non null) effect, the
-     * {@linkplain Signal.Effect#getAffectedObject() affected object} of the effect
-     * is the same as the {@linkplain #getObject() object} of this history.</li>
+     * {@linkplain Event#getAffectedObject() affected object} of the effect is the
+     * same as the {@linkplain #getObject() object} of this history.</li>
      * <li>If this returns a (non null) effect, the
-     * {@linkplain Signal.Effect#getWhenOccurred() time that the effect occurred} is
+     * {@linkplain Event#getWhenOccurred() time that the effect occurred} is
      * {@linkplain Duration#equals(Object) equal to} the reception time of the
      * signal.</li>
      * <li>If this returns a (non null) effect, the
      * {@linkplain ValueHistory#getLastValue() last state} in the the state history
      * is {@linkplain Objects#equals(Object, Object) equivalent to} the
-     * {@linkplain Signal.Effect#getState() state resulting} from the effect.</li>
+     * {@linkplain Event#getState() state resulting} from the effect.</li>
      * <li>If this returns a (non null) effect, the state history will either have
      * no {@linkplain ValueHistory#getLastTansitionTime() last transition time}, or
      * the last transition time will be {@linkplain Duration#compareTo(Duration) at
@@ -243,7 +243,7 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      */
     @Nullable
     @SuppressFBWarnings(justification = "Provide good diagnostics for abstract class delegated to", value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
-    public Signal.Effect<STATE> applyNextSignal() {
+    public Event<STATE> applyNextSignal() {
         while (true) {
             final TimestampedId signalApplied;
             final Signal<STATE> signal;

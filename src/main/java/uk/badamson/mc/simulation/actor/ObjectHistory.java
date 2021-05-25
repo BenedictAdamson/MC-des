@@ -525,8 +525,8 @@ public class ObjectHistory<STATE> {
     /**
      * <p>
      * The next of the {@linkplain #getSignals() signals} that have not had their
-     * {@linkplain Signal.Effect effect} applied to the
-     * {@linkplain #getStateHistory() state history}
+     * {@linkplain Event effect} applied to the {@linkplain #getStateHistory() state
+     * history}
      * </p>
      * <ul>
      * <li>Returns null if, and only iff, all the signals have been applied. That
