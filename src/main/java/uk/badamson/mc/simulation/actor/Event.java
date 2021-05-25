@@ -223,7 +223,7 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
 
     @Override
     public String toString() {
-        return "Event [" + id + ", →" + state + ", ⇝" + signalsEmitted + "]";
+        return "Event [" + id + ", " + affectedObject + "→" + state + ", ⇝" + signalsEmitted + "]";
     }
 
 }
