@@ -331,13 +331,13 @@ public class SignalTest {
     static final UUID ID_B = UUID.randomUUID();
 
     private static final UUID OBJECT_A = UUID.randomUUID();
-    static final UUID OBJECT_B = UUID.randomUUID();
+    private static final UUID OBJECT_B = UUID.randomUUID();
 
     private static final Duration WHEN_A = Duration.ofMillis(0);
     private static final Duration WHEN_B = Duration.ofMillis(5000);
 
-    static final TimestampedId OBJECT_STATE_ID_A = new TimestampedId(OBJECT_A, WHEN_A);
-    static final TimestampedId OBJECT_STATE_ID_B = new TimestampedId(OBJECT_B, WHEN_B);
+    private static final TimestampedId OBJECT_STATE_ID_A = new TimestampedId(OBJECT_A, WHEN_A);
+    private static final TimestampedId OBJECT_STATE_ID_B = new TimestampedId(OBJECT_B, WHEN_B);
 
     public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal) {
         ObjectTest.assertInvariants(signal);// inherited

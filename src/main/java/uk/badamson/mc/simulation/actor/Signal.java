@@ -385,10 +385,10 @@ public abstract class Signal<STATE> {
      * </p>
      * <ul>
      * <li>The {@linkplain Event#getAffectedObject() affected object} of the
-     * returned effect is {@linkplain UUID#equals(Object) equal to} the
+     * returned event is {@linkplain UUID#equals(Object) equal to} the
      * {@linkplain #getReceiver() receiver} of this signal.</li>
      * <li>The {@linkplain Event#getWhenOccurred() time of occurrence} of the
-     * returned effect is the same as {@code when}.</li>
+     * returned event is the same as {@code when}.</li>
      * <li>The implementation must be deterministic: the returned value may depend
      * only on the ({@linkplain Immutable immutable}) state of this signal and the
      * (also immutable) arguments of the method.</li>
@@ -432,13 +432,13 @@ public abstract class Signal<STATE> {
      * </p>
      * <ul>
      * <li>The {@linkplain Event#getAffectedObject() affected object} of the
-     * returned effect is {@linkplain UUID#equals(Object) equal to} the
+     * returned event is {@linkplain UUID#equals(Object) equal to} the
      * {@linkplain #getReceiver() receiver} of this signal.</li>
      * <li>The {@linkplain Event#getWhenOccurred() occurrence time} of the returned
-     * effect is {@linkplain Duration#compareTo(Duration) before} the maximum
+     * event is {@linkplain Duration#compareTo(Duration) before} the maximum
      * possible {@link Duration} value.</li>
      * <li>The {@linkplain Event#getWhenOccurred() time of occurrence} of the
-     * returned effect is {@linkplain Duration#equals(Object) equal to} the
+     * returned event is {@linkplain Duration#equals(Object) equal to} the
      * {@linkplain #getWhenReceived(Object) reception time} of this signal, for the
      * receiver in the given {@code receiverState}.</li>
      * </ul>
