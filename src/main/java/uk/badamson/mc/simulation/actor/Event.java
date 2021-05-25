@@ -45,7 +45,7 @@ import uk.badamson.mc.simulation.TimestampedId;
  *            required.
  */
 @Immutable
-public final class Event<STATE> {
+public final class Event<STATE> implements Comparable<Event<STATE>> {
 
     @Nonnull
     private final TimestampedId id;
@@ -81,6 +81,24 @@ public final class Event<STATE> {
                 throw new IllegalArgumentException("signalEmitted not sent from event.");
             }
         });
+    }
+
+    /**
+     * <p>
+     * The <i>natural ordering</i> of {@link Event} objects.
+     * </p>
+     * <p>
+     * The <i>natural ordering</i> is equivalent to the
+     * {@linkplain TimestampedId#compareTo(TimestampedId) natural ordering} of the
+     * {@linkplain #getId() IDs}. Hence it is <i>consistent with equals</i> and in
+     * {@linkplain Duration#compareTo(Duration) ascending order} of
+     * {@linkplain #getWhenOccurred() when they occurred}.
+     * </p>
+     */
+    @Override
+    public int compareTo(@Nullable final Event<STATE> that) {
+        Objects.requireNonNull(that, "that");
+        return id.compareTo(that.id);
     }
 
     /**

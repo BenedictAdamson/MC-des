@@ -37,6 +37,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import uk.badamson.dbc.assertions.ComparableTest;
 import uk.badamson.dbc.assertions.EqualsSemanticsTest;
 import uk.badamson.dbc.assertions.ObjectTest;
 import uk.badamson.mc.simulation.TimestampedId;
@@ -53,7 +54,21 @@ public class EventTest {
         public void different() {
             final TimestampedId idA = ID_A;
             final TimestampedId idB = ID_B;
-            final Integer state = Integer.valueOf(Integer.MAX_VALUE);
+            final Integer state = Integer.valueOf(0);
+            final Set<Signal<Integer>> signalsEmitted = Set.of();
+
+            final var eventA = new Event<>(idA, state, signalsEmitted);
+            final var eventB = new Event<>(idB, state, signalsEmitted);
+
+            assertInvariants(eventA, eventB);
+            assertNotEquals(eventA, eventB);
+        }
+
+        @Test
+        public void differentTime() {
+            final TimestampedId idA = new TimestampedId(OBJECT_A, WHEN_A);
+            final TimestampedId idB = new TimestampedId(OBJECT_A, WHEN_A.plusNanos(1));
+            final Integer state = Integer.valueOf(0);
             final Set<Signal<Integer>> signalsEmitted = Set.of();
 
             final var eventA = new Event<>(idA, state, signalsEmitted);
@@ -102,6 +117,7 @@ public class EventTest {
 
     public static <STATE> void assertInvariants(@Nonnull final Event<STATE> event) {
         ObjectTest.assertInvariants(event);// inherited
+        ComparableTest.assertInvariants(event);// inherited
 
         final var affectedObject = event.getAffectedObject();
         final var id = event.getId();
@@ -121,7 +137,10 @@ public class EventTest {
     public static <STATE> void assertInvariants(@Nonnull final Event<STATE> event1,
             @Nonnull final Event<STATE> event2) {
         ObjectTest.assertInvariants(event1, event2);// inherited
+        ComparableTest.assertInvariants(event1, event2);// inherited
+
         EqualsSemanticsTest.assertEntitySemantics(event1, event2, event -> event.getId());
+        ComparableTest.assertNaturalOrderingIsConsistentWithEquals(event1, event2);
     }
 
     private static <STATE> Event<STATE> constructor(@Nonnull final TimestampedId id, @Nullable final STATE state,
