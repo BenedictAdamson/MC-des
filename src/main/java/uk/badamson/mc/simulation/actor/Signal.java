@@ -384,6 +384,9 @@ public abstract class Signal<STATE> {
      * ID.
      * </p>
      * <ul>
+     * <li>The {@linkplain Event#getCausingSignal() ID of the signal causing}  the
+     * returned event is  the same as the
+     * {@linkplain #getId() ID} of this signal.</li>
      * <li>The {@linkplain Event#getAffectedObject() affected object} of the
      * returned event is {@linkplain UUID#equals(Object) equal to} the
      * {@linkplain #getReceiver() receiver} of this signal.</li>
@@ -431,6 +434,9 @@ public abstract class Signal<STATE> {
      * <i>primitive operations</i>.
      * </p>
      * <ul>
+     * <li>The {@linkplain Event#getCausingSignal() ID of the signal causing}  the
+     * returned event is  the same as the
+     * {@linkplain #getId() ID} of this signal.</li>
      * <li>The {@linkplain Event#getAffectedObject() affected object} of the
      * returned event is {@linkplain UUID#equals(Object) equal to} the
      * {@linkplain #getReceiver() receiver} of this signal.</li>

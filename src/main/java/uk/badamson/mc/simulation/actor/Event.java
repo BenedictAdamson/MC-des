@@ -49,6 +49,8 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
 
     @Nonnull
     private final TimestampedId id;
+    @Nonnull
+    private final UUID affectedObject;
     @Nullable
     private final STATE state;
     @Nonnull
@@ -70,9 +72,10 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
      *             not {@linkplain Signal#getSentFrom() sent from} the same object
      *             as the {@code eventId}.
      */
-    public Event(@Nonnull final TimestampedId id, @Nullable final STATE state,
+    public Event(@Nonnull final TimestampedId id, @Nonnull final UUID affectedObject, @Nullable final STATE state,
             @Nonnull final Set<Signal<STATE>> signalsEmitted) {
         this.id = Objects.requireNonNull(id, "id");
+        this.affectedObject = Objects.requireNonNull(affectedObject, "affectedObject");
         this.state = state;
         this.signalsEmitted = Set.copyOf(signalsEmitted);
         /* Check after copy to avoid race hazards. */
@@ -129,7 +132,7 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
      */
     @Nonnull
     public UUID getAffectedObject() {
-        return id.getObject();// FIXME
+        return affectedObject;
     }
 
     /**

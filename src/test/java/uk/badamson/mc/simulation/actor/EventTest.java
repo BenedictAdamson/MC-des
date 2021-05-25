@@ -57,8 +57,8 @@ public class EventTest {
             final Integer state = Integer.valueOf(0);
             final Set<Signal<Integer>> signalsEmitted = Set.of();
 
-            final var eventA = new Event<>(idA, state, signalsEmitted);
-            final var eventB = new Event<>(idB, state, signalsEmitted);
+            final var eventA = new Event<>(idA, OBJECT_A, state, signalsEmitted);
+            final var eventB = new Event<>(idB, OBJECT_B, state, signalsEmitted);
 
             assertInvariants(eventA, eventB);
             assertNotEquals(eventA, eventB);
@@ -66,13 +66,13 @@ public class EventTest {
 
         @Test
         public void differentTime() {
-            final TimestampedId idA = new TimestampedId(OBJECT_A, WHEN_A);
-            final TimestampedId idB = new TimestampedId(OBJECT_A, WHEN_A.plusNanos(1));
+            final TimestampedId idA = new TimestampedId(SIGNAL_A, WHEN_A);
+            final TimestampedId idB = new TimestampedId(SIGNAL_A, WHEN_A.plusNanos(1));
             final Integer state = Integer.valueOf(0);
             final Set<Signal<Integer>> signalsEmitted = Set.of();
 
-            final var eventA = new Event<>(idA, state, signalsEmitted);
-            final var eventB = new Event<>(idB, state, signalsEmitted);
+            final var eventA = new Event<>(idA, OBJECT_A, state, signalsEmitted);
+            final var eventB = new Event<>(idB, OBJECT_A, state, signalsEmitted);
 
             assertInvariants(eventA, eventB);
             assertNotEquals(eventA, eventB);
@@ -91,8 +91,8 @@ public class EventTest {
             assert !stateA.equals(stateB);// tough test
             assert !signalsEmittedA.equals(signalsEmittedB);// tough test
 
-            final var eventA = new Event<>(idA, stateA, signalsEmittedA);
-            final var eventB = new Event<>(idB, stateB, signalsEmittedB);
+            final var eventA = new Event<>(idA, OBJECT_A, stateA, signalsEmittedA);
+            final var eventB = new Event<>(idB, OBJECT_B, stateB, signalsEmittedB);
 
             assertInvariants(eventA, eventB);
             assertEquals(eventA, eventB);
@@ -131,8 +131,7 @@ public class EventTest {
                 () -> assertNotNull(whenOccurred, "whenOccurred"));
         TimestampedIdTest.assertInvariants(id);
 
-        assertAll(() -> assertSame(affectedObject, id.getObject(), "affectedObject"),
-                () -> assertSame(causingSignal, id.getObject(), "causingSignal"),
+        assertAll(() -> assertSame(causingSignal, id.getObject(), "causingSignal"),
                 () -> assertAll("signalsEmitted", createSignalsEmittedInvariantAssertions(id, signalsEmitted)),
                 () -> assertSame(whenOccurred, id.getWhen(), "whenOccurred"));
     }
@@ -146,12 +145,13 @@ public class EventTest {
         ComparableTest.assertNaturalOrderingIsConsistentWithEquals(event1, event2);
     }
 
-    private static <STATE> Event<STATE> constructor(@Nonnull final TimestampedId id, @Nullable final STATE state,
-            @Nonnull final Set<Signal<STATE>> signalsEmitted) {
-        final var event = new Event<>(id, state, signalsEmitted);
+    private static <STATE> Event<STATE> constructor(@Nonnull final TimestampedId id, @Nonnull final UUID affectedObject,
+            @Nullable final STATE state, @Nonnull final Set<Signal<STATE>> signalsEmitted) {
+        final var event = new Event<>(id, affectedObject, state, signalsEmitted);
 
         assertInvariants(event);
         assertAll("Attributes", () -> assertSame(id, event.getId(), "id"),
+                () -> assertSame(affectedObject, event.getAffectedObject(), "affectedObject"),
                 () -> assertSame(state, event.getState(), "state"),
                 () -> assertEquals(signalsEmitted, event.getSignalsEmitted(), "signalsEmitted"));
 
@@ -173,19 +173,19 @@ public class EventTest {
 
     @Test
     public void destruction() {
-        constructor(ID_B, (Integer) null, Set.of());
+        constructor(ID_B, OBJECT_B, (Integer) null, Set.of());
     }
 
     @Test
     public void noSignalsEmitted() {
-        constructor(ID_A, Integer.valueOf(0), Set.of());
+        constructor(ID_A, OBJECT_A, Integer.valueOf(0), Set.of());
     }
 
     @Test
     public void signalEmitted() {
         final var id = ID_A;
         final Set<Signal<Integer>> signalsEmitted = Set.of(new TestSignal(SIGNAL_A, id, OBJECT_B));
-        constructor(id, Integer.valueOf(0), signalsEmitted);
+        constructor(id, OBJECT_A, Integer.valueOf(0), signalsEmitted);
     }
 
 }// class

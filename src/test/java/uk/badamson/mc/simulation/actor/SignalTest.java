@@ -220,7 +220,7 @@ public class SignalTest {
             }
             final Integer newState = Integer.valueOf(receiverState.intValue() + 1);
             final Set<Signal<Integer>> signalsEmitted;
-            final var eventId = new TimestampedId(getReceiver(), when);
+            final var eventId = new TimestampedId(getId(), when);
             if (strobe) {
                 final UUID emittedSignalId = UUID.randomUUID();
                 final Signal<Integer> signalEmitted = new TestSignal(emittedSignalId, eventId, getReceiver(), strobe);
@@ -228,7 +228,7 @@ public class SignalTest {
             } else {
                 signalsEmitted = Set.of();
             }
-            return new Event<>(eventId, newState, signalsEmitted);
+            return new Event<>(eventId, getReceiver(), newState, signalsEmitted);
         }
 
     }// class
@@ -430,7 +430,8 @@ public class SignalTest {
         assertInvariants(signal);
         EventTest.assertInvariants(effect);
         final var whenOccurred = effect.getWhenOccurred();
-        assertAll("effect", () -> assertEquals(signal.getReceiver(), effect.getAffectedObject(), "affectedObject"),
+        assertAll("event", () -> assertSame(signal.getId(), effect.getCausingSignal(), "causingSignal"),
+                () -> assertEquals(signal.getReceiver(), effect.getAffectedObject(), "affectedObject"),
                 () -> assertThat("whenOccurred is before the maximum possible Duration value", whenOccurred,
                         lessThan(Signal.NEVER_RECEIVED)),
                 () -> assertEquals(signal.getWhenReceived(receiverState), whenOccurred, "whenOccurred = whenReceived"));
