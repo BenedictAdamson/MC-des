@@ -308,7 +308,7 @@ public final class ObjectHistory<STATE> {
      * </p>
      */
     @Override
-    public final boolean equals(final Object obj) {
+    public boolean equals(final Object obj) {
         if (this == obj) {
             return true;
         }
@@ -348,7 +348,7 @@ public final class ObjectHistory<STATE> {
      */
     @Nonnull
     @JsonProperty("end")
-    public final Duration getEnd() {
+    public Duration getEnd() {
         return end;
     }
 
@@ -372,7 +372,7 @@ public final class ObjectHistory<STATE> {
      * @see #getStateHistory()
      */
     @Nonnull
-    public final SortedSet<Event<STATE>> getEvents() {
+    public SortedSet<Event<STATE>> getEvents() {
         synchronized (lock) {// hard to test
             return new TreeSet<>(events);
         }
@@ -388,7 +388,7 @@ public final class ObjectHistory<STATE> {
      */
     @Nonnull
     @JsonProperty("object")
-    public final UUID getObject() {
+    public UUID getObject() {
         return object;
     }
 
@@ -407,7 +407,7 @@ public final class ObjectHistory<STATE> {
      */
     @Nonnull
     @JsonIgnore
-    public final Duration getStart() {
+    public Duration getStart() {
         return start;
     }
 
@@ -447,7 +447,7 @@ public final class ObjectHistory<STATE> {
      */
     @Nonnull
     @JsonIgnore
-    public final ValueHistory<STATE> getStateHistory() {
+    public ValueHistory<STATE> getStateHistory() {
         synchronized (lock) {// hard to test
             return new ModifiableValueHistory<>(stateHistory);
         }
@@ -461,7 +461,7 @@ public final class ObjectHistory<STATE> {
      */
     @Nonnull
     @JsonProperty("stateTransitions")
-    public final SortedMap<Duration, STATE> getStateTransitions() {
+    public SortedMap<Duration, STATE> getStateTransitions() {
         synchronized (lock) {// hard to test
             /*
              * No need to make a defensive copy: ModifiableValueHistory.getTransitions()
@@ -472,7 +472,7 @@ public final class ObjectHistory<STATE> {
     }
 
     @Override
-    public final int hashCode() {
+    public int hashCode() {
         final int prime = 31;
         int result = 1;
         synchronized (lock) {// hard to test thread safety
@@ -529,7 +529,7 @@ public final class ObjectHistory<STATE> {
      * @see #getStateHistory()
      */
     @Nonnull
-    public final Publisher<Optional<STATE>> observeState(@Nonnull final Duration when) {
+    public Publisher<Optional<STATE>> observeState(@Nonnull final Duration when) {
         Objects.requireNonNull(when, "when");
         synchronized (lock) {// hard to test
             final var observeStateFromStateHistory = Mono.just(Optional.ofNullable(stateHistory.get(when)));
@@ -584,7 +584,7 @@ public final class ObjectHistory<STATE> {
      * </ul>
      */
     @Nonnull
-    public final Flux<TimestampedState<STATE>> observeTimestampedStates() {
+    public Flux<TimestampedState<STATE>> observeTimestampedStates() {
         return timestampedStates.asFlux();
     }
 
