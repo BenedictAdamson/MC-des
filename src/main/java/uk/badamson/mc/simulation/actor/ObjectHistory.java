@@ -504,8 +504,8 @@ public final class ObjectHistory<STATE> {
                 }
                 signalApplied = entry.getKey();
                 signal = entry.getValue();
-                oldState = getStateGuarded(signalApplied.getWhen());
-                lastSignalApplied0 = getLastSignalAppliedGuarded();
+                oldState = stateHistory.get(signalApplied.getWhen());
+                lastSignalApplied0 = lastSignalApplied;
             }
 
             /*
@@ -538,17 +538,12 @@ public final class ObjectHistory<STATE> {
     public void commitTo(@Nonnull final Duration when) {
         Objects.requireNonNull(when, "when");
         synchronized (lock) {
-            commitToGuarded(when);
+            if (when.compareTo(this.end) <= 0) {
+                return;// no-op
+            }
+            this.end = when;
+            completeTimestampedStatesIfNoMoreHistory();
         }
-    }
-
-    @GuardedBy("lock")
-    private final void commitToGuarded(@Nonnull final Duration end) {
-        if (end.compareTo(this.end) <= 0) {
-            return;// no-op
-        }
-        this.end = end;
-        completeTimestampedStatesIfNoMoreHistory();
     }
 
     private final boolean compareAndSetState(@Nullable final TimestampedId lastSignalApplied,
@@ -558,7 +553,7 @@ public final class ObjectHistory<STATE> {
         final var whenReceived = signalApplied.getWhen();
 
         synchronized (lock) {
-            final STATE currentState = getStateGuarded(whenReceived);
+            final STATE currentState = stateHistory.get(whenReceived);
             final boolean maySet = Objects.equals(lastSignalApplied, this.lastSignalApplied)
                     && Objects.equals(oldState, currentState);
             if (maySet) {
@@ -667,13 +662,8 @@ public final class ObjectHistory<STATE> {
     @JsonProperty("lastSignalApplied")
     public final TimestampedId getLastSignalApplied() {
         synchronized (lock) {// hard to test
-            return getLastSignalAppliedGuarded();
+            return lastSignalApplied;
         }
-    }
-
-    @GuardedBy("lock")
-    private final TimestampedId getLastSignalAppliedGuarded() {
-        return lastSignalApplied;
     }
 
     /**
@@ -789,12 +779,6 @@ public final class ObjectHistory<STATE> {
     @JsonIgnore
     public final Duration getStart() {
         return start;
-    }
-
-    @GuardedBy("lock")
-    @Nullable
-    private final STATE getStateGuarded(@Nonnull final Duration when) {
-        return stateHistory.get(when);
     }
 
     /**
