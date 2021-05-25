@@ -19,11 +19,16 @@ package uk.badamson.mc.simulation.actor;
  */
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -31,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
@@ -40,9 +46,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Random;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
@@ -50,6 +59,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.reactivestreams.Publisher;
@@ -59,6 +69,7 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import uk.badamson.dbc.assertions.EqualsSemanticsTest;
 import uk.badamson.dbc.assertions.ObjectTest;
+import uk.badamson.dbc.assertions.ThreadSafetyTest;
 import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.history.ValueHistoryTest;
@@ -68,6 +79,370 @@ import uk.badamson.mc.simulation.actor.ObjectHistory.TimestampedState;
 
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
 public class ObjectHistoryTest {
+
+    @Nested
+    public class AddSignal {
+
+        @Nested
+        public class One {
+
+            @Test
+            public void far() {
+                final Duration end = WHEN_A;
+                final Duration sent = end.plusDays(365);
+
+                test(SIGNAL_ID_A, OBJECT_A, OBJECT_B, end, sent);
+            }
+
+            @Test
+            public void reflexive() {
+                final Duration end = WHEN_A;
+                final Duration sent = end.plusSeconds(1);
+
+                test(SIGNAL_ID_A, OBJECT_A, OBJECT_A, end, sent);
+            }
+
+            @Test
+            public void sentAtEnd() {
+                final Duration end = WHEN_A;
+                final Duration sent = end;
+
+                test(SIGNAL_ID_B, OBJECT_A, OBJECT_B, end, sent);
+            }
+
+            private void test(@Nonnull final UUID id, @Nonnull final UUID sender, @Nonnull final UUID receiver,
+                    @Nonnull final Duration end, @Nonnull final Duration sent) {
+                assert end.compareTo(sent) <= 0;
+                final Integer state = Integer.valueOf(1);
+                final var history = new ObjectHistory<>(receiver, end, state);
+                final var signal = new SignalTest.TestSignal(id, new TimestampedId(sender, sent), receiver);
+                assert history.getEnd().equals(end);
+
+                addSignal(history, signal);
+            }
+
+        }// class
+
+        @Nested
+        public class Two {
+
+            @Test
+            public void ascendingTime() {
+                test(SIGNAL_ID_A, SIGNAL_ID_B, OBJECT_A, OBJECT_B, WHEN_A, WHEN_B);
+            }
+
+            @Test
+            public void descendingTime() {
+                test(SIGNAL_ID_A, SIGNAL_ID_B, OBJECT_A, OBJECT_B, WHEN_B, WHEN_A);
+            }
+
+            @Test
+            public void simultaneous() {
+                test(SIGNAL_ID_A, SIGNAL_ID_B, OBJECT_A, OBJECT_B, WHEN_A, WHEN_A);
+            }
+
+            private void test(@Nonnull final UUID signalIdA, @Nonnull final UUID signalIdB, @Nonnull final UUID sender1,
+                    @Nonnull final UUID sender2, @Nonnull final Duration whenSent1, @Nonnull final Duration whenSent2) {
+                final UUID receiver = OBJECT_B;
+                final Duration end = WHEN_A;
+                final Integer state = Integer.valueOf(1);
+                final var history = new ObjectHistory<>(receiver, end, state);
+                final var signal1 = new SignalTest.TestSignal(signalIdA, new TimestampedId(sender1, whenSent1),
+                        receiver);
+                final var signal2 = new SignalTest.TestSignal(signalIdB, new TimestampedId(sender2, whenSent2),
+                        receiver);
+                assert history.getEnd().equals(end);
+                history.addSignal(signal1);
+
+                addSignal(history, signal2);
+            }
+
+        }// class
+
+        @Nested
+        public class Unreceivable {
+
+            @Test
+            public void beforeStart() {
+                final Duration start = WHEN_A;
+                final Duration end = WHEN_B;
+                final Duration sent = start.minusNanos(1);// tough test
+                final Integer state = Integer.valueOf(1);
+
+                test(sent, start, end, state);
+                ;
+            }
+
+            @Test
+            public void receivedAtEnd() {
+                final Duration start = WHEN_A;
+                final Integer state = Integer.valueOf(1);
+                final Duration sent = start.plusSeconds(1);
+                final var signal = new SignalTest.TestSignal(SIGNAL_ID_A, new TimestampedId(OBJECT_B, sent), OBJECT_A);
+                final Duration end = signal.getWhenReceived(state);// tough test
+
+                test(sent, start, end, state);
+                ;
+            }
+
+            private void test(@Nonnull final Duration sent, @Nonnull final Duration start, @Nonnull final Duration end,
+                    @Nonnull final Integer state) {
+                assert start.compareTo(end) < 0;
+                final UUID sender = OBJECT_A;
+                final UUID receiver = OBJECT_B;
+                final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>();
+                stateTransitions.put(start, state);
+                final Collection<Signal<Integer>> signals = List.of();
+                final var history = new ObjectHistory<>(receiver, end, LAST_SIGNAL_APPLIED_A, stateTransitions,
+                        signals);
+                final var signal = new SignalTest.TestSignal(SIGNAL_ID_A, new TimestampedId(sender, sent), receiver);
+
+                assertThrows(Signal.UnreceivableSignalException.class, () -> addSignal(history, signal));
+            }
+        }// class
+
+        @Test
+        public void duplicate() {
+            final UUID id = SIGNAL_ID_A;
+            final UUID sender = OBJECT_A;
+            final UUID receiver = OBJECT_B;
+            final Duration end = WHEN_A;
+            final Duration sent = WHEN_B;
+            final Integer state = Integer.valueOf(1);
+            final var history = new ObjectHistory<>(receiver, end, state);
+            final var signal = new SignalTest.TestSignal(id, new TimestampedId(sender, sent), receiver);
+            assert history.getEnd().equals(end);
+            history.addSignal(signal);
+
+            addSignal(history, signal);
+        }
+
+        @RepeatedTest(4)
+        public void multipleThreads() {
+            final int nThreads = 32;
+            final UUID receiver = OBJECT_B;
+            final Duration end = WHEN_A;
+            final var history = new ObjectHistory<>(receiver, end, Integer.valueOf(1));
+
+            final CountDownLatch ready = new CountDownLatch(1);
+            final var random = new Random(0);
+            final List<Future<Void>> futures = new ArrayList<>(nThreads);
+            for (int t = 0; t < nThreads; ++t) {
+                final UUID id = UUID.randomUUID();
+                final UUID sender = UUID.randomUUID();
+                final Duration sent = end.plusSeconds(1 + random.nextInt(128));
+                final var signal = new SignalTest.TestSignal(id, new TimestampedId(sender, sent), receiver);
+                futures.add(ThreadSafetyTest.runInOtherThread(ready, () -> history.addSignal(signal)));
+            }
+            ready.countDown();
+            ThreadSafetyTest.get(futures);
+            assertInvariants(history);
+        }
+
+        @Test
+        public void two() {
+            final UUID sender = OBJECT_A;
+            final UUID receiver = OBJECT_B;
+            final Duration end = WHEN_A;
+            final Duration sent1 = end.plusSeconds(1);
+            final Duration sent2 = end.plusSeconds(2);
+            final Integer state = Integer.valueOf(1);
+            final var history = new ObjectHistory<>(receiver, end, state);
+            final var signal1 = new SignalTest.TestSignal(SIGNAL_ID_A, new TimestampedId(sender, sent1), receiver);
+            final var signal2 = new SignalTest.TestSignal(SIGNAL_ID_B, new TimestampedId(sender, sent2), receiver);
+            assert history.getEnd().equals(end);
+            history.addSignal(signal1);
+
+            addSignal(history, signal2);
+        }
+
+    }// class
+
+    @Nested
+    public class ApplyNextSignal {
+
+        @Test
+        public void a() {
+            testOne(OBJECT_A, OBJECT_B, WHEN_A, WHEN_B, Integer.valueOf(1), SIGNAL_ID_A);
+        }
+
+        @Test
+        public void b() {
+            testOne(OBJECT_B, OBJECT_A, WHEN_B, WHEN_C, Integer.valueOf(10), SIGNAL_ID_B);
+        }
+
+        @Test
+        public void multipleThreads() {
+            final int nIterations = 32;
+            final int nThreads = 8;
+
+            final UUID receiver = OBJECT_A;
+            final UUID sender = receiver;
+            final Duration start = WHEN_A;
+            final Duration whenSent0 = WHEN_B;
+            final Integer state0 = Integer.valueOf(0);
+            final UUID signalId0 = SIGNAL_ID_A;
+            final boolean strobe = true;// critical
+
+            final TimestampedId lastSignalApplied0 = null;
+            final SortedMap<Duration, Integer> stateTransitions0 = new TreeMap<>();
+            stateTransitions0.put(start, state0);
+            final var signal0 = new SignalTest.TestSignal(signalId0, new TimestampedId(sender, whenSent0), receiver,
+                    strobe);
+            final Collection<Signal<Integer>> signals0 = List.of(signal0);
+            final var whenReceived0 = signal0.getWhenReceived(state0);
+            final Duration end = whenReceived0.minusNanos(1);
+
+            final var history = new ObjectHistory<>(receiver, end, lastSignalApplied0, stateTransitions0, signals0);
+            final CountDownLatch ready = new CountDownLatch(1);
+            final List<Future<Void>> futures = new ArrayList<>(nThreads);
+
+            for (int t = 0; t < nThreads; ++t) {
+                futures.add(ThreadSafetyTest.runInOtherThread(ready, () -> {
+                    for (int i = 0; i < nIterations; ++i) {
+                        final var lastSignalAppliedBefore = history.getLastSignalApplied();
+
+                        final var effect = history.applyNextSignal();
+
+                        if (effect != null) {
+                            final var lastSignalAppliedAfter = history.getLastSignalApplied();
+                            assertThat("effect", effect, notNullValue());// guard
+                            final var signalsEmitted = effect.getSignalsEmitted();
+                            assertThat("effect.signalsEmitted", signalsEmitted, allOf(notNullValue(), not(empty())));// guard
+                            final var signalEmitted = signalsEmitted.iterator().next();
+                            assertThat("signalEmitted.receiver", signalEmitted.getReceiver(), is(receiver));
+                            assertThat("Signals applied in order", lastSignalAppliedBefore == null
+                                    || lastSignalAppliedBefore.compareTo(lastSignalAppliedAfter) < 0);
+
+                            history.addSignal(signalEmitted);
+                        }
+                        /* else another thread applied the signal before we could. */
+                    } // for
+
+                }));
+            }
+
+            ready.countDown();
+            ThreadSafetyTest.get(futures);
+        }
+
+        @Test
+        public void none() {
+            final var history = new ObjectHistory<>(OBJECT_A, WHEN_A, Integer.valueOf(0));
+            assert history.getSignals().isEmpty();
+
+            final var effect = applyNextSignal(history);
+
+            assertNull(effect, "no effect");
+        }
+
+        private void testOne(@Nonnull final UUID receiver, @Nonnull final UUID sender, @Nonnull final Duration start,
+                @Nonnull final Duration whenSent, @Nonnull final Integer state0, @Nonnull final UUID signalId) {
+            assert start.compareTo(whenSent) <= 0;
+            final TimestampedId lastSignalApplied0 = null;
+            final SortedMap<Duration, Integer> stateTransitions = new TreeMap<>();
+            stateTransitions.put(start, state0);
+            final var signal = new SignalTest.TestSignal(signalId, new TimestampedId(sender, whenSent), receiver);
+            final Collection<Signal<Integer>> signals = List.of(signal);
+            final var whenReceived = signal.getWhenReceived(state0);
+            final var expectedState = signal.receive(state0).getState();
+            final Duration end = whenReceived.minusNanos(1);
+            final var expectedTimestampedState = new ObjectHistory.TimestampedState<>(whenReceived,
+                    ValueHistory.END_OF_TIME, false, expectedState);
+
+            final var history = new ObjectHistory<>(receiver, end, lastSignalApplied0, stateTransitions, signals);
+            final var timestampedStatesVerifier = StepVerifier.create(history.observeTimestampedStates());
+            final var stateVerifier = StepVerifier.create(history.observeState(whenReceived));// tough test
+
+            final var effect = applyNextSignal(history);
+
+            final var lastSignalApplied = history.getLastSignalApplied();
+            assertThat("effect", effect, notNullValue());// guard
+            final var resultState = effect.getState();
+            assertAll(() -> assertThat("when effect occurred", effect.getWhenOccurred(), is(whenReceived)),
+                    () -> assertThat("no state change or the reception time of the signal is the last transition time",
+                            state0.equals(resultState)
+                                    || whenReceived.equals(history.getStateHistory().getLastTansitionTime())),
+                    () -> assertThat("last signal applied ID", lastSignalApplied.getObject(), is(signalId)));
+
+            timestampedStatesVerifier.expectNext(expectedTimestampedState).expectTimeout(Duration.ofMillis(100))
+                    .verify();
+            stateVerifier.expectNext(Optional.of(state0)).expectNext(Optional.ofNullable(expectedState))
+                    .expectTimeout(Duration.ofMillis(100)).verify();
+        }
+
+    }// class
+
+    @Nested
+    public class CommitTo {
+
+        @Test
+        public void before() {
+            final Duration end0 = WHEN_A;
+            final Duration when = end0.minusNanos(1);// tough test
+
+            test(end0, Integer.valueOf(0), when);
+        }
+
+        @Test
+        public void endOfTime() {
+            final Duration end0 = WHEN_A;
+            final Duration when = ValueHistory.END_OF_TIME;// critical
+
+            test(end0, Integer.valueOf(0), when);
+        }
+
+        @Test
+        public void equal() {
+            final long time = 1000;
+            final Duration end0 = Duration.ofMillis(time);
+            final Duration when = Duration.ofMillis(time);
+            assert end0.equals(when);
+            assert end0 != when;// tough test
+
+            test(end0, Integer.valueOf(0), when);
+        }
+
+        @Test
+        public void far() {
+            final Duration end0 = WHEN_B;
+            final Duration when = end0.plusDays(365);
+
+            test(end0, Integer.valueOf(1), when);
+        }
+
+        @RepeatedTest(4)
+        public void multipleThreads() {
+            final int nThreads = 32;
+            final Duration end0 = WHEN_B;
+            final var history = new ObjectHistory<>(OBJECT_A, end0, Integer.valueOf(1));
+
+            final CountDownLatch ready = new CountDownLatch(1);
+            final var random = new Random(0);
+            final List<Future<Void>> futures = new ArrayList<>(nThreads);
+            for (int t = 0; t < nThreads; ++t) {
+                futures.add(ThreadSafetyTest.runInOtherThread(ready,
+                        () -> commitTo(history, end0.plusMillis(random.nextInt(1000)))));
+            }
+            ready.countDown();
+            ThreadSafetyTest.get(futures);
+        }
+
+        @Test
+        public void near() {
+            final Duration end0 = WHEN_A;
+            final Duration when = end0.plusNanos(1);// critical
+
+            test(end0, Integer.valueOf(0), when);
+        }
+
+        private void test(@Nonnull final Duration end0, final Integer state, @Nonnull final Duration when) {
+            final var history = new ObjectHistory<>(OBJECT_A, end0, state);
+
+            commitTo(history, when);
+        }
+
+    }// class
 
     @Nested
     public class Constructor {
@@ -829,6 +1204,47 @@ public class ObjectHistoryTest {
     static final TimestampedId LAST_SIGNAL_APPLIED_A = new TimestampedId(SIGNAL_ID_A, WHEN_A);
     static final TimestampedId LAST_SIGNAL_APPLIED_B = new TimestampedId(SIGNAL_ID_B, WHEN_B);
 
+    private static <STATE> void addSignal(@Nonnull final ObjectHistory<STATE> history,
+            @Nonnull final Signal<STATE> signal) throws Signal.UnreceivableSignalException {
+        try {
+            history.addSignal(signal);
+        } catch (final Signal.UnreceivableSignalException e) {
+            assertInvariants(history);
+            throw e;
+        }
+
+        assertInvariants(history);
+        assertThat("added", ObjectHistoryTest.count(history.getSignals(), signal) == 1);
+    }
+
+    @Nullable
+    private static <STATE> Event<STATE> applyNextSignal(@Nonnull final ObjectHistory<STATE> history) {
+        final var stateHistory0 = history.getStateHistory();
+        final var lastSignalApplied0 = history.getLastSignalApplied();
+
+        final var effect = history.applyNextSignal();
+
+        assertInvariants(history);
+        final var stateHistory = history.getStateHistory();
+        final var lastSignalApplied = history.getLastSignalApplied();
+        if (effect == null) {
+            assertThat("State history", stateHistory, is(stateHistory0));
+            assertThat("last signal applied", lastSignalApplied, is(lastSignalApplied0));
+        } else {
+            EventTest.assertInvariants(effect);
+            final var resultState = effect.getState();
+            final var whenOccurred = effect.getWhenOccurred();// signal reception time
+            final var lastTransitionTime = stateHistory.getLastTansitionTime();
+            assertThat("The last state in the the state history", stateHistory.getLastValue(), is(resultState));
+            assertThat("last transition time", lastTransitionTime,
+                    either(nullValue(Duration.class)).or(lessThanOrEqualTo(whenOccurred)));
+            assertThat("last signal applied", lastSignalApplied, allOf(notNullValue(), not(is(lastSignalApplied0))));
+            assertThat("when last signal applied", lastSignalApplied.getWhen(), is(whenOccurred));
+        }
+
+        return effect;
+    }
+
     public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history) {
         ObjectTest.assertInvariants(history);// inherited
 
@@ -914,6 +1330,17 @@ public class ObjectHistoryTest {
                     "If the object is known to have no further states, there can be no further time-stamped states.",
                     e);
         }
+    }
+
+    private static <STATE> void commitTo(@Nonnull final ObjectHistory<STATE> history, @Nonnull final Duration when) {
+        final var end0 = history.getEnd();
+
+        history.commitTo(when);
+
+        assertInvariants(history);
+        final var end = history.getEnd();
+        assertAll("end", () -> assertThat("does not decrease", end, greaterThanOrEqualTo(end0)),
+                () -> assertThat("at least the given value", end, greaterThanOrEqualTo(when)));
     }
 
     private static <STATE> ObjectHistory<STATE> constructor(@Nonnull final ObjectHistory<STATE> that) {
@@ -1008,4 +1435,5 @@ public class ObjectHistoryTest {
         assertNotNull(flux, "Not null, result");
         return flux;
     }
+
 }// class
