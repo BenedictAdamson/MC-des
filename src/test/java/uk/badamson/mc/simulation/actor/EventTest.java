@@ -120,16 +120,19 @@ public class EventTest {
         ComparableTest.assertInvariants(event);// inherited
 
         final var affectedObject = event.getAffectedObject();
+        final var causingSignal = event.getCausingSignal();
         final var id = event.getId();
         final var signalsEmitted = event.getSignalsEmitted();
         final var whenOccurred = event.getWhenOccurred();
 
-        assertAll("Not null", () -> assertNotNull(affectedObject, "affectedObject"), () -> assertNotNull(id, "id"), // guard
+        assertAll("Not null", () -> assertNotNull(affectedObject, "affectedObject"),
+                () -> assertNotNull(causingSignal, "causingSignal"), () -> assertNotNull(id, "id"), // guard
                 () -> assertNotNull(signalsEmitted, "signalsEmitted"), // guard
                 () -> assertNotNull(whenOccurred, "whenOccurred"));
         TimestampedIdTest.assertInvariants(id);
 
         assertAll(() -> assertSame(affectedObject, id.getObject(), "affectedObject"),
+                () -> assertSame(causingSignal, id.getObject(), "causingSignal"),
                 () -> assertAll("signalsEmitted", createSignalsEmittedInvariantAssertions(id, signalsEmitted)),
                 () -> assertSame(whenOccurred, id.getWhen(), "whenOccurred"));
     }

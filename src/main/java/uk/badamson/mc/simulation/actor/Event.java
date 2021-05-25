@@ -129,6 +129,17 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
      */
     @Nonnull
     public UUID getAffectedObject() {
+        return id.getObject();// FIXME
+    }
+
+    /**
+     * <p>
+     * The {@linkplain Signal#getId() unique ID} of the signal that caused this
+     * event.
+     * </p>
+     */
+    @Nonnull
+    public UUID getCausingSignal() {
         return id.getObject();
     }
 
