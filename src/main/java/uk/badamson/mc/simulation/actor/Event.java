@@ -36,7 +36,7 @@ import uk.badamson.mc.simulation.TimestampedId;
  * <p>
  * All events are the effect that a {@linkplain Signal signal} has upon its
  * {@linkplain Signal#getReceiver() receiver} when it is received. Events are
- * also the only means by wgucg simulated objects can emit signals.
+ * also the only means by which simulated objects can emit signals.
  * </p>
  *
  * @param <STATE>
@@ -81,6 +81,27 @@ public final class Event<STATE> {
                 throw new IllegalArgumentException("signalEmitted not sent from event.");
             }
         });
+    }
+
+    /**
+     * <p>
+     * Whether this object is <dfn>equivalent</dfn> to a given object.
+     * </p>
+     * The {@link Event} class has <i>entity semantics</i> with the
+     * {@linkplain #getId() event ID} serving as the unique ID.
+     * </p>
+     *
+     */
+    @Override
+    public boolean equals(@Nullable final Object that) {
+        if (this == that) {
+            return true;
+        }
+        if (!(that instanceof Event)) {
+            return false;
+        }
+        final Event<?> other = (Event<?>) that;
+        return id.equals(other.id);
     }
 
     /**
@@ -155,6 +176,11 @@ public final class Event<STATE> {
     @Nonnull
     public Duration getWhenOccurred() {
         return id.getWhen();
+    }
+
+    @Override
+    public int hashCode() {
+        return id.hashCode();
     }
 
     @Override

@@ -20,7 +20,6 @@ package uk.badamson.mc.simulation.actor;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -38,6 +37,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import uk.badamson.dbc.assertions.EqualsSemanticsTest;
 import uk.badamson.dbc.assertions.ObjectTest;
 import uk.badamson.mc.simulation.TimestampedId;
 import uk.badamson.mc.simulation.TimestampedIdTest;
@@ -50,7 +50,7 @@ public class EventTest {
     public class Two {
 
         @Test
-        public void differentId() {
+        public void different() {
             final TimestampedId idA = ID_A;
             final TimestampedId idB = ID_B;
             final Integer state = Integer.valueOf(Integer.MAX_VALUE);
@@ -64,65 +64,23 @@ public class EventTest {
         }
 
         @Test
-        public void differentSignalsEmitted() {
-            final Integer state = Integer.valueOf(0);
-            final Set<Signal<Integer>> signalsEmittedA = Set.of();
-            final Set<Signal<Integer>> signalsEmittedB = Set.of(new TestSignal(SIGNAL_A, ID_A, OBJECT_B));
-
-            final var eventA = new Event<>(ID_A, state, signalsEmittedA);
-            final var eventB = new Event<>(ID_A, state, signalsEmittedB);
-
-            assertInvariants(eventA, eventB);
-            assertNotEquals(eventA, eventB);
-        }
-
-        @Test
-        public void differentState() {
-            final Integer stateA = Integer.valueOf(0);
-            final Integer stateB = Integer.valueOf(1);
-            final Set<Signal<Integer>> signalsEmitted = Set.of();
-
-            final var eventA = new Event<>(ID_A, stateA, signalsEmitted);
-            final var eventB = new Event<>(ID_A, stateB, signalsEmitted);
-
-            assertInvariants(eventA, eventB);
-            assertNotEquals(eventA, eventB);
-        }
-
-        /*
-         * A faulty implementation could throw a NullPointerException for this case.
-         */
-        @Test
-        public void equivalentDestruction() {
-            final Integer state = null;// critical
-            final Set<Signal<Integer>> signalsEmitted = Set.of();
-
-            final var eventA = new Event<>(ID_A, state, signalsEmitted);
-            final var eventB = new Event<>(ID_A, state, signalsEmitted);
-
-            assertInvariants(eventA, eventB);
-            assertEquivalent(eventA, eventB);
-        }
-
-        @Test
-        public void equivalentNotDestruction() {
+        public void equivalent() {
             final TimestampedId idA = ID_A;
             final TimestampedId idB = new TimestampedId(idA.getObject(), idA.getWhen());
-            final Integer stateA = Integer.valueOf(Integer.MAX_VALUE);
-            final Integer stateB = Integer.valueOf(Integer.MAX_VALUE);
-            final Set<Signal<Integer>> signalsEmittedA = Set.of(new TestSignal(SIGNAL_A, idA, OBJECT_B));
+            final Integer stateA = Integer.valueOf(0);
+            final Integer stateB = Integer.valueOf(1);
+            final Set<Signal<Integer>> signalsEmittedA = Set.of();
             final Set<Signal<Integer>> signalsEmittedB = Set.of(new TestSignal(SIGNAL_B, idB, OBJECT_B));
             assert idA.equals(idB);
-            assert stateA.equals(stateB);
             assert idA != idB;// tough test
-            assert stateA != stateB;// tough test
-            assert signalsEmittedA != signalsEmittedB;// tough test
+            assert !stateA.equals(stateB);// tough test
+            assert !signalsEmittedA.equals(signalsEmittedB);// tough test
 
             final var eventA = new Event<>(idA, stateA, signalsEmittedA);
             final var eventB = new Event<>(idB, stateB, signalsEmittedB);
 
             assertInvariants(eventA, eventB);
-            assertEquivalent(eventA, eventB);
+            assertEquals(eventA, eventB);
         }
     }// class
 
@@ -141,12 +99,6 @@ public class EventTest {
     private static final TimestampedId ID_A = new TimestampedId(OBJECT_A, WHEN_A);
 
     private static final TimestampedId ID_B = new TimestampedId(OBJECT_B, WHEN_B);
-
-    private static <STATE> void assertEquivalent(@Nonnull final Event<STATE> event1,
-            @Nonnull final Event<STATE> event2) {
-        assertAll(() -> assertEquals(event1.getId(), event2.getId(), "id"),
-                () -> assertEquals(event1.getState(), event2.getState(), "state"));
-    }
 
     public static <STATE> void assertInvariants(@Nonnull final Event<STATE> event) {
         ObjectTest.assertInvariants(event);// inherited
@@ -169,11 +121,7 @@ public class EventTest {
     public static <STATE> void assertInvariants(@Nonnull final Event<STATE> event1,
             @Nonnull final Event<STATE> event2) {
         ObjectTest.assertInvariants(event1, event2);// inherited
-
-        final boolean equals = event1.equals(event2);
-        assertAll("Value semantics", () -> assertFalse(equals && !event1.getId().equals(event2.getId()), "id"),
-                () -> assertFalse(equals && !event1.getSignalsEmitted().equals(event2.getSignalsEmitted()),
-                        "signalsEmitted"));
+        EqualsSemanticsTest.assertEntitySemantics(event1, event2, event -> event.getId());
     }
 
     private static <STATE> Event<STATE> constructor(@Nonnull final TimestampedId id, @Nullable final STATE state,
