@@ -19,11 +19,18 @@ package uk.badamson.mc.simulation.actor;
  */
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.in;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.iterableWithSize;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -41,6 +48,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -139,6 +147,195 @@ public class ObjectHistoryTest {
             final var history = new ObjectHistory<>(OBJECT_A, end0, state);
 
             commitTo(history, when);
+        }
+
+    }// class
+
+    @Nested
+    public class CompareAndAddEvent {
+
+        @Nested
+        public class EmptyFailure {
+
+            @Test
+            public void expectationFailed() {
+                final ObjectHistory<Integer> history = new ObjectHistory<Integer>(OBJECT_A, WHEN_A, Integer.valueOf(0));
+                final Duration end = history.getEnd();
+                final Duration whenPreviousOccurred = end.plusDays(1);
+                final Event<Integer> expectedPreviousEvent = new Event<Integer>(
+                        new TimestampedId(SIGNAL_ID_A, whenPreviousOccurred), OBJECT_A, Integer.valueOf(1), Set.of());
+                final Duration whenOccurred = end.plusDays(365);
+                final Event<Integer> event = new Event<Integer>(new TimestampedId(SIGNAL_ID_B, whenOccurred), OBJECT_A,
+                        Integer.valueOf(2), Set.of());
+
+                final var result = compareAndAddEvent(history, expectedPreviousEvent, event);
+
+                assertThat("result indicates failure", result, nullValue());
+            }
+
+            @Test
+            public void tooEarly() {
+                final ObjectHistory<Integer> history = new ObjectHistory<Integer>(OBJECT_A, WHEN_A, Integer.valueOf(0));
+                final Duration end = history.getEnd();
+                final Event<Integer> expectedPreviousEvent = null;// tough test
+                final Duration whenOccurred = end;// tough test
+                final Event<Integer> event = new Event<Integer>(new TimestampedId(SIGNAL_ID_A, whenOccurred), OBJECT_A,
+                        Integer.valueOf(1), Set.of());
+
+                final var result = compareAndAddEvent(history, expectedPreviousEvent, event);
+
+                assertThat("result indicates failure", result, nullValue());
+            }
+        }// class
+
+        @Nested
+        public class EmptySuccess {
+
+            @Test
+            public void a() {
+                final var end = WHEN_A;
+                final var whenOccurred = end.plusSeconds(1);
+
+                test(OBJECT_A, end, Integer.valueOf(0), SIGNAL_ID_A, whenOccurred, Integer.valueOf(1));
+            }
+
+            @Test
+            public void close() {
+                final var end = WHEN_B;
+                final var whenOccurred = end.plusNanos(1);// critical
+
+                test(OBJECT_B, end, Integer.valueOf(3), SIGNAL_ID_B, whenOccurred, Integer.valueOf(2));
+            }
+
+            @Test
+            public void sameState() {
+                final var end = WHEN_A;
+                final var whenOccurred = end.plusSeconds(1);
+                final var state = Integer.valueOf(0);
+
+                test(OBJECT_A, end, state, SIGNAL_ID_A, whenOccurred, state);
+            }
+
+            private void test(@Nonnull final UUID object, @Nonnull final Duration end, @Nonnull final Integer state0,
+                    @Nonnull final UUID signalId, @Nonnull final Duration whenOccurred, @Nullable final Integer state) {
+                final var expectedTimestampedState = new ObjectHistory.TimestampedState<>(whenOccurred,
+                        ValueHistory.END_OF_TIME, false, state);
+                final Duration start = end;
+                final ObjectHistory<Integer> history = new ObjectHistory<Integer>(object, start, state0);
+                final Event<Integer> expectedPreviousEvent = null;
+                final Event<Integer> event = new Event<Integer>(new TimestampedId(signalId, whenOccurred), object,
+                        state, Set.of());
+                final var timestampedStatesVerifier = StepVerifier.create(history.observeTimestampedStates());
+
+                final var result = compareAndAddEvent(history, expectedPreviousEvent, event);
+
+                final var stateHistory = history.getStateHistory();
+                assertAll("result", () -> assertThat("indicates success", result, notNullValue()),
+                        () -> assertThat("no events invalidated", result, empty()));
+                assertAll("stateHistory", () -> assertThat("at start (unchanged)", stateHistory.get(start), is(state0)),
+                        () -> assertThat("at whenOccurred", stateHistory.get(whenOccurred), is(state)),
+                        () -> assertThat("added transition iff state changed",
+                                stateHistory.getTransitionTimes().contains(whenOccurred) || state0.equals(state)));
+
+                timestampedStatesVerifier.expectNext(expectedTimestampedState).expectTimeout(Duration.ofMillis(100))
+                        .verify();
+            }
+
+        }// class
+
+        @Nested
+        public class Invalidating {
+
+            @Test
+            public void a() {
+                test(WHEN_A, Integer.valueOf(0), SIGNAL_ID_A, WHEN_B, Integer.valueOf(1), SIGNAL_ID_B, WHEN_C,
+                        Integer.valueOf(2));
+            }
+
+            @Test
+            public void close() {
+                final var end = WHEN_B;
+                final var whenOccurred1 = end.plusNanos(1);// critical
+                final var whenOccurred2 = whenOccurred1.plusNanos(1);// critical
+                test(end, Integer.valueOf(0), SIGNAL_ID_B, whenOccurred1, Integer.valueOf(1), SIGNAL_ID_A,
+                        whenOccurred2, Integer.valueOf(2));
+            }
+
+            @Test
+            public void sameState() {
+                final var state0 = Integer.valueOf(0);
+                final var state1 = state0;// critical
+                final var state2 = state1;// critical
+                test(WHEN_A, state0, SIGNAL_ID_A, WHEN_B, state1, SIGNAL_ID_B, WHEN_C, state2);
+            }
+
+            private void test(@Nonnull final Duration end, @Nonnull final Integer state0, @Nonnull final UUID signalId1,
+                    @Nonnull final Duration whenOccurred1, @Nullable final Integer state1,
+                    @Nonnull final UUID signalId2, @Nonnull final Duration whenOccurred2,
+                    @Nullable final Integer state2) {
+                assert end.compareTo(whenOccurred1) < 0;
+                assert whenOccurred1.compareTo(whenOccurred2) < 0;
+                final UUID object = OBJECT_A;
+                final Duration start = end;
+                final ObjectHistory<Integer> history = new ObjectHistory<Integer>(object, start, state0);
+                final Event<Integer> expectedPreviousEvent = null;
+                final Event<Integer> event1 = new Event<Integer>(new TimestampedId(signalId1, whenOccurred1), object,
+                        state1, Set.of());
+                final Event<Integer> event2 = new Event<Integer>(new TimestampedId(signalId2, whenOccurred2), object,
+                        state2, Set.of());
+                history.compareAndAddEvent(expectedPreviousEvent, event2);
+
+                final var result = compareAndAddEvent(history, expectedPreviousEvent, event1);
+
+                final var stateHistory = history.getStateHistory();
+                assertAll("result", () -> assertThat("indicates success", result, notNullValue()),
+                        () -> assertThat("invalidated event", result, hasItem(event2)),
+                        () -> assertThat("number invalidated", result, hasSize(1)));
+                assertAll("stateHistory", () -> assertThat("at start (unchanged)", stateHistory.get(start), is(state0)),
+                        () -> assertThat("at whenOccurred", stateHistory.get(whenOccurred1), is(state1)),
+                        () -> assertThat("added transition iff state changed",
+                                stateHistory.getTransitionTimes().contains(whenOccurred1) || state0.equals(state1)));
+            }
+
+        }// class
+
+        @RepeatedTest(4)
+        public void multipleThreads() {
+            final int nThreads = 16;
+            final int nEventsPerThread = 64;
+
+            final UUID object = OBJECT_A;
+            final Duration end = WHEN_A;
+            final Integer state0 = Integer.valueOf(0);
+            final Duration start = end;
+            final ObjectHistory<Integer> history = new ObjectHistory<Integer>(object, start, state0);
+
+            final CountDownLatch ready = new CountDownLatch(1);
+            final List<Future<Void>> futures = new ArrayList<>(nThreads);
+
+            for (int t = 0; t < nThreads; ++t) {
+                futures.add(ThreadSafetyTest.runInOtherThread(ready, () -> {
+                    final var random = new Random();
+                    for (int e = 0; e < nEventsPerThread; ++e) {
+                        final UUID signalId = UUID.randomUUID();
+                        final var events0 = history.getEvents();
+                        final var hasPrevious = events0.isEmpty();
+                        final Event<Integer> expectedPreviousEvent = hasPrevious ? null : events0.last();
+                        final Duration whenPrevious = expectedPreviousEvent == null ? end
+                                : expectedPreviousEvent.getWhenOccurred();
+                        final Duration whenOccurred = whenPrevious.plusMillis(1 + random.nextInt(10_000));
+                        final Integer state = Integer.valueOf(random.nextInt());
+                        final Event<Integer> event = new Event<Integer>(new TimestampedId(signalId, whenOccurred),
+                                object, state, Set.of());
+
+                        history.compareAndAddEvent(expectedPreviousEvent, event);
+                    } // for
+                }));
+            } // for
+
+            ready.countDown();
+            ThreadSafetyTest.get(futures);
+            assertInvariants(history);
         }
 
     }// class
@@ -696,6 +893,27 @@ public class ObjectHistoryTest {
                 () -> assertThat("at least the given value", end, greaterThanOrEqualTo(when)));
     }
 
+    @Nullable
+    private static <STATE> SortedSet<Event<STATE>> compareAndAddEvent(@Nonnull final ObjectHistory<STATE> history,
+            @Nullable final Event<STATE> expectedPreviousEvent, @Nonnull final Event<STATE> event) {
+        final SortedSet<Event<STATE>> events0 = history.getEvents();
+
+        final var result = history.compareAndAddEvent(expectedPreviousEvent, event);
+
+        assertInvariants(history);
+        final SortedSet<Event<STATE>> events = history.getEvents();
+        if (result == null) {
+            assertThat("events unchanged", events, is(events0));
+        } else {
+            assertThat("events contains event", events, contains(event));
+            assertThat("events contains no events after event", events.tailSet(event), iterableWithSize(1));
+            assertAll("Invalidated events",
+                    createAssertPostconditionsOfInvalidatedEvents(result, event, history.getObject(), events0));
+        }
+
+        return result;
+    }
+
     private static <STATE> ObjectHistory<STATE> constructor(@Nonnull final ObjectHistory<STATE> that) {
         final var copy = new ObjectHistory<>(that);
 
@@ -729,6 +947,22 @@ public class ObjectHistoryTest {
         return collection.stream().filter(s -> signal.equals(s)).count();
     }
 
+    @Nonnull
+    private static <STATE> Stream<Executable> createAssertPostconditionsOfInvalidatedEvents(
+            @Nonnull final SortedSet<Event<STATE>> invalidatedEvents, @Nonnull final Event<STATE> eventAdded,
+            @Nonnull final UUID object, final SortedSet<Event<STATE>> events0) {
+        return invalidatedEvents.stream().map(event -> new Executable() {
+
+            @Override
+            public void execute() throws AssertionError {
+                EventTest.assertInvariants(event);
+                assertAll(() -> assertThat("event.affectedObject", event.getAffectedObject(), is(object)),
+                        () -> assertThat("event after eventAdded", event, greaterThan(eventAdded)),
+                        () -> assertThat("event is in events0", event, is(in(events0))));
+            }
+        });
+    }
+
     private static <STATE> Stream<Executable> createEventsAssertions(@Nonnull final SortedSet<Event<STATE>> events,
             @Nonnull final UUID object, @Nonnull final Duration start,
             @Nonnull final ValueHistory<STATE> stateHistory) {
@@ -738,9 +972,11 @@ public class ObjectHistoryTest {
             public void execute() throws AssertionError {
                 final Duration whenOccurred = event.getWhenOccurred();
                 EventTest.assertInvariants(event);
-                assertThat("event.affectedObject", event, is(object));
-                assertThat("event.whenOccurred", whenOccurred, greaterThan(start));
-                assertThat("stateHistory at event.whenOccurred", stateHistory.get(whenOccurred), is(event.getState()));
+                assertAll("event [" + event + "]",
+                        () -> assertThat("event.affectedObject", event.getAffectedObject(), is(object)),
+                        () -> assertThat("event.whenOccurred", whenOccurred, greaterThan(start)),
+                        () -> assertThat("stateHistory at event.whenOccurred", stateHistory.get(whenOccurred),
+                                is(event.getState())));
             }
         });
     }

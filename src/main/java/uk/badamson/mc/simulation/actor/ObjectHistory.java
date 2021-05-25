@@ -19,6 +19,7 @@ package uk.badamson.mc.simulation.actor;
  */
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.SortedMap;
@@ -269,6 +270,27 @@ public final class ObjectHistory<STATE> {
         completeTimestampedStatesIfNoMoreHistory();
     }
 
+    @GuardedBy("lock")
+    @Nonnull
+    private SortedSet<Event<STATE>> addEvent(@Nonnull final Event<STATE> event) {
+        final var after = events.tailSet(event);
+        final var mustInvalidate = !after.isEmpty();
+        // Reduce garbage for the !mustInvalidate case
+        final SortedSet<Event<STATE>> invalidated = mustInvalidate ? new TreeSet<>(after)
+                : Collections.emptySortedSet();
+        if (mustInvalidate) {
+            events.removeAll(invalidated);
+        }
+        final var state = event.getState();
+        stateHistory.setValueFrom(event.getWhenOccurred(), state);
+        events.add(event);
+        final var status = timestampedStates.tryEmitNext(
+                new TimestampedState<STATE>(event.getWhenOccurred(), ValueHistory.END_OF_TIME, false, state));
+        assert status == EmitResult.OK;// sink is reliable
+
+        return invalidated;
+    }
+
     /**
      * <p>
      * Advance the {@linkplain #getEnd() end time of reliable state information} to
@@ -288,6 +310,109 @@ public final class ObjectHistory<STATE> {
             this.end = when;
             completeTimestampedStatesIfNoMoreHistory();
         }
+    }
+
+    /**
+     * <p>
+     * Add an event to the {@linkplain #getEvents() collection of events} of this
+     * history, if the previous event is as expected.
+     * </p>
+     * <p>
+     * This compare-and-set operation enables optimistic concurrency, removing the
+     * need to (internally) hold locks for long periods. The method atomically
+     * compares the actual previous event with the given expected previous event,
+     * and if they match, adds the given event. Adding an event invalidates all
+     * subsequent events; the method also atomically removes those invalid events.
+     * The method returns the collection of invalidated events, so the caller can
+     * perform any processing due to invalidation of
+     * {@linkplain Event#getSignalsEmitted() signals emitted} by the invalidated
+     * events.
+     * </p>
+     * <ul>
+     * <li>If the {@linkplain Event#getWhenOccurred() time of occurrence} of
+     * {@code event} is not {@linkplain Duration#compareTo(Duration) after} the
+     * {@linkplain #getEnd() end} of the reliable state period,the method has no
+     * effect, and returns null to indicate failure.</li>
+     * <li>If the actual previous event is not
+     * {@linkplain Objects#equals(Object, Object) equivalent or equivalently null}
+     * to the {@code expectedPreviousEvent} the method has no effect, and returns
+     * null to indicate failure.</li>
+     * <li>If the actual previous event is equivalent or equivalently null to the
+     * {@code expectedPreviousEvent}, and the given {@code event} is already
+     * {@linkplain SortedSet#contains(Object) present} in the collection of events,
+     * the method has no effect, and returns an {@linkplain SortedSet#isEmpty()
+     * empty} set.</li>
+     * <li>If the actual previous event is equivalent or equivalently null to the
+     * {@code expectedPreviousEvent}, and the given {@code event} is not already
+     * present in the collection of events, the method has removes the invalidated
+     * events, adds the {@code event} to the collection of events and returns the
+     * set of invalidated events.</li>
+     * </ul>
+     * <p>
+     * If the method returns a (non null) set of invalidated events
+     * </p>
+     * <ul>
+     * <li>All the invalidated events were previously in the collection of
+     * events.</li>
+     * <li>All the invalidated events are after the given {@code event}.</li>
+     * </ul>
+     *
+     * @param expectedPreviousEvent
+     *            The event that is expected to be in the collection of events,
+     *            immediately {@linkplain Event#compareTo(Event) before} the
+     *            {@code event} to be added. Or {@code null} if the {@code event} is
+     *            expected to be the first event.
+     * @param event
+     *            The event to add to the history.
+     * @return an indication of failure or information about events that were
+     *         removed.
+     * @throws NullPointerException
+     *             If the {@code event} is null.
+     * @throws IllegalArgumentException
+     *             <ul>
+     *             <li>If {@code expectedPreviousEvent} is non null and its
+     *             {@linkplain Event#getAffectedObject() affected object} is not
+     *             {@linkplain UUID#equals(Object) equivalent to} the
+     *             {@linkplain #getObject() object} of this history.</li>
+     *             <li>If the affected object of {@code event} is not equivalent to
+     *             the {@linkplain #getObject() object} of this history.</li>
+     *             <li>If {@code expectedPreviousEvent} is non null and is not
+     *             {@linkplain Event#compareTo(Event) before} {@code event}.</li>
+     *             </ul>
+     */
+    @Nullable
+    public SortedSet<Event<STATE>> compareAndAddEvent(@Nullable final Event<STATE> expectedPreviousEvent,
+            @Nonnull final Event<STATE> event) {
+        Objects.requireNonNull(event, "event");
+        if (!event.getAffectedObject().equals(getObject())) {
+            throw new IllegalArgumentException("event.object not equals this.object");
+        }
+        if (expectedPreviousEvent != null) {
+            if (!expectedPreviousEvent.getAffectedObject().equals(getObject())) {
+                throw new IllegalArgumentException("expectedPreviousEvent.object not equals this.object");
+            }
+            if (event.compareTo(expectedPreviousEvent) <= 0) {
+                throw new IllegalArgumentException("event is not after expectedPreviousEvent");
+            }
+        }
+
+        synchronized (lock) {
+            if (event.getWhenOccurred().compareTo(end) <= 0) {
+                return null;// failure: too early
+            }
+            final var previousEvents = events.headSet(event);
+            final boolean expectationMet = expectedPreviousEvent == null ? previousEvents.isEmpty()
+                    : !previousEvents.isEmpty() && expectedPreviousEvent.equals(previousEvents.last());
+            if (expectationMet) {
+                if (events.contains(event)) {// no-op
+                    return Collections.emptySortedSet();
+                } else {
+                    return addEvent(event);
+                }
+            } else {
+                return null;// failure
+            }
+        } // synchronized
     }
 
     private void completeTimestampedStatesIfNoMoreHistory() {
