@@ -22,6 +22,8 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.UUID;
 
 import javax.annotation.Nonnull;
@@ -214,6 +216,10 @@ public final class ObjectHistory<STATE> {
     @GuardedBy("lock")
     private final ModifiableValueHistory<STATE> stateHistory;
 
+    @Nonnull
+    @GuardedBy("lock")
+    private final SortedSet<Event<STATE>> events = new TreeSet<>();
+
     private final Sinks.Many<TimestampedState<STATE>> timestampedStates = Sinks.many().replay().latest();
 
     /**
@@ -239,6 +245,8 @@ public final class ObjectHistory<STATE> {
      * <ul>
      * <li>The {@linkplain #getEnd() end} time is the same as the given
      * {@code start} time.</li>
+     * <li>The {@linkplain #getEvents() events} sequence
+     * {@linkplain SortedSet#isEmpty() is empty}.</li>
      * </ul>
      *
      * @param object
@@ -346,6 +354,32 @@ public final class ObjectHistory<STATE> {
 
     /**
      * <p>
+     * Get a snapshot of the sequence of events that have
+     * {@linkplain Event#getAffectedObject() affected} the {@linkplain #getObject()
+     * simulated object}.
+     * </p>
+     * <ul>
+     * <li>The events sequence may be {@linkplain SortedSet#isEmpty() empty}.</li>
+     * <li>All events {@linkplain Event#getAffectedObject() affect} the
+     * {@linkplain #getObject() simulated object} of this history.</li>
+     * <li>All events {@linkplain Event#getWhenOccurred() occurred}
+     * {@linkplain Duration#compareTo(Duration) after} the {@linkplain #getStart()
+     * start} time of this history.</li>
+     * <li>The returned event sequence is a snapshot: a copy of data, it is not
+     * updated if this object history is subsequently changed.</li>
+     * </ul>
+     *
+     * @see #getStateHistory()
+     */
+    @Nonnull
+    public final SortedSet<Event<STATE>> getEvents() {
+        synchronized (lock) {// hard to test
+            return new TreeSet<>(events);
+        }
+    }
+
+    /**
+     * <p>
      * The unique ID of the object for which this is the history.
      * </p>
      * <ul>
@@ -395,6 +429,10 @@ public final class ObjectHistory<STATE> {
      * {@linkplain ValueHistory#END_OF_TIME end of time}. That is, if reliable state
      * information indicates that the simulated object was destroyed, it is
      * guaranteed that the simulated object will never be recreated.</li>
+     * <li>The {@linkplain Event#getState() state} resulting from an
+     * {@linkplain #getEvents() event} is {@linkplain #equals(Object) equivalent to}
+     * the {@linkplain ValueHistory#get(Duration) value} of the state history at the
+     * {@linkplain Event#getWhenOccurred() time of occurrence} of the event.</li>
      * <li>The returned state history is a snapshot: a copy of data, it is not
      * updated if this object history is subsequently changed.</li>
      * </ul>

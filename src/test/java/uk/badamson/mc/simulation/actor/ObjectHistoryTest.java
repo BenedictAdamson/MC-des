@@ -19,6 +19,8 @@ package uk.badamson.mc.simulation.actor;
  */
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -40,10 +42,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
+import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -51,6 +55,7 @@ import javax.annotation.Nullable;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.reactivestreams.Publisher;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -626,20 +631,23 @@ public class ObjectHistoryTest {
     public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history) {
         ObjectTest.assertInvariants(history);// inherited
 
+        final var events = history.getEvents();
+        final var end = history.getEnd();
         final var object = history.getObject();
         final var start = history.getStart();
-        final var end = history.getEnd();
         final var stateHistory = history.getStateHistory();
         final var stateTransitions = history.getStateTransitions();
 
-        assertAll("Not null", () -> assertNotNull(object, "object"), () -> assertNotNull(start, "start"), // guard
+        assertAll("Not null", () -> assertNotNull(events, "events"), // guard
+                () -> assertNotNull(object, "object"), () -> assertNotNull(start, "start"), // guard
                 () -> assertNotNull(end, "end"), // guard
                 () -> assertNotNull(stateHistory, "stateHistory"), // guard
                 () -> assertNotNull(stateTransitions, "stateTransitions") // guard
         );
         ValueHistoryTest.assertInvariants(stateHistory);
 
-        assertAll(() -> assertThat("The end time is at or after the start time.", end, greaterThanOrEqualTo(start)),
+        assertAll(() -> assertAll("events", createEventsAssertions(events, object, start, stateHistory)),
+                () -> assertThat("The end time is at or after the start time.", end, greaterThanOrEqualTo(start)),
                 () -> assertAll("stateHistory", () -> assertSame(start, stateHistory.getFirstTansitionTime(),
                         "The first transition time of the state history is the same as the start time of this history."),
                         () -> assertNull(stateHistory.getFirstValue(),
@@ -711,13 +719,30 @@ public class ObjectHistoryTest {
         assertAll(() -> assertSame(object, history.getObject(), "object"),
                 () -> assertSame(start, history.getStart(), "start"), () -> assertSame(start, history.getEnd(), "end"),
                 () -> assertSame(stateTransitions.firstKey(), history.getStart(), "start"),
-                () -> assertEquals(stateTransitions, Map.of(start, state), "stateTransitions"));
+                () -> assertEquals(stateTransitions, Map.of(start, state), "stateTransitions"),
+                () -> assertThat("events", history.getEvents(), empty()));
 
         return history;
     }
 
     static <STATE> long count(final Collection<Signal<STATE>> collection, final Signal<STATE> signal) {
         return collection.stream().filter(s -> signal.equals(s)).count();
+    }
+
+    private static <STATE> Stream<Executable> createEventsAssertions(@Nonnull final SortedSet<Event<STATE>> events,
+            @Nonnull final UUID object, @Nonnull final Duration start,
+            @Nonnull final ValueHistory<STATE> stateHistory) {
+        return events.stream().map(event -> new Executable() {
+
+            @Override
+            public void execute() throws AssertionError {
+                final Duration whenOccurred = event.getWhenOccurred();
+                EventTest.assertInvariants(event);
+                assertThat("event.affectedObject", event, is(object));
+                assertThat("event.whenOccurred", whenOccurred, greaterThan(start));
+                assertThat("stateHistory at event.whenOccurred", stateHistory.get(whenOccurred), is(event.getState()));
+            }
+        });
     }
 
     public static <STATE> Publisher<Optional<STATE>> observeState(@Nonnull final ObjectHistory<STATE> history,
