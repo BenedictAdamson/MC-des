@@ -111,9 +111,9 @@ public class EventTest {
 
     private static final Duration WHEN_B = Duration.ofMillis(5000);
 
-    private static final TimestampedId ID_A = new TimestampedId(OBJECT_A, WHEN_A);
+    private static final TimestampedId ID_A = new TimestampedId(SIGNAL_A, WHEN_A);
 
-    private static final TimestampedId ID_B = new TimestampedId(OBJECT_B, WHEN_B);
+    private static final TimestampedId ID_B = new TimestampedId(SIGNAL_B, WHEN_B);
 
     public static <STATE> void assertInvariants(@Nonnull final Event<STATE> event) {
         ObjectTest.assertInvariants(event);// inherited

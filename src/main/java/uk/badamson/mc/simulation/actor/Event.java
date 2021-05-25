@@ -148,15 +148,21 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
      * The unique ID for this event.
      * </p>
      * <p>
-     * The ID combines the ID of the simulated object that this event changed, and
-     * the point in time that the change occurred
+     * The ID combines the ID of the signal that caused this event, and the point in
+     * time that the change occurred
      * </p>
      * <ul>
      * <li>The {@linkplain TimestampedId#getObject() object} of the ID is the same
-     * as the {@linkplain #getAffectedObject() affected object} of this event.</li>
+     * as the {@linkplain #getCausingSignal() causing signal} of this event.</li>
      * <li>The {@linkplain TimestampedId#getWhen() time-stamp} of the ID is the same
      * as the {@linkplain #getWhenOccurred() time of occurrence} of this event.</li>
      * </ul>
+     * <p>
+     * Note that, as signal IDs should be unique, inclusion of the time-stamp is
+     * redundant, but enables the {@linkplain #compareTo(Event) natural ordering} to
+     * be consistent with {@linkplain #equals(Object) equals} while providsing
+     * entity semantics.
+     * </p>
      */
     @Nonnull
     public TimestampedId getId() {
