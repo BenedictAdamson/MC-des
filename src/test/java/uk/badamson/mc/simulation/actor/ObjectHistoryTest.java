@@ -43,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -230,15 +231,15 @@ public class ObjectHistoryTest {
                 final var result = compareAndAddEvent(history, expectedPreviousEvent, event);
 
                 final var stateHistory = history.getStateHistory();
-                final var signalsReceived = history.getSignalsReceived();
+                final var receivedSignals = history.getReceivedSignals();
                 assertAll("result", () -> assertThat("indicates success", result, notNullValue()),
                         () -> assertThat("no events invalidated", result, empty()));
                 assertAll("stateHistory", () -> assertThat("at start (unchanged)", stateHistory.get(start), is(state0)),
                         () -> assertThat("at whenOccurred", stateHistory.get(whenOccurred), is(state)),
                         () -> assertThat("added transition iff state changed",
                                 stateHistory.getTransitionTimes().contains(whenOccurred) || state0.equals(state)));
-                assertAll("signalsReceived", () -> assertThat(signalsReceived, hasItem(signalId)),
-                        () -> assertThat(signalsReceived, hasSize(1)));
+                assertAll("receivedSignals", () -> assertThat(receivedSignals, hasItem(signalId)),
+                        () -> assertThat(receivedSignals, hasSize(1)));
 
                 timestampedStatesVerifier.expectNext(expectedTimestampedState).expectTimeout(Duration.ofMillis(100))
                         .verify();
@@ -291,7 +292,7 @@ public class ObjectHistoryTest {
                 final var result = compareAndAddEvent(history, expectedPreviousEvent, event1);
 
                 final var stateHistory = history.getStateHistory();
-                final var signalsReceived = history.getSignalsReceived();
+                final var receivedSignals = history.getReceivedSignals();
                 assertAll("result", () -> assertThat("indicates success", result, notNullValue()),
                         () -> assertThat("invalidated event", result, hasItem(event2)),
                         () -> assertThat("number invalidated", result, hasSize(1)));
@@ -299,8 +300,8 @@ public class ObjectHistoryTest {
                         () -> assertThat("at whenOccurred", stateHistory.get(whenOccurred1), is(state1)),
                         () -> assertThat("added transition iff state changed",
                                 stateHistory.getTransitionTimes().contains(whenOccurred1) || state0.equals(state1)));
-                assertAll("signalsReceived", () -> assertThat(signalsReceived, hasItem(signalId1)),
-                        () -> assertThat(signalsReceived, hasSize(1)));
+                assertAll("receivedSignals", () -> assertThat(receivedSignals, hasItem(signalId1)),
+                        () -> assertThat(receivedSignals, hasSize(1)));
             }
 
         }// class
@@ -347,7 +348,7 @@ public class ObjectHistoryTest {
                 final var result = compareAndAddEvent(history, expectedPreviousEvent2, event2);
 
                 final var stateHistory = history.getStateHistory();
-                final var signalsReceived = history.getSignalsReceived();
+                final var receivedSignals = history.getReceivedSignals();
                 assertAll("result", () -> assertThat("indicates success", result, notNullValue()),
                         () -> assertThat("no events invalidated", result, empty()));
                 assertAll("stateHistory", () -> assertThat("at start (unchanged)", stateHistory.get(start), is(state0)),
@@ -355,7 +356,7 @@ public class ObjectHistoryTest {
                         () -> assertThat("at whenOccurred2", stateHistory.get(whenOccurred2), is(state2)),
                         () -> assertThat("transitionTimes", stateHistory.getTransitionTimes(),
                                 allOf(hasItem(whenOccurred1), hasItem(whenOccurred2))));
-                assertThat("signalsReceived", signalsReceived, allOf(hasItem(signalId1), hasItem(signalId2)));
+                assertThat("receivedSignals", receivedSignals, allOf(hasItem(signalId1), hasItem(signalId2)));
             }
 
         }// class
@@ -736,6 +737,197 @@ public class ObjectHistoryTest {
         }// class
     }// class
 
+    @Nested
+    public class RemoveReceivedSignals {
+
+        @Nested
+        public class Absent {
+
+            @Test
+            public void a() {
+                test(SIGNAL_ID_A, SIGNAL_ID_B);
+            }
+
+            @Test
+            public void b() {
+                test(SIGNAL_ID_B, SIGNAL_ID_A);
+            }
+
+            private void test(@Nonnull final UUID presentSignal, @Nonnull final UUID signalToRemove) {
+                assert !presentSignal.equals(signalToRemove);
+                final UUID object = OBJECT_A;
+                final Duration end = WHEN_A;
+                final Duration start = end;
+                final Duration whenOccurred = end.plusSeconds(1);
+                final Integer state0 = Integer.valueOf(0);
+                final Integer state = Integer.valueOf(1);
+                final ObjectHistory<Integer> history = new ObjectHistory<Integer>(object, start, state0);
+                final Event<Integer> event = new Event<Integer>(new TimestampedId(presentSignal, whenOccurred), object,
+                        state, Set.of());
+                history.compareAndAddEvent(null, event);
+                final var receivedSignals0 = history.getReceivedSignals();
+                final var events0 = history.getEvents();
+                assert !events0.isEmpty();
+
+                final var result = removeReceivedSignals(history, Set.of(signalToRemove));
+
+                assertAll("Unchanged",
+                        () -> assertThat("receivedSignals", history.getReceivedSignals(), is(receivedSignals0)),
+                        () -> assertThat("events", history.getEvents(), is(events0)));
+                assertThat("removed events", result, empty());
+            }
+
+        }// class
+
+        @Nested
+        public class Empty {
+
+            @Test
+            public void none() {
+                test(Set.of());
+            }
+
+            @Test
+            public void one() {
+                test(Set.of(SIGNAL_ID_A));
+            }
+
+            private void test(@Nonnull final Set<UUID> signals) {
+                final var history = new ObjectHistory<>(OBJECT_A, WHEN_A, Integer.valueOf(0));
+
+                final var removed = removeReceivedSignals(history, signals);
+
+                assertThat("removed events", removed, empty());
+            }
+
+            @Test
+            public void two() {
+                test(Set.of(SIGNAL_ID_A, SIGNAL_ID_B));
+            }
+
+        }// class
+
+        @Nested
+        public class Present {
+
+            @Test
+            public void a() {
+                test(SIGNAL_ID_A);
+            }
+
+            @Test
+            public void b() {
+                test(SIGNAL_ID_B);
+            }
+
+            private void test(@Nonnull final UUID signalId) {
+                final UUID object = OBJECT_A;
+                final Duration end = WHEN_A;
+                final Duration start = end;
+                final Duration whenOccurred = end.plusSeconds(1);
+                final Integer state0 = Integer.valueOf(0);
+                final Integer state = Integer.valueOf(1);
+                final ObjectHistory<Integer> history = new ObjectHistory<Integer>(object, start, state0);
+                final Event<Integer> event = new Event<Integer>(new TimestampedId(signalId, whenOccurred), object,
+                        state, Set.of());
+                history.compareAndAddEvent(null, event);
+
+                final var result = removeReceivedSignals(history, Set.of(signalId));
+
+                assertAll("Removed from", () -> assertThat("receivedSignals", history.getReceivedSignals(), empty()),
+                        () -> assertThat("events", history.getEvents(), empty()));
+                assertThat("removed events", result, is(Set.of(event)));
+            }
+
+        }// class
+
+        @Nested
+        public class WithSubsequentSignal {
+
+            @Test
+            public void a() {
+                test(WHEN_A, SIGNAL_ID_A, WHEN_B, SIGNAL_ID_B, WHEN_C);
+            }
+
+            @Test
+            public void close() {
+                final var end = WHEN_B;
+                final var whenOccurred1 = end.plusNanos(1);// critical
+                final var whenOccurred2 = whenOccurred1.plusNanos(1);// critical
+                test(end, SIGNAL_ID_B, whenOccurred1, SIGNAL_ID_A, whenOccurred2);
+            }
+
+            private void test(@Nonnull final Duration end, @Nonnull final UUID signalId1,
+                    @Nonnull final Duration whenOccurred1, @Nonnull final UUID signalId2,
+                    @Nonnull final Duration whenOccurred2) {
+                assert !signalId1.equals(signalId2);
+                assert end.compareTo(whenOccurred1) < 0;
+                assert whenOccurred1.compareTo(whenOccurred2) < 0;
+
+                final UUID object = OBJECT_A;
+                final Integer state0 = Integer.valueOf(0);
+                final Integer state1 = Integer.valueOf(1);
+                final Integer state2 = Integer.valueOf(2);
+                final Duration start = end;
+
+                final ObjectHistory<Integer> history = new ObjectHistory<Integer>(object, start, state0);
+                final Event<Integer> event1 = new Event<Integer>(new TimestampedId(signalId1, whenOccurred1), object,
+                        state1, Set.of());
+                final Event<Integer> event2 = new Event<Integer>(new TimestampedId(signalId2, whenOccurred2), object,
+                        state2, Set.of());
+                history.compareAndAddEvent(null, event1);
+                history.compareAndAddEvent(event1, event2);
+                final var signals = Set.of(signalId1);
+                assert !signals.contains(signalId2);
+
+                final var result = removeReceivedSignals(history, signals);
+
+                assertThat("removed both events", result, allOf(hasItem(event1), hasItem(event2)));
+            }
+
+        }// class
+
+        @RepeatedTest(4)
+        public void multipleThreads() {
+            final int nThreads = 16;
+            final int nEventsPerThread = 64;
+
+            final UUID object = OBJECT_A;
+            final Duration end = WHEN_A;
+            final Integer state0 = Integer.valueOf(0);
+            final Duration start = end;
+            final ObjectHistory<Integer> history = new ObjectHistory<Integer>(object, start, state0);
+
+            final CountDownLatch ready = new CountDownLatch(1);
+            final List<Future<Void>> futures = new ArrayList<>(nThreads);
+
+            for (int t = 0; t < nThreads; ++t) {
+                futures.add(ThreadSafetyTest.runInOtherThread(ready, () -> {
+                    final var random = new Random();
+                    for (int e = 0; e < nEventsPerThread; ++e) {
+                        final UUID signalId = UUID.randomUUID();
+                        final var events0 = history.getEvents();
+                        final var hasPrevious = events0.isEmpty();
+                        final Event<Integer> expectedPreviousEvent = hasPrevious ? null : events0.last();
+                        final Duration whenPrevious = expectedPreviousEvent == null ? end
+                                : expectedPreviousEvent.getWhenOccurred();
+                        final Duration whenOccurred = whenPrevious.plusMillis(1 + random.nextInt(10_000));
+                        final Integer state = Integer.valueOf(random.nextInt());
+                        final Event<Integer> event = new Event<Integer>(new TimestampedId(signalId, whenOccurred),
+                                object, state, Set.of());
+                        history.compareAndAddEvent(expectedPreviousEvent, event);
+                        Thread.yield();
+                        history.removeReceivedSignals(Set.of(signalId));
+                    } // for
+                }));
+            } // for
+
+            ready.countDown();
+            ThreadSafetyTest.get(futures);
+            assertInvariants(history);
+        }
+    }// class
+
     public static class TimestampedStateTest {
 
         @Nested
@@ -892,7 +1084,7 @@ public class ObjectHistoryTest {
         final var events = history.getEvents();
         final var end = history.getEnd();
         final var object = history.getObject();
-        final var signalsReceived = history.getSignalsReceived();
+        final var receivedSignals = history.getReceivedSignals();
         final var start = history.getStart();
         final var stateHistory = history.getStateHistory();
         final var stateTransitions = history.getStateTransitions();
@@ -900,7 +1092,7 @@ public class ObjectHistoryTest {
         assertAll("Not null", () -> assertNotNull(events, "events"), // guard
                 () -> assertNotNull(object, "object"), () -> assertNotNull(start, "start"), // guard
                 () -> assertNotNull(end, "end"), // guard
-                () -> assertNotNull(signalsReceived, "signalsReceived"), // guard
+                () -> assertNotNull(receivedSignals, "signalsReceived"), // guard
                 () -> assertNotNull(stateHistory, "stateHistory"), // guard
                 () -> assertNotNull(stateTransitions, "stateTransitions") // guard
         );
@@ -1061,6 +1253,27 @@ public class ObjectHistoryTest {
         assertInvariants(history);
         assertNotNull(flux, "Not null, result");
         return flux;
+    }
+
+    @Nonnull
+    private static <STATE> SortedSet<Event<STATE>> removeReceivedSignals(@Nonnull final ObjectHistory<STATE> history,
+            @Nonnull final Set<UUID> signals) {
+        final var removedEvents = history.removeReceivedSignals(signals);
+
+        assertInvariants(history);
+        final var receivedSignals = history.getReceivedSignals();
+        final var events = history.getEvents();
+        assertThat("removedEvents", removedEvents, notNullValue());// guard
+        assertAll(
+                () -> assertThat("The set of signals received does not include any of the given signals.",
+                        Collections.disjoint(receivedSignals, signals)),
+                () -> assertThat("The remaining events of this history does not include any of the events in "
+                        + "the returned set of removed events.", Collections.disjoint(events, removedEvents)),
+                () -> assertThat(
+                        "Either the returned set of removed events is empty, or the first element of the set was  caused by one of the given signals.",
+                        removedEvents.isEmpty() || signals.contains(removedEvents.first().getCausingSignal())));
+
+        return removedEvents;
     }
 
 }// class

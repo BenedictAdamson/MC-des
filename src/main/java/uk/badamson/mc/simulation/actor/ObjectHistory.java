@@ -18,6 +18,7 @@ package uk.badamson.mc.simulation.actor;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 
 import java.time.Duration;
@@ -534,7 +535,7 @@ public final class ObjectHistory<STATE> {
      * </ul>
      */
     @Nonnull
-    public Set<UUID> getSignalsReceived() {
+    public Set<UUID> getReceivedSignals() {
         synchronized (lock) {// hard to test
             return events.stream().map(event -> event.getCausingSignal()).collect(toUnmodifiableSet());
         }
@@ -734,6 +735,61 @@ public final class ObjectHistory<STATE> {
     @Nonnull
     public Flux<TimestampedState<STATE>> observeTimestampedStates() {
         return timestampedStates.asFlux();
+    }
+
+    /**
+     * <p>
+     * Remove a collection of signals from the {@linkplain #getReceivedSignals() set
+     * of signals received}.
+     * </p>
+     * <p>
+     * Removing received signals requires removing the effect of the events that
+     * those signals caused. Doing that rolls back the
+     * {@linkplain #getStateHistory() state history} and {@linkplain #getEvents()
+     * events sequence} to just before the earliest of the signals received.
+     * </p>
+     * <p>
+     * Post conditions:
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getReceivedSignals() set of signals received} does not
+     * include any of the given {@code signals}.</li>
+     * <li>The remaining {@linkplain #getEvents() events} of this history does not
+     * include any of the events in the returned set of removed events.</li>
+     * <li>The returned set of removed events may be {@linkplain SortedSet#isEmpty()
+     * empty}, if none of the {@code signals} were {@linkplain #getReceivedSignals()
+     * received signals}.</li>
+     * <li>The returned set of removed events may include events in addition to
+     * events {@linkplain Event#getCausingSignal() caused} by the {@code signals}.
+     * Those additional removed events will be events for signals received after the
+     * given signals. Therefore, either the returned set of removed events is empty,
+     * or the first element of the set was {@linkplain Event#getCausingSignal()
+     * caused by} one of the given {@code signals}.</li>
+     * </ul>
+     *
+     * @param signals
+     *            The signals to remove.
+     * @return events that were removed.
+     * @throws NullPointerException
+     *             <ul>
+     *             <li>If {@code signals} is null.</li>
+     *             <li>If {@code signals} contains a null.</li>
+     *             </ul>
+     */
+    @Nonnull
+    public SortedSet<Event<STATE>> removeReceivedSignals(@Nonnull final Set<UUID> signals) {
+        Objects.requireNonNull(signals, "signals");
+        synchronized (lock) {
+            final SortedSet<Event<STATE>> removedEvents = events.stream()
+                    .filter(event -> signals.contains(event.getCausingSignal()))
+                    .collect(toCollection(() -> new TreeSet<>()));
+            if (!removedEvents.isEmpty()) {
+                final var first = removedEvents.first();
+                removedEvents.addAll(events.tailSet(first));
+            }
+            events.removeAll(removedEvents);
+            return removedEvents;
+        } // synchronized
     }
 
     @Override
