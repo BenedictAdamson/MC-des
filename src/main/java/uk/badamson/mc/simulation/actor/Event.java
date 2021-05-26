@@ -99,7 +99,7 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
      * </p>
      */
     @Override
-    public int compareTo(@Nullable final Event<STATE> that) {
+    public int compareTo(@Nonnull final Event<STATE> that) {
         Objects.requireNonNull(that, "that");
         return id.compareTo(that.id);
     }
@@ -114,7 +114,7 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
      *
      */
     @Override
-    public boolean equals(@Nullable final Object that) {
+    public boolean equals(final Object that) {
         if (this == that) {
             return true;
         }
