@@ -19,7 +19,7 @@ package uk.badamson.mc.simulation.actor;
  */
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -230,12 +230,15 @@ public class ObjectHistoryTest {
                 final var result = compareAndAddEvent(history, expectedPreviousEvent, event);
 
                 final var stateHistory = history.getStateHistory();
+                final var signalsReceived = history.getSignalsReceived();
                 assertAll("result", () -> assertThat("indicates success", result, notNullValue()),
                         () -> assertThat("no events invalidated", result, empty()));
                 assertAll("stateHistory", () -> assertThat("at start (unchanged)", stateHistory.get(start), is(state0)),
                         () -> assertThat("at whenOccurred", stateHistory.get(whenOccurred), is(state)),
                         () -> assertThat("added transition iff state changed",
                                 stateHistory.getTransitionTimes().contains(whenOccurred) || state0.equals(state)));
+                assertAll("signalsReceived", () -> assertThat(signalsReceived, hasItem(signalId)),
+                        () -> assertThat(signalsReceived, hasSize(1)));
 
                 timestampedStatesVerifier.expectNext(expectedTimestampedState).expectTimeout(Duration.ofMillis(100))
                         .verify();
@@ -288,6 +291,7 @@ public class ObjectHistoryTest {
                 final var result = compareAndAddEvent(history, expectedPreviousEvent, event1);
 
                 final var stateHistory = history.getStateHistory();
+                final var signalsReceived = history.getSignalsReceived();
                 assertAll("result", () -> assertThat("indicates success", result, notNullValue()),
                         () -> assertThat("invalidated event", result, hasItem(event2)),
                         () -> assertThat("number invalidated", result, hasSize(1)));
@@ -295,6 +299,63 @@ public class ObjectHistoryTest {
                         () -> assertThat("at whenOccurred", stateHistory.get(whenOccurred1), is(state1)),
                         () -> assertThat("added transition iff state changed",
                                 stateHistory.getTransitionTimes().contains(whenOccurred1) || state0.equals(state1)));
+                assertAll("signalsReceived", () -> assertThat(signalsReceived, hasItem(signalId1)),
+                        () -> assertThat(signalsReceived, hasSize(1)));
+            }
+
+        }// class
+
+        @Nested
+        public class Two {
+
+            @Test
+            public void a() {
+                test(WHEN_A, Integer.valueOf(0), SIGNAL_ID_A, WHEN_B, Integer.valueOf(1), SIGNAL_ID_B, WHEN_C,
+                        Integer.valueOf(2));
+            }
+
+            @Test
+            public void close() {
+                final var end = WHEN_B;
+                final var whenOccurred1 = end.plusNanos(1);// critical
+                final var whenOccurred2 = whenOccurred1.plusNanos(1);// critical
+                test(end, Integer.valueOf(3), SIGNAL_ID_B, whenOccurred1, Integer.valueOf(2), SIGNAL_ID_A,
+                        whenOccurred2, Integer.valueOf(1));
+            }
+
+            private void test(@Nonnull final Duration end, @Nonnull final Integer state0, @Nonnull final UUID signalId1,
+                    @Nonnull final Duration whenOccurred1, @Nullable final Integer state1,
+                    @Nonnull final UUID signalId2, @Nonnull final Duration whenOccurred2,
+                    @Nullable final Integer state2) {
+                assert end.compareTo(whenOccurred1) < 0;
+                assert whenOccurred1.compareTo(whenOccurred2) < 0;
+                assert !Objects.equals(state0, state1);
+                assert !Objects.equals(state1, state2);
+
+                final UUID object = OBJECT_A;
+                final Duration start = end;
+                final Event<Integer> expectedPreviousEvent1 = null;
+                final Event<Integer> event1 = new Event<Integer>(new TimestampedId(signalId1, whenOccurred1), object,
+                        state1, Set.of());
+                final Event<Integer> expectedPreviousEvent2 = event1;
+                final Event<Integer> event2 = new Event<Integer>(new TimestampedId(signalId2, whenOccurred2), object,
+                        state2, Set.of());
+
+                final ObjectHistory<Integer> history = new ObjectHistory<Integer>(object, start, state0);
+                history.compareAndAddEvent(expectedPreviousEvent1, event1);
+
+                final var result = compareAndAddEvent(history, expectedPreviousEvent2, event2);
+
+                final var stateHistory = history.getStateHistory();
+                final var signalsReceived = history.getSignalsReceived();
+                assertAll("result", () -> assertThat("indicates success", result, notNullValue()),
+                        () -> assertThat("no events invalidated", result, empty()));
+                assertAll("stateHistory", () -> assertThat("at start (unchanged)", stateHistory.get(start), is(state0)),
+                        () -> assertThat("at whenOccurred1 (unchanged)", stateHistory.get(whenOccurred1), is(state1)),
+                        () -> assertThat("at whenOccurred2", stateHistory.get(whenOccurred2), is(state2)),
+                        () -> assertThat("transitionTimes", stateHistory.getTransitionTimes(),
+                                allOf(hasItem(whenOccurred1), hasItem(whenOccurred2))));
+                assertThat("signalsReceived", signalsReceived, allOf(hasItem(signalId1), hasItem(signalId2)));
             }
 
         }// class
@@ -831,6 +892,7 @@ public class ObjectHistoryTest {
         final var events = history.getEvents();
         final var end = history.getEnd();
         final var object = history.getObject();
+        final var signalsReceived = history.getSignalsReceived();
         final var start = history.getStart();
         final var stateHistory = history.getStateHistory();
         final var stateTransitions = history.getStateTransitions();
@@ -838,6 +900,7 @@ public class ObjectHistoryTest {
         assertAll("Not null", () -> assertNotNull(events, "events"), // guard
                 () -> assertNotNull(object, "object"), () -> assertNotNull(start, "start"), // guard
                 () -> assertNotNull(end, "end"), // guard
+                () -> assertNotNull(signalsReceived, "signalsReceived"), // guard
                 () -> assertNotNull(stateHistory, "stateHistory"), // guard
                 () -> assertNotNull(stateTransitions, "stateTransitions") // guard
         );
@@ -905,8 +968,8 @@ public class ObjectHistoryTest {
         if (result == null) {
             assertThat("events unchanged", events, is(events0));
         } else {
-            assertThat("events contains event", events, contains(event));
-            assertThat("events contains no events after event", events.tailSet(event), iterableWithSize(1));
+            assertThat("events has event", events, hasItem(event));
+            assertThat("events has no events after event", events.tailSet(event), iterableWithSize(1));
             assertAll("Invalidated events",
                     createAssertPostconditionsOfInvalidatedEvents(result, event, history.getObject(), events0));
         }

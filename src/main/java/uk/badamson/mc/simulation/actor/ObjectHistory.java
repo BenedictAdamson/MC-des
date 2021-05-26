@@ -18,10 +18,13 @@ package uk.badamson.mc.simulation.actor;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import static java.util.stream.Collectors.toUnmodifiableSet;
+
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -515,6 +518,26 @@ public final class ObjectHistory<STATE> {
     @JsonProperty("object")
     public UUID getObject() {
         return object;
+    }
+
+    /**
+     * <p>
+     * The {@linkplain Signal#getId() IDs} of the signals that the
+     * {@linkplain #getObject() simulated object} has received, resulting in
+     * {@linkplain #getEvents() events}.
+     * </p>
+     * <ul>
+     * <li>The set of signals received is the collection of the
+     * {@linkplain Event#getCausingSignal() causing signals} of the
+     * {@linkplain #getEvents() events}.</li>
+     * <li>The returned set may be unmodifiable.</li>
+     * </ul>
+     */
+    @Nonnull
+    public Set<UUID> getSignalsReceived() {
+        synchronized (lock) {// hard to test
+            return events.stream().map(event -> event.getCausingSignal()).collect(toUnmodifiableSet());
+        }
     }
 
     /**
