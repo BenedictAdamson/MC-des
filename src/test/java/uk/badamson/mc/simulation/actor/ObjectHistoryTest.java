@@ -1083,6 +1083,7 @@ public class ObjectHistoryTest {
 
         final var events = history.getEvents();
         final var end = history.getEnd();
+        final var incomingSignals = history.getIncomingSignals();
         final var object = history.getObject();
         final var receivedSignals = history.getReceivedSignals();
         final var start = history.getStart();
@@ -1092,6 +1093,7 @@ public class ObjectHistoryTest {
         assertAll("Not null", () -> assertNotNull(events, "events"), // guard
                 () -> assertNotNull(object, "object"), () -> assertNotNull(start, "start"), // guard
                 () -> assertNotNull(end, "end"), // guard
+                () -> assertNotNull(incomingSignals, "incomingSignals"), // guard
                 () -> assertNotNull(receivedSignals, "signalsReceived"), // guard
                 () -> assertNotNull(stateHistory, "stateHistory"), // guard
                 () -> assertNotNull(stateTransitions, "stateTransitions") // guard
@@ -1099,6 +1101,7 @@ public class ObjectHistoryTest {
         ValueHistoryTest.assertInvariants(stateHistory);
 
         assertAll(() -> assertAll("events", createEventsAssertions(events, object, start, stateHistory)),
+                () -> assertAll("incomingSignals", createIncomingSignalsAssertions(incomingSignals, object)),
                 () -> assertThat("The end time is at or after the start time.", end, greaterThanOrEqualTo(start)),
                 () -> assertAll("stateHistory", () -> assertSame(start, stateHistory.getFirstTansitionTime(),
                         "The first transition time of the state history is the same as the start time of this history."),
@@ -1232,6 +1235,18 @@ public class ObjectHistoryTest {
                         () -> assertThat("event.whenOccurred", whenOccurred, greaterThan(start)),
                         () -> assertThat("stateHistory at event.whenOccurred", stateHistory.get(whenOccurred),
                                 is(event.getState())));
+            }
+        });
+    }
+
+    private static <STATE> Stream<Executable> createIncomingSignalsAssertions(
+            @Nonnull final Set<Signal<STATE>> incomingSignals, @Nonnull final UUID object) {
+        return incomingSignals.stream().map(signal -> new Executable() {
+
+            @Override
+            public void execute() throws AssertionError {
+                SignalTest.assertInvariants(signal);
+                assertThat("signal.receiver", signal.getReceiver(), is(object));
             }
         });
     }

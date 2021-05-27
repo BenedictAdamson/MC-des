@@ -225,6 +225,10 @@ public final class ObjectHistory<STATE> {
     @GuardedBy("lock")
     private final SortedSet<Event<STATE>> events = new TreeSet<>();
 
+    @Nonnull
+    @GuardedBy("lock")
+    private final Set<Signal<STATE>> incomingSignals = new TreeSet<>();
+
     private final Sinks.Many<TimestampedState<STATE>> timestampedStates = Sinks.many().replay().latest();
 
     /**
@@ -505,6 +509,34 @@ public final class ObjectHistory<STATE> {
         synchronized (lock) {// hard to test
             return new TreeSet<>(events);
         }
+    }
+
+    /**
+     * <p>
+     * Get a snapshot of the signals that are known to have been
+     * {@linkplain Signal#getReceiver() sent to} the {@linkplain #getObject()
+     * simulated object}.
+     * </p>
+     * <p>
+     * This set of signals includes signals that have not yet had their effect
+     * incorporated in the {@linkplain #getStateHistory() state history} through
+     * {@linkplain #getEvents() events}; it can include signals in addition to the
+     * {@linkplain #getReceivedSignals() received signals}.
+     * </p>
+     * <ul>
+     * <li>The set of incoming signals does not have a null element.</li>
+     * <li>The returned set is a snapshot; it will not incorporate subsequent
+     * changes.</li>
+     * <li>The returned set may be unmodifiable.</li>
+     * <li>All incoming signals have the {@linkplain #getObject() object}
+     * {@linkplain UUID#equals(Object) as their} {@linkplain Signal#getReceiver()
+     * receiver}.</li>
+     * </ul>
+     */
+    @Nonnull
+    public Set<Signal<STATE>> getIncomingSignals() {
+        // TODO thread-safety
+        return Set.copyOf(incomingSignals);
     }
 
     /**
