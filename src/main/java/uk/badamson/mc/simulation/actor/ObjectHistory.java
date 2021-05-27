@@ -361,6 +361,9 @@ public final class ObjectHistory<STATE> {
      * events.
      * </p>
      * <ul>
+     * <li>If the given {@code signal} is not {@linkplain Set#contains(Object) one
+     * of} the {@linkplain #getIncomingSignals() incoming signals},the method has no
+     * effect, and returns null to indicate failure.</li>
      * <li>If the {@linkplain Event#getWhenOccurred() time of occurrence} of
      * {@code event} is not {@linkplain Duration#compareTo(Duration) after} the
      * {@linkplain #getEnd() end} of the reliable state period,the method has no
@@ -441,6 +444,9 @@ public final class ObjectHistory<STATE> {
             if (event.getWhenOccurred().compareTo(end) <= 0) {
                 return null;// failure: too early
             }
+            if (!incomingSignals.contains(signal)) {
+                return null;// failure: unrecognized signal
+            }
             final var previousEvents = events.headSet(event);
             final boolean expectationMet = expectedPreviousEvent == null ? previousEvents.isEmpty()
                     : !previousEvents.isEmpty() && expectedPreviousEvent.equals(previousEvents.last());
@@ -451,7 +457,7 @@ public final class ObjectHistory<STATE> {
                     return addEvent(event);
                 }
             } else {
-                return null;// failure
+                return null;// failure: wrong predecessor
             }
         } // synchronized
     }

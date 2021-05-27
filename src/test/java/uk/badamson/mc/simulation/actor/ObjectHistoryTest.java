@@ -230,8 +230,7 @@ public class ObjectHistoryTest {
                 final var sender = OBJECT_B;
                 final var signalId = SIGNAL_ID_B;
                 final var state0 = Integer.valueOf(0);
-                final ObjectHistory<Integer> history = new ObjectHistory<Integer>(receiver, WHEN_A, state0);
-                final Duration end = history.getEnd();
+                final Duration end = WHEN_A;
                 final Duration whenPreviousOccurred = end.plusDays(1);
                 final Event<Integer> expectedPreviousEvent = new Event<Integer>(
                         new TimestampedId(SIGNAL_ID_A, whenPreviousOccurred), receiver, Integer.valueOf(1), Set.of());
@@ -241,6 +240,9 @@ public class ObjectHistoryTest {
                         receiver);
                 final Event<Integer> event = new Event<Integer>(new TimestampedId(signalId, whenOccurred), receiver,
                         Integer.valueOf(2), Set.of());
+
+                final ObjectHistory<Integer> history = new ObjectHistory<Integer>(receiver, end, state0);
+                history.addIncomingSignal(signal);// tough test
 
                 final var result = compareAndAddEvent(history, expectedPreviousEvent, event, signal);
 
@@ -252,8 +254,7 @@ public class ObjectHistoryTest {
                 final var receiver = OBJECT_A;
                 final var sender = OBJECT_B;
                 final var signalId = SIGNAL_ID_A;
-                final ObjectHistory<Integer> history = new ObjectHistory<Integer>(receiver, WHEN_A, Integer.valueOf(0));
-                final Duration end = history.getEnd();
+                final Duration end = WHEN_A;
                 final Event<Integer> expectedPreviousEvent = null;// tough test
                 final Duration whenOccurred = end;// tough test
                 final Duration whenSent = whenOccurred.minusSeconds(1);
@@ -261,6 +262,31 @@ public class ObjectHistoryTest {
                         Integer.valueOf(1), Set.of());
                 final Signal<Integer> signal = new SignalTest.TestSignal(signalId, new TimestampedId(sender, whenSent),
                         receiver);
+                final ObjectHistory<Integer> history = new ObjectHistory<Integer>(receiver, end, Integer.valueOf(0));
+                history.addIncomingSignal(signal);// tough test
+
+                final var result = compareAndAddEvent(history, expectedPreviousEvent, event, signal);
+
+                assertThat("result indicates failure", result, nullValue());
+            }
+
+            @Test
+            public void unknownSignal() {
+                final var receiver = OBJECT_A;
+                final var sender = OBJECT_B;
+                final var signalId = SIGNAL_ID_A;
+                final Duration end = WHEN_A;
+                final Event<Integer> expectedPreviousEvent = null;// tough test
+                final Duration whenOccurred = end.plusSeconds(2);
+                final Duration whenSent = whenOccurred.minusSeconds(1);
+                final Event<Integer> event = new Event<Integer>(new TimestampedId(signalId, whenOccurred), OBJECT_A,
+                        Integer.valueOf(1), Set.of());
+                final Signal<Integer> signal = new SignalTest.TestSignal(signalId, new TimestampedId(sender, whenSent),
+                        receiver);
+
+                final ObjectHistory<Integer> history = new ObjectHistory<Integer>(receiver, end, Integer.valueOf(0));
+                assert !history.getIncomingSignals().contains(signal);// critical
+                assert end.compareTo(whenOccurred) < 0;// tough test
 
                 final var result = compareAndAddEvent(history, expectedPreviousEvent, event, signal);
 
@@ -302,13 +328,15 @@ public class ObjectHistoryTest {
                 final var expectedTimestampedState = new ObjectHistory.TimestampedState<>(whenOccurred,
                         ValueHistory.END_OF_TIME, false, state);
                 final Duration start = end;
-                final ObjectHistory<Integer> history = new ObjectHistory<Integer>(receiver, start, state0);
                 final Event<Integer> expectedPreviousEvent = null;
                 final Duration whenSent = whenOccurred.minusSeconds(1);
                 final Signal<Integer> signal = new SignalTest.TestSignal(signalId, new TimestampedId(sender, whenSent),
                         receiver);
                 final Event<Integer> event = new Event<Integer>(new TimestampedId(signalId, whenOccurred), receiver,
                         state, Set.of());
+
+                final ObjectHistory<Integer> history = new ObjectHistory<Integer>(receiver, start, state0);
+                history.addIncomingSignal(signal);
                 final var timestampedStatesVerifier = StepVerifier.create(history.observeTimestampedStates());
 
                 final var result = compareAndAddEvent(history, expectedPreviousEvent, event, signal);
@@ -377,7 +405,9 @@ public class ObjectHistoryTest {
                         new TimestampedId(sender, whenSent2), receiver);
                 final Event<Integer> event2 = new Event<Integer>(new TimestampedId(signalId2, whenOccurred2), receiver,
                         state2, Set.of());
+                history.addIncomingSignal(signal2);
                 history.compareAndAddEvent(expectedPreviousEvent, event2, signal2);
+                history.addIncomingSignal(signal1);
 
                 final var result = compareAndAddEvent(history, expectedPreviousEvent, event1, signal1);
 
@@ -440,7 +470,9 @@ public class ObjectHistoryTest {
                         state2, Set.of());
 
                 final ObjectHistory<Integer> history = new ObjectHistory<Integer>(receiver, start, state0);
+                history.addIncomingSignal(signal1);
                 history.compareAndAddEvent(expectedPreviousEvent1, event1, signal1);
+                history.addIncomingSignal(signal2);
 
                 final var result = compareAndAddEvent(history, expectedPreviousEvent2, event2, signal2);
 
@@ -491,6 +523,7 @@ public class ObjectHistoryTest {
                         final Event<Integer> event = new Event<Integer>(new TimestampedId(signalId, whenOccurred),
                                 receiver, state, Set.of());
 
+                        history.addIncomingSignal(signal);
                         history.compareAndAddEvent(expectedPreviousEvent, event, signal);
                     } // for
                 }));
@@ -863,12 +896,14 @@ public class ObjectHistoryTest {
                 final Duration whenOccurred = end.plusSeconds(1);
                 final Integer state0 = Integer.valueOf(0);
                 final Integer state = Integer.valueOf(1);
-                final ObjectHistory<Integer> history = new ObjectHistory<Integer>(receiver, start, state0);
                 final Duration whenSent = whenOccurred.minusSeconds(1);
                 final Signal<Integer> signal = new SignalTest.TestSignal(presentSignal,
                         new TimestampedId(sender, whenSent), receiver);
                 final Event<Integer> event = new Event<Integer>(new TimestampedId(presentSignal, whenOccurred),
                         receiver, state, Set.of());
+
+                final ObjectHistory<Integer> history = new ObjectHistory<Integer>(receiver, start, state0);
+                history.addIncomingSignal(signal);
                 history.compareAndAddEvent(null, event, signal);
                 final var receivedSignals0 = history.getReceivedSignals();
                 final var events0 = history.getEvents();
@@ -934,11 +969,13 @@ public class ObjectHistoryTest {
                 final Duration whenOccurred = whenSent.plusSeconds(1);
                 final Integer state0 = Integer.valueOf(0);
                 final Integer state = Integer.valueOf(1);
-                final ObjectHistory<Integer> history = new ObjectHistory<Integer>(receiver, start, state0);
                 final Signal<Integer> signal = new SignalTest.TestSignal(signalId, new TimestampedId(sender, whenSent),
                         receiver);
                 final Event<Integer> event = new Event<Integer>(new TimestampedId(signalId, whenOccurred), receiver,
                         state, Set.of());
+
+                final ObjectHistory<Integer> history = new ObjectHistory<Integer>(receiver, start, state0);
+                history.addIncomingSignal(signal);
                 history.compareAndAddEvent(null, event, signal);
 
                 final var result = removeReceivedSignals(history, Set.of(signalId));
@@ -991,7 +1028,9 @@ public class ObjectHistoryTest {
                         new TimestampedId(sender, whenSent2), receiver);
                 final Event<Integer> event2 = new Event<Integer>(new TimestampedId(signalId2, whenOccurred2), receiver,
                         state2, Set.of());
+                history.addIncomingSignal(signal1);
                 history.compareAndAddEvent(null, event1, signal1);
+                history.addIncomingSignal(signal2);
                 history.compareAndAddEvent(event1, event2, signal2);
                 final var signals = Set.of(signalId1);
                 assert !signals.contains(signalId2);
@@ -1035,6 +1074,7 @@ public class ObjectHistoryTest {
                                 new TimestampedId(sender, whenSent), receiver);
                         final Event<Integer> event = new Event<Integer>(new TimestampedId(signalId, whenOccurred),
                                 receiver, state, Set.of());
+                        history.addIncomingSignal(signal);
                         history.compareAndAddEvent(expectedPreviousEvent, event, signal);
                         Thread.yield();
                         history.removeReceivedSignals(Set.of(signalId));
