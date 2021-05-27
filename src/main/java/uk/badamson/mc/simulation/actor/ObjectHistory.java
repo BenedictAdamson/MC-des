@@ -230,6 +230,10 @@ public final class ObjectHistory<STATE> {
     @GuardedBy("lock")
     private final Set<Signal<STATE>> incomingSignals = new HashSet<>();
 
+    @Nonnull
+    @GuardedBy("lock")
+    private final Set<Signal<STATE>> receivedSignals = new HashSet<>();
+
     private final Sinks.Many<TimestampedState<STATE>> timestampedStates = Sinks.many().replay().latest();
 
     /**
@@ -281,23 +285,32 @@ public final class ObjectHistory<STATE> {
 
     @GuardedBy("lock")
     @Nonnull
-    private SortedSet<Event<STATE>> addEvent(@Nonnull final Event<STATE> event) {
+    private SortedSet<Event<STATE>> addEvent(@Nonnull final Event<STATE> event, @Nonnull final Signal<STATE> signal) {
         final var after = events.tailSet(event);
         final var mustInvalidate = !after.isEmpty();
         // Reduce garbage for the !mustInvalidate case
-        final SortedSet<Event<STATE>> invalidated = mustInvalidate ? new TreeSet<>(after)
+        final SortedSet<Event<STATE>> invalidatedEvents = mustInvalidate ? new TreeSet<>(after)
                 : Collections.emptySortedSet();
         if (mustInvalidate) {
-            events.removeAll(invalidated);
+            final Set<UUID> invalidatedSignalIds = invalidatedEvents.stream().map(e -> e.getCausingSignal())
+                    .collect(toUnmodifiableSet());
+            final Set<Signal<STATE>> invalidatedSignals = receivedSignals.stream()
+                    .filter(s -> invalidatedSignalIds.contains(s.getId())).collect(toUnmodifiableSet());
+
+            events.removeAll(invalidatedEvents);
+            receivedSignals.removeAll(invalidatedSignals);
         }
+
         final var state = event.getState();
         stateHistory.setValueFrom(event.getWhenOccurred(), state);
         events.add(event);
+        receivedSignals.add(signal);
+
         final var status = timestampedStates.tryEmitNext(
                 new TimestampedState<STATE>(event.getWhenOccurred(), ValueHistory.END_OF_TIME, false, state));
         assert status == EmitResult.OK;// sink is reliable
 
-        return invalidated;
+        return invalidatedEvents;
     }
 
     /**
@@ -379,9 +392,10 @@ public final class ObjectHistory<STATE> {
      * empty} set.</li>
      * <li>If the actual previous event is equivalent or equivalently null to the
      * {@code expectedPreviousEvent}, and the given {@code event} is not already
-     * present in the collection of events, the method has removes the invalidated
-     * events, adds the {@code event} to the collection of events and returns the
-     * set of invalidated events.</li>
+     * present in the collection of events, the method removes the invalidated
+     * events, adds the {@code event} to the collection of events, adds the
+     * {@code signal} to the collection of {@linkplain #getReceivedSignals()
+     * received signals}, and returns the set of invalidated events.</li>
      * </ul>
      * <p>
      * If the method returns a (non null) set of invalidated events
@@ -454,7 +468,7 @@ public final class ObjectHistory<STATE> {
                 if (events.contains(event)) {// no-op
                     return Collections.emptySortedSet();
                 } else {
-                    return addEvent(event);
+                    return addEvent(event, signal);
                 }
             } else {
                 return null;// failure: wrong predecessor
@@ -595,21 +609,20 @@ public final class ObjectHistory<STATE> {
 
     /**
      * <p>
-     * The {@linkplain Signal#getId() IDs} of the signals that the
-     * {@linkplain #getObject() simulated object} has received, resulting in
-     * {@linkplain #getEvents() events}.
+     * The signals that the {@linkplain #getObject() simulated object} has received,
+     * resulting in {@linkplain #getEvents() events}.
      * </p>
      * <ul>
-     * <li>The set of signals received is the collection of the
-     * {@linkplain Event#getCausingSignal() causing signals} of the
-     * {@linkplain #getEvents() events}.</li>
+     * <li>The set of received signals is a
+     * {@linkplain Set#containsAll(java.util.Collection) sub set} of the
+     * {@linkplain #getIncomingSignals() incoming signals}.</li>
      * <li>The returned set may be unmodifiable.</li>
      * </ul>
      */
     @Nonnull
-    public Set<UUID> getReceivedSignals() {
+    public Set<Signal<STATE>> getReceivedSignals() {
         synchronized (lock) {// hard to test
-            return events.stream().map(event -> event.getCausingSignal()).collect(toUnmodifiableSet());
+            return Set.copyOf(receivedSignals);
         }
     }
 
@@ -855,11 +868,20 @@ public final class ObjectHistory<STATE> {
             final SortedSet<Event<STATE>> removedEvents = events.stream()
                     .filter(event -> signals.contains(event.getCausingSignal()))
                     .collect(toCollection(() -> new TreeSet<>()));
-            if (!removedEvents.isEmpty()) {
-                final var first = removedEvents.first();
-                removedEvents.addAll(events.tailSet(first));
+            final Set<Signal<STATE>> removedSignals;
+            if (removedEvents.isEmpty()) {
+                removedSignals = Collections.emptySet();
+            } else {
+                final var firstRemovedEvent = removedEvents.first();
+                removedEvents.addAll(events.tailSet(firstRemovedEvent));
+                final Set<UUID> removedSignalIds = new HashSet<>(removedEvents.size());
+                removedEvents.forEach(event -> removedSignalIds.add(event.getCausingSignal()));
+                removedSignals = receivedSignals.stream().filter(s -> removedSignalIds.contains(s.getId()))
+                        .collect(toUnmodifiableSet());
             }
             events.removeAll(removedEvents);
+            receivedSignals.removeAll(removedSignals);
+
             return removedEvents;
         } // synchronized
     }

@@ -18,6 +18,7 @@ package uk.badamson.mc.simulation.actor;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import static java.util.stream.Collectors.toUnmodifiableSet;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.empty;
@@ -349,7 +350,7 @@ public class ObjectHistoryTest {
                         () -> assertThat("at whenOccurred", stateHistory.get(whenOccurred), is(state)),
                         () -> assertThat("added transition iff state changed",
                                 stateHistory.getTransitionTimes().contains(whenOccurred) || state0.equals(state)));
-                assertAll("receivedSignals", () -> assertThat(receivedSignals, hasItem(signalId)),
+                assertAll("receivedSignals", () -> assertThat(receivedSignals, hasItem(signal)),
                         () -> assertThat(receivedSignals, hasSize(1)));
 
                 timestampedStatesVerifier.expectNext(expectedTimestampedState).expectTimeout(Duration.ofMillis(100))
@@ -420,7 +421,7 @@ public class ObjectHistoryTest {
                         () -> assertThat("at whenOccurred", stateHistory.get(whenOccurred1), is(state1)),
                         () -> assertThat("added transition iff state changed",
                                 stateHistory.getTransitionTimes().contains(whenOccurred1) || state0.equals(state1)));
-                assertAll("receivedSignals", () -> assertThat(receivedSignals, hasItem(signalId1)),
+                assertAll("receivedSignals", () -> assertThat(receivedSignals, hasItem(signal1)),
                         () -> assertThat(receivedSignals, hasSize(1)));
             }
 
@@ -485,7 +486,7 @@ public class ObjectHistoryTest {
                         () -> assertThat("at whenOccurred2", stateHistory.get(whenOccurred2), is(state2)),
                         () -> assertThat("transitionTimes", stateHistory.getTransitionTimes(),
                                 allOf(hasItem(whenOccurred1), hasItem(whenOccurred2))));
-                assertThat("receivedSignals", receivedSignals, allOf(hasItem(signalId1), hasItem(signalId2)));
+                assertThat("receivedSignals", receivedSignals, allOf(hasItem(signal1), hasItem(signal2)));
             }
 
         }// class
@@ -1446,11 +1447,14 @@ public class ObjectHistoryTest {
 
         assertInvariants(history);
         final var receivedSignals = history.getReceivedSignals();
+        final Set<UUID> receivedSignalIds = receivedSignals.stream().map(signal -> signal.getId())
+                .collect(toUnmodifiableSet());
         final var events = history.getEvents();
         assertThat("removedEvents", removedEvents, notNullValue());// guard
         assertAll(
-                () -> assertThat("The set of signals received does not include any of the given signals.",
-                        Collections.disjoint(receivedSignals, signals)),
+                () -> assertThat(
+                        "The set of signals received does not include signals with any of the given signal IDs.",
+                        Collections.disjoint(receivedSignalIds, signals)),
                 () -> assertThat("The remaining events of this history does not include any of the events in "
                         + "the returned set of removed events.", Collections.disjoint(events, removedEvents)),
                 () -> assertThat(
