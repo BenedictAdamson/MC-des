@@ -23,7 +23,9 @@ import static java.util.stream.Collectors.toUnmodifiableSet;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -226,13 +228,19 @@ public final class ObjectHistory<STATE> {
     @GuardedBy("lock")
     private final SortedSet<Event<STATE>> events = new TreeSet<>();
 
+    /*
+     * Maps signal ID to signal.
+     */
     @Nonnull
     @GuardedBy("lock")
-    private final Set<Signal<STATE>> incomingSignals = new HashSet<>();
+    private final Map<UUID, Signal<STATE>> incomingSignals = new HashMap<>();
 
+    /*
+     * Maps signal ID to signal.
+     */
     @Nonnull
     @GuardedBy("lock")
-    private final Set<Signal<STATE>> receivedSignals = new HashSet<>();
+    private final Map<UUID, Signal<STATE>> receivedSignals = new HashMap<>();
 
     private final Sinks.Many<TimestampedState<STATE>> timestampedStates = Sinks.many().replay().latest();
 
@@ -294,19 +302,19 @@ public final class ObjectHistory<STATE> {
         if (mustInvalidate) {
             final Set<UUID> invalidatedSignalIds = invalidatedEvents.stream().map(e -> e.getCausingSignal())
                     .collect(toUnmodifiableSet());
-            final Set<Signal<STATE>> invalidatedSignals = receivedSignals.stream()
-                    .filter(s -> invalidatedSignalIds.contains(s.getId())).collect(toUnmodifiableSet());
+            final Set<Signal<STATE>> invalidatedSignals = invalidatedSignalIds.stream()
+                    .map(id -> receivedSignals.get(id)).filter(s -> s != null).collect(toUnmodifiableSet());
 
             events.removeAll(invalidatedEvents);
-            receivedSignals.removeAll(invalidatedSignals);
-            incomingSignals.addAll(invalidatedSignals);
+            receivedSignals.keySet().removeAll(invalidatedSignalIds);
+            invalidatedSignals.forEach(s -> incomingSignals.put(s.getId(), s));
         }
 
         final var state = event.getState();
         stateHistory.setValueFrom(event.getWhenOccurred(), state);
         events.add(event);
-        receivedSignals.add(signal);
-        incomingSignals.remove(signal);
+        receivedSignals.put(signal.getId(), signal);
+        incomingSignals.remove(signal.getId());
 
         final var status = timestampedStates.tryEmitNext(
                 new TimestampedState<STATE>(event.getWhenOccurred(), ValueHistory.END_OF_TIME, false, state));
@@ -334,7 +342,7 @@ public final class ObjectHistory<STATE> {
             throw new IllegalArgumentException("signal.receiver not equal to this.object");
         }
         synchronized (lock) {
-            incomingSignals.add(signal);
+            incomingSignals.put(signal.getId(), signal);
         }
     }
 
@@ -470,7 +478,7 @@ public final class ObjectHistory<STATE> {
             if (event.getWhenOccurred().compareTo(end) <= 0) {
                 return null;// failure: too early
             }
-            if (!incomingSignals.contains(signal)) {
+            if (!incomingSignals.containsKey(signal.getId())) {
                 return null;// failure: unrecognized signal
             }
             final var previousEvents = events.headSet(event);
@@ -601,7 +609,7 @@ public final class ObjectHistory<STATE> {
     @Nonnull
     public Set<Signal<STATE>> getIncomingSignals() {
         synchronized (lock) {
-            return Set.copyOf(incomingSignals);
+            return Set.copyOf(incomingSignals.values());
         }
     }
 
@@ -635,7 +643,7 @@ public final class ObjectHistory<STATE> {
     @Nonnull
     public Set<Signal<STATE>> getReceivedSignals() {
         synchronized (lock) {// hard to test
-            return Set.copyOf(receivedSignals);
+            return Set.copyOf(receivedSignals.values());
         }
     }
 
@@ -884,20 +892,23 @@ public final class ObjectHistory<STATE> {
             final SortedSet<Event<STATE>> removedEvents = events.stream()
                     .filter(event -> signals.contains(event.getCausingSignal()))
                     .collect(toCollection(() -> new TreeSet<>()));
+            final Set<UUID> removedSignalIds;
             final Set<Signal<STATE>> removedSignals;
             if (removedEvents.isEmpty()) {
+                removedSignalIds = Collections.emptySet();
                 removedSignals = Collections.emptySet();
             } else {
                 final var firstRemovedEvent = removedEvents.first();
                 removedEvents.addAll(events.tailSet(firstRemovedEvent));
-                final Set<UUID> removedSignalIds = new HashSet<>(removedEvents.size());
+                removedSignalIds = new HashSet<>(removedEvents.size());
                 removedEvents.forEach(event -> removedSignalIds.add(event.getCausingSignal()));
-                removedSignals = receivedSignals.stream().filter(s -> removedSignalIds.contains(s.getId()))
-                        .collect(toUnmodifiableSet());
+                removedSignals = removedSignalIds.stream().map(id -> receivedSignals.get(id))
+                        .filter(signal -> signal != null).collect(toUnmodifiableSet());
             }
+
             events.removeAll(removedEvents);
-            receivedSignals.removeAll(removedSignals);
-            incomingSignals.addAll(removedSignals);
+            receivedSignals.keySet().removeAll(removedSignalIds);
+            removedSignals.forEach(signal -> incomingSignals.put(signal.getId(), signal));
 
             return removedEvents;
         } // synchronized
