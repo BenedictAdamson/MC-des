@@ -82,6 +82,37 @@ import uk.badamson.mc.simulation.actor.ObjectHistory.TimestampedState;
 public class ObjectHistoryTest {
 
     @Nested
+    public class AddIncomingSignal {
+
+        @Nested
+        public class One {
+
+            @Test
+            public void a() {
+                test(OBJECT_A, OBJECT_B, WHEN_A, WHEN_B, SIGNAL_ID_A);
+            }
+
+            @Test
+            public void b() {
+                test(OBJECT_B, OBJECT_A, WHEN_B, WHEN_C, SIGNAL_ID_B);
+            }
+
+            private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver, @Nonnull final Duration start,
+                    @Nonnull final Duration whenSent, @Nonnull final UUID signalId) {
+                final var state = Integer.valueOf(0);
+                final var history = new ObjectHistory<>(receiver, start, state);
+                final var sentFrom = new TimestampedId(sender, whenSent);
+                final var signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
+
+                addIncomingSignal(history, signal);
+
+                assertThat("incomingSignals", history.getIncomingSignals(), is(Set.of(signal)));
+            }
+        }// class
+
+    }// class
+
+    @Nested
     public class CommitTo {
 
         @Test
@@ -1077,6 +1108,14 @@ public class ObjectHistoryTest {
     static final UUID SIGNAL_ID_B = UUID.randomUUID();
     static final TimestampedId LAST_SIGNAL_APPLIED_A = new TimestampedId(SIGNAL_ID_A, WHEN_A);
     static final TimestampedId LAST_SIGNAL_APPLIED_B = new TimestampedId(SIGNAL_ID_B, WHEN_B);
+
+    private static <STATE> void addIncomingSignal(@Nonnull final ObjectHistory<STATE> history,
+            @Nonnull final Signal<STATE> signal) {
+        history.addIncomingSignal(signal);
+
+        assertInvariants(history);
+        assertThat("incomingSignals", history.getIncomingSignals(), hasItem(signal));
+    }
 
     public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history) {
         ObjectTest.assertInvariants(history);// inherited

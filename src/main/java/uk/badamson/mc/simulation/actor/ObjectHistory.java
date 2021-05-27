@@ -23,6 +23,7 @@ import static java.util.stream.Collectors.toUnmodifiableSet;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -227,7 +228,7 @@ public final class ObjectHistory<STATE> {
 
     @Nonnull
     @GuardedBy("lock")
-    private final Set<Signal<STATE>> incomingSignals = new TreeSet<>();
+    private final Set<Signal<STATE>> incomingSignals = new HashSet<>();
 
     private final Sinks.Many<TimestampedState<STATE>> timestampedStates = Sinks.many().replay().latest();
 
@@ -297,6 +298,28 @@ public final class ObjectHistory<STATE> {
         assert status == EmitResult.OK;// sink is reliable
 
         return invalidated;
+    }
+
+    /**
+     * <p>
+     * Add a signal to the {@linkplain #getIncomingSignals() set of incoming
+     * signals}.
+     * </p>
+     *
+     * @throws NullPointerException
+     *             If {@code signal} is null.
+     * @throws IllegalArgumentException
+     *             If the {@linkplain Signal#getReceiver() receiver} of
+     *             {@code signal} is not {@linkplain UUID#equals(Object) equivalent
+     *             to} the {@linkplain #getObject() object} of this history.
+     */
+    public void addIncomingSignal(@Nonnull final Signal<STATE> signal) {
+        Objects.requireNonNull(signal, "signal");
+        if (!object.equals(signal.getReceiver())) {
+            throw new IllegalArgumentException("signal.receiver not equal to this.object");
+        }
+        // TODO thread-safety
+        incomingSignals.add(signal);
     }
 
     /**
