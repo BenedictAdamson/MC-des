@@ -299,12 +299,14 @@ public final class ObjectHistory<STATE> {
 
             events.removeAll(invalidatedEvents);
             receivedSignals.removeAll(invalidatedSignals);
+            incomingSignals.addAll(invalidatedSignals);
         }
 
         final var state = event.getState();
         stateHistory.setValueFrom(event.getWhenOccurred(), state);
         events.add(event);
         receivedSignals.add(signal);
+        incomingSignals.remove(signal);
 
         final var status = timestampedStates.tryEmitNext(
                 new TimestampedState<STATE>(event.getWhenOccurred(), ValueHistory.END_OF_TIME, false, state));
@@ -392,10 +394,20 @@ public final class ObjectHistory<STATE> {
      * empty} set.</li>
      * <li>If the actual previous event is equivalent or equivalently null to the
      * {@code expectedPreviousEvent}, and the given {@code event} is not already
-     * present in the collection of events, the method removes the invalidated
-     * events, adds the {@code event} to the collection of events, adds the
-     * {@code signal} to the collection of {@linkplain #getReceivedSignals()
-     * received signals}, and returns the set of invalidated events.</li>
+     * present in the collection of events, the addition is possible. It
+     * <ul>
+     * <li>removes the invalidated events</li>
+     * <li>adds the {@code event} to the collection of events</li>
+     * <li>adds the {@code signal} to the collection of
+     * {@linkplain #getReceivedSignals() received signals}</li>
+     * <li>removes the {@code signal} from the collection of received signals</li>
+     * <li>removes the (received) signals that caused any invalidated events from
+     * the set of received signals</li>
+     * <li>adds the (received) signals that caused any invalidated events to the set
+     * of incoming signals</li>
+     * <li>returns the set of invalidated events.</li>
+     * </ul>
+     * </li>
      * </ul>
      * <p>
      * If the method returns a (non null) set of invalidated events
@@ -613,9 +625,10 @@ public final class ObjectHistory<STATE> {
      * resulting in {@linkplain #getEvents() events}.
      * </p>
      * <ul>
-     * <li>The set of received signals is a
-     * {@linkplain Set#containsAll(java.util.Collection) sub set} of the
-     * {@linkplain #getIncomingSignals() incoming signals}.</li>
+     * <li>The set of received signals is
+     * {@linkplain Collections#disjoint(java.util.Collection, java.util.Collection)
+     * disjoint} from the {@linkplain #getIncomingSignals() set of incoming
+     * signals}.</li>
      * <li>The returned set may be unmodifiable.</li>
      * </ul>
      */
@@ -825,7 +838,7 @@ public final class ObjectHistory<STATE> {
     /**
      * <p>
      * Remove a collection of signals from the {@linkplain #getReceivedSignals() set
-     * of signals received}.
+     * of received signals}.
      * </p>
      * <p>
      * Removing received signals requires removing the effect of the events that
@@ -837,7 +850,7 @@ public final class ObjectHistory<STATE> {
      * Post conditions:
      * </p>
      * <ul>
-     * <li>The {@linkplain #getReceivedSignals() set of signals received} does not
+     * <li>The {@linkplain #getReceivedSignals() set of received signals} does not
      * include any of the given {@code signals}.</li>
      * <li>The remaining {@linkplain #getEvents() events} of this history does not
      * include any of the events in the returned set of removed events.</li>
@@ -850,10 +863,13 @@ public final class ObjectHistory<STATE> {
      * given signals. Therefore, either the returned set of removed events is empty,
      * or the first element of the set was {@linkplain Event#getCausingSignal()
      * caused by} one of the given {@code signals}.</li>
+     * <li>Any signals removed from the {@linkplain #getReceivedSignals() set of
+     * received signals} are added to the {@linkplain #getIncomingSignals() set of
+     * incoming signals}.</li>
      * </ul>
      *
      * @param signals
-     *            The signals to remove.
+     *            The {@linkplain Signal#getId() IDs} of the signals to remove.
      * @return events that were removed.
      * @throws NullPointerException
      *             <ul>
@@ -881,6 +897,7 @@ public final class ObjectHistory<STATE> {
             }
             events.removeAll(removedEvents);
             receivedSignals.removeAll(removedSignals);
+            incomingSignals.addAll(removedSignals);
 
             return removedEvents;
         } // synchronized

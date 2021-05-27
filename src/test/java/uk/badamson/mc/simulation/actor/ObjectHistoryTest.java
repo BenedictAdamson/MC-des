@@ -344,6 +344,7 @@ public class ObjectHistoryTest {
 
                 final var stateHistory = history.getStateHistory();
                 final var receivedSignals = history.getReceivedSignals();
+                final var incomingSignals = history.getIncomingSignals();
                 assertAll("result", () -> assertThat("indicates success", result, notNullValue()),
                         () -> assertThat("no events invalidated", result, empty()));
                 assertAll("stateHistory", () -> assertThat("at start (unchanged)", stateHistory.get(start), is(state0)),
@@ -352,6 +353,7 @@ public class ObjectHistoryTest {
                                 stateHistory.getTransitionTimes().contains(whenOccurred) || state0.equals(state)));
                 assertAll("receivedSignals", () -> assertThat(receivedSignals, hasItem(signal)),
                         () -> assertThat(receivedSignals, hasSize(1)));
+                assertThat("incomingSignals", incomingSignals, empty());
 
                 timestampedStatesVerifier.expectNext(expectedTimestampedState).expectTimeout(Duration.ofMillis(100))
                         .verify();
@@ -414,6 +416,7 @@ public class ObjectHistoryTest {
 
                 final var stateHistory = history.getStateHistory();
                 final var receivedSignals = history.getReceivedSignals();
+                final var incomingSignals = history.getIncomingSignals();
                 assertAll("result", () -> assertThat("indicates success", result, notNullValue()),
                         () -> assertThat("invalidated event", result, hasItem(event2)),
                         () -> assertThat("number invalidated", result, hasSize(1)));
@@ -423,6 +426,8 @@ public class ObjectHistoryTest {
                                 stateHistory.getTransitionTimes().contains(whenOccurred1) || state0.equals(state1)));
                 assertAll("receivedSignals", () -> assertThat(receivedSignals, hasItem(signal1)),
                         () -> assertThat(receivedSignals, hasSize(1)));
+                assertAll("incomingSignals", () -> assertThat(incomingSignals, hasItem(signal2)),
+                        () -> assertThat(incomingSignals, hasSize(1)));
             }
 
         }// class
@@ -479,6 +484,7 @@ public class ObjectHistoryTest {
 
                 final var stateHistory = history.getStateHistory();
                 final var receivedSignals = history.getReceivedSignals();
+                final var incomingSignals = history.getIncomingSignals();
                 assertAll("result", () -> assertThat("indicates success", result, notNullValue()),
                         () -> assertThat("no events invalidated", result, empty()));
                 assertAll("stateHistory", () -> assertThat("at start (unchanged)", stateHistory.get(start), is(state0)),
@@ -487,6 +493,7 @@ public class ObjectHistoryTest {
                         () -> assertThat("transitionTimes", stateHistory.getTransitionTimes(),
                                 allOf(hasItem(whenOccurred1), hasItem(whenOccurred2))));
                 assertThat("receivedSignals", receivedSignals, allOf(hasItem(signal1), hasItem(signal2)));
+                assertThat("incomingSignals", incomingSignals, empty());
             }
 
         }// class
@@ -907,6 +914,7 @@ public class ObjectHistoryTest {
                 history.addIncomingSignal(signal);
                 history.compareAndAddEvent(null, event, signal);
                 final var receivedSignals0 = history.getReceivedSignals();
+                final var incomingSignals0 = history.getIncomingSignals();
                 final var events0 = history.getEvents();
                 assert !events0.isEmpty();
 
@@ -914,6 +922,7 @@ public class ObjectHistoryTest {
 
                 assertAll("Unchanged",
                         () -> assertThat("receivedSignals", history.getReceivedSignals(), is(receivedSignals0)),
+                        () -> assertThat("incomingSignals", history.getIncomingSignals(), is(incomingSignals0)),
                         () -> assertThat("events", history.getEvents(), is(events0)));
                 assertThat("removed events", result, empty());
             }
@@ -984,6 +993,7 @@ public class ObjectHistoryTest {
                 assertAll("Removed from", () -> assertThat("receivedSignals", history.getReceivedSignals(), empty()),
                         () -> assertThat("events", history.getEvents(), empty()));
                 assertThat("removed events", result, is(Set.of(event)));
+                assertThat("Added removed signal to incoming signals", history.getIncomingSignals(), hasItem(signal));
             }
 
         }// class
