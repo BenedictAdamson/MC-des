@@ -318,8 +318,9 @@ public final class ObjectHistory<STATE> {
         if (!object.equals(signal.getReceiver())) {
             throw new IllegalArgumentException("signal.receiver not equal to this.object");
         }
-        // TODO thread-safety
-        incomingSignals.add(signal);
+        synchronized (lock) {
+            incomingSignals.add(signal);
+        }
     }
 
     /**
@@ -558,8 +559,9 @@ public final class ObjectHistory<STATE> {
      */
     @Nonnull
     public Set<Signal<STATE>> getIncomingSignals() {
-        // TODO thread-safety
-        return Set.copyOf(incomingSignals);
+        synchronized (lock) {
+            return Set.copyOf(incomingSignals);
+        }
     }
 
     /**
