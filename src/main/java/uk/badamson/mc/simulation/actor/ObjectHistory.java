@@ -389,7 +389,7 @@ public final class ObjectHistory<STATE> {
      *             </ul>
      */
     @Nullable
-    public SortedSet<Event<STATE>> compareAndAddEvent(@Nullable final Event<STATE> expectedPreviousEvent,
+    SortedSet<Event<STATE>> compareAndAddEvent(@Nullable final Event<STATE> expectedPreviousEvent,
             @Nonnull final Event<STATE> event) {
         Objects.requireNonNull(event, "event");
         if (!event.getAffectedObject().equals(getObject())) {
@@ -809,7 +809,7 @@ public final class ObjectHistory<STATE> {
      *             </ul>
      */
     @Nonnull
-    public SortedSet<Event<STATE>> removeReceivedSignals(@Nonnull final Set<UUID> signals) {
+    SortedSet<Event<STATE>> removeReceivedSignals(@Nonnull final Set<UUID> signals) {
         Objects.requireNonNull(signals, "signals");
         synchronized (lock) {
             final SortedSet<Event<STATE>> removedEvents = events.stream()
