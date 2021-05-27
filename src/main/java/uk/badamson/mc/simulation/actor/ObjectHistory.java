@@ -396,10 +396,12 @@ public final class ObjectHistory<STATE> {
      *            expected to be the first event.
      * @param event
      *            The event to add to the history.
+     * @param signal
+     *            The signal that caused the event.
      * @return an indication of failure or information about events that were
      *         removed.
      * @throws NullPointerException
-     *             If the {@code event} is null.
+     *             If a {@link Nonnull} argument is null.
      * @throws IllegalArgumentException
      *             <ul>
      *             <li>If {@code expectedPreviousEvent} is non null and its
@@ -410,14 +412,21 @@ public final class ObjectHistory<STATE> {
      *             the {@linkplain #getObject() object} of this history.</li>
      *             <li>If {@code expectedPreviousEvent} is non null and is not
      *             {@linkplain Event#compareTo(Event) before} {@code event}.</li>
+     *             <li>If the {@linkplain Event#getCausingSignal() ID of the causing
+     *             signal} of {@code event} is not the same as the
+     *             {@linkplain Signal#getId() ID} of {@code signal}.</li>
      *             </ul>
      */
     @Nullable
     SortedSet<Event<STATE>> compareAndAddEvent(@Nullable final Event<STATE> expectedPreviousEvent,
-            @Nonnull final Event<STATE> event) {
+            @Nonnull final Event<STATE> event, @Nonnull final Signal<STATE> signal) {
         Objects.requireNonNull(event, "event");
+        Objects.requireNonNull(signal, "signal");
         if (!event.getAffectedObject().equals(getObject())) {
             throw new IllegalArgumentException("event.object not equals this.object");
+        }
+        if (!event.getCausingSignal().equals(signal.getId())) {
+            throw new IllegalArgumentException("event.causingSignal not equals signal.id");
         }
         if (expectedPreviousEvent != null) {
             if (!expectedPreviousEvent.getAffectedObject().equals(getObject())) {
