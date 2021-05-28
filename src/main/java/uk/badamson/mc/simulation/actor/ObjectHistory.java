@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 
@@ -284,9 +285,12 @@ public final class ObjectHistory<STATE> {
     @GuardedBy("lock")
     private final ModifiableValueHistory<STATE> stateHistory;
 
+    /*
+     * Maps event ID to event.
+     */
     @Nonnull
     @GuardedBy("lock")
-    private final SortedSet<Event<STATE>> events = new TreeSet<>();
+    private final SortedMap<TimestampedId, Event<STATE>> events = new TreeMap<>();
 
     /*
      * Maps signal ID to signal.
@@ -354,25 +358,27 @@ public final class ObjectHistory<STATE> {
     @GuardedBy("lock")
     @Nonnull
     private SortedSet<Event<STATE>> addEvent(@Nonnull final Event<STATE> event, @Nonnull final Signal<STATE> signal) {
-        final var after = events.tailSet(event);
+        final var after = events.tailMap(event.getId());
         final var mustInvalidate = !after.isEmpty();
         // Reduce garbage for the !mustInvalidate case
-        final SortedSet<Event<STATE>> invalidatedEvents = mustInvalidate ? new TreeSet<>(after)
+        final SortedSet<Event<STATE>> invalidatedEvents = mustInvalidate ? new TreeSet<>(after.values())
                 : Collections.emptySortedSet();
         if (mustInvalidate) {
+            final Set<TimestampedId> invalidatedEventIds = invalidatedEvents.stream().map(e -> e.getId())
+                    .collect(toUnmodifiableSet());
             final Set<UUID> invalidatedSignalIds = invalidatedEvents.stream().map(e -> e.getCausingSignal())
                     .collect(toUnmodifiableSet());
             final Set<Signal<STATE>> invalidatedSignals = invalidatedSignalIds.stream()
                     .map(id -> receivedSignals.get(id)).filter(s -> s != null).collect(toUnmodifiableSet());
 
-            events.removeAll(invalidatedEvents);
+            events.keySet().removeAll(invalidatedEventIds);
             receivedSignals.keySet().removeAll(invalidatedSignalIds);
             invalidatedSignals.forEach(s -> incomingSignals.put(s.getId(), s));
         }
 
         final var state = event.getState();
         stateHistory.setValueFrom(event.getWhenOccurred(), state);
-        events.add(event);
+        events.put(event.getId(), event);
         receivedSignals.put(signal.getId(), signal);
         incomingSignals.remove(signal.getId());
 
@@ -534,6 +540,7 @@ public final class ObjectHistory<STATE> {
             }
         }
 
+        final var eventId = event.getId();
         synchronized (lock) {
             if (event.getWhenOccurred().compareTo(end) <= 0) {
                 return null;// failure: too early
@@ -541,11 +548,12 @@ public final class ObjectHistory<STATE> {
             if (!incomingSignals.containsKey(signal.getId())) {
                 return null;// failure: unrecognized signal
             }
-            final var previousEvents = events.headSet(event);
+            final var previousEvents = events.headMap(eventId);
             final boolean expectationMet = expectedPreviousEvent == null ? previousEvents.isEmpty()
-                    : !previousEvents.isEmpty() && expectedPreviousEvent.equals(previousEvents.last());
+                    : !previousEvents.isEmpty()
+                            && expectedPreviousEvent.equals(previousEvents.get(previousEvents.lastKey()));
             if (expectationMet) {
-                if (events.contains(event)) {// no-op
+                if (events.containsKey(eventId)) {// no-op
                     return Collections.emptySortedSet();
                 } else {
                     return addEvent(event, signal);
@@ -613,19 +621,13 @@ public final class ObjectHistory<STATE> {
         if (nextEventId == null) {
             return null;
         } else {
-            // TODO handle case that have previousEvent
             final Duration whenNextSignalReceived = nextEventId.getWhen();
-            Event<STATE> previousEvent = null;
-            for (final var event : events) {
-                if (event.getWhenOccurred().compareTo(whenNextSignalReceived) < 0) {
-                    previousEvent = event;
-                }
-            }
-
-            if (previousEvent == null) {
+            final var previousEvents = events.headMap(nextEventId);
+            if (previousEvents.isEmpty()) {
                 final STATE state = stateHistory.get(whenNextSignalReceived);
                 return new Continuation<>(nextSignal, whenNextSignalReceived, state);
             } else {
+                final Event<STATE> previousEvent = previousEvents.get(previousEvents.lastKey());
                 return new Continuation<>(nextSignal, whenNextSignalReceived, previousEvent);
             }
         }
@@ -706,7 +708,7 @@ public final class ObjectHistory<STATE> {
     @Nonnull
     public SortedSet<Event<STATE>> getEvents() {
         synchronized (lock) {// hard to test
-            return new TreeSet<>(events);
+            return new TreeSet<>(events.values());
         }
     }
 
@@ -1015,24 +1017,27 @@ public final class ObjectHistory<STATE> {
     SortedSet<Event<STATE>> removeReceivedSignals(@Nonnull final Set<UUID> signals) {
         Objects.requireNonNull(signals, "signals");
         synchronized (lock) {
-            final SortedSet<Event<STATE>> removedEvents = events.stream()
+            final Set<TimestampedId> removedEventIds;
+            final SortedSet<Event<STATE>> removedEvents = events.values().stream()
                     .filter(event -> signals.contains(event.getCausingSignal()))
                     .collect(toCollection(() -> new TreeSet<>()));
             final Set<UUID> removedSignalIds;
             final Set<Signal<STATE>> removedSignals;
             if (removedEvents.isEmpty()) {
+                removedEventIds = Collections.emptySet();
                 removedSignalIds = Collections.emptySet();
                 removedSignals = Collections.emptySet();
             } else {
                 final var firstRemovedEvent = removedEvents.first();
-                removedEvents.addAll(events.tailSet(firstRemovedEvent));
+                removedEvents.addAll(events.tailMap(firstRemovedEvent.getId()).values());
+                removedEventIds = removedEvents.stream().map(event -> event.getId()).collect(toUnmodifiableSet());
                 removedSignalIds = new HashSet<>(removedEvents.size());
                 removedEvents.forEach(event -> removedSignalIds.add(event.getCausingSignal()));
                 removedSignals = removedSignalIds.stream().map(id -> receivedSignals.get(id))
                         .filter(signal -> signal != null).collect(toUnmodifiableSet());
             }
 
-            events.removeAll(removedEvents);
+            events.keySet().removeAll(removedEventIds);
             receivedSignals.keySet().removeAll(removedSignalIds);
             removedSignals.forEach(signal -> incomingSignals.put(signal.getId(), signal));
 
