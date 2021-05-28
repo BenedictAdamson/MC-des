@@ -163,8 +163,8 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
      * <p>
      * Note that, as signal IDs should be unique, inclusion of the time-stamp is
      * redundant, but enables the {@linkplain #compareTo(Event) natural ordering} to
-     * be consistent with {@linkplain #equals(Object) equals} while providsing
-     * entity semantics.
+     * be consistent with {@linkplain #equals(Object) equals} while providing entity
+     * semantics.
      * </p>
      */
     @Nonnull
