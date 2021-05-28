@@ -618,6 +618,13 @@ public final class ObjectHistory<STATE> {
             }
         } // for
 
+        return createContinuation(nextEventId, nextSignal);
+    }
+
+    @GuardedBy("lock")
+    @Nullable
+    private Continuation<STATE> createContinuation(@Nullable final TimestampedId nextEventId,
+            @Nullable final Signal<STATE> nextSignal) {
         if (nextEventId == null) {
             return null;
         } else {
