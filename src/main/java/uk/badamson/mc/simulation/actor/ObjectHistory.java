@@ -65,6 +65,65 @@ import uk.badamson.mc.history.ValueHistory;
 @ThreadSafe
 public final class ObjectHistory<STATE> {
 
+    @Immutable
+    static final class Continuation<STATE> {
+        @Nonnull
+        final Signal<STATE> nextSignal;
+        @Nonnull
+        final Duration whenNextSignalReceived;
+        @Nullable
+        final Event<STATE> previousEvent;
+        @Nullable
+        final STATE state;
+
+        Continuation(@Nonnull final Signal<STATE> nextSignal, @Nonnull final Duration whenNextSignalReceived,
+                @Nonnull final Event<STATE> previousEvent) {
+            this.nextSignal = Objects.requireNonNull(nextSignal, "nextSignal");
+            this.whenNextSignalReceived = Objects.requireNonNull(whenNextSignalReceived, "whenNextSignalReceived");
+            this.previousEvent = Objects.requireNonNull(previousEvent, "previousEvent");
+            this.state = previousEvent.getState();
+        }
+
+        Continuation(@Nonnull final Signal<STATE> nextSignal, @Nonnull final Duration whenNextSignalReceived,
+                @Nonnull final STATE state) {
+            this.nextSignal = Objects.requireNonNull(nextSignal, "nextSignal");
+            this.whenNextSignalReceived = Objects.requireNonNull(whenNextSignalReceived, "whenNextSignalReceived");
+            this.previousEvent = null;
+            this.state = Objects.requireNonNull(state, "state");
+        }
+
+        @Override
+        public boolean equals(final Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (!(obj instanceof Continuation)) {
+                return false;
+            }
+            final Continuation<?> other = (Continuation<?>) obj;
+            return whenNextSignalReceived.equals(other.whenNextSignalReceived) && nextSignal.equals(other.nextSignal)
+                    && Objects.equals(previousEvent, other.previousEvent) && Objects.equals(state, other.state);
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + whenNextSignalReceived.hashCode();
+            result = prime * result + nextSignal.hashCode();
+            result = prime * result + (previousEvent == null ? 0 : previousEvent.hashCode());
+            result = prime * result + (state == null ? 0 : state.hashCode());
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "ObjectHistory.Continuation [previousEvent=" + previousEvent + ", state=" + state + ", " + nextSignal
+                    + "@" + whenNextSignalReceived + "]";
+        }
+
+    }// class
+
     /**
      * <p>
      * The state of a simulated object, with a time-range indicating the points in

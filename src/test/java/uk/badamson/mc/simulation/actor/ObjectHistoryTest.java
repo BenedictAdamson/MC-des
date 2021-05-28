@@ -643,6 +643,29 @@ public class ObjectHistoryTest {
 
     }// class
 
+    public static class ContinuationTest {
+
+        static <STATE> void assertInvariants(@Nonnull final ObjectHistory.Continuation<STATE> continuation) {
+            ObjectTest.assertInvariants(continuation);// inherited
+            assertAll("Not null", () -> assertThat("nextSignal", continuation.nextSignal, notNullValue()),
+                    () -> assertThat("whenNextSignalReceived", continuation.whenNextSignalReceived, notNullValue()));
+        }
+
+        static <STATE> void assertInvariants(@Nonnull final ObjectHistory.Continuation<STATE> continuation1,
+                @Nonnull final ObjectHistory.Continuation<STATE> continuation2) {
+            ObjectTest.assertInvariants(continuation1, continuation2);// inherited
+            assertAll("Value semantrics",
+                    () -> EqualsSemanticsTest.assertValueSemantics(continuation1, continuation2, "nextSignal",
+                            c -> c.nextSignal),
+                    () -> EqualsSemanticsTest.assertValueSemantics(continuation1, continuation2, "previousEvent",
+                            c -> c.previousEvent),
+                    () -> EqualsSemanticsTest.assertValueSemantics(continuation1, continuation2, "state", c -> c.state),
+                    () -> EqualsSemanticsTest.assertValueSemantics(continuation1, continuation2,
+                            "whenNextSignalReceived", c -> c.whenNextSignalReceived));
+        }
+
+    }// class
+
     @Nested
     public class ObserveState {
 
