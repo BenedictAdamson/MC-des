@@ -163,7 +163,12 @@ public abstract class Signal<STATE> {
      * sent through a medium while the receiver also moves. The method may return a
      * {@link #NEVER_RECEIVED} value to indicate that reception is impossible. For
      * example, when the receiver is moving away from the sender at faster than the
-     * signal propagation speed.
+     * signal propagation speed. The propagation delay must be a deterministic
+     * function of the given {@code receiverState} and values of this
+     * ({@linkplain Immutable immutable}) signal. This method may be called while a
+     * lock is held. Therefore to avoid deadlock this method must not delegate to
+     * any alien methods that might acquire a lock. And to ensure good concurrency,
+     * the implementation should be quick.
      * </p>
      *
      * @see #receive(Object)
@@ -384,9 +389,9 @@ public abstract class Signal<STATE> {
      * ID.
      * </p>
      * <ul>
-     * <li>The {@linkplain Event#getCausingSignal() ID of the signal causing}  the
-     * returned event is  the same as the
-     * {@linkplain #getId() ID} of this signal.</li>
+     * <li>The {@linkplain Event#getCausingSignal() ID of the signal causing} the
+     * returned event is the same as the {@linkplain #getId() ID} of this
+     * signal.</li>
      * <li>The {@linkplain Event#getAffectedObject() affected object} of the
      * returned event is {@linkplain UUID#equals(Object) equal to} the
      * {@linkplain #getReceiver() receiver} of this signal.</li>
@@ -434,9 +439,9 @@ public abstract class Signal<STATE> {
      * <i>primitive operations</i>.
      * </p>
      * <ul>
-     * <li>The {@linkplain Event#getCausingSignal() ID of the signal causing}  the
-     * returned event is  the same as the
-     * {@linkplain #getId() ID} of this signal.</li>
+     * <li>The {@linkplain Event#getCausingSignal() ID of the signal causing} the
+     * returned event is the same as the {@linkplain #getId() ID} of this
+     * signal.</li>
      * <li>The {@linkplain Event#getAffectedObject() affected object} of the
      * returned event is {@linkplain UUID#equals(Object) equal to} the
      * {@linkplain #getReceiver() receiver} of this signal.</li>
