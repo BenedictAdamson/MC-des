@@ -720,6 +720,49 @@ public class ObjectHistoryTest {
             }
         }// class
 
+        @RepeatedTest(4)
+        public void multipleThreads() {
+            final int nThreads = 16;
+            final int nCallsPerThread = 8;
+            final int nSignals = nThreads * nCallsPerThread;
+
+            final UUID receiver = OBJECT_A;
+            final UUID sender = OBJECT_B;
+            final Duration end = WHEN_A;
+            final Integer state0 = Integer.valueOf(0);
+            final Duration start = end;
+            final ObjectHistory<Integer> history = new ObjectHistory<Integer>(receiver, start, state0);
+            final var random = new Random();
+            for (int s = 0; s < nSignals; ++s) {
+                final UUID signalId = UUID.randomUUID();
+                final Duration whenSent = end.plusMillis(1 + random.nextInt(10_000));
+                final var sentFrom = new TimestampedId(sender, whenSent);
+                final var signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
+
+                history.addIncomingSignal(signal);
+            } // for
+
+            final CountDownLatch ready = new CountDownLatch(1);
+            final List<Future<Void>> futures = new ArrayList<>(nThreads);
+
+            for (int t = 0; t < nThreads; ++t) {
+                futures.add(ThreadSafetyTest.runInOtherThread(ready, () -> {
+                    for (int c = 0; c < nCallsPerThread; ++c) {
+                        final var continuation = history.computeContinuation();
+                        if (continuation != null) {
+                            final var event = continuation.nextSignal.receive(continuation.whenNextSignalReceived,
+                                    continuation.state);
+                            history.compareAndAddEvent(continuation.previousEvent, event, continuation.nextSignal);
+                        }
+                    } // for
+                }));
+            } // for
+
+            ready.countDown();
+            ThreadSafetyTest.get(futures);
+            assertInvariants(history);
+        }
+
         @Test
         public void outOfOrderSignals() {
             final UUID sender = OBJECT_A;

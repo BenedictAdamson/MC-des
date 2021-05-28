@@ -602,23 +602,23 @@ public final class ObjectHistory<STATE> {
      */
     @Nullable
     Continuation<STATE> computeContinuation() {
-        // TODO thread-safety
-        Signal<STATE> nextSignal = null;
-        TimestampedId nextEventId = null;
-        for (final var entry : incomingSignals.entrySet()) {
-            final var id = entry.getKey();
-            final var signal = entry.getValue();
-            final var whenReceieved = signal.getWhenReceived(stateHistory);
-            final TimestampedId eventId = new TimestampedId(id, whenReceieved);
-            final boolean earlier = nextEventId == null ? true : eventId.compareTo(nextEventId) < 0;
+        synchronized (lock) {
+            Signal<STATE> nextSignal = null;
+            TimestampedId nextEventId = null;
+            for (final var entry : incomingSignals.entrySet()) {
+                final var id = entry.getKey();
+                final var signal = entry.getValue();
+                final var whenReceieved = signal.getWhenReceived(stateHistory);// expensive
+                final TimestampedId eventId = new TimestampedId(id, whenReceieved);
+                final boolean earlier = nextEventId == null ? true : eventId.compareTo(nextEventId) < 0;
 
-            if (earlier) {
-                nextSignal = signal;
-                nextEventId = eventId;
-            }
-        } // for
-
-        return createContinuation(nextEventId, nextSignal);
+                if (earlier) {
+                    nextSignal = signal;
+                    nextEventId = eventId;
+                }
+            } // for
+            return createContinuation(nextEventId, nextSignal);
+        } // synchronized
     }
 
     @GuardedBy("lock")
