@@ -51,6 +51,7 @@ import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.EmitResult;
 import uk.badamson.mc.history.ModifiableValueHistory;
 import uk.badamson.mc.history.ValueHistory;
+import uk.badamson.mc.simulation.TimestampedId;
 
 /**
  * <p>
@@ -566,6 +567,72 @@ public final class ObjectHistory<STATE> {
 
     /**
      * <p>
+     * Determine the information needed to compute the next {@linkplain #getEvents()
+     * event} to {@linkplain #compareAndAddEvent(Event, Event, Signal) add} to this
+     * history.
+     * </p>
+     * <ul>
+     * <li>The continuation is null if, and only if, there are no more
+     * {@linkplain #getIncomingSignals() incoming signals}.</li>
+     * <li>If there is a (non null) continuation, its
+     * {@link Continuation#nextSignal} is the same as one of the
+     * {@linkplain #getIncomingSignals() incoming signals}.</li>
+     * <li>If there is a (non null) continuation, its
+     * {@link Continuation#nextSignal} will be the {@linkplain #getIncomingSignals()
+     * incoming signal} that has the earliest
+     * {@linkplain Signal#getWhenReceived(ValueHistory) reception time}, for the
+     * current {@linkplain #getStateHistory() state history}. In the case of ties,
+     * the {@linkplain Signal#getId() signal ID} ordering is used as a time breaker.
+     * That reception time is recorded in
+     * {@link Continuation#whenNextSignalReceived}.</li>
+     * <li>The {@link Continuation#previousEvent} will be the last event
+     * {@linkplain Duration#compareTo(Duration) before} the
+     * {@link Continuation#whenNextSignalReceived}.</li>
+     * <li>The {@link Continuation#state} is the state, from the current state
+     * history, at {@link Continuation#whenNextSignalReceived}.</li>
+     * </ul>
+     */
+    @Nullable
+    Continuation<STATE> computeContinuation() {
+        // TODO thread-safety
+        Signal<STATE> nextSignal = null;
+        TimestampedId nextEventId = null;
+        for (final var entry : incomingSignals.entrySet()) {
+            final var id = entry.getKey();
+            final var signal = entry.getValue();
+            final var whenReceieved = signal.getWhenReceived(stateHistory);
+            final TimestampedId eventId = new TimestampedId(id, whenReceieved);
+            final boolean earlier = nextEventId == null ? true : eventId.compareTo(nextEventId) < 0;
+
+            if (earlier) {
+                nextSignal = signal;
+                nextEventId = eventId;
+            }
+        } // for
+
+        if (nextEventId == null) {
+            return null;
+        } else {
+            // TODO handle case that have previousEvent
+            final Duration whenNextSignalReceived = nextEventId.getWhen();
+            Event<STATE> previousEvent = null;
+            for (final var event : events) {
+                if (event.getWhenOccurred().compareTo(whenNextSignalReceived) < 0) {
+                    previousEvent = event;
+                }
+            }
+
+            if (previousEvent == null) {
+                final STATE state = stateHistory.get(whenNextSignalReceived);
+                return new Continuation<>(nextSignal, whenNextSignalReceived, state);
+            } else {
+                return new Continuation<>(nextSignal, whenNextSignalReceived, previousEvent);
+            }
+        }
+    }
+
+    /**
+     * <p>
      * Whether this object is <dfn>equivalent</dfn> to a given object.
      * </p>
      * <p>
@@ -976,7 +1043,7 @@ public final class ObjectHistory<STATE> {
     @Override
     public String toString() {
         synchronized (lock) {
-            return "ObjectHistory[" + object + "from " + start + " to " + end + ", stateHistory=" + stateHistory + "]";
+            return "ObjectHistory[" + object + " from " + start + " to " + end + ", stateHistory=" + stateHistory + "]";
         }
     }
 

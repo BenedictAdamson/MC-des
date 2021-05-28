@@ -32,6 +32,7 @@ import static org.hamcrest.Matchers.iterableWithSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -77,6 +78,7 @@ import uk.badamson.dbc.assertions.ThreadSafetyTest;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.history.ValueHistoryTest;
 import uk.badamson.mc.simulation.TimestampedId;
+import uk.badamson.mc.simulation.actor.ObjectHistory.Continuation;
 import uk.badamson.mc.simulation.actor.ObjectHistory.TimestampedState;
 
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
@@ -540,6 +542,215 @@ public class ObjectHistoryTest {
             ready.countDown();
             ThreadSafetyTest.get(futures);
             assertInvariants(history);
+        }
+
+    }// class
+
+    @Nested
+    public class ComputeContinuation {
+
+        @Nested
+        public class Empty {
+
+            @Test
+            public void a() {
+                test(OBJECT_A, WHEN_A, Integer.valueOf(0));
+            }
+
+            @Test
+            public void b() {
+                test(OBJECT_B, WHEN_B, Integer.valueOf(1));
+            }
+
+            private <STATE> void test(@Nonnull final UUID object, @Nonnull final Duration start,
+                    @Nonnull final STATE state) {
+                final var history = new ObjectHistory<>(object, start, state);
+
+                final var continuation = computeContinuation(history);
+
+                assertThat("continuation", continuation, nullValue());
+            }
+        }// class
+
+        @Nested
+        public class FirstSignal {
+
+            @Test
+            public void a() {
+                test(OBJECT_A, OBJECT_B, WHEN_A, WHEN_B, SIGNAL_ID_A, Integer.valueOf(0));
+            }
+
+            @Test
+            public void b() {
+                test(OBJECT_B, OBJECT_A, WHEN_B, WHEN_C, SIGNAL_ID_B, Integer.valueOf(1));
+            }
+
+            private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver, @Nonnull final Duration start,
+                    @Nonnull final Duration whenSent, @Nonnull final UUID signalId, @Nonnull final Integer state) {
+                final var sentFrom = new TimestampedId(sender, whenSent);
+                final var signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
+                final Duration expectedWhenReceived = signal.getWhenReceived(state);
+
+                final var history = new ObjectHistory<>(receiver, start, state);
+                history.addIncomingSignal(signal);
+
+                final ObjectHistory.Continuation<Integer> continuation = computeContinuation(history);
+
+                assertThat("continuation", continuation, notNullValue());// guard
+                assertAll(() -> assertThat("nextSignal", continuation.nextSignal, sameInstance(signal)),
+                        () -> assertThat("previousEvent", continuation.previousEvent, nullValue()),
+                        () -> assertThat("state", continuation.state, sameInstance(state)),
+                        () -> assertThat("expectedWhenReceived", continuation.whenNextSignalReceived,
+                                is(expectedWhenReceived)));
+            }
+        }// class
+
+        @Nested
+        public class PreviousEvent {
+
+            @Test
+            public void a() {
+                test(WHEN_A, Integer.valueOf(0), WHEN_B);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_B, Integer.valueOf(1), WHEN_C);
+            }
+
+            private void test(@Nonnull final Duration start, @Nonnull final Integer state0,
+                    @Nonnull final Duration whenSent1) {
+                final UUID sender = OBJECT_A;
+                final UUID receiver = OBJECT_B;
+
+                final var history = new ObjectHistory<>(receiver, start, state0);
+
+                final var sentFrom1 = new TimestampedId(sender, whenSent1);
+                final var signal1 = new SignalTest.TestSignal(SIGNAL_ID_A, sentFrom1, receiver);
+                history.addIncomingSignal(signal1);
+                final var event1 = signal1.receive(state0);
+                final var state1 = event1.getState();
+                history.compareAndAddEvent(null, event1, signal1);
+
+                final Duration whenSent2 = event1.getWhenOccurred();// ensure order
+                final var sentFrom2 = new TimestampedId(sender, whenSent2);
+                final var signal2 = new SignalTest.TestSignal(SIGNAL_ID_B, sentFrom2, receiver);
+                history.addIncomingSignal(signal2);
+                final Duration expectedWhenReceived = signal2.getWhenReceived(state1);
+
+                final ObjectHistory.Continuation<Integer> continuation = computeContinuation(history);
+
+                assertThat("continuation", continuation, notNullValue());// guard
+                assertAll(() -> assertThat("nextSignal", continuation.nextSignal, sameInstance(signal2)),
+                        () -> assertThat("previousEvent", continuation.previousEvent, sameInstance(event1)),
+                        () -> assertThat("state", continuation.state, sameInstance(state1)),
+                        () -> assertThat("expectedWhenReceived", continuation.whenNextSignalReceived,
+                                is(expectedWhenReceived)));
+            }
+        }// class
+
+        @Nested
+        public class TwoIncoming {
+
+            @Test
+            public void a() {
+                final Duration start = WHEN_A;
+                final Duration whenSent1 = WHEN_B;
+                final Duration whenSent2 = WHEN_C;
+                test(OBJECT_A, OBJECT_B, OBJECT_C, start, Integer.valueOf(0), whenSent1, SIGNAL_ID_A, whenSent2,
+                        SIGNAL_ID_B);
+            }
+
+            @Test
+            public void b() {
+                final Duration start = WHEN_A;
+                final Duration whenSent1 = WHEN_B;
+                final Duration whenSent2 = WHEN_C;
+                test(OBJECT_A, OBJECT_B, OBJECT_C, start, Integer.valueOf(0), whenSent1, SIGNAL_ID_B, whenSent2,
+                        SIGNAL_ID_A);
+            }
+
+            @Test
+            public void close() {
+                final Duration start = WHEN_B;
+                final Duration whenSent1 = start;
+                final Duration whenSent2 = whenSent1.plusNanos(1);// critical
+                test(OBJECT_B, OBJECT_C, OBJECT_A, start, Integer.valueOf(1), whenSent1, SIGNAL_ID_B, whenSent2,
+                        SIGNAL_ID_A);
+            }
+
+            @Test
+            public void simultaneousReception() {
+                final Duration start = WHEN_B;
+                final Duration whenSent1 = start;
+                final Duration whenSent2 = start;// critical
+                final UUID signal1;
+                final UUID signal2;
+                if (SIGNAL_ID_A.compareTo(SIGNAL_ID_B) < 0) {
+                    signal1 = SIGNAL_ID_A;
+                    signal2 = SIGNAL_ID_B;
+                } else {
+                    signal1 = SIGNAL_ID_B;
+                    signal2 = SIGNAL_ID_A;
+                }
+                test(OBJECT_A, OBJECT_B, OBJECT_C, start, Integer.valueOf(0), whenSent1, signal1, whenSent2, signal2);
+            }
+
+            private void test(@Nonnull final UUID sender1, @Nonnull final UUID sender2, @Nonnull final UUID receiver,
+                    @Nonnull final Duration start, @Nonnull final Integer state, @Nonnull final Duration whenSent1,
+                    @Nonnull final UUID signalId1, @Nonnull final Duration whenSent2, @Nonnull final UUID signalId2) {
+                final var sentFrom1 = new TimestampedId(sender1, whenSent1);
+                final var signal1 = new SignalTest.TestSignal(signalId1, sentFrom1, receiver);
+                final var sentFrom2 = new TimestampedId(sender2, whenSent2);
+                final var signal2 = new SignalTest.TestSignal(signalId2, sentFrom2, receiver);
+                final Duration expectedWhenReceived = signal1.getWhenReceived(state);
+
+                final var history = new ObjectHistory<>(receiver, start, state);
+                history.addIncomingSignal(signal1);
+                history.addIncomingSignal(signal2);
+
+                final ObjectHistory.Continuation<Integer> continuation = computeContinuation(history);
+
+                assertThat("continuation", continuation, notNullValue());// guard
+                assertAll(() -> assertThat("nextSignal", continuation.nextSignal, sameInstance(signal1)),
+                        () -> assertThat("previousEvent", continuation.previousEvent, nullValue()),
+                        () -> assertThat("state", continuation.state, sameInstance(state)),
+                        () -> assertThat("expectedWhenReceived", continuation.whenNextSignalReceived,
+                                is(expectedWhenReceived)));
+            }
+        }// class
+
+        @Test
+        public void outOfOrderSignals() {
+            final UUID sender = OBJECT_A;
+            final UUID receiver = OBJECT_B;
+            final Duration start = WHEN_A;
+            final Integer state0 = Integer.valueOf(0);
+            final Duration whenSent1 = WHEN_B;
+            final Duration whenSent2 = WHEN_B.plusDays(365);
+
+            final var history = new ObjectHistory<>(receiver, start, state0);
+
+            final var sentFrom2 = new TimestampedId(sender, whenSent2);
+            final var signal2 = new SignalTest.TestSignal(SIGNAL_ID_B, sentFrom2, receiver);
+            history.addIncomingSignal(signal2);
+            final var event2 = signal2.receive(state0);
+            history.compareAndAddEvent(null, event2, signal2);
+
+            final var sentFrom1 = new TimestampedId(sender, whenSent1);
+            final var signal1 = new SignalTest.TestSignal(SIGNAL_ID_A, sentFrom1, receiver);
+            history.addIncomingSignal(signal1);
+            assert signal1.getWhenReceived(state0).compareTo(signal2.getWhenReceived(state0)) < 0;
+            final Duration expectedWhenReceived = signal1.getWhenReceived(state0);
+
+            final ObjectHistory.Continuation<Integer> continuation = computeContinuation(history);
+
+            assertThat("continuation", continuation, notNullValue());// guard
+            assertAll(() -> assertThat("nextSignal", continuation.nextSignal, sameInstance(signal1)),
+                    () -> assertThat("previousEvent", continuation.previousEvent, nullValue()),
+                    () -> assertThat("state", continuation.state, sameInstance(state0)),
+                    () -> assertThat("expectedWhenReceived", continuation.whenNextSignalReceived,
+                            is(expectedWhenReceived)));
         }
 
     }// class
@@ -1263,6 +1474,7 @@ public class ObjectHistoryTest {
 
     static final UUID OBJECT_A = UUID.randomUUID();
     static final UUID OBJECT_B = UUID.randomUUID();
+    static final UUID OBJECT_C = UUID.randomUUID();
 
     static final Duration WHEN_A = Duration.ofMillis(0);
     static final Duration WHEN_B = Duration.ofMillis(5000);
@@ -1373,6 +1585,24 @@ public class ObjectHistoryTest {
         }
 
         return result;
+    }
+
+    @Nullable
+    private static <STATE> Continuation<STATE> computeContinuation(@Nonnull final ObjectHistory<STATE> history) {
+        final var incomingSignals = history.getIncomingSignals();
+
+        final Continuation<STATE> continuation = history.computeContinuation();
+
+        assertInvariants(history);
+        assertThat("The continuation is null if, and only if, there are no more incoming signals.",
+                continuation == null == incomingSignals.isEmpty());
+        if (continuation != null) {
+            ContinuationTest.assertInvariants(continuation);
+            assertThat("nextSignal", continuation.nextSignal, in(incomingSignals));
+            assertThat("state", continuation.state,
+                    is(history.getStateHistory().get(continuation.whenNextSignalReceived)));
+        }
+        return continuation;
     }
 
     private static <STATE> ObjectHistory<STATE> constructor(@Nonnull final ObjectHistory<STATE> that) {
