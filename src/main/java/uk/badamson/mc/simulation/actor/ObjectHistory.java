@@ -978,6 +978,13 @@ public final class ObjectHistory<STATE> {
         return timestampedStates.asFlux();
     }
 
+    @Override
+    public String toString() {
+        synchronized (lock) {
+            return "ObjectHistory[" + object + " from " + start + " to " + end + ", stateHistory=" + stateHistory + "]";
+        }
+    }
+
     /**
      * <p>
      * Remove a collection of signals from the {@linkplain #getReceivedSignals() set
@@ -994,69 +1001,64 @@ public final class ObjectHistory<STATE> {
      * </p>
      * <ul>
      * <li>The {@linkplain #getReceivedSignals() set of received signals} does not
-     * include any of the given {@code signals}.</li>
-     * <li>The remaining {@linkplain #getEvents() events} of this history does not
+     * include any signals with the given {@code signalIds}.</li>
+     * <li>The remaining {@linkplain #getEvents() events} of this history doe not
      * include any of the events in the returned set of removed events.</li>
      * <li>The returned set of removed events may be {@linkplain SortedSet#isEmpty()
      * empty}, if none of the {@code signals} were {@linkplain #getReceivedSignals()
      * received signals}.</li>
      * <li>The returned set of removed events may include events in addition to
-     * events {@linkplain Event#getCausingSignal() caused} by the {@code signals}.
-     * Those additional removed events will be events for signals received after the
-     * given signals. Therefore, either the returned set of removed events is empty,
-     * or the first element of the set was {@linkplain Event#getCausingSignal()
-     * caused by} one of the given {@code signals}.</li>
+     * events {@linkplain Event#getCausingSignal() caused} by signals with the given
+     * {@code signalIds}. Those additional removed events will be events for signals
+     * received after the given signals. Therefore, either the returned set of
+     * removed events is empty, or the first element of the set was
+     * {@linkplain Event#getCausingSignal() caused by} one of the given
+     * {@code signals}.</li>
      * <li>Any signals removed from the {@linkplain #getReceivedSignals() set of
      * received signals} are added to the {@linkplain #getIncomingSignals() set of
-     * incoming signals}.</li>
+     * incoming signals}. That is, the method does not fully remove the signals, it
+     * removes them only as <em>received</em> signals.</li>
      * </ul>
      *
-     * @param signals
+     * @param signalIds
      *            The {@linkplain Signal#getId() IDs} of the signals to remove.
      * @return events that were removed.
      * @throws NullPointerException
      *             <ul>
-     *             <li>If {@code signals} is null.</li>
-     *             <li>If {@code signals} contains a null.</li>
+     *             <li>If {@code signalIds} is null.</li>
+     *             <li>If {@code signalIds} contains a null.</li>
      *             </ul>
      */
     @Nonnull
-    SortedSet<Event<STATE>> removeReceivedSignals(@Nonnull final Set<UUID> signals) {
-        Objects.requireNonNull(signals, "signals");
+    SortedSet<Event<STATE>> unReceiveSignals(@Nonnull final Set<UUID> signalIds) {
+        Objects.requireNonNull(signalIds, "signalIds");
         synchronized (lock) {
             final Set<TimestampedId> removedEventIds;
             final SortedSet<Event<STATE>> removedEvents = events.values().stream()
-                    .filter(event -> signals.contains(event.getCausingSignal()))
+                    .filter(event -> signalIds.contains(event.getCausingSignal()))
                     .collect(toCollection(() -> new TreeSet<>()));
-            final Set<UUID> removedSignalIds;
+            final Set<UUID> cascadedRemovedSignalIds;
             final Set<Signal<STATE>> removedSignals;
             if (removedEvents.isEmpty()) {
                 removedEventIds = Collections.emptySet();
-                removedSignalIds = Collections.emptySet();
+                cascadedRemovedSignalIds = Collections.emptySet();
                 removedSignals = Collections.emptySet();
             } else {
                 final var firstRemovedEvent = removedEvents.first();
                 removedEvents.addAll(events.tailMap(firstRemovedEvent.getId()).values());
                 removedEventIds = removedEvents.stream().map(event -> event.getId()).collect(toUnmodifiableSet());
-                removedSignalIds = new HashSet<>(removedEvents.size());
-                removedEvents.forEach(event -> removedSignalIds.add(event.getCausingSignal()));
-                removedSignals = removedSignalIds.stream().map(id -> receivedSignals.get(id))
+                cascadedRemovedSignalIds = new HashSet<>(removedEvents.size());
+                removedEvents.forEach(event -> cascadedRemovedSignalIds.add(event.getCausingSignal()));
+                removedSignals = cascadedRemovedSignalIds.stream().map(id -> receivedSignals.get(id))
                         .filter(signal -> signal != null).collect(toUnmodifiableSet());
             }
 
             events.keySet().removeAll(removedEventIds);
-            receivedSignals.keySet().removeAll(removedSignalIds);
+            receivedSignals.keySet().removeAll(cascadedRemovedSignalIds);
             removedSignals.forEach(signal -> incomingSignals.put(signal.getId(), signal));
 
             return removedEvents;
         } // synchronized
-    }
-
-    @Override
-    public String toString() {
-        synchronized (lock) {
-            return "ObjectHistory[" + object + " from " + start + " to " + end + ", stateHistory=" + stateHistory + "]";
-        }
     }
 
 }
