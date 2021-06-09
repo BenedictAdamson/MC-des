@@ -1277,6 +1277,41 @@ public class ObjectHistoryTest {
             }
         }// class
 
+        @RepeatedTest(4)
+        public void multipleThreads() {
+            final int nThreads = 16;
+            final int nSignalsPerThread = 8;
+
+            final UUID receiver = OBJECT_A;
+            final UUID sender = OBJECT_B;
+            final Duration end = WHEN_A;
+            final Integer state0 = Integer.valueOf(0);
+            final Duration start = end;
+            final ObjectHistory<Integer> history = new ObjectHistory<Integer>(receiver, start, state0);
+
+            final CountDownLatch ready = new CountDownLatch(1);
+            final List<Future<Void>> futures = new ArrayList<>(nThreads);
+
+            for (int t = 0; t < nThreads; ++t) {
+                futures.add(ThreadSafetyTest.runInOtherThread(ready, () -> {
+                    final var random = new Random();
+                    for (int s = 0; s < nSignalsPerThread; ++s) {
+                        final UUID signalId = UUID.randomUUID();
+                        final Duration whenSent = end.plusMillis(1 + random.nextInt(10_000));
+                        final var sentFrom = new TimestampedId(sender, whenSent);
+                        final var signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
+                        history.addIncomingSignal(signal);
+
+                        history.receiveNextSignal();
+                    } // for
+                }));
+            } // for
+
+            ready.countDown();
+            ThreadSafetyTest.get(futures);
+            assertInvariants(history);
+        }
+
         @Test
         public void none() {
             final var history = new ObjectHistory<>(OBJECT_A, WHEN_A, Integer.valueOf(0));

@@ -474,7 +474,7 @@ public final class ObjectHistory<STATE> {
      * <li>adds the {@code event} to the collection of events</li>
      * <li>adds the {@code signal} to the collection of
      * {@linkplain #getReceivedSignals() received signals}</li>
-     * <li>removes the {@code signal} from the collection of received signals</li>
+     * <li>removes the {@code signal} from the collection of incoming signals</li>
      * <li>removes the (received) signals that caused any invalidated events from
      * the set of received signals</li>
      * <li>adds the (received) signals that caused any invalidated events to the set
@@ -1031,16 +1031,18 @@ public final class ObjectHistory<STATE> {
      */
     @Nonnull
     Set<Signal<STATE>> receiveNextSignal() {
-        final var continuation = computeContinuation();
-        if (continuation == null) {
-            return Set.of();// no more signals
-        } else {
-            final var event = continuation.nextSignal.receive(continuation.state);// expensive
-            final Set<Event<STATE>> invalidatedEvents = compareAndAddEvent(continuation.previousEvent, event,
-                    continuation.nextSignal);
-            // TODO handle lost data race
-            return invalidatedEvents.stream().flatMap(e -> e.getSignalsEmitted().stream()).collect(toUnmodifiableSet());
-        }
+        Set<Event<STATE>> invalidatedEvents;
+        do {
+            final var continuation = computeContinuation();
+            if (continuation == null) {
+                invalidatedEvents = Set.of();// no more signals
+            } else {
+                final var event = continuation.nextSignal.receive(continuation.state);// expensive
+                invalidatedEvents = compareAndAddEvent(continuation.previousEvent, event, continuation.nextSignal);
+                // invalidatedEvents will be null if lose a data race
+            }
+        } while (invalidatedEvents == null);
+        return invalidatedEvents.stream().flatMap(e -> e.getSignalsEmitted().stream()).collect(toUnmodifiableSet());
     }
 
     @Override
