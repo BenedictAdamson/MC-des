@@ -69,8 +69,14 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
      * @throws IllegalArgumentException
      *             If {@code signalsEmitted} contains a signal that was not sent by
      *             the event represented by this effect. That is, if the signal was
-     *             not {@linkplain Signal#getSentFrom() sent from} the same object
-     *             as the {@code eventId}.
+     *             not
+     *             <ul>
+     *             <li>{@linkplain Signal#getSender() sent} from the same object as
+     *             the {@code affectedObject}, or</li>
+     *             <li>{@linkplain Signal#getWhenSent() sent} at the same time as
+     *             {@linkplain TimestampedId#getWhen() time-stamp} of the
+     *             {@code id}.</li>
+     *             </ul>
      */
     public Event(@Nonnull final TimestampedId id, @Nonnull final UUID affectedObject, @Nullable final STATE state,
             @Nonnull final Set<Signal<STATE>> signalsEmitted) {
@@ -80,8 +86,11 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
         this.signalsEmitted = Set.copyOf(signalsEmitted);
         /* Check after copy to avoid race hazards. */
         this.signalsEmitted.forEach(signal -> {
-            if (id != signal.getSentFrom()) {
-                throw new IllegalArgumentException("signalEmitted not sent from event.");
+            if (affectedObject != signal.getSender()) {
+                throw new IllegalArgumentException("signalEmitted not sent from sender.");
+            }
+            if (id.getWhen() != signal.getWhenSent()) {
+                throw new IllegalArgumentException("signalEmitted not sent at event time.");
             }
         });
     }

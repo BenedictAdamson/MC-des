@@ -221,14 +221,16 @@ public class SignalTest {
             final Integer newState = Integer.valueOf(receiverState.intValue() + 1);
             final Set<Signal<Integer>> signalsEmitted;
             final var eventId = new TimestampedId(getId(), when);
+            final var receiver = getReceiver();
             if (strobe) {
                 final UUID emittedSignalId = UUID.randomUUID();
-                final Signal<Integer> signalEmitted = new TestSignal(emittedSignalId, eventId, getReceiver(), strobe);
+                final TimestampedId sentFrom = new TimestampedId(receiver, when);
+                final Signal<Integer> signalEmitted = new TestSignal(emittedSignalId, sentFrom, receiver, strobe);
                 signalsEmitted = Set.of(signalEmitted);
             } else {
                 signalsEmitted = Set.of();
             }
-            return new Event<>(eventId, getReceiver(), newState, signalsEmitted);
+            return new Event<>(eventId, receiver, newState, signalsEmitted);
         }
 
     }// class

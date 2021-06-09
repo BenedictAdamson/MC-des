@@ -80,19 +80,26 @@ public class EventTest {
 
         @Test
         public void equivalent() {
+            final var affectedObjectA = OBJECT_A;
+            final var affectedObjectB = OBJECT_B;
             final TimestampedId idA = ID_A;
-            final TimestampedId idB = new TimestampedId(idA.getObject(), idA.getWhen());
+            final var causingSignal = idA.getObject();
+            final var when = idA.getWhen();
+            final TimestampedId idB = new TimestampedId(causingSignal, when);
             final Integer stateA = Integer.valueOf(0);
             final Integer stateB = Integer.valueOf(1);
+
             final Set<Signal<Integer>> signalsEmittedA = Set.of();
-            final Set<Signal<Integer>> signalsEmittedB = Set.of(new TestSignal(SIGNAL_B, idB, OBJECT_B));
+            final TimestampedId emittedFrom = new TimestampedId(affectedObjectB, when);
+            final Set<Signal<Integer>> signalsEmittedB = Set.of(new TestSignal(SIGNAL_A, emittedFrom, affectedObjectB));
+
             assert idA.equals(idB);
             assert idA != idB;// tough test
             assert !stateA.equals(stateB);// tough test
             assert !signalsEmittedA.equals(signalsEmittedB);// tough test
 
-            final var eventA = new Event<>(idA, OBJECT_A, stateA, signalsEmittedA);
-            final var eventB = new Event<>(idB, OBJECT_B, stateB, signalsEmittedB);
+            final var eventA = new Event<>(idA, affectedObjectA, stateA, signalsEmittedA);
+            final var eventB = new Event<>(idB, affectedObjectB, stateB, signalsEmittedB);
 
             assertInvariants(eventA, eventB);
             assertEquals(eventA, eventB);
@@ -132,7 +139,8 @@ public class EventTest {
         TimestampedIdTest.assertInvariants(id);
 
         assertAll(() -> assertSame(causingSignal, id.getObject(), "causingSignal"),
-                () -> assertAll("signalsEmitted", createSignalsEmittedInvariantAssertions(id, signalsEmitted)),
+                () -> assertAll("signalsEmitted",
+                        createSignalsEmittedInvariantAssertions(id, affectedObject, signalsEmitted)),
                 () -> assertSame(whenOccurred, id.getWhen(), "whenOccurred"));
     }
 
@@ -159,14 +167,15 @@ public class EventTest {
     }
 
     private static <STATE> Stream<Executable> createSignalsEmittedInvariantAssertions(final TimestampedId id,
-            final Set<Signal<STATE>> signalsEmitted) {
+            final UUID affectedObject, final Set<Signal<STATE>> signalsEmitted) {
         return signalsEmitted.stream().map(signal -> new Executable() {
 
             @Override
             public void execute() throws AssertionError {
                 assertNotNull(signal, "signal");
                 SignalTest.assertInvariants(signal);
-                assertSame(id, signal.getSentFrom(), "sentFrom");
+                assertSame(affectedObject, signal.getSender(), "sender");
+                assertSame(id.getWhen(), signal.getWhenSent(), "whenSent");
             }
         });
     }
@@ -184,8 +193,11 @@ public class EventTest {
     @Test
     public void signalEmitted() {
         final var id = ID_A;
-        final Set<Signal<Integer>> signalsEmitted = Set.of(new TestSignal(SIGNAL_A, id, OBJECT_B));
-        constructor(id, OBJECT_A, Integer.valueOf(0), signalsEmitted);
+        final var when = id.getWhen();
+        final var receiver = OBJECT_A;
+        final TimestampedId emittedFrom = new TimestampedId(receiver, when);
+        final Set<Signal<Integer>> signalsEmitted = Set.of(new TestSignal(SIGNAL_A, emittedFrom, OBJECT_B));
+        constructor(id, receiver, Integer.valueOf(0), signalsEmitted);
     }
 
 }// class
