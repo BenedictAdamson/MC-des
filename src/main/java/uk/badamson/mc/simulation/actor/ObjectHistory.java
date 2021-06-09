@@ -1012,7 +1012,7 @@ public final class ObjectHistory<STATE> {
      * signal that has the earliest {@linkplain Signal#getWhenReceived(ValueHistory)
      * reception time}, for the current {@linkplain #getStateHistory() state
      * history}. In the case of ties, the {@linkplain Signal#getId() signal ID}
-     * ordering is used as a time breaker.
+     * ordering is used as a tie breaker.
      * </p>
      * <p>
      * Because signals could be {@linkplain #addIncomingSignal(Signal) added to the
@@ -1033,39 +1033,44 @@ public final class ObjectHistory<STATE> {
      * signals to the collection of incoming signals. Furthermore,
      * {@linkplain Event#getSignalsEmitted() signals emitted} by those invalidated
      * events are then no longer known to have been emitted, and their effects must
-     * also be undone. The method therefore returns a collection of those
-     * invalidated emitted signals, so the caller can perform any processing due to
-     * their invalidation.
+     * also be undone. The method {@linkplain Medium#removeAll(java.util.Collection)
+     * removes} those invalidated emitted signals from the {@code medium}. Thus,
+     * this method can decrease the number of {@linkplain #getEvents() events} and
+     * increase the number of incoming signals.
      * </p>
      * <p>
-     * Thus, this method can decrease the number of {@linkplain #getEvents() events}
-     * and increase the number of incoming signals.
+     * The effect of receiving a signal will be to add an {@linkplain #getEvents()
+     * event}, which is the event of receiving the signal. That event may
+     * {@linkplain Event#getSignalsEmitted() emit signals}. The method will
+     * {@linkplain Medium#addAll(java.util.Collection) add} those emitted signal to
+     * the given {@code medium}.
+     *
      * </p>
-     * <p>
-     * The returned set of invalidated signals
-     * </p>
-     * <ul>
-     * <li>Does not have a null element.</li>
-     * <li>May be unmodifiable.
-     * <li>
-     * <li>Contains only signals that have the {@linkplain #getObject() object} of
-     * this history as their {@linkplain Signal#getSender() sender}.</li>
-     * </ul>
+     *
+     * @param medium
+     *            The medium used transmitting signals to and from the
+     *            {@linkplain #getObject() simulated object}.
      */
     @Nonnull
-    Set<Signal<STATE>> receiveNextSignal() {
+    void receiveNextSignal(@Nonnull final Medium<STATE> medium) {
+        Objects.requireNonNull(medium, "medium");
+        Event<STATE> event;
         Set<Event<STATE>> invalidatedEvents;
         do {
             final var continuation = computeContinuation();
             if (continuation == null) {
-                invalidatedEvents = Set.of();// no more signals
+                return;
             } else {
-                final var event = continuation.nextSignal.receive(continuation.state);// expensive
+                event = continuation.nextSignal.receive(continuation.state);// expensive
                 invalidatedEvents = compareAndAddEvent(continuation.previousEvent, event, continuation.nextSignal);
                 // invalidatedEvents will be null if lose a data race
             }
         } while (invalidatedEvents == null);
-        return invalidatedEvents.stream().flatMap(e -> e.getSignalsEmitted().stream()).collect(toUnmodifiableSet());
+
+        final Set<Signal<STATE>> invalidatedSignals = invalidatedEvents.stream()
+                .flatMap(e -> e.getSignalsEmitted().stream()).collect(toUnmodifiableSet());
+        medium.removeAll(invalidatedSignals);
+        medium.addAll(event.getSignalsEmitted());
     }
 
     /**

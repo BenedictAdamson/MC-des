@@ -72,7 +72,6 @@ import org.reactivestreams.Publisher;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
-import uk.badamson.dbc.assertions.CollectionTest;
 import uk.badamson.dbc.assertions.EqualsSemanticsTest;
 import uk.badamson.dbc.assertions.ObjectTest;
 import uk.badamson.dbc.assertions.ThreadSafetyTest;
@@ -1174,19 +1173,25 @@ public class ObjectHistoryTest {
 
             private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver, @Nonnull final Duration start,
                     @Nonnull final Duration whenSent, @Nonnull final UUID signalId, @Nonnull final Integer state0) {
+                final boolean strobe = true;// tough test
                 final var sentFrom = new TimestampedId(sender, whenSent);
-                final var signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
+                final var signal = new SignalTest.TestSignal(signalId, sentFrom, receiver, strobe);
                 final var expectedEvent = signal.receive(state0);
                 final var expectedWhenOccurred = expectedEvent.getWhenOccurred();
                 final var expectedState = expectedEvent.getState();
 
                 final var history = new ObjectHistory<>(receiver, start, state0);
+                final Medium<Integer> medium = new MediumTest.RecordingMedium<>();
+                medium.addAll(List.of(signal));
                 history.addIncomingSignal(signal);
 
-                final var invalidatedSignals = receiveNextSignal(history);
+                receiveNextSignal(history, medium);
 
                 final var stateHistory = history.getStateHistory();
-                assertThat("invalidated signals", invalidatedSignals, empty());
+                final var signals = medium.getSignals();
+                assertAll("transmitted signals", () -> assertThat("none invalidated", signals, hasItem(signal)),
+                        () -> assertThat("added emitted signal", signals,
+                                hasSize(1 + expectedEvent.getSignalsEmitted().size())));
                 assertThat("events", history.getEvents(), hasItem(expectedEvent));
                 assertAll("stateHistory", () -> assertThat("at start (unchanged)", stateHistory.get(start), is(state0)),
                         () -> assertThat("at event.whenOccurred", stateHistory.get(expectedWhenOccurred),
@@ -1219,21 +1224,26 @@ public class ObjectHistoryTest {
                 final UUID sender = OBJECT_A;
                 final UUID receiver = OBJECT_B;
                 final Integer state0 = Integer.valueOf(0);
-                final boolean strobe = true;// tough test: emitted signals
+                final boolean strobe1 = false;// simplification
+                final boolean strobe2 = true;// tough test: emitted signals
 
                 final var sentFrom1 = new TimestampedId(sender, whenSent1);
-                final var signal1 = new SignalTest.TestSignal(SIGNAL_ID_A, sentFrom1, receiver, strobe);
+                final var signal1 = new SignalTest.TestSignal(SIGNAL_ID_A, sentFrom1, receiver, strobe1);
                 final var sentFrom2 = new TimestampedId(sender, whenSent2);
-                final var signal2 = new SignalTest.TestSignal(SIGNAL_ID_B, sentFrom2, receiver, strobe);
+                final var signal2 = new SignalTest.TestSignal(SIGNAL_ID_B, sentFrom2, receiver, strobe2);
 
                 final var history = new ObjectHistory<>(receiver, start, state0);
+                final Medium<Integer> medium = new MediumTest.RecordingMedium<>();
+                medium.addAll(List.of(signal1, signal2));
                 history.addIncomingSignal(signal2);
-                history.receiveNextSignal();
+                history.receiveNextSignal(medium);
                 history.addIncomingSignal(signal1);
+                final var signals0 = medium.getSignals();
 
-                final var invalidatedSignals = receiveNextSignal(history);
+                receiveNextSignal(history, medium);
 
-                assertAll(() -> assertThat("invalidated signals", invalidatedSignals, not(empty())),
+                final var signals = medium.getSignals();
+                assertAll(() -> assertThat("invalidated some signals", signals.size() < signals0.size()),
                         () -> assertThat("events", history.getEvents(), hasSize(1)),
                         () -> assertThat("incomingSignals", history.getIncomingSignals(), is(Set.of(signal2))),
                         () -> assertThat("receivedSignals", history.getReceivedSignals(), is(Set.of(signal1))));
@@ -1259,18 +1269,23 @@ public class ObjectHistoryTest {
                 final UUID receiver = OBJECT_B;
 
                 final var history = new ObjectHistory<>(receiver, start, state0);
+                final Medium<Integer> medium = new MediumTest.RecordingMedium<>();
                 final var sentFrom1 = new TimestampedId(sender, whenSent1);
                 final var signal1 = new SignalTest.TestSignal(SIGNAL_ID_A, sentFrom1, receiver);
+                medium.addAll(List.of(signal1));
                 history.addIncomingSignal(signal1);
-                history.receiveNextSignal();
+                history.receiveNextSignal(medium);
                 final Duration whenSent2 = history.getEvents().last().getWhenOccurred();// ensure order
                 final var sentFrom2 = new TimestampedId(sender, whenSent2);
                 final var signal2 = new SignalTest.TestSignal(SIGNAL_ID_B, sentFrom2, receiver);
+                medium.addAll(List.of(signal2));
                 history.addIncomingSignal(signal2);
+                final var signals0 = medium.getSignals();
 
-                final var invalidatedSignals = receiveNextSignal(history);
+                receiveNextSignal(history, medium);
 
-                assertThat("invalidated signals", invalidatedSignals, empty());
+                final var signals = medium.getSignals();
+                assertThat("signals (none invalidated)", signals, is(signals0));
                 assertThat("events", history.getEvents(), hasSize(2));
                 assertThat("incomingSignals", history.getIncomingSignals(), empty());
                 assertThat("receivedSignals", history.getReceivedSignals(), allOf(hasItem(signal1), hasItem(signal2)));
@@ -1288,6 +1303,7 @@ public class ObjectHistoryTest {
             final Integer state0 = Integer.valueOf(0);
             final Duration start = end;
             final ObjectHistory<Integer> history = new ObjectHistory<Integer>(receiver, start, state0);
+            final Medium<Integer> medium = new MediumTest.RecordingMedium<>();
 
             final CountDownLatch ready = new CountDownLatch(1);
             final List<Future<Void>> futures = new ArrayList<>(nThreads);
@@ -1300,9 +1316,10 @@ public class ObjectHistoryTest {
                         final Duration whenSent = end.plusMillis(1 + random.nextInt(10_000));
                         final var sentFrom = new TimestampedId(sender, whenSent);
                         final var signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
+                        medium.addAll(List.of(signal));
                         history.addIncomingSignal(signal);
 
-                        history.receiveNextSignal();
+                        history.receiveNextSignal(medium);
                     } // for
                 }));
             } // for
@@ -1315,10 +1332,9 @@ public class ObjectHistoryTest {
         @Test
         public void none() {
             final var history = new ObjectHistory<>(OBJECT_A, WHEN_A, Integer.valueOf(0));
+            final Medium<Integer> medium = new MediumTest.RecordingMedium<>();
 
-            final var invalidatedSignals = receiveNextSignal(history);
-
-            assertThat("invalidated signals", invalidatedSignals, empty());
+            receiveNextSignal(history, medium);
         }
     }// class
 
@@ -1928,20 +1944,12 @@ public class ObjectHistoryTest {
     }
 
     @Nonnull
-    private static <STATE> Set<Signal<STATE>> receiveNextSignal(@Nonnull final ObjectHistory<STATE> history) {
-        final var object = history.getObject();
-
-        final var invalidatedSignals = history.receiveNextSignal();
+    private static <STATE> void receiveNextSignal(@Nonnull final ObjectHistory<STATE> history,
+            @Nonnull final Medium<STATE> medium) {
+        history.receiveNextSignal(medium);
 
         assertInvariants(history);
-        assertThat("invalidated signals", invalidatedSignals, notNullValue());// guard
-        CollectionTest.assertForAllElements("invalidated signal", invalidatedSignals, signal -> {
-            assertThat(signal, notNullValue());// guard
-            SignalTest.assertInvariants(signal);
-            assertThat("sender is history.object", signal.getSender(), is(object));
-        });
-
-        return invalidatedSignals;
+        MediumTest.assertInvariants(medium);
     }
 
     @Nonnull
