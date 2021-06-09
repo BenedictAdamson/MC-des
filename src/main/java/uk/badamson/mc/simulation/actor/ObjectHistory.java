@@ -764,6 +764,29 @@ public final class ObjectHistory<STATE> {
 
     /**
      * <p>
+     * The signals that the {@linkplain #getObject() simulated object} has
+     * {@linkplain #getReceivedSignals() received}, or are
+     * {@linkplain #getIncomingSignals()}.
+     * </p>
+     * <ul>
+     * <li>The returned set may be unmodifiable.</li>
+     * <li>The returned set contains all the {@linkplain #getReceivedSignals()
+     * received signals} and all the {@linkplain #getIncomingSignals() incoming
+     * signals}, and no others.</li>
+     * </ul>
+     */
+    @Nonnull
+    Set<Signal<STATE>> getReceivedAndIncomingSignals() {
+        synchronized (lock) {// hard to test
+            final Set<Signal<STATE>> result = new HashSet<>(receivedSignals.size() + incomingSignals.size());
+            result.addAll(incomingSignals.values());
+            result.addAll(receivedSignals.values());
+            return result;
+        }
+    }
+
+    /**
+     * <p>
      * The signals that the {@linkplain #getObject() simulated object} has received,
      * resulting in {@linkplain #getEvents() events}.
      * </p>
@@ -1045,23 +1068,16 @@ public final class ObjectHistory<STATE> {
         return invalidatedEvents.stream().flatMap(e -> e.getSignalsEmitted().stream()).collect(toUnmodifiableSet());
     }
 
-    @Override
-    public String toString() {
-        synchronized (lock) {
-            return "ObjectHistory[" + object + " from " + start + " to " + end + ", stateHistory=" + stateHistory + "]";
-        }
-    }
-
     /**
      * <p>
      * Remove a collection of signals from the {@linkplain #getReceivedSignals() set
-     * of received signals}.
+     * of received signals} and {@linkplain #getIncomingSignals() incoming signals}.
      * </p>
      * <p>
      * Removing received signals requires removing the effect of the events that
      * those signals caused. Doing that rolls back the
      * {@linkplain #getStateHistory() state history} and {@linkplain #getEvents()
-     * events sequence} to just before the earliest of the signals received.
+     * events sequence} to just before the earliest of the removed received signals.
      * </p>
      * <p>
      * Post conditions:
@@ -1069,11 +1085,13 @@ public final class ObjectHistory<STATE> {
      * <ul>
      * <li>The {@linkplain #getReceivedSignals() set of received signals} does not
      * include any signals with the given {@code signalIds}.</li>
-     * <li>The remaining {@linkplain #getEvents() events} of this history doe not
+     * <li>The {@linkplain #getIncomingSignals() set of imcoming signals} does not
+     * include any signals with the given {@code signalIds}.</li>
+     * <li>The remaining {@linkplain #getEvents() events} of this history does not
      * include any of the events in the returned set of removed events.</li>
      * <li>The returned set of removed events may be {@linkplain SortedSet#isEmpty()
-     * empty}, if none of the {@code signals} were {@linkplain #getReceivedSignals()
-     * received signals}.</li>
+     * empty}, if none of the {@code signals} were received signals or incoming
+     * signals.</li>
      * <li>The returned set of removed events may include events in addition to
      * events {@linkplain Event#getCausingSignal() caused} by signals with the given
      * {@code signalIds}. Those additional removed events will be events for signals
@@ -1082,9 +1100,11 @@ public final class ObjectHistory<STATE> {
      * {@linkplain Event#getCausingSignal() caused by} one of the given
      * {@code signals}.</li>
      * <li>Any signals removed from the {@linkplain #getReceivedSignals() set of
-     * received signals} are added to the {@linkplain #getIncomingSignals() set of
-     * incoming signals}. That is, the method does not fully remove the signals, it
-     * removes them only as <em>received</em> signals.</li>
+     * received signals} because of removed events that are not in the given set of
+     * {@code signals} are added to the {@linkplain #getIncomingSignals() set of
+     * incoming signals}. That is, invalidated events produced by other signals (not
+     * in teh {@code signals} set) will have their signals rescheduled for
+     * reception.</li>
      * </ul>
      *
      * @param signalIds
@@ -1097,35 +1117,44 @@ public final class ObjectHistory<STATE> {
      *             </ul>
      */
     @Nonnull
-    SortedSet<Event<STATE>> unReceiveSignals(@Nonnull final Set<UUID> signalIds) {
+    SortedSet<Event<STATE>> removeSignals(@Nonnull final Set<UUID> signalIds) {
         Objects.requireNonNull(signalIds, "signalIds");
         synchronized (lock) {
             final Set<TimestampedId> removedEventIds;
             final SortedSet<Event<STATE>> removedEvents = events.values().stream()
                     .filter(event -> signalIds.contains(event.getCausingSignal()))
                     .collect(toCollection(() -> new TreeSet<>()));
-            final Set<UUID> cascadedRemovedSignalIds;
-            final Set<Signal<STATE>> removedSignals;
+            final Set<Signal<STATE>> unReceivedSignals;
             if (removedEvents.isEmpty()) {
                 removedEventIds = Collections.emptySet();
-                cascadedRemovedSignalIds = Collections.emptySet();
-                removedSignals = Collections.emptySet();
+                unReceivedSignals = Collections.emptySet();
             } else {
                 final var firstRemovedEvent = removedEvents.first();
                 removedEvents.addAll(events.tailMap(firstRemovedEvent.getId()).values());
                 removedEventIds = removedEvents.stream().map(event -> event.getId()).collect(toUnmodifiableSet());
-                cascadedRemovedSignalIds = new HashSet<>(removedEvents.size());
-                removedEvents.forEach(event -> cascadedRemovedSignalIds.add(event.getCausingSignal()));
-                removedSignals = cascadedRemovedSignalIds.stream().map(id -> receivedSignals.get(id))
-                        .filter(signal -> signal != null).collect(toUnmodifiableSet());
+                unReceivedSignals = removedEvents.stream().filter(e -> !signalIds.contains(e.getCausingSignal()))
+                        .map(e -> e.getCausingSignal()).map(signalId -> receivedSignals.get(signalId))
+                        .collect(toUnmodifiableSet());
             }
 
             events.keySet().removeAll(removedEventIds);
-            receivedSignals.keySet().removeAll(cascadedRemovedSignalIds);
-            removedSignals.forEach(signal -> incomingSignals.put(signal.getId(), signal));
+            receivedSignals.keySet().removeAll(signalIds);
+            incomingSignals.keySet().removeAll(signalIds);
+            unReceivedSignals.forEach(signal -> {
+                final var id = signal.getId();
+                receivedSignals.remove(id);
+                incomingSignals.put(id, signal);
+            });
 
             return removedEvents;
         } // synchronized
+    }
+
+    @Override
+    public String toString() {
+        synchronized (lock) {
+            return "ObjectHistory[" + object + " from " + start + " to " + end + ", stateHistory=" + stateHistory + "]";
+        }
     }
 
 }
