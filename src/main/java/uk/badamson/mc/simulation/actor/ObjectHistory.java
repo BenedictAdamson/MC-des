@@ -978,6 +978,70 @@ public final class ObjectHistory<STATE> {
         return timestampedStates.asFlux();
     }
 
+    /**
+     * <p>
+     * Compute the effect of receiving the next of the
+     * {@linkplain #getIncomingSignals() incoming signals}.
+     * </p>
+     * <p>
+     * The <dfn>next incoming signal<dfn> is the same as one of the
+     * {@linkplain #getIncomingSignals() incoming signals}. It is the incoming
+     * signal that has the earliest {@linkplain Signal#getWhenReceived(ValueHistory)
+     * reception time}, for the current {@linkplain #getStateHistory() state
+     * history}. In the case of ties, the {@linkplain Signal#getId() signal ID}
+     * ordering is used as a time breaker.
+     * </p>
+     * <p>
+     * Because signals could be {@linkplain #addIncomingSignal(Signal) added to the
+     * set of incoming signals} in any order, there is no guarantee that successive
+     * calls to this method will process signals in ascending
+     * {@linkplain Signal#getWhenReceived(ValueHistory) time of reception}. The
+     * <i>next incoming signal</i> could actually be received before some signals
+     * that have already been processed as {@linkplain #getReceivedSignals()
+     * received signals}: an <dfn>out of order signal</dfn>. But because the
+     * {@linkplain Signal#receive(Object) effect of receiving a signal} depends on
+     * the state of the receiver, and thus indirectly on which signals it has
+     * previously received, an <i>out of order signal</i> means that some computed
+     * {@linkplain #getEvents() events} must be invalidated (all the events
+     * subsequent to reception of the <i>out of order signal</i>). The method
+     * removes those invalid events. The signals that caused those invalidated
+     * events will have to be reprocessed. The method therefore moves the signals
+     * responsible for those invalidated events from the collection of received
+     * signals to the collection of incoming signals. Furthermore,
+     * {@linkplain Event#getSignalsEmitted() signals emitted} by those invalidated
+     * events are then no longer known to have been emitted, and their effects must
+     * also be undone. The method therefore returns a collection of those
+     * invalidated emitted signals, so the caller can perform any processing due to
+     * their invalidation.
+     * </p>
+     * <p>
+     * Thus, this method can decrease the number of {@linkplain #getEvents() events}
+     * and increase the number of incoming signals.
+     * </p>
+     * <p>
+     * The returned set of invalidated signals
+     * </p>
+     * <ul>
+     * <li>Does not have a null element.</li>
+     * <li>May be unmodifiable.
+     * <li>
+     * <li>Contains only signals that have the {@linkplain #getObject() object} of
+     * this history as their {@linkplain Signal#getSender() sender}.</li>
+     * </ul>
+     */
+    @Nonnull
+    Set<Signal<STATE>> receiveNextSignal() {
+        final var continuation = computeContinuation();
+        if (continuation == null) {
+            return Set.of();// no more signals
+        } else {
+            final var event = continuation.nextSignal.receive(continuation.state);// expensive
+            compareAndAddEvent(continuation.previousEvent, event, continuation.nextSignal);
+            // TODO handle lost data race
+            return Set.of();// TODO handle invalidated signal
+        }
+    }
+
     @Override
     public String toString() {
         synchronized (lock) {

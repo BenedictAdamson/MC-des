@@ -72,6 +72,7 @@ import org.reactivestreams.Publisher;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+import uk.badamson.dbc.assertions.CollectionTest;
 import uk.badamson.dbc.assertions.EqualsSemanticsTest;
 import uk.badamson.dbc.assertions.ObjectTest;
 import uk.badamson.dbc.assertions.ThreadSafetyTest;
@@ -1156,6 +1157,135 @@ public class ObjectHistoryTest {
         }// class
     }// class
 
+    @Nested
+    public class ReceiveNextSignal {
+
+        @Nested
+        public class First {
+            @Test
+            public void a() {
+                test(OBJECT_A, OBJECT_B, WHEN_A, WHEN_B, SIGNAL_ID_A, Integer.valueOf(0));
+            }
+
+            @Test
+            public void b() {
+                test(OBJECT_B, OBJECT_A, WHEN_B, WHEN_C, SIGNAL_ID_B, Integer.valueOf(1));
+            }
+
+            private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver, @Nonnull final Duration start,
+                    @Nonnull final Duration whenSent, @Nonnull final UUID signalId, @Nonnull final Integer state0) {
+                final var sentFrom = new TimestampedId(sender, whenSent);
+                final var signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
+                final var expectedEvent = signal.receive(state0);
+                final var expectedWhenOccurred = expectedEvent.getWhenOccurred();
+                final var expectedState = expectedEvent.getState();
+
+                final var history = new ObjectHistory<>(receiver, start, state0);
+                history.addIncomingSignal(signal);
+
+                final var invalidatedSignals = receiveNextSignal(history);
+
+                final var stateHistory = history.getStateHistory();
+                assertThat("invalidated signals", invalidatedSignals, empty());
+                assertThat("events", history.getEvents(), hasItem(expectedEvent));
+                assertAll("stateHistory", () -> assertThat("at start (unchanged)", stateHistory.get(start), is(state0)),
+                        () -> assertThat("at event.whenOccurred", stateHistory.get(expectedWhenOccurred),
+                                is(expectedState)),
+                        () -> assertThat("added transition iff state changed",
+                                stateHistory.getTransitionTimes().contains(expectedWhenOccurred)
+                                        || state0.equals(expectedState)));
+                assertThat("incomingSignals", history.getIncomingSignals(), empty());
+                assertThat("receivedSignals", history.getReceivedSignals(), hasItem(signal));
+            }
+        }// class
+
+        @Nested
+        public class Second {
+
+            @Test
+            public void a() {
+                test(WHEN_A, Integer.valueOf(0), WHEN_B);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_B, Integer.valueOf(1), WHEN_C);
+            }
+
+            private void test(@Nonnull final Duration start, @Nonnull final Integer state0,
+                    @Nonnull final Duration whenSent1) {
+                final UUID sender = OBJECT_A;
+                final UUID receiver = OBJECT_B;
+
+                final var history = new ObjectHistory<>(receiver, start, state0);
+                final var sentFrom1 = new TimestampedId(sender, whenSent1);
+                final var signal1 = new SignalTest.TestSignal(SIGNAL_ID_A, sentFrom1, receiver);
+                history.addIncomingSignal(signal1);
+                history.receiveNextSignal();
+                final Duration whenSent2 = history.getEvents().last().getWhenOccurred();// ensure order
+                final var sentFrom2 = new TimestampedId(sender, whenSent2);
+                final var signal2 = new SignalTest.TestSignal(SIGNAL_ID_B, sentFrom2, receiver);
+                history.addIncomingSignal(signal2);
+
+                final var invalidatedSignals = receiveNextSignal(history);
+
+                assertThat("invalidated signals", invalidatedSignals, empty());
+                assertThat("events", history.getEvents(), hasSize(2));
+                assertThat("incomingSignals", history.getIncomingSignals(), empty());
+                assertThat("receivedSignals", history.getReceivedSignals(), allOf(hasItem(signal1), hasItem(signal2)));
+            }
+        }// class
+
+        @Nested
+        public class Invalidating {
+
+            @Test
+            public void a() {
+                test(WHEN_A, WHEN_B, WHEN_C);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_B, WHEN_C, WHEN_D);
+            }
+
+            private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent1,
+                    @Nonnull final Duration whenSent2) {
+                assert start.compareTo(whenSent1) < 0;
+                assert whenSent1.compareTo(whenSent2) < 0;
+                final UUID sender = OBJECT_A;
+                final UUID receiver = OBJECT_B;
+                final Integer state0 = Integer.valueOf(0);
+
+                final var sentFrom1 = new TimestampedId(sender, whenSent1);
+                final var signal1 = new SignalTest.TestSignal(SIGNAL_ID_A, sentFrom1, receiver);
+                final var sentFrom2 = new TimestampedId(sender, whenSent2);
+                final var signal2 = new SignalTest.TestSignal(SIGNAL_ID_B, sentFrom2, receiver);
+
+                final var history = new ObjectHistory<>(receiver, start, state0);
+                history.addIncomingSignal(signal2);
+                history.receiveNextSignal();
+                history.addIncomingSignal(signal1);
+
+                final var invalidatedSignals = receiveNextSignal(history);
+
+                assertAll(() -> assertThat("invalidated signals", invalidatedSignals, empty()),
+                        () -> assertThat("events", history.getEvents(), hasSize(1)),
+                        () -> assertThat("incomingSignals", history.getIncomingSignals(), is(Set.of(signal2))),
+                        () -> assertThat("receivedSignals", history.getReceivedSignals(), is(Set.of(signal1))));
+            }
+        }// class
+
+        @Test
+        public void none() {
+            final var history = new ObjectHistory<>(OBJECT_A, WHEN_A, Integer.valueOf(0));
+
+            final var invalidatedSignals = receiveNextSignal(history);
+
+            assertThat("invalidated signals", invalidatedSignals, empty());
+        }
+    }// class
+
     public static class TimestampedStateTest {
 
         @Nested
@@ -1522,6 +1652,7 @@ public class ObjectHistoryTest {
     static final Duration WHEN_A = Duration.ofMillis(0);
     static final Duration WHEN_B = Duration.ofMillis(5000);
     static final Duration WHEN_C = Duration.ofMillis(7000);
+    static final Duration WHEN_D = Duration.ofMillis(13000);
     static final UUID SIGNAL_ID_A = UUID.randomUUID();
     static final UUID SIGNAL_ID_B = UUID.randomUUID();
     static final TimestampedId LAST_SIGNAL_APPLIED_A = new TimestampedId(SIGNAL_ID_A, WHEN_A);
@@ -1744,6 +1875,23 @@ public class ObjectHistoryTest {
         assertInvariants(history);
         assertNotNull(flux, "Not null, result");
         return flux;
+    }
+
+    @Nonnull
+    private static <STATE> Set<Signal<STATE>> receiveNextSignal(@Nonnull final ObjectHistory<STATE> history) {
+        final var object = history.getObject();
+
+        final var invalidatedSignals = history.receiveNextSignal();
+
+        assertInvariants(history);
+        assertThat("invalidated signals", invalidatedSignals, notNullValue());// guard
+        CollectionTest.assertForAllElements("invalidated signal", invalidatedSignals, signal -> {
+            assertThat(signal, notNullValue());// guard
+            SignalTest.assertInvariants(signal);
+            assertThat("sender is history.object", signal.getSender(), is(object));
+        });
+
+        return invalidatedSignals;
     }
 
     @Nonnull
