@@ -1200,6 +1200,47 @@ public class ObjectHistoryTest {
         }// class
 
         @Nested
+        public class Invalidating {
+
+            @Test
+            public void a() {
+                test(WHEN_A, WHEN_B, WHEN_C);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_B, WHEN_C, WHEN_D);
+            }
+
+            private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent1,
+                    @Nonnull final Duration whenSent2) {
+                assert start.compareTo(whenSent1) < 0;
+                assert whenSent1.compareTo(whenSent2) < 0;
+                final UUID sender = OBJECT_A;
+                final UUID receiver = OBJECT_B;
+                final Integer state0 = Integer.valueOf(0);
+                final boolean strobe = true;// tough test: emitted signals
+
+                final var sentFrom1 = new TimestampedId(sender, whenSent1);
+                final var signal1 = new SignalTest.TestSignal(SIGNAL_ID_A, sentFrom1, receiver, strobe);
+                final var sentFrom2 = new TimestampedId(sender, whenSent2);
+                final var signal2 = new SignalTest.TestSignal(SIGNAL_ID_B, sentFrom2, receiver, strobe);
+
+                final var history = new ObjectHistory<>(receiver, start, state0);
+                history.addIncomingSignal(signal2);
+                history.receiveNextSignal();
+                history.addIncomingSignal(signal1);
+
+                final var invalidatedSignals = receiveNextSignal(history);
+
+                assertAll(() -> assertThat("invalidated signals", invalidatedSignals, not(empty())),
+                        () -> assertThat("events", history.getEvents(), hasSize(1)),
+                        () -> assertThat("incomingSignals", history.getIncomingSignals(), is(Set.of(signal2))),
+                        () -> assertThat("receivedSignals", history.getReceivedSignals(), is(Set.of(signal1))));
+            }
+        }// class
+
+        @Nested
         public class Second {
 
             @Test
@@ -1233,46 +1274,6 @@ public class ObjectHistoryTest {
                 assertThat("events", history.getEvents(), hasSize(2));
                 assertThat("incomingSignals", history.getIncomingSignals(), empty());
                 assertThat("receivedSignals", history.getReceivedSignals(), allOf(hasItem(signal1), hasItem(signal2)));
-            }
-        }// class
-
-        @Nested
-        public class Invalidating {
-
-            @Test
-            public void a() {
-                test(WHEN_A, WHEN_B, WHEN_C);
-            }
-
-            @Test
-            public void b() {
-                test(WHEN_B, WHEN_C, WHEN_D);
-            }
-
-            private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent1,
-                    @Nonnull final Duration whenSent2) {
-                assert start.compareTo(whenSent1) < 0;
-                assert whenSent1.compareTo(whenSent2) < 0;
-                final UUID sender = OBJECT_A;
-                final UUID receiver = OBJECT_B;
-                final Integer state0 = Integer.valueOf(0);
-
-                final var sentFrom1 = new TimestampedId(sender, whenSent1);
-                final var signal1 = new SignalTest.TestSignal(SIGNAL_ID_A, sentFrom1, receiver);
-                final var sentFrom2 = new TimestampedId(sender, whenSent2);
-                final var signal2 = new SignalTest.TestSignal(SIGNAL_ID_B, sentFrom2, receiver);
-
-                final var history = new ObjectHistory<>(receiver, start, state0);
-                history.addIncomingSignal(signal2);
-                history.receiveNextSignal();
-                history.addIncomingSignal(signal1);
-
-                final var invalidatedSignals = receiveNextSignal(history);
-
-                assertAll(() -> assertThat("invalidated signals", invalidatedSignals, empty()),
-                        () -> assertThat("events", history.getEvents(), hasSize(1)),
-                        () -> assertThat("incomingSignals", history.getIncomingSignals(), is(Set.of(signal2))),
-                        () -> assertThat("receivedSignals", history.getReceivedSignals(), is(Set.of(signal1))));
             }
         }// class
 

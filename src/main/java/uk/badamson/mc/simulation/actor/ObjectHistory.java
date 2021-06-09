@@ -1036,9 +1036,10 @@ public final class ObjectHistory<STATE> {
             return Set.of();// no more signals
         } else {
             final var event = continuation.nextSignal.receive(continuation.state);// expensive
-            compareAndAddEvent(continuation.previousEvent, event, continuation.nextSignal);
+            final Set<Event<STATE>> invalidatedEvents = compareAndAddEvent(continuation.previousEvent, event,
+                    continuation.nextSignal);
             // TODO handle lost data race
-            return Set.of();// TODO handle invalidated signal
+            return invalidatedEvents.stream().flatMap(e -> e.getSignalsEmitted().stream()).collect(toUnmodifiableSet());
         }
     }
 
