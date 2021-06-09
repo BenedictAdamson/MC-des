@@ -146,7 +146,7 @@ public final class Universe<STATE> {
         final Universe<?> other = (Universe<?>) obj;
         /*
          * thread-safe because ConcurrentHashMap.equals and ObjectHistory.equals are
-         * threads-safe.
+         * thread-safe.
          */
         return objectHistories.equals(other.objectHistories);
     }
