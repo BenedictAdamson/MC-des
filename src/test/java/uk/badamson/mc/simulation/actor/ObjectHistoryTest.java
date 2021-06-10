@@ -1898,7 +1898,7 @@ public class ObjectHistoryTest {
     static final UUID OBJECT_B = UUID.randomUUID();
     static final UUID OBJECT_C = UUID.randomUUID();
 
-    private static final Duration FLUX_TIMEOUT = Duration.ofMillis(100);
+    private static final Duration FLUX_TIMEOUT = Duration.ofMillis(20);
 
     static final Duration WHEN_A = Duration.ofMillis(0);
     static final Duration WHEN_B = Duration.ofMillis(5000);
