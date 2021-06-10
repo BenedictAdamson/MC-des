@@ -1138,7 +1138,7 @@ public final class ObjectHistory<STATE> {
             removedEvents = events.values().stream().filter(event -> signalIds.contains(event.getCausingSignal()))
                     .collect(toCollection(() -> new TreeSet<>()));
             if (removedEvents.isEmpty()) {
-                receivedSignals.keySet().removeAll(signalIds);
+                assert Collections.disjoint(receivedSignals.keySet(), signalIds);
                 incomingSignals.keySet().removeAll(signalIds);
             } else {
                 final var firstRemovedEventId = removedEvents.first().getId();
