@@ -1135,30 +1135,28 @@ public final class ObjectHistory<STATE> {
         Objects.requireNonNull(signalIds, "signalIds");
         final SortedSet<Event<STATE>> removedEvents;
         synchronized (lock) {
-            final Set<TimestampedId> removedEventIds;
             removedEvents = events.values().stream().filter(event -> signalIds.contains(event.getCausingSignal()))
                     .collect(toCollection(() -> new TreeSet<>()));
-            final Set<Signal<STATE>> unReceivedSignals;
             if (removedEvents.isEmpty()) {
-                removedEventIds = Collections.emptySet();
-                unReceivedSignals = Collections.emptySet();
+                receivedSignals.keySet().removeAll(signalIds);
+                incomingSignals.keySet().removeAll(signalIds);
             } else {
-                final var firstRemovedEvent = removedEvents.first();
-                removedEvents.addAll(events.tailMap(firstRemovedEvent.getId()).values());
-                removedEventIds = removedEvents.stream().map(event -> event.getId()).collect(toUnmodifiableSet());
-                unReceivedSignals = removedEvents.stream().filter(e -> !signalIds.contains(e.getCausingSignal()))
-                        .map(e -> e.getCausingSignal()).map(signalId -> receivedSignals.get(signalId))
-                        .collect(toUnmodifiableSet());
-            }
+                final var firstRemovedEventId = removedEvents.first().getId();
+                removedEvents.addAll(events.tailMap(firstRemovedEventId).values());
+                final Set<Signal<STATE>> unReceivedSignals = removedEvents.stream()
+                        .filter(e -> !signalIds.contains(e.getCausingSignal())).map(e -> e.getCausingSignal())
+                        .map(signalId -> receivedSignals.get(signalId)).collect(toUnmodifiableSet());
 
-            events.keySet().removeAll(removedEventIds);
-            receivedSignals.keySet().removeAll(signalIds);
-            incomingSignals.keySet().removeAll(signalIds);
-            unReceivedSignals.forEach(signal -> {
-                final var id = signal.getId();
-                receivedSignals.remove(id);
-                incomingSignals.put(id, signal);
-            });
+                events.tailMap(firstRemovedEventId, true).clear();
+                receivedSignals.keySet().removeAll(signalIds);
+                incomingSignals.keySet().removeAll(signalIds);
+                unReceivedSignals.forEach(signal -> {
+                    final var id = signal.getId();
+                    receivedSignals.remove(id);
+                    incomingSignals.put(id, signal);
+                });
+            }
+            // TODO emit to timestampedStates
         } // synchronized
 
         return emittedSignalsStream(removedEvents).filter(s -> !signalIds.contains(s.getId()))
