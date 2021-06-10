@@ -1184,12 +1184,14 @@ public class ObjectHistoryTest {
                 final Medium<Integer> medium = new MediumTest.RecordingMedium<>();
                 medium.addAll(List.of(signal));
                 history.addIncomingSignal(signal);
+                final var signals0 = medium.getSignals();
 
                 receiveNextSignal(history, medium);
 
                 final var stateHistory = history.getStateHistory();
                 final var signals = medium.getSignals();
-                assertAll("transmitted signals", () -> assertThat("none invalidated", signals, hasItem(signal)),
+                final var invalidatedSignals = difference(signals0, signals);
+                assertAll("transmitted signals", () -> assertThat("none invalidated", invalidatedSignals, empty()),
                         () -> assertThat("added emitted signal", signals,
                                 hasSize(1 + expectedEvent.getSignalsEmitted().size())));
                 assertThat("events", history.getEvents(), hasItem(expectedEvent));
@@ -1243,7 +1245,8 @@ public class ObjectHistoryTest {
                 receiveNextSignal(history, medium);
 
                 final var signals = medium.getSignals();
-                assertAll(() -> assertThat("invalidated some signals", signals.size() < signals0.size()),
+                final var invalidatedSignals = difference(signals0, signals);
+                assertAll(() -> assertThat("invalidated some signals", invalidatedSignals, not(empty())),
                         () -> assertThat("events", history.getEvents(), hasSize(1)),
                         () -> assertThat("incomingSignals", history.getIncomingSignals(), is(Set.of(signal2))),
                         () -> assertThat("receivedSignals", history.getReceivedSignals(), is(Set.of(signal1))));
@@ -1285,7 +1288,8 @@ public class ObjectHistoryTest {
                 receiveNextSignal(history, medium);
 
                 final var signals = medium.getSignals();
-                assertThat("signals (none invalidated)", signals, is(signals0));
+                final var invalidatedSignals = difference(signals0, signals);
+                assertThat("invalidated signals", invalidatedSignals, empty());
                 assertThat("events", history.getEvents(), hasSize(2));
                 assertThat("incomingSignals", history.getIncomingSignals(), empty());
                 assertThat("receivedSignals", history.getReceivedSignals(), allOf(hasItem(signal1), hasItem(signal2)));
@@ -1922,6 +1926,11 @@ public class ObjectHistoryTest {
                 assertThat("signal.receiver", signal.getReceiver(), is(object));
             }
         });
+    }
+
+    @Nonnull
+    private static <T> Set<T> difference(@Nonnull final Set<T> x, @Nonnull final Set<T> y) {
+        return x.stream().filter(e -> !y.contains(e)).collect(toUnmodifiableSet());
     }
 
     public static <STATE> Publisher<Optional<STATE>> observeState(@Nonnull final ObjectHistory<STATE> history,
