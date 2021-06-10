@@ -420,8 +420,7 @@ public class ObjectHistoryTest {
                         () -> assertThat(receivedSignals, hasSize(1)));
                 assertThat("incomingSignals", incomingSignals, empty());
 
-                timestampedStatesVerifier.expectNext(expectedTimestampedState).expectTimeout(Duration.ofMillis(100))
-                        .verify();
+                timestampedStatesVerifier.expectNext(expectedTimestampedState).expectTimeout(FLUX_TIMEOUT).verify();
             }
 
         }// class
@@ -1066,7 +1065,7 @@ public class ObjectHistoryTest {
 
                 final var states = observeState(history, when);
 
-                StepVerifier.create(states).expectNext(expectedState).expectTimeout(Duration.ofMillis(100)).verify();
+                StepVerifier.create(states).expectNext(expectedState).expectTimeout(FLUX_TIMEOUT).verify();
             }
 
         }// class
@@ -1132,7 +1131,7 @@ public class ObjectHistoryTest {
 
                 final var flux = observeTimestampedStates(history);
 
-                StepVerifier.create(flux).expectTimeout(Duration.ofMillis(100)).verify();
+                StepVerifier.create(flux).expectTimeout(FLUX_TIMEOUT).verify();
             }
 
         }// class
@@ -1158,7 +1157,7 @@ public class ObjectHistoryTest {
 
                     final var flux = observeTimestampedStates(history);
 
-                    StepVerifier.create(flux).expectTimeout(Duration.ofMillis(100)).verify();
+                    StepVerifier.create(flux).expectTimeout(FLUX_TIMEOUT).verify();
                 }
 
             }// class
@@ -1213,7 +1212,7 @@ public class ObjectHistoryTest {
 
                 final var flux = observeTimestampedStates(copy);
 
-                StepVerifier.create(flux).expectTimeout(Duration.ofMillis(100)).verify();
+                StepVerifier.create(flux).expectTimeout(FLUX_TIMEOUT).verify();
             }
 
         }// class
@@ -1898,6 +1897,8 @@ public class ObjectHistoryTest {
     static final UUID OBJECT_A = UUID.randomUUID();
     static final UUID OBJECT_B = UUID.randomUUID();
     static final UUID OBJECT_C = UUID.randomUUID();
+
+    private static final Duration FLUX_TIMEOUT = Duration.ofMillis(100);
 
     static final Duration WHEN_A = Duration.ofMillis(0);
     static final Duration WHEN_B = Duration.ofMillis(5000);
