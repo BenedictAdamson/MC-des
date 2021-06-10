@@ -18,7 +18,9 @@ package uk.badamson.mc.simulation.actor;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import java.util.HashMap;
+import static java.util.stream.Collectors.toUnmodifiableList;
+
+import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -87,29 +89,12 @@ public final class Universe<STATE> {
      *            A snapshot of the history information of all the objects in the
      *            universe.
      * @throws NullPointerException
-     *             <ul>
-     *             <li>If a {@link Nonnull} argument is null.</li>
-     *             <li>If {@code objectHistories} has a null
-     *             {@linkplain Map#values() value}.</li>
-     *             <li>If {@code objectHistories} has a null
-     *             {@linkplain Map#keySet() key}.</li>
-     *             </ul>
-     * @throws IllegalArgumentException
-     *             If {@code objectHistories} has an {@linkplain Map#entrySet()
-     *             entry} for which the {@linkplain ObjectHistory#getObject()
-     *             object} of the value of the entry is not
-     *             {@linkplain UUID#equals(Object) equivalent to} the key of the
-     *             entry.
+     *             If {@code objectHistories} is null
      */
     @JsonCreator
-    public Universe(@Nonnull @JsonProperty("objectHistories") final Map<UUID, ObjectHistory<STATE>> objectHistories) {
+    public Universe(@Nonnull @JsonProperty("objectHistories") final Collection<ObjectHistory<STATE>> objectHistories) {
         Objects.requireNonNull(objectHistories, "objectHistories");
-        if (objectHistories.entrySet().stream()
-                .anyMatch(entry -> !entry.getKey().equals(entry.getValue().getObject()))) {
-            throw new IllegalArgumentException("objectHistories");
-        }
-        objectHistories.forEach(
-                (object, history) -> this.objectHistories.put(history.getObject(), new ObjectHistory<>(history)));
+        objectHistories.forEach(history -> this.objectHistories.put(history.getObject(), new ObjectHistory<>(history)));
     }
 
     /**
@@ -157,26 +142,17 @@ public final class Universe<STATE> {
      * universe.
      * </p>
      * <ul>
-     * <li>A map of an object ID to the history of the object that has that ID.</li>
-     * <li>The map will not subsequently change due to events.</li>
-     * <li>Has no null {@linkplain Map#keySet() keys}.</li>
-     * <li>Has no null {@linkplain Map#values() values}.</li>
-     * <li>Has only {@linkplain Map#entrySet() entries} for which the
-     * {@linkplain ObjectHistory#getObject() object} of the value of the entry is
-     * the same as the key of the entry.</li>
-     * <li>Has a {@linkplain Map#keySet() set of keys}
-     * {@linkplain Set#equals(Object) equivalent to} the {@linkplain #getObjects()
-     * set of object IDs}.</li>
+     * <li>The returned collection will not subsequently change due to events.</li>
+     * <li>Has no null elements.</li>
+     * <li>Has no duplicate elements.</li>
      * </ul>
      */
     @Nonnull
     @JsonProperty("objectHistories")
-    public Map<UUID, ObjectHistory<STATE>> getObjectHistories() {
-        final Map<UUID, ObjectHistory<STATE>> copy = new HashMap<>(objectHistories.size());
+    public Collection<ObjectHistory<STATE>> getObjectHistories() {
         synchronized (objectCreationLock) {// hard to test
-            objectHistories.forEach((object, history) -> copy.put(object, new ObjectHistory<>(history)));
+            return objectHistories.values().stream().map(h -> new ObjectHistory<>(h)).collect(toUnmodifiableList());
         }
-        return copy;
     }
 
     /**

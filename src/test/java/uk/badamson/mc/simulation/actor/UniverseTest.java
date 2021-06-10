@@ -22,25 +22,24 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
-import java.util.Map;
+import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 
+import uk.badamson.dbc.assertions.CollectionTest;
 import uk.badamson.dbc.assertions.EqualsSemanticsTest;
 import uk.badamson.dbc.assertions.ObjectTest;
 
@@ -68,7 +67,7 @@ public class UniverseTest {
                 private void test(@Nonnull final UUID object, @Nonnull final Duration start,
                         @Nonnull final Integer state) {
                     final var objectHistory = new ObjectHistory<>(object, start, state);
-                    final Map<UUID, ObjectHistory<Integer>> objectHistories = Map.of(object, objectHistory);
+                    final Collection<ObjectHistory<Integer>> objectHistories = List.of(objectHistory);
                     final var universe = new Universe<Integer>(objectHistories);
 
                     constructor(universe);
@@ -104,7 +103,7 @@ public class UniverseTest {
                 private void test(@Nonnull final UUID object, @Nonnull final Duration start,
                         @Nonnull final Integer state) {
                     final var objectHistory = new ObjectHistory<>(object, start, state);
-                    final Map<UUID, ObjectHistory<Integer>> objectHistories = Map.of(object, objectHistory);
+                    final Collection<ObjectHistory<Integer>> objectHistories = List.of(objectHistory);
 
                     constructor(objectHistories);
                 }
@@ -112,15 +111,14 @@ public class UniverseTest {
 
             @Test
             public void empty() {
-                constructor(Map.of());
+                constructor(List.of());
             }
 
             @Test
             public void two() {
                 final var objectHistoryA = new ObjectHistory<>(OBJECT_A, WHEN_A, Integer.valueOf(0));
                 final var objectHistoryB = new ObjectHistory<>(OBJECT_B, WHEN_B, Integer.valueOf(1));
-                final Map<UUID, ObjectHistory<Integer>> objectHistories = Map.of(OBJECT_A, objectHistoryA, OBJECT_B,
-                        objectHistoryB);
+                final Collection<ObjectHistory<Integer>> objectHistories = List.of(objectHistoryA, objectHistoryB);
 
                 constructor(objectHistories);
             }
@@ -134,8 +132,8 @@ public class UniverseTest {
                 final var state = Integer.valueOf(0);
                 final var objectHistoryA = new ObjectHistory<>(OBJECT_A, WHEN_A, state);
                 final var objectHistoryB = new ObjectHistory<>(OBJECT_B, WHEN_A, state);
-                final Map<UUID, ObjectHistory<Integer>> objectHistoriesA = Map.of(OBJECT_A, objectHistoryA);
-                final Map<UUID, ObjectHistory<Integer>> objectHistoriesB = Map.of(OBJECT_B, objectHistoryB);
+                final Collection<ObjectHistory<Integer>> objectHistoriesA = List.of(objectHistoryA);
+                final Collection<ObjectHistory<Integer>> objectHistoriesB = List.of(objectHistoryB);
                 final var universeA = new Universe<Integer>(objectHistoriesA);
                 final var universeB = new Universe<Integer>(objectHistoriesB);
 
@@ -147,8 +145,8 @@ public class UniverseTest {
             public void different_stateHistories() {
                 final var objectHistoryA = new ObjectHistory<>(OBJECT_A, WHEN_A, Integer.valueOf(0));
                 final var objectHistoryB = new ObjectHistory<>(OBJECT_A, WHEN_B, Integer.valueOf(1));
-                final Map<UUID, ObjectHistory<Integer>> objectHistoriesA = Map.of(OBJECT_A, objectHistoryA);
-                final Map<UUID, ObjectHistory<Integer>> objectHistoriesB = Map.of(OBJECT_A, objectHistoryB);
+                final Collection<ObjectHistory<Integer>> objectHistoriesA = List.of(objectHistoryA);
+                final Collection<ObjectHistory<Integer>> objectHistoriesB = List.of(objectHistoryB);
                 final var universeA = new Universe<Integer>(objectHistoriesA);
                 final var universeB = new Universe<Integer>(objectHistoriesB);
 
@@ -170,8 +168,8 @@ public class UniverseTest {
                 final var object = OBJECT_A;
                 final var objectHistoryA = new ObjectHistory<>(object, WHEN_A, Integer.valueOf(0));
                 final var objectHistoryB = new ObjectHistory<>(object, WHEN_A, Integer.valueOf(0));
-                final Map<UUID, ObjectHistory<Integer>> objectHistoriesA = Map.of(object, objectHistoryA);
-                final Map<UUID, ObjectHistory<Integer>> objectHistoriesB = Map.of(object, objectHistoryB);
+                final Collection<ObjectHistory<Integer>> objectHistoriesA = List.of(objectHistoryA);
+                final Collection<ObjectHistory<Integer>> objectHistoriesB = List.of(objectHistoryB);
                 final var universeA = new Universe<Integer>(objectHistoriesA);
                 final var universeB = new Universe<Integer>(objectHistoriesB);
 
@@ -204,22 +202,23 @@ public class UniverseTest {
 
     private static <STATE> void assertEmpty(@Nonnull final Universe<STATE> universe) {
         assertAll("empty", () -> assertThat("objects", universe.getObjects(), empty()),
-                () -> assertThat("objectHistories", universe.getObjectHistories().keySet(), empty()));
+                () -> assertThat("objectHistories", universe.getObjectHistories(), empty()));
     }
 
     public static <STATE> void assertInvariants(@Nonnull final Universe<STATE> universe) {
         ObjectTest.assertInvariants(universe);// inherited
 
         final Set<UUID> objects = universe.getObjects();
-        final Map<UUID, ObjectHistory<STATE>> objectHistories = universe.getObjectHistories();
+        final Collection<ObjectHistory<STATE>> objectHistories = universe.getObjectHistories();
 
         assertAll("Not null", () -> assertNotNull(objects, "objects"), // guard
                 () -> assertNotNull(objectHistories, "objectHistories")// guard
         );
         assertFalse(objects.stream().anyMatch(id -> id == null), "The set of object IDs does not contain a null.");
-        assertAll("objectHistories", createObjectHistoriesInvariantAssertions(objectHistories));
-        assertEquals(objects, objectHistories.keySet(),
-                "objectHistories has a set of keys equivalent to the set of object IDs");
+        CollectionTest.assertForAllElements("objectHistories", objectHistories, history -> {
+            assertThat(history, notNullValue());// guard
+            ObjectHistoryTest.assertInvariants(history);
+        });
     }
 
     public static <STATE> void assertInvariants(@Nonnull final Universe<STATE> universe1,
@@ -233,11 +232,11 @@ public class UniverseTest {
                         .equals(universe2.getObjectHistories()), "equals"));
     }
 
-    private static <STATE> void constructor(@Nonnull final Map<UUID, ObjectHistory<STATE>> objectHistories) {
+    private static <STATE> void constructor(@Nonnull final Collection<ObjectHistory<STATE>> objectHistories) {
         final var universe = new Universe<>(objectHistories);
 
         assertInvariants(universe);
-        assertThat("objectHistories", universe.getObjectHistories(), is(objectHistories));
+        assertThat("copied objectHistories", universe.getObjectHistories().containsAll(objectHistories));
     }
 
     private static <STATE> Universe<STATE> constructor(@Nonnull final Universe<STATE> that) {
@@ -252,23 +251,5 @@ public class UniverseTest {
                 () -> assertThat("objectHistories", copy.getObjectHistories(), is(that.getObjectHistories())));
 
         return copy;
-    }
-
-    private static <STATE> Stream<Executable> createObjectHistoriesInvariantAssertions(
-            @Nonnull final Map<UUID, ObjectHistory<STATE>> objectHistories) {
-        return objectHistories.entrySet().stream().map(entry -> {
-            return new Executable() {
-
-                @Override
-                public void execute() {
-                    final var object = entry.getKey();
-                    final var history = entry.getValue();
-                    assertAll("Not null", () -> assertNotNull(object, "key"), () -> assertNotNull(history, "value"));
-                    ObjectHistoryTest.assertInvariants(history);
-                    assertSame(object, history.getObject(),
-                            "Has only entries for which the object of the value of the entry is the same as the key of the entry.");
-                }
-            };
-        });
     }
 }
