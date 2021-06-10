@@ -1617,6 +1617,35 @@ public class ObjectHistoryTest {
 
         }// class
 
+        @Test
+        public void alsoRemovingAnEmittedSignal() {
+            final UUID receiver = OBJECT_A;
+            final UUID sender = OBJECT_A;
+            final UUID signalId = SIGNAL_ID_A;
+            final Duration end = WHEN_A;
+            final Duration start = end;
+            final Duration whenSent = end.plusSeconds(2);
+            final boolean strobe = true;// tough test
+            final Integer state0 = Integer.valueOf(0);
+            final Signal<Integer> signal = new SignalTest.TestSignal(signalId, new TimestampedId(sender, whenSent),
+                    receiver, strobe);
+
+            final ObjectHistory<Integer> history = new ObjectHistory<Integer>(receiver, start, state0);
+            final Medium<Integer> medium = new MediumTest.RecordingMedium<>();
+            history.addIncomingSignal(signal);
+            history.receiveNextSignal(medium);
+            final var emittedSignals = history.getEvents().last().getSignalsEmitted();
+            final var emittedSignalId = emittedSignals.iterator().next().getId();
+            final Set<UUID> signals = Set.of(signalId, emittedSignalId);
+
+            final var furtherSignals = removeSignals(history, signals);
+
+            assertAll("Removed from", () -> assertThat("receivedSignals", history.getReceivedSignals(), empty()),
+                    () -> assertThat("incomingSignals", history.getIncomingSignals(), empty()),
+                    () -> assertThat("events", history.getEvents(), empty()));
+            assertThat("further signals to remove", furtherSignals, empty());
+        }
+
         @RepeatedTest(4)
         public void multipleThreads() {
             final int nThreads = 16;

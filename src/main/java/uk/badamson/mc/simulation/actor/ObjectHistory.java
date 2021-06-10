@@ -1117,6 +1117,8 @@ public final class ObjectHistory<STATE> {
      * incoming signals}. That is, invalidated events produced by other signals (not
      * in the {@code signals} set) will have their signals rescheduled for
      * reception.</li>
+     * <li>The returned collection of removed emitted signals does not include any
+     * signals with an ID in the given collection of {@code signalIds}.</li>
      * </ul>
      *
      * @param signalIds
@@ -1159,7 +1161,8 @@ public final class ObjectHistory<STATE> {
             });
         } // synchronized
 
-        return emittedSignalsStream(removedEvents).collect(toUnmodifiableSet());
+        return emittedSignalsStream(removedEvents).filter(s -> !signalIds.contains(s.getId()))
+                .collect(toUnmodifiableSet());
     }
 
     @Override
