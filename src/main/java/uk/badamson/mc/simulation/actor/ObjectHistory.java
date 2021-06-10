@@ -1099,6 +1099,9 @@ public final class ObjectHistory<STATE> {
      * those signals caused. Doing that rolls back the
      * {@linkplain #getStateHistory() state history} and {@linkplain #getEvents()
      * events sequence} to just before the earliest of the removed received signals.
+     * Those rolled back events might themselves have
+     * {@linkplain Event#getSignalsEmitted() emitted signals}, which consequently
+     * also become invalid.
      * </p>
      * <p>
      * Post conditions:
@@ -1106,31 +1109,19 @@ public final class ObjectHistory<STATE> {
      * <ul>
      * <li>The {@linkplain #getReceivedSignals() set of received signals} does not
      * include any signals with the given {@code signalIds}.</li>
-     * <li>The {@linkplain #getIncomingSignals() set of imcoming signals} does not
+     * <li>The {@linkplain #getIncomingSignals() set of incoming signals} does not
      * include any signals with the given {@code signalIds}.</li>
-     * <li>The remaining {@linkplain #getEvents() events} of this history does not
-     * include any of the events in the returned set of removed events.</li>
-     * <li>The returned set of removed events may be {@linkplain SortedSet#isEmpty()
-     * empty}, if none of the {@code signals} were received signals or incoming
-     * signals.</li>
-     * <li>The returned set of removed events may include events in addition to
-     * events {@linkplain Event#getCausingSignal() caused} by signals with the given
-     * {@code signalIds}. Those additional removed events will be events for signals
-     * received after the given signals. Therefore, either the returned set of
-     * removed events is empty, or the first element of the set was
-     * {@linkplain Event#getCausingSignal() caused by} one of the given
-     * {@code signals}.</li>
      * <li>Any signals removed from the {@linkplain #getReceivedSignals() set of
      * received signals} because of removed events that are not in the given set of
      * {@code signals} are added to the {@linkplain #getIncomingSignals() set of
      * incoming signals}. That is, invalidated events produced by other signals (not
-     * in teh {@code signals} set) will have their signals rescheduled for
+     * in the {@code signals} set) will have their signals rescheduled for
      * reception.</li>
      * </ul>
      *
      * @param signalIds
      *            The {@linkplain Signal#getId() IDs} of the signals to remove.
-     * @return events that were removed.
+     * @return emitted signals that have become invalid.
      * @throws NullPointerException
      *             <ul>
      *             <li>If {@code signalIds} is null.</li>
@@ -1138,12 +1129,12 @@ public final class ObjectHistory<STATE> {
      *             </ul>
      */
     @Nonnull
-    SortedSet<Event<STATE>> removeSignals(@Nonnull final Set<UUID> signalIds) {
+    Set<Signal<STATE>> removeSignals(@Nonnull final Set<UUID> signalIds) {
         Objects.requireNonNull(signalIds, "signalIds");
+        final SortedSet<Event<STATE>> removedEvents;
         synchronized (lock) {
             final Set<TimestampedId> removedEventIds;
-            final SortedSet<Event<STATE>> removedEvents = events.values().stream()
-                    .filter(event -> signalIds.contains(event.getCausingSignal()))
+            removedEvents = events.values().stream().filter(event -> signalIds.contains(event.getCausingSignal()))
                     .collect(toCollection(() -> new TreeSet<>()));
             final Set<Signal<STATE>> unReceivedSignals;
             if (removedEvents.isEmpty()) {
@@ -1166,9 +1157,9 @@ public final class ObjectHistory<STATE> {
                 receivedSignals.remove(id);
                 incomingSignals.put(id, signal);
             });
-
-            return removedEvents;
         } // synchronized
+
+        return emittedSignalsStream(removedEvents).collect(toUnmodifiableSet());
     }
 
     @Override

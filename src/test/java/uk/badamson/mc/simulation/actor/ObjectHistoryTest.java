@@ -1488,7 +1488,7 @@ public class ObjectHistoryTest {
                         () -> assertThat("receivedSignals", history.getReceivedSignals(), is(receivedSignals0)),
                         () -> assertThat("incomingSignals", history.getIncomingSignals(), is(incomingSignals0)),
                         () -> assertThat("events", history.getEvents(), is(events0)));
-                assertThat("removed events", result, empty());
+                assertThat("removed emitted signals", result, empty());
             }
 
         }// class
@@ -1511,7 +1511,7 @@ public class ObjectHistoryTest {
 
                 final var removed = removeSignals(history, signals);
 
-                assertThat("removed events", removed, empty());
+                assertThat("removed emitted signals", removed, empty());
             }
 
             @Test
@@ -1540,24 +1540,23 @@ public class ObjectHistoryTest {
                 final Duration end = WHEN_A;
                 final Duration start = end;
                 final Duration whenSent = end.plusSeconds(2);
-                final Duration whenOccurred = whenSent.plusSeconds(1);
+                final boolean strobe = true;// tough test
                 final Integer state0 = Integer.valueOf(0);
-                final Integer state = Integer.valueOf(1);
                 final Signal<Integer> signal = new SignalTest.TestSignal(signalId, new TimestampedId(sender, whenSent),
-                        receiver);
-                final Event<Integer> event = new Event<Integer>(new TimestampedId(signalId, whenOccurred), receiver,
-                        state, Set.of());
+                        receiver, strobe);
 
                 final ObjectHistory<Integer> history = new ObjectHistory<Integer>(receiver, start, state0);
+                final Medium<Integer> medium = new MediumTest.RecordingMedium<>();
                 history.addIncomingSignal(signal);
-                history.compareAndAddEvent(null, event, signal);
+                history.receiveNextSignal(medium);
+                final var emittedSignals = history.getEvents().last().getSignalsEmitted();
 
-                final var result = removeSignals(history, Set.of(signalId));
+                final var removedEmittedSignals = removeSignals(history, Set.of(signalId));
 
                 assertAll("Removed from", () -> assertThat("receivedSignals", history.getReceivedSignals(), empty()),
                         () -> assertThat("incomingSignals", history.getIncomingSignals(), empty()),
                         () -> assertThat("events", history.getEvents(), empty()));
-                assertThat("removed events", result, is(Set.of(event)));
+                assertThat("removed emitted signals", removedEmittedSignals, is(emittedSignals));
             }
 
         }// class
@@ -1610,9 +1609,9 @@ public class ObjectHistoryTest {
                 final var signals = Set.of(signalId1);
                 assert !signals.contains(signalId2);
 
-                final var result = removeSignals(history, signals);
+                removeSignals(history, signals);
 
-                assertThat("removed both events", result, allOf(hasItem(event1), hasItem(event2)));
+                assertThat("removed both events", history.getEvents(), empty());
                 assertThat("rescheduled reception of signal", history.getIncomingSignals(), is(Set.of(signal2)));
             }
 
@@ -2061,9 +2060,9 @@ public class ObjectHistoryTest {
     }
 
     @Nonnull
-    private static <STATE> SortedSet<Event<STATE>> removeSignals(@Nonnull final ObjectHistory<STATE> history,
+    private static <STATE> Set<Signal<STATE>> removeSignals(@Nonnull final ObjectHistory<STATE> history,
             @Nonnull final Set<UUID> signals) {
-        final var removedEvents = history.removeSignals(signals);
+        final var removedEmittedSignals = history.removeSignals(signals);
 
         assertInvariants(history);
         final var receivedSignals = history.getReceivedSignals();
@@ -2072,22 +2071,16 @@ public class ObjectHistoryTest {
                 .collect(toUnmodifiableSet());
         final Set<UUID> incomingSignalIds = incomingSignals.stream().map(signal -> signal.getId())
                 .collect(toUnmodifiableSet());
-        final var events = history.getEvents();
-        assertThat("removedEvents", removedEvents, notNullValue());// guard
+        assertThat("removedEvents", removedEmittedSignals, notNullValue());// guard
         assertAll(
                 () -> assertThat(
                         "The set of signals received does not include signals with any of the given signal IDs.",
                         Collections.disjoint(receivedSignalIds, signals)),
                 () -> assertThat(
                         "The set of incoming signals does not include signals with any of the given signal IDs.",
-                        Collections.disjoint(incomingSignalIds, signals)),
-                () -> assertThat("The remaining events of this history does not include any of the events in "
-                        + "the returned set of removed events.", Collections.disjoint(events, removedEvents)),
-                () -> assertThat(
-                        "Either the returned set of removed events is empty, or the first element of the set was  caused by one of the given signals.",
-                        removedEvents.isEmpty() || signals.contains(removedEvents.first().getCausingSignal())));
+                        Collections.disjoint(incomingSignalIds, signals)));
 
-        return removedEvents;
+        return removedEmittedSignals;
     }
 
 }// class
