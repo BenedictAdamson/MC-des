@@ -153,6 +153,67 @@ public class ObjectHistoryTest {
     }// class
 
     @Nested
+    public class AdvanceEnd {
+
+        @Nested
+        public class NoEvents {
+
+            @Test
+            public void close() {
+                test(WHEN_A, WHEN_A.plusNanos(1));
+            }
+
+            @Test
+            public void far() {
+                test(WHEN_A, WHEN_B);
+            }
+
+            private void test(@Nonnull final Duration start, @Nonnull final Duration end) {
+                assert start.compareTo(end) < 0;
+                final UUID object = OBJECT_A;
+                final Integer state = Integer.valueOf(0);
+                final ObjectHistory<Integer> history = new ObjectHistory<Integer>(object, start, state);
+
+                advanceEnd(history, end);
+
+                assertThat("end (changed)", history.getEnd(), sameInstance(end));
+            }
+
+        }// class
+
+        @Nested
+        public class TooEarly {
+
+            @Test
+            public void close() {
+                test(WHEN_A, WHEN_A.plusNanos(1));
+            }
+
+            @Test
+            public void far() {
+                test(WHEN_A, WHEN_B);
+            }
+
+            @Test
+            public void same() {
+                test(WHEN_A, WHEN_A);
+            }
+
+            private void test(@Nonnull final Duration end, @Nonnull final Duration start) {
+                assert end.compareTo(start) <= 0;
+                final UUID object = OBJECT_A;
+                final Integer state = Integer.valueOf(0);
+                final ObjectHistory<Integer> history = new ObjectHistory<Integer>(object, start, state);
+
+                advanceEnd(history, end);
+
+                assertThat("end (no change)", history.getEnd(), sameInstance(start));
+            }
+
+        }// class
+    }// class
+
+    @Nested
     public class CommitTo {
 
         @Test
@@ -1853,6 +1914,13 @@ public class ObjectHistoryTest {
 
         assertInvariants(history);
         assertThat("incomingSignals", history.getIncomingSignals(), hasItem(signal));
+    }
+
+    private static <STATE> void advanceEnd(@Nonnull final ObjectHistory<STATE> history, @Nonnull final Duration end) {
+        history.advanceEnd(end);
+
+        assertInvariants(history);
+        assertThat("end", history.getEnd(), greaterThanOrEqualTo(end));
     }
 
     public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history) {

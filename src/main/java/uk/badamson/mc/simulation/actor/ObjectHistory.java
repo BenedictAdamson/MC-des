@@ -420,6 +420,21 @@ public final class ObjectHistory<STATE> {
 
     /**
      * <p>
+     * If the current {@linkplain #getEnd() end time} is before a given end time,
+     * advance the end time to the given end time.
+     * </p>
+     */
+    public void advanceEnd(@Nonnull final Duration end) {
+        Objects.requireNonNull(end, "end");
+        // TODO thread safety
+        if (this.end.compareTo(end) < 0) {
+            this.end = end;
+        }
+        // TODO emit timestasmpedStates
+    }
+
+    /**
+     * <p>
      * Advance the {@linkplain #getEnd() end time of reliable state information} to
      * at least a given time.
      * </p>
