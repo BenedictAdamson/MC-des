@@ -1451,22 +1451,22 @@ public class ObjectHistoryTest {
 
             @Test
             public void a() {
-                test(SIGNAL_ID_A, SIGNAL_ID_B);
+                test(SIGNAL_ID_A, SIGNAL_ID_B, Integer.valueOf(0));
             }
 
             @Test
             public void b() {
-                test(SIGNAL_ID_B, SIGNAL_ID_A);
+                test(SIGNAL_ID_B, SIGNAL_ID_A, Integer.valueOf(1));
             }
 
-            private void test(@Nonnull final UUID presentSignal, @Nonnull final UUID signalToRemove) {
+            private void test(@Nonnull final UUID presentSignal, @Nonnull final UUID signalToRemove,
+                    final Integer state0) {
                 assert !presentSignal.equals(signalToRemove);
                 final UUID receiver = OBJECT_A;
                 final UUID sender = OBJECT_B;
                 final Duration end = WHEN_A;
                 final Duration start = end;
                 final Duration whenOccurred = end.plusSeconds(1);
-                final Integer state0 = Integer.valueOf(0);
                 final Integer state = Integer.valueOf(1);
                 final Duration whenSent = whenOccurred.minusSeconds(1);
                 final Signal<Integer> signal = new SignalTest.TestSignal(presentSignal,
@@ -1498,25 +1498,27 @@ public class ObjectHistoryTest {
 
             @Test
             public void none() {
-                test(Set.of());
+                test(Set.of(), Integer.valueOf(0));
             }
 
             @Test
             public void one() {
-                test(Set.of(SIGNAL_ID_A));
+                test(Set.of(SIGNAL_ID_A), Integer.valueOf(1));
             }
 
-            private void test(@Nonnull final Set<UUID> signals) {
-                final var history = new ObjectHistory<>(OBJECT_A, WHEN_A, Integer.valueOf(0));
+            private void test(@Nonnull final Set<UUID> signals, @Nonnull final Integer state0) {
+                final var history = new ObjectHistory<>(OBJECT_A, WHEN_A, state0);
 
                 final var removed = removeSignals(history, signals);
 
                 assertThat("removed emitted signals", removed, empty());
+                StepVerifier.create(history.observeState(ValueHistory.END_OF_TIME)).expectNext(Optional.of(state0))
+                        .verifyTimeout(Duration.ofMillis(100));
             }
 
             @Test
             public void two() {
-                test(Set.of(SIGNAL_ID_A, SIGNAL_ID_B));
+                test(Set.of(SIGNAL_ID_A, SIGNAL_ID_B), Integer.valueOf(0));
             }
 
         }// class
@@ -1526,22 +1528,21 @@ public class ObjectHistoryTest {
 
             @Test
             public void a() {
-                test(SIGNAL_ID_A);
+                test(SIGNAL_ID_A, Integer.valueOf(0));
             }
 
             @Test
             public void b() {
-                test(SIGNAL_ID_B);
+                test(SIGNAL_ID_B, Integer.valueOf(1));
             }
 
-            private void test(@Nonnull final UUID signalId) {
+            private void test(@Nonnull final UUID signalId, @Nonnull final Integer state0) {
                 final UUID receiver = OBJECT_A;
                 final UUID sender = OBJECT_A;
                 final Duration end = WHEN_A;
                 final Duration start = end;
                 final Duration whenSent = end.plusSeconds(2);
                 final boolean strobe = true;// tough test
-                final Integer state0 = Integer.valueOf(0);
                 final Signal<Integer> signal = new SignalTest.TestSignal(signalId, new TimestampedId(sender, whenSent),
                         receiver, strobe);
 
@@ -1557,6 +1558,8 @@ public class ObjectHistoryTest {
                         () -> assertThat("incomingSignals", history.getIncomingSignals(), empty()),
                         () -> assertThat("events", history.getEvents(), empty()));
                 assertThat("removed emitted signals", removedEmittedSignals, is(emittedSignals));
+                StepVerifier.create(history.observeState(ValueHistory.END_OF_TIME)).expectNext(Optional.of(state0))
+                        .verifyTimeout(Duration.ofMillis(100));
             }
 
         }// class

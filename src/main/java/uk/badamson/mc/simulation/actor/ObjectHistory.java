@@ -384,6 +384,7 @@ public final class ObjectHistory<STATE> {
         final var state = event.getState();
         stateHistory.setValueFrom(event.getWhenOccurred(), state);
         events.put(event.getId(), event);
+        assert events.lastKey() == event.getId();
         receivedSignals.put(signal.getId(), signal);
         incomingSignals.remove(signal.getId());
 
@@ -1148,6 +1149,7 @@ public final class ObjectHistory<STATE> {
                         .map(signalId -> receivedSignals.get(signalId)).collect(toUnmodifiableSet());
 
                 events.tailMap(firstRemovedEventId, true).clear();
+                stateHistory.removeTransitionsFrom(firstRemovedEventId.getWhen());
                 receivedSignals.keySet().removeAll(signalIds);
                 incomingSignals.keySet().removeAll(signalIds);
                 unReceivedSignals.forEach(signal -> {
@@ -1155,8 +1157,10 @@ public final class ObjectHistory<STATE> {
                     receivedSignals.remove(id);
                     incomingSignals.put(id, signal);
                 });
+                final var status = timestampedStates.tryEmitNext(new TimestampedState<STATE>(
+                        firstRemovedEventId.getWhen(), ValueHistory.END_OF_TIME, false, stateHistory.getLastValue()));
+                assert status == EmitResult.OK;// sink is reliable
             }
-            // TODO emit to timestampedStates
         } // synchronized
 
         return emittedSignalsStream(removedEvents).filter(s -> !signalIds.contains(s.getId()))
