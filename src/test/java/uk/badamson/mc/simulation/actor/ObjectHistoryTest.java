@@ -1296,6 +1296,44 @@ public class ObjectHistoryTest {
             }
         }// class
 
+        @Nested
+        public class Simultaneous {
+
+            @Test
+            public void a() {
+                test(OBJECT_A, OBJECT_B, OBJECT_C);
+            }
+
+            @Test
+            public void b() {
+                test(OBJECT_B, OBJECT_A, OBJECT_C);
+            }
+
+            private void test(@Nonnull final UUID sender1, @Nonnull final UUID sender2, @Nonnull final UUID receiver) {
+                assert !sender1.equals(sender2);
+                assert !sender1.equals(receiver);
+                assert !sender2.equals(receiver);
+                final Duration start = WHEN_A;
+                final Duration whenSent = WHEN_B;
+                final Integer state0 = Integer.valueOf(0);
+
+                final var sentFrom1 = new TimestampedId(sender1, whenSent);
+                final var signal1 = new SignalTest.TestSignal(SIGNAL_ID_A, sentFrom1, receiver);
+                final var sentFrom2 = new TimestampedId(sender2, whenSent);
+                final var signal2 = new SignalTest.TestSignal(SIGNAL_ID_B, sentFrom2, receiver);
+
+                final var history = new ObjectHistory<>(receiver, start, state0);
+                final Medium<Integer> medium = new MediumTest.RecordingMedium<>();
+                medium.addAll(List.of(signal1, signal2));
+                history.addIncomingSignal(signal1);
+                history.receiveNextSignal(medium);
+                history.addIncomingSignal(signal2);
+
+                receiveNextSignal(history, medium);
+            }
+
+        }// class
+
         @RepeatedTest(4)
         public void multipleThreads() {
             final int nThreads = 16;
