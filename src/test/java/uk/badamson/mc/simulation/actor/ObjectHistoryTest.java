@@ -172,11 +172,15 @@ public class ObjectHistoryTest {
                 assert start.compareTo(end) < 0;
                 final UUID object = OBJECT_A;
                 final Integer state = Integer.valueOf(0);
+                final var expectTimestamppedState = new ObjectHistory.TimestampedState<Integer>(start.plusNanos(1), end,
+                        true, state);
                 final ObjectHistory<Integer> history = new ObjectHistory<Integer>(object, start, state);
+                final var timestampedStatesVerifier = StepVerifier.create(history.observeTimestampedStates());
 
                 advanceEnd(history, end);
 
                 assertThat("end (changed)", history.getEnd(), sameInstance(end));
+                timestampedStatesVerifier.expectNext(expectTimestamppedState).verifyTimeout(FLUX_TIMEOUT);
             }
 
         }// class
@@ -204,10 +208,12 @@ public class ObjectHistoryTest {
                 final UUID object = OBJECT_A;
                 final Integer state = Integer.valueOf(0);
                 final ObjectHistory<Integer> history = new ObjectHistory<Integer>(object, start, state);
+                final var timestampedStatesVerifier = StepVerifier.create(history.observeTimestampedStates());
 
                 advanceEnd(history, end);
 
                 assertThat("end (no change)", history.getEnd(), sameInstance(start));
+                timestampedStatesVerifier.expectTimeout(FLUX_TIMEOUT).verify();
             }
 
         }// class

@@ -428,9 +428,14 @@ public final class ObjectHistory<STATE> {
         Objects.requireNonNull(end, "end");
         // TODO thread safety
         if (this.end.compareTo(end) < 0) {
+            final var oldEnd = this.end;
             this.end = end;
+            final TimestampedState<STATE> timeStampedState = new TimestampedState<STATE>(oldEnd.plusNanos(1), end, true,
+                    stateHistory.getLastValue());
+            final var status = timestampedStates.tryEmitNext(timeStampedState);
+            assert status == EmitResult.OK;// sink is reliable
+            // TODO handle events
         }
-        // TODO emit timestasmpedStates
     }
 
     /**
