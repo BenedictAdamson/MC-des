@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -296,7 +297,7 @@ public final class ObjectHistory<STATE> {
      */
     @Nonnull
     @GuardedBy("lock")
-    private final SortedMap<TimestampedId, Event<STATE>> events = new TreeMap<>();
+    private final NavigableMap<TimestampedId, Event<STATE>> events = new TreeMap<>();
 
     /*
      * Maps signal ID to signal.
@@ -364,7 +365,7 @@ public final class ObjectHistory<STATE> {
     @GuardedBy("lock")
     @Nonnull
     private SortedSet<Event<STATE>> addEvent(@Nonnull final Event<STATE> event, @Nonnull final Signal<STATE> signal) {
-        final var after = events.tailMap(event.getId());
+        final var after = events.tailMap(event.getId(), true);
         final var mustInvalidate = !after.isEmpty();
         // Reduce garbage for the !mustInvalidate case
         final SortedSet<Event<STATE>> invalidatedEvents = mustInvalidate ? new TreeSet<>(after.values())
@@ -712,6 +713,17 @@ public final class ObjectHistory<STATE> {
      * start} time of this history.</li>
      * <li>The returned event sequence is a snapshot: a copy of data, it is not
      * updated if this object history is subsequently changed.</li>
+     * <li>Note that events may be <i>measured as simultaneous</a>: events can have
+     * {@linkplain Duration#equals(Object) equivalent}
+     * {@linkplain Event#getWhenOccurred() times of occurrence}. Note however, that
+     * the collection of events is {@linkplain Event#compareTo(Event) ordered by}
+     * the {@linkplain Event#getId() event IDs}, so the
+     * {@linkplain Event#getCausingSignal() ID of the causing signal} is used as a
+     * tie-breaker to produce a strict ordering. In that case, however, the state
+     * transition(s) due to some <i>measured as simultaneous</a> events will not be
+     * apparent in the {@linkplain #getStateHistory() state history}; only the
+     * <i>measured as simultaneous</a> event with the largest ID of its causing
+     * signal will have its state recorded in the state history.
      * </ul>
      *
      * @see #getStateHistory()

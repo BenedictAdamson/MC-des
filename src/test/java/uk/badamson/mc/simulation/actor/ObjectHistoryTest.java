@@ -72,6 +72,7 @@ import org.reactivestreams.Publisher;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+import uk.badamson.dbc.assertions.CollectionTest;
 import uk.badamson.dbc.assertions.EqualsSemanticsTest;
 import uk.badamson.dbc.assertions.ObjectTest;
 import uk.badamson.dbc.assertions.ThreadSafetyTest;
@@ -1289,8 +1290,12 @@ public class ObjectHistoryTest {
 
                 final var signals = medium.getSignals();
                 final var invalidatedSignals = difference(signals0, signals);
+                final var stateHistory = history.getStateHistory();
                 assertThat("invalidated signals", invalidatedSignals, empty());
                 assertThat("events", history.getEvents(), hasSize(2));
+                CollectionTest.assertForAllElements("stateHistory at when events occurred", history.getEvents(), e -> {
+                    assertThat(stateHistory.get(e.getWhenOccurred()), sameInstance(e.getState()));
+                });
                 assertThat("incomingSignals", history.getIncomingSignals(), empty());
                 assertThat("receivedSignals", history.getReceivedSignals(), allOf(hasItem(signal1), hasItem(signal2)));
             }
@@ -1301,26 +1306,27 @@ public class ObjectHistoryTest {
 
             @Test
             public void a() {
-                test(OBJECT_A, OBJECT_B, OBJECT_C);
+                test(SIGNAL_ID_A, SIGNAL_ID_B);
             }
 
             @Test
             public void b() {
-                test(OBJECT_B, OBJECT_A, OBJECT_C);
+                test(SIGNAL_ID_B, SIGNAL_ID_A);
             }
 
-            private void test(@Nonnull final UUID sender1, @Nonnull final UUID sender2, @Nonnull final UUID receiver) {
-                assert !sender1.equals(sender2);
-                assert !sender1.equals(receiver);
-                assert !sender2.equals(receiver);
+            private void test(@Nonnull final UUID signalIdA, @Nonnull final UUID signalIdB) {
+                assert !signalIdA.equals(signalIdB);
+                final UUID sender1 = OBJECT_A;
+                final UUID sender2 = OBJECT_B;
+                final UUID receiver = OBJECT_C;
                 final Duration start = WHEN_A;
                 final Duration whenSent = WHEN_B;
                 final Integer state0 = Integer.valueOf(0);
 
                 final var sentFrom1 = new TimestampedId(sender1, whenSent);
-                final var signal1 = new SignalTest.TestSignal(SIGNAL_ID_A, sentFrom1, receiver);
+                final var signal1 = new SignalTest.TestSignal(signalIdA, sentFrom1, receiver);
                 final var sentFrom2 = new TimestampedId(sender2, whenSent);
-                final var signal2 = new SignalTest.TestSignal(SIGNAL_ID_B, sentFrom2, receiver);
+                final var signal2 = new SignalTest.TestSignal(signalIdB, sentFrom2, receiver);
 
                 final var history = new ObjectHistory<>(receiver, start, state0);
                 final Medium<Integer> medium = new MediumTest.RecordingMedium<>();
@@ -1946,9 +1952,7 @@ public class ObjectHistoryTest {
                 EventTest.assertInvariants(event);
                 assertAll("event [" + event + "]",
                         () -> assertThat("event.affectedObject", event.getAffectedObject(), is(object)),
-                        () -> assertThat("event.whenOccurred", whenOccurred, greaterThan(start)),
-                        () -> assertThat("stateHistory at event.whenOccurred", stateHistory.get(whenOccurred),
-                                is(event.getState())));
+                        () -> assertThat("event.whenOccurred", whenOccurred, greaterThan(start)));
             }
         });
     }
