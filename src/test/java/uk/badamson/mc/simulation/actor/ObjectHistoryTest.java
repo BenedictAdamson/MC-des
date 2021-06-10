@@ -21,6 +21,7 @@ package uk.badamson.mc.simulation.actor;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -1323,19 +1324,75 @@ public class ObjectHistoryTest {
                 final Duration whenSent = WHEN_B;
                 final Integer state0 = Integer.valueOf(0);
 
+                final UUID firstSignal = signalIdA.compareTo(signalIdB) < 0 ? signalIdA : signalIdB;
                 final var sentFrom1 = new TimestampedId(sender1, whenSent);
-                final var signal1 = new SignalTest.TestSignal(signalIdA, sentFrom1, receiver);
                 final var sentFrom2 = new TimestampedId(sender2, whenSent);
+                final var signal1 = new SignalTest.TestSignal(signalIdA, sentFrom1, receiver);
                 final var signal2 = new SignalTest.TestSignal(signalIdB, sentFrom2, receiver);
 
                 final var history = new ObjectHistory<>(receiver, start, state0);
                 final Medium<Integer> medium = new MediumTest.RecordingMedium<>();
                 medium.addAll(List.of(signal1, signal2));
                 history.addIncomingSignal(signal1);
+                history.addIncomingSignal(signal2);
+                history.receiveNextSignal(medium);
+
+                receiveNextSignal(history, medium);
+
+                final var events = history.getEvents();
+                assertThat("events", events, hasSize(2));// guard
+                assertThat("the signal of first event is the first signal", events.first().getCausingSignal(),
+                        sameInstance(firstSignal));
+            }
+
+        }// class
+
+        @Nested
+        public class SimultaneousDistinct {
+
+            @Test
+            public void a() {
+                test(SIGNAL_ID_A, SIGNAL_ID_B);
+            }
+
+            @Test
+            public void b() {
+                test(SIGNAL_ID_B, SIGNAL_ID_A);
+            }
+
+            private void test(@Nonnull final UUID signalIdA, @Nonnull final UUID signalIdB) {
+                assert !signalIdA.equals(signalIdB);
+                final UUID sender1 = OBJECT_A;
+                final UUID sender2 = OBJECT_B;
+                final UUID receiver = OBJECT_C;
+                final Duration start = WHEN_A;
+                final Duration whenSent = WHEN_B;
+                final Integer state0 = Integer.valueOf(0);
+
+                final UUID firstSignal = signalIdA.compareTo(signalIdB) < 0 ? signalIdA : signalIdB;
+                final var sentFrom1 = new TimestampedId(sender1, whenSent);
+                final var sentFrom2 = new TimestampedId(sender2, whenSent);
+                final var signal1 = new SignalTest.TestSignal(signalIdA, sentFrom1, receiver);
+                final var signal2 = new SignalTest.TestSignal(signalIdB, sentFrom2, receiver);
+
+                final var history = new ObjectHistory<>(receiver, start, state0);
+                final Medium<Integer> medium = new MediumTest.RecordingMedium<>();
+                medium.addAll(List.of(signal1, signal2));
+                history.addIncomingSignal(signal1);
+                /*
+                 * critical: receive the first signal before adding the second signal, so the
+                 * stateHistory used for deciding when signal2 is received includes the effect
+                 * of signal1.
+                 */
                 history.receiveNextSignal(medium);
                 history.addIncomingSignal(signal2);
 
                 receiveNextSignal(history, medium);
+
+                final var events = history.getEvents();
+                assertThat("events", events, either(hasSize(2)).or(hasSize(1)));// guard
+                assertThat("the signal of first event is the first signal", events.first().getCausingSignal(),
+                        sameInstance(firstSignal));
             }
 
         }// class
