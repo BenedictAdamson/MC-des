@@ -34,6 +34,7 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -267,10 +268,15 @@ public final class ObjectHistory<STATE> {
 
     }// class
 
+    private static <STATE> Stream<Signal<STATE>> emittedSignalsStream(@Nonnull final Set<Event<STATE>> events) {
+        return events.stream().flatMap(e -> e.getSignalsEmitted().stream());
+    }
+
     @Nonnull
     private final UUID object;
     @Nonnull
     private final Duration start;
+
     /*
      * Use a UUID object as the lock so all ObjectHistory objects can have a
      * predictable lock ordering when locking two instances.
@@ -1067,8 +1073,8 @@ public final class ObjectHistory<STATE> {
             }
         } while (invalidatedEvents == null);
 
-        final Set<Signal<STATE>> invalidatedSignals = invalidatedEvents.stream()
-                .flatMap(e -> e.getSignalsEmitted().stream()).collect(toUnmodifiableSet());
+        final Set<Signal<STATE>> invalidatedSignals = emittedSignalsStream(invalidatedEvents)
+                .collect(toUnmodifiableSet());
         medium.removeAll(invalidatedSignals);
         medium.addAll(event.getSignalsEmitted());
     }
