@@ -370,14 +370,12 @@ public final class ObjectHistory<STATE> {
         final SortedSet<Event<STATE>> invalidatedEvents = mustInvalidate ? new TreeSet<>(after.values())
                 : Collections.emptySortedSet();
         if (mustInvalidate) {
-            final Set<TimestampedId> invalidatedEventIds = invalidatedEvents.stream().map(e -> e.getId())
-                    .collect(toUnmodifiableSet());
             final Set<UUID> invalidatedSignalIds = invalidatedEvents.stream().map(e -> e.getCausingSignal())
                     .collect(toUnmodifiableSet());
             final Set<Signal<STATE>> invalidatedSignals = invalidatedSignalIds.stream()
                     .map(id -> receivedSignals.get(id)).filter(s -> s != null).collect(toUnmodifiableSet());
 
-            events.keySet().removeAll(invalidatedEventIds);
+            after.clear();
             receivedSignals.keySet().removeAll(invalidatedSignalIds);
             invalidatedSignals.forEach(s -> incomingSignals.put(s.getId(), s));
         }
