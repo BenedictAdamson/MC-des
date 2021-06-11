@@ -428,8 +428,19 @@ public final class ObjectHistory<STATE> {
         if (this.end.compareTo(end) < 0) {
             final var oldEnd = this.end;
             this.end = end;
-            emitTimestampedState(oldEnd.plusNanos(1), end, true, stateHistory.getLastValue());
-            // TODO handle events
+            final SortedSet<Duration> periodStarts = new TreeSet<>();
+            final var periodStart0 = oldEnd.plusNanos(1);
+            periodStarts.add(periodStart0);
+            // TODO handle events after end
+            periodStarts.addAll(stateHistory.getTransitionTimes().tailSet(periodStart0));
+            var periodStart = periodStarts.first();
+            periodStarts.remove(periodStart);
+            for (final var t : periodStarts) {
+                final var periodEnd = t.minusNanos(1);
+                emitTimestampedState(periodStart, periodEnd, true, stateHistory.getLastValue());
+                periodStart = t;
+            }
+            emitTimestampedState(periodStart, end, true, stateHistory.getLastValue());
         }
     }
 

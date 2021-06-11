@@ -156,6 +156,51 @@ public class ObjectHistoryTest {
     public class AdvanceEnd {
 
         @Nested
+        public class Event {
+
+            @Test
+            public void a() {
+                test(WHEN_A, WHEN_B, Duration.ofSeconds(10), Integer.valueOf(0));
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_B, WHEN_C, Duration.ofSeconds(100), Integer.valueOf(1));
+            }
+
+            private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent,
+                    @Nonnull final Duration relativeEnd, @Nonnull final Integer state0) {
+                final UUID sender = OBJECT_A;
+                final UUID receiver = OBJECT_B;
+                final UUID signalId = SIGNAL_ID_A;
+                final var sentFrom = new TimestampedId(sender, whenSent);
+                final var signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
+
+                final var history = new ObjectHistory<>(receiver, start, state0);
+                final Medium<Integer> medium = new MediumTest.RecordingMedium<>();
+                medium.addAll(List.of(signal));
+                history.addIncomingSignal(signal);
+                history.receiveNextSignal(medium);
+                final var event = history.getEvents().last();
+                final var eventTime = event.getWhenOccurred();
+                final var end = eventTime.plus(relativeEnd);
+                final var eventState = event.getState();
+                final var expectTimestamppedState1 = new ObjectHistory.TimestampedState<Integer>(start.plusNanos(1),
+                        eventTime.minusNanos(1), true, state0);
+                final var expectTimestamppedState2 = new ObjectHistory.TimestampedState<Integer>(eventTime, end, true,
+                        eventState);
+                final var timestampedStatesVerifier = StepVerifier.create(history.observeTimestampedStates());
+                timestampedStatesVerifier.expectNext(expectTimestamppedState1).expectNext(expectTimestamppedState2);
+
+                advanceEnd(history, end);
+
+                assertThat("end (changed)", history.getEnd(), sameInstance(end));
+                timestampedStatesVerifier.verifyTimeout(FLUX_TIMEOUT);
+            }
+
+        }// class
+
+        @Nested
         public class NoEvents {
 
             @Test
@@ -181,51 +226,6 @@ public class ObjectHistoryTest {
 
                 assertThat("end (changed)", history.getEnd(), sameInstance(end));
                 timestampedStatesVerifier.expectNext(expectTimestamppedState).verifyTimeout(FLUX_TIMEOUT);
-            }
-
-        }// class
-
-        @Nested
-        public class Event {
-
-            @Test
-            public void a() {
-                test(WHEN_A, WHEN_B, Integer.valueOf(0));
-            }
-
-            @Test
-            public void b() {
-                test(WHEN_B, WHEN_C, Integer.valueOf(1));
-            }
-
-            private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent,
-                    @Nonnull final Integer state0) {
-                final UUID sender = OBJECT_A;
-                final UUID receiver = OBJECT_B;
-                final UUID signalId = SIGNAL_ID_A;
-                final var end = ValueHistory.END_OF_TIME;
-                final var sentFrom = new TimestampedId(sender, whenSent);
-                final var signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
-
-                final var history = new ObjectHistory<>(receiver, start, state0);
-                final Medium<Integer> medium = new MediumTest.RecordingMedium<>();
-                medium.addAll(List.of(signal));
-                history.addIncomingSignal(signal);
-                history.receiveNextSignal(medium);
-                final var event = history.getEvents().last();
-                final var eventTime = event.getWhenOccurred();
-                final var eventState = event.getState();
-                final var expectTimestamppedState1 = new ObjectHistory.TimestampedState<Integer>(start.plusNanos(1),
-                        eventTime.minusNanos(1), true, state0);
-                final var expectTimestamppedState2 = new ObjectHistory.TimestampedState<Integer>(eventTime, end, true,
-                        eventState);
-                final var timestampedStatesVerifier = StepVerifier.create(history.observeTimestampedStates());
-
-                advanceEnd(history, end);
-
-                assertThat("end (changed)", history.getEnd(), sameInstance(end));
-                timestampedStatesVerifier.expectNext(expectTimestamppedState1).expectNext(expectTimestamppedState2)
-                        .verifyTimeout(FLUX_TIMEOUT);
             }
 
         }// class
