@@ -388,9 +388,7 @@ public final class ObjectHistory<STATE> {
         receivedSignals.put(signal.getId(), signal);
         incomingSignals.remove(signal.getId());
 
-        final var status = timestampedStates.tryEmitNext(
-                new TimestampedState<STATE>(event.getWhenOccurred(), ValueHistory.END_OF_TIME, false, state));
-        assert status == EmitResult.OK;// sink is reliable
+        emitTimestampedState(event.getWhenOccurred(), ValueHistory.END_OF_TIME, false, state);
 
         return invalidatedEvents;
     }
@@ -430,10 +428,7 @@ public final class ObjectHistory<STATE> {
         if (this.end.compareTo(end) < 0) {
             final var oldEnd = this.end;
             this.end = end;
-            final TimestampedState<STATE> timeStampedState = new TimestampedState<STATE>(oldEnd.plusNanos(1), end, true,
-                    stateHistory.getLastValue());
-            final var status = timestampedStates.tryEmitNext(timeStampedState);
-            assert status == EmitResult.OK;// sink is reliable
+            emitTimestampedState(oldEnd.plusNanos(1), end, true, stateHistory.getLastValue());
             // TODO handle events
         }
     }
@@ -664,6 +659,13 @@ public final class ObjectHistory<STATE> {
                 return new Continuation<>(nextSignal, whenNextSignalReceived, previousEvent);
             }
         }
+    }
+
+    @GuardedBy("lock")
+    private void emitTimestampedState(@Nonnull final Duration start, @Nonnull final Duration end,
+            final boolean reliable, @Nullable final STATE state) {
+        final var status = timestampedStates.tryEmitNext(new TimestampedState<STATE>(start, end, reliable, state));
+        assert status == EmitResult.OK;// sink is reliable
     }
 
     /**
@@ -1177,9 +1179,8 @@ public final class ObjectHistory<STATE> {
                     receivedSignals.remove(id);
                     incomingSignals.put(id, signal);
                 });
-                final var status = timestampedStates.tryEmitNext(new TimestampedState<STATE>(
-                        firstRemovedEventId.getWhen(), ValueHistory.END_OF_TIME, false, stateHistory.getLastValue()));
-                assert status == EmitResult.OK;// sink is reliable
+                emitTimestampedState(firstRemovedEventId.getWhen(), ValueHistory.END_OF_TIME, false,
+                        stateHistory.getLastValue());
             }
         } // synchronized
 
