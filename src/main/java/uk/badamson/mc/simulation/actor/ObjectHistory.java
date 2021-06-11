@@ -141,7 +141,7 @@ public final class ObjectHistory<STATE> {
      *            that is not required.
      */
     @Immutable
-    public static final class TimestampedState<STATE> {
+    static final class TimestampedState<STATE> {
 
         @Nonnull
         private final Duration start;
@@ -1012,43 +1012,6 @@ public final class ObjectHistory<STATE> {
                         && when.compareTo(timeStamped.getEnd()) <= 0)
                 .takeUntil(timeStamped -> timeStamped.isReliable())
                 .map(timeStamped -> Optional.ofNullable(timeStamped.getState()));
-    }
-
-    /**
-     * <p>
-     * Provide a sequence of time-stamped states for the {@linkplain #getObject()
-     * simulated object}.
-     * </p>
-     * <ul>
-     * <li>Each time-stamped provides <i>complete</i> information for a state: the
-     * {@linkplain TimestampedState#getStart() start} time is the time that the
-     * simulated object, and the {@linkplain #getEnd() end} time is the last point
-     * in time before the next next state transition (or the
-     * {@linkplain ValueHistory#END_OF_TIME end of time}, if there is no following
-     * state transition).</li>
-     * <li>The sequence of time-stamped states can be infinite.</li>
-     * <li>The sequence of time-stamped states can override
-     * {@linkplain TimestampedState#isReliable() provisional} values: if there is a
-     * provisional value in the sequence, a later value may have a time range that
-     * overlaps the time range of the provisional value.</li>
-     * <li>The sequence never overrides {@linkplain TimestampedState#isReliable()
-     * reliable} values: if a value is reliable, no subsequent value will overlap
-     * the time range of the reliable value.</li>
-     * <li>The sequence of time-stamped states can be finite, if it is certain that
-     * there are no more states. That is the case if, and only if, the
-     * {@linkplain #getEnd() reliable states end time} is the
-     * {@linkplain ValueHistory#END_OF_TIME end of time}.</li>
-     * <li>The sequence of time-stamped states are not in any time order, but will
-     * tend to be in roughly ascending time order.</li>
-     * <li>The sequence of time-stamped states does not include old values; it is a
-     * <i>hot</i> observable. The publisher emits values only when there is a change
-     * to the {@linkplain #getStateHistory() state history}. In particular, it does
-     * not emit an values for a newly constructed object history.</li>
-     * </ul>
-     */
-    @Nonnull
-    public Flux<TimestampedState<STATE>> observeTimestampedStates() {
-        return timestampedStates.asFlux();
     }
 
     /**
