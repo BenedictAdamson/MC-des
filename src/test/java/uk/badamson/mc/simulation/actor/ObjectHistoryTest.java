@@ -445,6 +445,7 @@ public class ObjectHistoryTest {
             private void test(@Nonnull final UUID receiver, @Nonnull final UUID sender, @Nonnull final Duration end,
                     @Nonnull final Integer state0, @Nonnull final UUID signalId, @Nonnull final Duration whenOccurred,
                     @Nullable final Integer state) {
+                assert end.compareTo(whenOccurred) < 0;
                 final Duration start = end;
                 final Event<Integer> expectedPreviousEvent = null;
                 final Duration whenSent = whenOccurred.minusSeconds(1);
@@ -472,11 +473,7 @@ public class ObjectHistoryTest {
                         () -> assertThat(receivedSignals, hasSize(1)));
                 assertThat("incomingSignals", incomingSignals, empty());
 
-                stateVerifier.expectNext(Optional.of(state0));
-                if (!state0.equals(state)) {
-                    stateVerifier.expectNext(Optional.of(state));
-                }
-                stateVerifier.verifyTimeout(FLUX_TIMEOUT);
+                stateVerifier.expectNext(Optional.of(state)).verifyTimeout(FLUX_TIMEOUT);
 
             }
 
@@ -550,11 +547,7 @@ public class ObjectHistoryTest {
                         () -> assertThat(receivedSignals, hasSize(1)));
                 assertAll("incomingSignals", () -> assertThat(incomingSignals, hasItem(signal2)),
                         () -> assertThat(incomingSignals, hasSize(1)));
-                stateVerifier.expectNext(Optional.of(state2));
-                if (!state2.equals(state1)) {
-                    stateVerifier.expectNext(Optional.of(state1));
-                }
-                stateVerifier.verifyTimeout(FLUX_TIMEOUT);
+                stateVerifier.expectNext(Optional.of(state1)).verifyTimeout(FLUX_TIMEOUT);
             }
 
         }// class
@@ -603,6 +596,7 @@ public class ObjectHistoryTest {
                         state2, Set.of());
 
                 final ObjectHistory<Integer> history = new ObjectHistory<Integer>(receiver, start, state0);
+                final var stateVerifier = StepVerifier.create(history.observeState(whenOccurred2));
                 history.addIncomingSignal(signal1);
                 history.compareAndAddEvent(expectedPreviousEvent1, event1, signal1);
                 history.addIncomingSignal(signal2);
@@ -621,6 +615,8 @@ public class ObjectHistoryTest {
                                 allOf(hasItem(whenOccurred1), hasItem(whenOccurred2))));
                 assertThat("receivedSignals", receivedSignals, allOf(hasItem(signal1), hasItem(signal2)));
                 assertThat("incomingSignals", incomingSignals, empty());
+
+                stateVerifier.expectNext(Optional.of(state2)).verifyTimeout(FLUX_TIMEOUT);
             }
 
         }// class
@@ -1184,8 +1180,7 @@ public class ObjectHistoryTest {
                 assertThat("incomingSignals", history.getIncomingSignals(), empty());
                 assertThat("receivedSignals", history.getReceivedSignals(), hasItem(signal));
 
-                stateVerifier.expectNext(Optional.of(state0)).expectNext(Optional.of(expectedState))
-                        .verifyTimeout(FLUX_TIMEOUT);
+                stateVerifier.expectNext(Optional.of(expectedState)).verifyTimeout(FLUX_TIMEOUT);
             }
         }// class
 
@@ -1533,7 +1528,6 @@ public class ObjectHistoryTest {
                 history.receiveNextSignal(medium);
                 final var event = history.getEvents().last();
                 final var emittedSignals = event.getSignalsEmitted();
-                final var state1 = event.getState();
                 final var eventTime = event.getWhenOccurred();
                 final var stateVerifier = StepVerifier.create(history.observeState(eventTime));
 
@@ -1543,8 +1537,7 @@ public class ObjectHistoryTest {
                         () -> assertThat("incomingSignals", history.getIncomingSignals(), empty()),
                         () -> assertThat("events", history.getEvents(), empty()));
                 assertThat("removed emitted signals", removedEmittedSignals, is(emittedSignals));
-                stateVerifier.expectNext(Optional.of(state1)).expectNext(Optional.of(state0))
-                        .verifyTimeout(FLUX_TIMEOUT);
+                stateVerifier.expectNext(Optional.of(state0)).verifyTimeout(FLUX_TIMEOUT);
             }
 
         }// class

@@ -22,9 +22,11 @@ import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Objects;
@@ -41,6 +43,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.NotThreadSafe;
 import javax.annotation.concurrent.ThreadSafe;
 
 import org.reactivestreams.Publisher;
@@ -48,7 +51,6 @@ import org.reactivestreams.Publisher;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.EmitResult;
@@ -126,6 +128,16 @@ public final class ObjectHistory<STATE> {
                     + "@" + whenNextSignalReceived + "]";
         }
 
+    }// class
+
+    @NotThreadSafe
+    private static class StatePublisher<STATE> {
+        final Sinks.Many<Optional<STATE>> sink = Sinks.many().replay().latest();
+        int nSubscribers;
+
+        StatePublisher(@Nullable final STATE state) {
+            sink.tryEmitNext(Optional.ofNullable(state));
+        }
     }// class
 
     /**
@@ -313,7 +325,13 @@ public final class ObjectHistory<STATE> {
     @GuardedBy("lock")
     private final Map<UUID, Signal<STATE>> receivedSignals = new HashMap<>();
 
-    private final Sinks.Many<TimestampedState<STATE>> timestampedStates = Sinks.many().replay().latest();
+    /*
+     * Maps point-in-time to the publisher for the state information for that point
+     * in time.
+     */
+    @Nonnull
+    @GuardedBy("lock")
+    private final NavigableMap<Duration, StatePublisher<STATE>> statePublishers = new TreeMap<>();
 
     /**
      * <p>
@@ -387,8 +405,7 @@ public final class ObjectHistory<STATE> {
         assert events.lastKey() == event.getId();
         receivedSignals.put(signal.getId(), signal);
         incomingSignals.remove(signal.getId());
-
-        emitTimestampedState(event.getWhenOccurred(), ValueHistory.END_OF_TIME, false, state);
+        publishState(event.getWhenOccurred(), state);
 
         return invalidatedEvents;
     }
@@ -426,21 +443,23 @@ public final class ObjectHistory<STATE> {
         Objects.requireNonNull(end, "end");
         // TODO thread safety
         if (this.end.compareTo(end) < 0) {
-            final var oldEnd = this.end;
             this.end = end;
-            final SortedSet<Duration> periodStarts = new TreeSet<>();
-            final var periodStart0 = oldEnd.plusNanos(1);
-            periodStarts.add(periodStart0);
-            // TODO handle events after end
-            periodStarts.addAll(stateHistory.getTransitionTimes().tailSet(periodStart0));
-            var periodStart = periodStarts.first();
-            periodStarts.remove(periodStart);
-            for (final var t : periodStarts) {
-                final var periodEnd = t.minusNanos(1);
-                emitTimestampedState(periodStart, periodEnd, true, stateHistory.getLastValue());
-                periodStart = t;
+            final Map<Duration, StatePublisher<STATE>> completingEntries = statePublishers.headMap(end, true);
+            final Collection<StatePublisher<STATE>> completingPublishers = List.copyOf(completingEntries.values());
+            completingEntries.clear();
+            for (final var publisher : completingPublishers) {
+                final var status = publisher.sink.tryEmitComplete();
+                assert status == Sinks.EmitResult.OK;// publisher is reliable
             }
-            emitTimestampedState(periodStart, end, true, stateHistory.getLastValue());
+        }
+    }
+
+    private void cancelStateObserver(@Nonnull final Duration when) {
+        synchronized (lock) {
+            final var publisher = statePublishers.get(when);
+            if (--publisher.nSubscribers <= 0) {
+                statePublishers.remove(when);
+            }
         }
     }
 
@@ -597,11 +616,19 @@ public final class ObjectHistory<STATE> {
     }
 
     private void completeTimestampedStatesIfNoMoreHistory() {
-        if (this.end.equals(ValueHistory.END_OF_TIME)) {
-            // No further states are possible.
-            final var result = timestampedStates.tryEmitComplete();
-            // The sink is reliable; it should always successfully complete.
-            assert result == EmitResult.OK;
+        Collection<StatePublisher<STATE>> publishers = null;
+        synchronized (lock) {
+            if (this.end.equals(ValueHistory.END_OF_TIME)) {// no more states
+                publishers = List.copyOf(statePublishers.values());
+                statePublishers.clear();
+            }
+        }
+        if (publishers != null) {// tell the subscribers
+            for (final var publisher : publishers) {
+                final var result = publisher.sink.tryEmitComplete();
+                // The sink is reliable; it should always successfully complete.
+                assert result == EmitResult.OK;
+            }
         }
     }
 
@@ -670,13 +697,6 @@ public final class ObjectHistory<STATE> {
                 return new Continuation<>(nextSignal, whenNextSignalReceived, previousEvent);
             }
         }
-    }
-
-    @GuardedBy("lock")
-    private void emitTimestampedState(@Nonnull final Duration start, @Nonnull final Duration end,
-            final boolean reliable, @Nullable final STATE state) {
-        final var status = timestampedStates.tryEmitNext(new TimestampedState<STATE>(start, end, reliable, state));
-        assert status == EmitResult.OK;// sink is reliable
     }
 
     /**
@@ -967,6 +987,9 @@ public final class ObjectHistory<STATE> {
      * <i>provisional</i> values for the state at the given point in time. These
      * provisional values will typically be approximations of the correct value,
      * with successive values typically being closer to the correct value.</li>
+     * <li>Subscribers are not guaranteed to receive all the <i>provisional</i>
+     * values; concurrency effects may mean that some <i>provisional</i> values are
+     * lost.</li>
      * <li>The sequence of states does not contain successive duplicates.</li>
      * <li>The sequence rapidly publishes the first state of the sequence.</li>
      * <li>The time between publication of the last state of the sequence and
@@ -995,23 +1018,25 @@ public final class ObjectHistory<STATE> {
     public Publisher<Optional<STATE>> observeState(@Nonnull final Duration when) {
         Objects.requireNonNull(when, "when");
         synchronized (lock) {// hard to test
-            final var observeStateFromStateHistory = Mono.just(Optional.ofNullable(stateHistory.get(when)));
+            final var state = stateHistory.get(when);
+            final var observeStateFromStateHistory = Mono.just(Optional.ofNullable(state));
             if (when.compareTo(end) <= 0) {
                 return observeStateFromStateHistory;
             } else {
-                return Flux.concat(observeStateFromStateHistory, observeStateFromStateTransitions(when))
-                        .distinctUntilChanged();
+                final var publisher = statePublishers.computeIfAbsent(when, p -> new StatePublisher<>(state));
+                publisher.nSubscribers++;
+                return publisher.sink.asFlux().distinctUntilChanged().doOnCancel(() -> cancelStateObserver(when));
             }
         }
     }
 
-    private Flux<Optional<STATE>> observeStateFromStateTransitions(@Nonnull final Duration when) {
-        Objects.requireNonNull(when, "when");
-        return timestampedStates.asFlux()
-                .filter(timeStamped -> timeStamped.getStart().compareTo(when) <= 0
-                        && when.compareTo(timeStamped.getEnd()) <= 0)
-                .takeUntil(timeStamped -> timeStamped.isReliable())
-                .map(timeStamped -> Optional.ofNullable(timeStamped.getState()));
+    @GuardedBy("lock")
+    private void publishState(@Nonnull final Duration when, @Nullable final STATE state) {
+        final Optional<STATE> publishedValue = Optional.ofNullable(state);
+        for (final var publisher : statePublishers.tailMap(when).values()) {
+            final var status = publisher.sink.tryEmitNext(publishedValue);
+            assert status == Sinks.EmitResult.OK;// publisher is reliable
+        }
     }
 
     /**
@@ -1153,8 +1178,18 @@ public final class ObjectHistory<STATE> {
                     receivedSignals.remove(id);
                     incomingSignals.put(id, signal);
                 });
-                emitTimestampedState(firstRemovedEventId.getWhen(), ValueHistory.END_OF_TIME, false,
-                        stateHistory.getLastValue());
+
+                final Duration lastStateTime;
+                final STATE lastState;
+                if (!events.isEmpty()) {
+                    final var lastEvent = events.lastEntry().getValue();
+                    lastStateTime = lastEvent.getWhenOccurred();
+                    lastState = lastEvent.getState();
+                } else {
+                    lastStateTime = end;
+                    lastState = stateHistory.getLastValue();
+                }
+                publishState(lastStateTime, lastState);
             }
         } // synchronized
 
