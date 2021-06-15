@@ -74,6 +74,10 @@ public class MediumTest {
         });
     }
 
+    static <STATE> void assertInvariants(@Nonnull final Medium<STATE> medium1, @Nonnull final Medium<STATE> medium2) {
+        // Do nothing
+    }
+
     static <STATE> void removeAll(@Nonnull final Medium<STATE> medium,
             @Nonnull final Collection<Signal<STATE>> signals) {
         final Set<Signal<STATE>> mediumSignals0 = medium.getSignals();

@@ -56,7 +56,30 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @ThreadSafe
 public final class Universe<STATE> {
 
+    final class SchedulingMedium implements Medium<STATE> {
+
+        @Override
+        public void addAll(final Collection<Signal<STATE>> signals) {
+            // TODO Auto-generated method stub
+
+        }
+
+        @Override
+        public Set<Signal<STATE>> getSignals() {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public void removeAll(final Collection<Signal<STATE>> signals) {
+            // TODO Auto-generated method stub
+
+        }
+
+    }// class
+
     private final Map<UUID, ObjectHistory<STATE>> objectHistories = new ConcurrentHashMap<>();
+
     /*
      * Adding entries to the objectHistories Map is guarded by this lock.
      */

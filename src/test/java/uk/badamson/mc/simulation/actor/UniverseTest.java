@@ -188,6 +188,34 @@ public class UniverseTest {
 
     }// class
 
+    public static class SchedulingMediumTest {
+
+        static <STATE> void addAll(@Nonnull final Universe<STATE>.SchedulingMedium medium,
+                @Nonnull final Collection<Signal<STATE>> signals) {
+            MediumTest.addAll(medium, signals);// inherited
+
+            assertInvariants(medium);
+        }
+
+        static <STATE> void assertInvariants(@Nonnull final Universe<STATE>.SchedulingMedium medium) {
+            ObjectTest.assertInvariants(medium);// inherited
+            MediumTest.assertInvariants(medium);// inherited
+        }
+
+        static <STATE> void assertInvariants(@Nonnull final Universe<STATE>.SchedulingMedium medium1,
+                @Nonnull final Universe<STATE>.SchedulingMedium medium2) {
+            ObjectTest.assertInvariants(medium1, medium2);// inherited
+            MediumTest.assertInvariants(medium1, medium2);// inherited
+        }
+
+        static <STATE> void removeAll(@Nonnull final Universe<STATE>.SchedulingMedium medium,
+                @Nonnull final Collection<Signal<STATE>> signals) {
+            MediumTest.removeAll(medium, signals);// inherited
+
+            assertInvariants(medium);
+        }
+    }// class
+
     static final UUID OBJECT_A = ObjectHistoryTest.OBJECT_A;
 
     static final UUID OBJECT_B = ObjectHistoryTest.OBJECT_B;
