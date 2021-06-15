@@ -42,6 +42,7 @@ import org.junit.jupiter.api.Test;
 import uk.badamson.dbc.assertions.CollectionTest;
 import uk.badamson.dbc.assertions.EqualsSemanticsTest;
 import uk.badamson.dbc.assertions.ObjectTest;
+import uk.badamson.mc.simulation.TimestampedId;
 
 public class UniverseTest {
 
@@ -188,6 +189,80 @@ public class UniverseTest {
 
     }// class
 
+    @Nested
+    public class CreateMedium {
+
+        @Nested
+        public class OneIncomingSignal {
+
+            @Test
+            public void a() {
+                test(OBJECT_A, OBJECT_B, SIGNAL_A, WHEN_A, WHEN_B);
+            }
+
+            @Test
+            public void b() {
+                test(OBJECT_B, OBJECT_C, SIGNAL_B, WHEN_B, WHEN_C);
+            }
+
+            private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver, @Nonnull final UUID signalId,
+                    @Nonnull final Duration start, @Nonnull final Duration whenSet) {
+                final Integer state0 = Integer.valueOf(0);
+                final var history = new ObjectHistory<>(receiver, start, state0);
+                final TimestampedId sentFrom = new TimestampedId(sender, whenSet);
+                final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
+                history.addIncomingSignal(signal);
+                final Universe<Integer> universe = new Universe<Integer>(List.of(history));
+                assert !history.getIncomingSignals().isEmpty();
+
+                final var medium = createMedium(universe);
+
+                assertThat("signals", medium.getSignals(), is(Set.of(signal)));
+            }
+        }// class
+
+        @Nested
+        public class OneReceivedSignal {
+
+            @Test
+            public void a() {
+                test(OBJECT_A, OBJECT_B, SIGNAL_A, WHEN_A, WHEN_B);
+            }
+
+            @Test
+            public void b() {
+                test(OBJECT_B, OBJECT_C, SIGNAL_B, WHEN_B, WHEN_C);
+            }
+
+            private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver, @Nonnull final UUID signalId,
+                    @Nonnull final Duration start, @Nonnull final Duration whenSet) {
+                final Integer state0 = Integer.valueOf(0);
+                final var history = new ObjectHistory<>(receiver, start, state0);
+                final TimestampedId sentFrom = new TimestampedId(sender, whenSet);
+                final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
+                history.addIncomingSignal(signal);
+                final Universe<Integer> universe = new Universe<Integer>(List.of(history));
+                final var medium0 = universe.createMedium();
+                history.receiveNextSignal(medium0);
+                assert !history.getReceivedSignals().isEmpty();
+
+                final var medium = createMedium(universe);
+
+                assertThat("signals", medium.getSignals(), is(Set.of(signal)));
+            }
+        }// class
+
+        @Test
+        public void noObjects() {
+            final var universe = new Universe<Integer>();
+
+            final var medium = createMedium(universe);
+
+            assertThat("signals", medium.getSignals(), empty());
+        }
+
+    }// class
+
     public static class SchedulingMediumTest {
 
         static <STATE> void addAll(@Nonnull final Universe<STATE>.SchedulingMedium medium,
@@ -200,6 +275,12 @@ public class UniverseTest {
         static <STATE> void assertInvariants(@Nonnull final Universe<STATE>.SchedulingMedium medium) {
             ObjectTest.assertInvariants(medium);// inherited
             MediumTest.assertInvariants(medium);// inherited
+
+            final var signals = medium.getSignals();
+            CollectionTest.assertForAllElements(medium.getUniverse().getObjectHistories(), history -> {
+                assertThat("signals contains the received and incoming signals of all the object histories",
+                        signals.containsAll(history.getReceivedAndIncomingSignals()));
+            });
         }
 
         static <STATE> void assertInvariants(@Nonnull final Universe<STATE>.SchedulingMedium medium1,
@@ -227,6 +308,10 @@ public class UniverseTest {
     static final Duration WHEN_B = ObjectHistoryTest.WHEN_B;
 
     static final Duration WHEN_C = ObjectHistoryTest.WHEN_C;
+
+    private static final UUID SIGNAL_A = SignalTest.ID_A;
+
+    private static final UUID SIGNAL_B = SignalTest.ID_B;
 
     private static <STATE> void assertEmpty(@Nonnull final Universe<STATE> universe) {
         assertAll("empty", () -> assertThat("objects", universe.getObjects(), empty()),
@@ -279,5 +364,16 @@ public class UniverseTest {
                 () -> assertThat("objectHistories", copy.getObjectHistories(), is(that.getObjectHistories())));
 
         return copy;
+    }
+
+    @Nonnull
+    private static <STATE> Universe<STATE>.SchedulingMedium createMedium(@Nonnull final Universe<STATE> universe) {
+        final var medium = universe.createMedium();
+
+        assertInvariants(universe);
+        assertThat("result", medium, notNullValue());// guard
+        SchedulingMediumTest.assertInvariants(medium);
+
+        return medium;
     }
 }

@@ -19,6 +19,7 @@ package uk.badamson.mc.simulation.actor;
  */
 
 import static java.util.stream.Collectors.toUnmodifiableList;
+import static java.util.stream.Collectors.toUnmodifiableSet;
 
 import java.util.Collection;
 import java.util.Map;
@@ -64,10 +65,23 @@ public final class Universe<STATE> {
 
         }
 
+        /**
+         * {@inheritDoc}
+         *
+         * <p>
+         * All the {@linkplain ObjectHistory#getReceivedAndIncomingSignals() received
+         * and incoming signals} in the {@linkplain Universe#getObjectHistories() object
+         * histories} of the {@linkplain #getUniverse() universe} of this medium.
+         * </p>
+         */
         @Override
         public Set<Signal<STATE>> getSignals() {
-            // TODO Auto-generated method stub
-            return null;
+            return getUniverse().getObjectHistories().stream()
+                    .flatMap(history -> history.getReceivedAndIncomingSignals().stream()).collect(toUnmodifiableSet());
+        }
+
+        Universe<STATE> getUniverse() {
+            return Universe.this;
         }
 
         @Override
@@ -131,6 +145,11 @@ public final class Universe<STATE> {
             that.objectHistories
                     .forEach((object, history) -> objectHistories.put(object, new ObjectHistory<>(history)));
         }
+    }
+
+    @Nonnull
+    SchedulingMedium createMedium() {
+        return new SchedulingMedium();
     }
 
     /**
