@@ -265,6 +265,44 @@ public class UniverseTest {
 
     public static class SchedulingMediumTest {
 
+        @Nested
+        public class AddAll {
+
+            @Nested
+            public class One {
+                @Test
+                public void a() {
+                    test(OBJECT_A, OBJECT_B, SIGNAL_A, WHEN_A, WHEN_B);
+                }
+
+                @Test
+                public void b() {
+                    test(OBJECT_B, OBJECT_C, SIGNAL_B, WHEN_B, WHEN_C);
+                }
+
+                private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver,
+                        @Nonnull final UUID signalId, @Nonnull final Duration start, @Nonnull final Duration whenSet) {
+                    final Integer state0 = Integer.valueOf(0);
+                    final var history0 = new ObjectHistory<>(receiver, start, state0);
+                    final TimestampedId sentFrom = new TimestampedId(sender, whenSet);
+                    final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
+                    final Universe<Integer> universe = new Universe<Integer>(List.of(history0));
+                    final var medium = universe.createMedium();
+                    final var signals = Set.of(signal);
+
+                    addAll(medium, signals);
+
+                    ObjectHistoryTest.assertInvariants(history0);
+                    UniverseTest.assertInvariants(universe);
+                    assertInvariants(medium);
+                    assertAll(() -> assertThat("signals", medium.getSignals(), is(signals)),
+                            () -> assertThat("receiver incomingSignals",
+                                    universe.getObjectHistory(receiver).getIncomingSignals(), is(signals)));
+                }
+            }// class
+
+        }// class
+
         static <STATE> void addAll(@Nonnull final Universe<STATE>.SchedulingMedium medium,
                 @Nonnull final Collection<Signal<STATE>> signals) {
             MediumTest.addAll(medium, signals);// inherited

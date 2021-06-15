@@ -59,10 +59,30 @@ public final class Universe<STATE> {
 
     final class SchedulingMedium implements Medium<STATE> {
 
+        /**
+         * {@inheritDoc}
+         *
+         * <p>
+         * Furthermore, for this type, Adds the signals to the
+         * {@linkplain Universe#getObjectHistories() object histories} of the
+         * {@linkplain #getUniverse() universe}, as
+         * {@linkplain ObjectHistory#getIncomingSignals() incoming signals} of their
+         * {@linkplain Signal#getReceiver() receivers}
+         * </p>
+         */
         @Override
-        public void addAll(final Collection<Signal<STATE>> signals) {
-            // TODO Auto-generated method stub
-
+        public void addAll(@Nonnull final Collection<Signal<STATE>> signals) {
+            Objects.requireNonNull(signals, "signals");
+            for (final var signal : signals) {
+                Objects.requireNonNull(signal, "signal");
+                final var receiver = signal.getReceiver();
+                final var history = objectHistories.get(receiver);
+                if (history == null) {
+                    throw new IllegalStateException("unknown receiver for " + signal);
+                }
+                history.addIncomingSignal(signal);
+                // TODO schedule processing of the added signal
+            } // for
         }
 
         /**
