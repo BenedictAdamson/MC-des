@@ -29,6 +29,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -207,6 +208,7 @@ public final class Universe<STATE> {
      * <li>The returned collection will not subsequently change due to events.</li>
      * <li>Has no null elements.</li>
      * <li>Has no duplicate elements.</li>
+     * <li>May be unmodifiable.</li>
      * </ul>
      */
     @Nonnull
@@ -215,6 +217,27 @@ public final class Universe<STATE> {
         synchronized (objectCreationLock) {// hard to test
             return objectHistories.values().stream().map(h -> new ObjectHistory<>(h)).collect(toUnmodifiableList());
         }
+    }
+
+    /**
+     * <p>
+     * Get a snapshot of the history information of one object in this universe.
+     * </p>
+     * <ul>
+     * <li>Returns null if, and only if, {@code object} is not the
+     * {@linkplain #getObjects() ID} of an object in this universe.</li>
+     * <li>If returns a (non null) object history, the
+     * {@linkplain ObjectHistory#getObject() object ID} of that object history will
+     * be {@linkplain UUID#equals(Object) equivalent to} the given {@code object}
+     * ID.</li>
+     * <li>The returned history will not subsequently change due to events.</li>
+     * </ul>
+     */
+    @Nullable
+    public ObjectHistory<STATE> getObjectHistory(@Nonnull final UUID object) {
+        Objects.requireNonNull(object, "object");
+        final var history = objectHistories.get(object);
+        return history == null ? null : new ObjectHistory<>(history);
     }
 
     /**

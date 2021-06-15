@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -263,6 +264,45 @@ public class UniverseTest {
 
     }// class
 
+    @Nested
+    public class GetObjectHistory {
+
+        @Nested
+        public class Present {
+
+            @Test
+            public void a() {
+                test(OBJECT_A);
+            }
+
+            @Test
+            public void b() {
+                test(OBJECT_B);
+            }
+
+            private void test(@Nonnull final UUID object) {
+                final Duration start = WHEN_A;
+                final Integer state = Integer.valueOf(0);
+                final var objectHistory0 = new ObjectHistory<>(object, start, state);
+                final var universe = new Universe<>(List.of(objectHistory0));
+
+                final var objectHistory = getObjectHistory(universe, object);
+
+                assertThat("objectHistory", objectHistory, is(objectHistory0));
+            }
+
+        }// class
+
+        @Test
+        public void absent() {
+            final var universe = new Universe<Integer>();
+
+            final var objectHistory = getObjectHistory(universe, OBJECT_A);
+
+            assertThat("objectHistory", objectHistory, nullValue());
+        }
+    }// class
+
     public static class SchedulingMediumTest {
 
         @Nested
@@ -387,7 +427,7 @@ public class UniverseTest {
         final var universe = new Universe<>(objectHistories);
 
         assertInvariants(universe);
-        assertThat("copied objectHistories", universe.getObjectHistories().containsAll(objectHistories));
+        assertThat("copied objectHistories", Set.of(universe.getObjectHistories()), is(Set.of(objectHistories)));
     }
 
     private static <STATE> Universe<STATE> constructor(@Nonnull final Universe<STATE> that) {
@@ -413,5 +453,20 @@ public class UniverseTest {
         SchedulingMediumTest.assertInvariants(medium);
 
         return medium;
+    }
+
+    private static <STATE> ObjectHistory<STATE> getObjectHistory(@Nonnull final Universe<STATE> universe,
+            @Nonnull final UUID object) {
+        final var objectHistory = universe.getObjectHistory(object);
+
+        assertInvariants(universe);
+        assertThat("Returns null if, and only if, object is not the ID of an object in this universe",
+                objectHistory == null == !universe.getObjects().contains(object));
+        if (objectHistory != null) {
+            ObjectHistoryTest.assertInvariants(objectHistory);
+            assertThat("objectHistory.object", objectHistory.getObject(), is(object));
+        }
+
+        return objectHistory;
     }
 }
