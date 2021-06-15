@@ -924,22 +924,87 @@ public class ObjectHistoryTest {
         @Nested
         public class Copy {
 
-            @Test
-            public void a() {
-                test(OBJECT_A, WHEN_A, Integer.valueOf(0));
-            }
+            @Nested
+            public class IncomingSignal {
 
-            @Test
-            public void b() {
-                test(OBJECT_B, WHEN_B, Integer.valueOf(1));
-            }
+                @Test
+                public void a() {
+                    test(OBJECT_A, OBJECT_B, SIGNAL_ID_A, WHEN_A, WHEN_B);
+                }
 
-            private <STATE> void test(@Nonnull final UUID object, @Nonnull final Duration start,
-                    @Nonnull final STATE state) {
-                final var history = new ObjectHistory<>(object, start, state);
+                @Test
+                public void b() {
+                    test(OBJECT_B, OBJECT_C, SIGNAL_ID_B, WHEN_B, WHEN_C);
+                }
 
-                constructor(history);
-            }
+                private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver,
+                        @Nonnull final UUID signalId, @Nonnull final Duration start, @Nonnull final Duration whenSet) {
+                    final Integer state0 = Integer.valueOf(0);
+                    final var history = new ObjectHistory<>(receiver, start, state0);
+                    final TimestampedId sentFrom = new TimestampedId(sender, whenSet);
+                    final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
+                    history.addIncomingSignal(signal);
+                    assert !history.getIncomingSignals().isEmpty();
+
+                    final var copy = constructor(history);
+
+                    assertThat("incomingSignals", copy.getIncomingSignals(), is(Set.of(signal)));
+                }
+
+            }// class
+
+            @Nested
+            public class NoSignalsNoEvents {
+
+                @Test
+                public void a() {
+                    test(OBJECT_A, WHEN_A, Integer.valueOf(0));
+                }
+
+                @Test
+                public void b() {
+                    test(OBJECT_B, WHEN_B, Integer.valueOf(1));
+                }
+
+                private <STATE> void test(@Nonnull final UUID object, @Nonnull final Duration start,
+                        @Nonnull final STATE state) {
+                    final var history = new ObjectHistory<>(object, start, state);
+
+                    constructor(history);
+                }
+
+            }// class
+
+            @Nested
+            public class ReceivedSignal {
+
+                @Test
+                public void a() {
+                    test(OBJECT_A, OBJECT_B, SIGNAL_ID_A, WHEN_A, WHEN_B);
+                }
+
+                @Test
+                public void b() {
+                    test(OBJECT_B, OBJECT_C, SIGNAL_ID_B, WHEN_B, WHEN_C);
+                }
+
+                private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver,
+                        @Nonnull final UUID signalId, @Nonnull final Duration start, @Nonnull final Duration whenSet) {
+                    final Integer state0 = Integer.valueOf(0);
+                    final var history = new ObjectHistory<>(receiver, start, state0);
+                    final TimestampedId sentFrom = new TimestampedId(sender, whenSet);
+                    final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
+                    history.addIncomingSignal(signal);
+                    final var medium = new MediumTest.RecordingMedium<Integer>();
+                    history.receiveNextSignal(medium);
+                    assert !history.getReceivedSignals().isEmpty();
+
+                    final var copy = constructor(history);
+
+                    assertThat("receivedSignals", copy.getReceivedSignals(), is(Set.of(signal)));
+                }
+
+            }// class
 
         }// class
 
@@ -1826,7 +1891,9 @@ public class ObjectHistoryTest {
         assertAll("Copied", () -> assertSame(that.getEnd(), copy.getEnd(), "end"),
                 () -> assertSame(that.getObject(), copy.getObject(), "object"),
                 () -> assertSame(that.getStart(), copy.getStart(), "start"),
-                () -> assertEquals(that.getStateHistory(), copy.getStateHistory(), "stateHistory"));
+                () -> assertEquals(that.getStateHistory(), copy.getStateHistory(), "stateHistory"),
+                () -> assertEquals(that.getIncomingSignals(), copy.getIncomingSignals(), "incomingSignals"),
+                () -> assertEquals(that.getReceivedSignals(), copy.getReceivedSignals(), "receivedSignals"));
 
         return copy;
     }

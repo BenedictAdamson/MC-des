@@ -175,14 +175,14 @@ public final class ObjectHistory<STATE> {
      */
     @Nonnull
     @GuardedBy("lock")
-    private final Map<UUID, Signal<STATE>> incomingSignals = new HashMap<>();
+    private final Map<UUID, Signal<STATE>> incomingSignals;
 
     /*
      * Maps signal ID to signal.
      */
     @Nonnull
     @GuardedBy("lock")
-    private final Map<UUID, Signal<STATE>> receivedSignals = new HashMap<>();
+    private final Map<UUID, Signal<STATE>> receivedSignals;
 
     /*
      * Maps point-in-time to the publisher for the state information for that point
@@ -205,6 +205,9 @@ public final class ObjectHistory<STATE> {
             this.end = that.end;
             completeTimestampedStatesIfNoMoreHistory();
             stateHistory = new ModifiableValueHistory<>(that.stateHistory);
+            // TODO copy events
+            incomingSignals = new HashMap<>(that.incomingSignals);
+            receivedSignals = new HashMap<>(that.receivedSignals);
         }
     }
 
@@ -235,6 +238,8 @@ public final class ObjectHistory<STATE> {
         this.start = Objects.requireNonNull(start, "start");
         this.stateHistory = new ModifiableValueHistory<>();
         this.stateHistory.appendTransition(start, state);
+        this.incomingSignals = new HashMap<>();
+        this.receivedSignals = new HashMap<>();
         this.end = start;
         completeTimestampedStatesIfNoMoreHistory();
     }
