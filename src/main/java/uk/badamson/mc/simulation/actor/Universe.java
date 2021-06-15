@@ -64,7 +64,7 @@ public final class Universe<STATE> {
          * {@inheritDoc}
          *
          * <p>
-         * Furthermore, for this type, Adds the signals to the
+         * Furthermore, for this type, adds the signals to the
          * {@linkplain Universe#getObjectHistories() object histories} of the
          * {@linkplain #getUniverse() universe}, as
          * {@linkplain ObjectHistory#getIncomingSignals() incoming signals} of their
@@ -83,6 +83,7 @@ public final class Universe<STATE> {
                 }
                 history.addIncomingSignal(signal);
                 // TODO schedule processing of the added signal
+                // TODO optimize by grouping signals by receiver
             } // for
         }
 
@@ -95,20 +96,41 @@ public final class Universe<STATE> {
          * histories} of the {@linkplain #getUniverse() universe} of this medium.
          * </p>
          */
+        @Nonnull
         @Override
         public Set<Signal<STATE>> getSignals() {
             return getUniverse().getObjectHistories().stream()
                     .flatMap(history -> history.getReceivedAndIncomingSignals().stream()).collect(toUnmodifiableSet());
         }
 
+        @Nonnull
         Universe<STATE> getUniverse() {
             return Universe.this;
         }
 
+        /**
+         * {@inheritDoc}
+         *
+         * <p>
+         * Furthermore, for this type, {@linkplain ObjectHistory#removeSignals(Set)
+         * removes} the signals from the {@linkplain Universe#getObjectHistories()
+         * object histories} of the {@linkplain #getUniverse() universe}.
+         * </p>
+         */
         @Override
-        public void removeAll(final Collection<Signal<STATE>> signals) {
-            // TODO Auto-generated method stub
-
+        public void removeAll(@Nonnull final Collection<Signal<STATE>> signals) {
+            Objects.requireNonNull(signals, "signals");
+            for (final var signal : signals) {
+                Objects.requireNonNull(signal, "signal");
+                final var receiver = signal.getReceiver();
+                final var history = objectHistories.get(receiver);
+                if (history == null) {
+                    throw new IllegalStateException("unknown receiver for " + signal);
+                }
+                history.removeSignals(Set.of(signal.getId()));
+                // TODO schedule re-processing of the receiver
+                // TODO optimize by grouping signals by receiver
+            } // for
         }
 
     }// class

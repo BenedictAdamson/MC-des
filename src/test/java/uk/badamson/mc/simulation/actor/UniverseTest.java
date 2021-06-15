@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -308,38 +309,70 @@ public class UniverseTest {
         @Nested
         public class AddAll {
 
-            @Nested
-            public class One {
-                @Test
-                public void a() {
-                    test(OBJECT_A, OBJECT_B, SIGNAL_A, WHEN_A, WHEN_B);
-                }
+            @Test
+            public void a() {
+                test(OBJECT_A, OBJECT_B, SIGNAL_A, WHEN_A, WHEN_B);
+            }
 
-                @Test
-                public void b() {
-                    test(OBJECT_B, OBJECT_C, SIGNAL_B, WHEN_B, WHEN_C);
-                }
+            @Test
+            public void b() {
+                test(OBJECT_B, OBJECT_C, SIGNAL_B, WHEN_B, WHEN_C);
+            }
 
-                private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver,
-                        @Nonnull final UUID signalId, @Nonnull final Duration start, @Nonnull final Duration whenSet) {
-                    final Integer state0 = Integer.valueOf(0);
-                    final var history0 = new ObjectHistory<>(receiver, start, state0);
-                    final TimestampedId sentFrom = new TimestampedId(sender, whenSet);
-                    final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
-                    final Universe<Integer> universe = new Universe<Integer>(List.of(history0));
-                    final var medium = universe.createMedium();
-                    final var signals = Set.of(signal);
+            private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver, @Nonnull final UUID signalId,
+                    @Nonnull final Duration start, @Nonnull final Duration whenSet) {
+                final Integer state0 = Integer.valueOf(0);
+                final var history0 = new ObjectHistory<>(receiver, start, state0);
+                final TimestampedId sentFrom = new TimestampedId(sender, whenSet);
+                final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
+                final Universe<Integer> universe = new Universe<Integer>(List.of(history0));
+                final var medium = universe.createMedium();
+                final var signals = Set.of(signal);
 
-                    addAll(medium, signals);
+                addAll(medium, signals);
 
-                    ObjectHistoryTest.assertInvariants(history0);
-                    UniverseTest.assertInvariants(universe);
-                    assertInvariants(medium);
-                    assertAll(() -> assertThat("signals", medium.getSignals(), is(signals)),
-                            () -> assertThat("receiver incomingSignals",
-                                    universe.getObjectHistory(receiver).getIncomingSignals(), is(signals)));
-                }
-            }// class
+                ObjectHistoryTest.assertInvariants(history0);
+                UniverseTest.assertInvariants(universe);
+                assertInvariants(medium);
+                assertAll(() -> assertThat("signals", medium.getSignals(), is(signals)),
+                        () -> assertThat("receiver incomingSignals",
+                                universe.getObjectHistory(receiver).getIncomingSignals(), is(signals)));
+            }
+
+        }// class
+
+        @Nested
+        public class RemoveAll {
+            @Test
+            public void a() {
+                test(OBJECT_A, OBJECT_B, SIGNAL_A, WHEN_A, WHEN_B);
+            }
+
+            @Test
+            public void b() {
+                test(OBJECT_B, OBJECT_C, SIGNAL_B, WHEN_B, WHEN_C);
+            }
+
+            private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver, @Nonnull final UUID signalId,
+                    @Nonnull final Duration start, @Nonnull final Duration whenSet) {
+                final Integer state0 = Integer.valueOf(0);
+                final var history0 = new ObjectHistory<>(receiver, start, state0);
+                final TimestampedId sentFrom = new TimestampedId(sender, whenSet);
+                final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
+                final Universe<Integer> universe = new Universe<Integer>(List.of(history0));
+                final var medium = universe.createMedium();
+                final var signals = Set.of(signal);
+                medium.addAll(signals);
+
+                removeAll(medium, signals);
+
+                ObjectHistoryTest.assertInvariants(history0);
+                UniverseTest.assertInvariants(universe);
+                assertInvariants(medium);
+                assertAll(() -> assertThat("signals", medium.getSignals(), empty()),
+                        () -> assertThat("receiver incomingSignals",
+                                universe.getObjectHistory(receiver).getIncomingSignals(), empty()));
+            }
 
         }// class
 
@@ -427,7 +460,8 @@ public class UniverseTest {
         final var universe = new Universe<>(objectHistories);
 
         assertInvariants(universe);
-        assertThat("copied objectHistories", Set.of(universe.getObjectHistories()), is(Set.of(objectHistories)));
+        assertThat("copied objectHistories", new HashSet<>(universe.getObjectHistories()),
+                is(new HashSet<>(objectHistories)));
     }
 
     private static <STATE> Universe<STATE> constructor(@Nonnull final Universe<STATE> that) {

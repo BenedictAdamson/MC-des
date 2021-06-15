@@ -93,6 +93,10 @@ interface Medium<STATE> {
      *             <li>If {@code signals} is null</li>
      *             <li>If {@code signals} contains null</li>
      *             </ul>
+     * @throws IllegalStateException
+     *             If any of the {@code signals} are inconsistent with this medium.
+     *             For example, if the signal {@linkplain Signal#getReceiver()
+     *             receiver} is unknown.
      * @see Set#removeAll(Collection)
      */
     void removeAll(@Nonnull Collection<Signal<STATE>> signals);
