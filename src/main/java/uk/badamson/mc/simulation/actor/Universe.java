@@ -87,6 +87,7 @@ public final class Universe<STATE> {
         @Override
         public void addAll(@Nonnull final Collection<Signal<STATE>> signals) {
             Objects.requireNonNull(signals, "signals");
+            // TODO optimize by grouping signals by receiver
             for (final var signal : signals) {
                 Objects.requireNonNull(signal, "signal");
                 final var receiver = signal.getReceiver();
@@ -95,8 +96,7 @@ public final class Universe<STATE> {
                     throw new IllegalStateException("unknown receiver for " + signal);
                 }
                 history.addIncomingSignal(signal);
-                // TODO schedule processing of the added signal
-                // TODO optimize by grouping signals by receiver
+                scheduleAdvanceObject(receiver);
             } // for
         }
 
@@ -141,7 +141,7 @@ public final class Universe<STATE> {
                     throw new IllegalStateException("unknown receiver for " + signal);
                 }
                 history.removeSignals(Set.of(signal.getId()));
-                // TODO schedule re-processing of the receiver
+                scheduleAdvanceObject(receiver);
                 // TODO optimize by grouping signals by receiver
             } // for
         }
@@ -152,7 +152,9 @@ public final class Universe<STATE> {
                 final var lastEvent = history.getLastEvent();
                 if (history.getEnd().compareTo(advanceTo) < 0
                         && (lastEvent == null || lastEvent.getWhenOccurred().compareTo(advanceTo) < 0)) {
-                    history.receiveNextSignal(this);
+                    if (history.receiveNextSignal(this)) {
+                        scheduleAdvanceObject(object);
+                    }
                 }
             });
         }

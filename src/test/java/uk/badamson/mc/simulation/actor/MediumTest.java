@@ -80,13 +80,10 @@ public class MediumTest {
 
     static <STATE> void removeAll(@Nonnull final Medium<STATE> medium,
             @Nonnull final Collection<Signal<STATE>> signals) {
-        final Set<Signal<STATE>> mediumSignals0 = medium.getSignals();
-
         medium.removeAll(signals);
 
         assertInvariants(medium);
         final Set<Signal<STATE>> mediumSignals = medium.getSignals();
-        assertAll("signals", () -> assertThat("does not have added signals", mediumSignals0.containsAll(mediumSignals)),
-                () -> assertThat("has none of the removed signals", Collections.disjoint(mediumSignals, signals)));
+        assertThat("has none of the removed signals", Collections.disjoint(mediumSignals, signals));
     }
 }
