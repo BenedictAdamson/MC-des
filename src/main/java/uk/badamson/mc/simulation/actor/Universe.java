@@ -27,6 +27,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -59,6 +60,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public final class Universe<STATE> {
 
     final class SchedulingMedium implements Medium<STATE> {
+
+        @Nonnull
+        private final Executor executor;
+
+        SchedulingMedium(@Nonnull final Executor executor) {
+            this.executor = Objects.requireNonNull(executor, "executor");
+        }
 
         /**
          * {@inheritDoc}
@@ -191,8 +199,8 @@ public final class Universe<STATE> {
     }
 
     @Nonnull
-    SchedulingMedium createMedium() {
-        return new SchedulingMedium();
+    SchedulingMedium createMedium(@Nonnull final Executor executor) {
+        return new SchedulingMedium(executor);
     }
 
     /**

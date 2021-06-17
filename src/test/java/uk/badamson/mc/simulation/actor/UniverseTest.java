@@ -35,6 +35,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Executor;
 
 import javax.annotation.Nonnull;
 
@@ -244,7 +245,7 @@ public class UniverseTest {
                 final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
                 history.addIncomingSignal(signal);
                 final Universe<Integer> universe = new Universe<Integer>(List.of(history));
-                final var medium0 = universe.createMedium();
+                final var medium0 = universe.createMedium(DIRECT_EXECUTOR);
                 history.receiveNextSignal(medium0);
                 assert !history.getReceivedSignals().isEmpty();
 
@@ -326,7 +327,7 @@ public class UniverseTest {
                 final TimestampedId sentFrom = new TimestampedId(sender, whenSet);
                 final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
                 final Universe<Integer> universe = new Universe<Integer>(List.of(history0));
-                final var medium = universe.createMedium();
+                final var medium = universe.createMedium(DIRECT_EXECUTOR);
                 final var signals = Set.of(signal);
 
                 addAll(medium, signals);
@@ -360,7 +361,7 @@ public class UniverseTest {
                 final TimestampedId sentFrom = new TimestampedId(sender, whenSet);
                 final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
                 final Universe<Integer> universe = new Universe<Integer>(List.of(history0));
-                final var medium = universe.createMedium();
+                final var medium = universe.createMedium(DIRECT_EXECUTOR);
                 final var signals = Set.of(signal);
                 medium.addAll(signals);
 
@@ -424,6 +425,14 @@ public class UniverseTest {
 
     private static final UUID SIGNAL_B = SignalTest.ID_B;
 
+    private static final Executor DIRECT_EXECUTOR = new Executor() {
+
+        @Override
+        public void execute(final Runnable command) {
+            command.run();
+        }
+    };
+
     private static <STATE> void assertEmpty(@Nonnull final Universe<STATE> universe) {
         assertAll("empty", () -> assertThat("objects", universe.getObjects(), empty()),
                 () -> assertThat("objectHistories", universe.getObjectHistories(), empty()));
@@ -480,7 +489,7 @@ public class UniverseTest {
 
     @Nonnull
     private static <STATE> Universe<STATE>.SchedulingMedium createMedium(@Nonnull final Universe<STATE> universe) {
-        final var medium = universe.createMedium();
+        final var medium = universe.createMedium(DIRECT_EXECUTOR);
 
         assertInvariants(universe);
         assertThat("result", medium, notNullValue());// guard
