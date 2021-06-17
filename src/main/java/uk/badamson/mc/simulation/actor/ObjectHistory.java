@@ -971,22 +971,23 @@ public final class ObjectHistory<STATE> {
      * {@linkplain Event#getSignalsEmitted() emit signals}. The method will
      * {@linkplain Medium#addAll(java.util.Collection) add} those emitted signal to
      * the given {@code medium}.
-     *
      * </p>
      *
      * @param medium
      *            The medium used transmitting signals to and from the
      *            {@linkplain #getObject() simulated object}.
+     * @return whether received a signal; that is, whether the method did any work
+     *         at all.
      */
     @Nonnull
-    void receiveNextSignal(@Nonnull final Medium<STATE> medium) {
+    boolean receiveNextSignal(@Nonnull final Medium<STATE> medium) {
         Objects.requireNonNull(medium, "medium");
         Event<STATE> event;
         Set<Event<STATE>> invalidatedEvents;
         do {
             final var continuation = computeContinuation();
             if (continuation == null) {
-                return;
+                return false;
             } else {
                 event = continuation.nextSignal.receive(continuation.state);// expensive
                 invalidatedEvents = compareAndAddEvent(continuation.previousEvent, event, continuation.nextSignal);
@@ -998,6 +999,7 @@ public final class ObjectHistory<STATE> {
                 .collect(toUnmodifiableSet());
         medium.removeAll(invalidatedSignals);
         medium.addAll(event.getSignalsEmitted());
+        return true;
     }
 
     /**

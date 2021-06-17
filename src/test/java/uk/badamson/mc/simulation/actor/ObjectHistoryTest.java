@@ -1227,7 +1227,7 @@ public class ObjectHistoryTest {
                 final var signals0 = medium.getSignals();
                 final var stateVerifier = StepVerifier.create(history.observeState(expectedWhenOccurred));
 
-                receiveNextSignal(history, medium);
+                final var didWork = receiveNextSignal(history, medium);
 
                 final var stateHistory = history.getStateHistory();
                 final var signals = medium.getSignals();
@@ -1244,6 +1244,7 @@ public class ObjectHistoryTest {
                                         || state0.equals(expectedState)));
                 assertThat("incomingSignals", history.getIncomingSignals(), empty());
                 assertThat("receivedSignals", history.getReceivedSignals(), hasItem(signal));
+                assertThat("did some work", didWork);
 
                 stateVerifier.expectNext(Optional.of(expectedState)).verifyTimeout(FLUX_TIMEOUT);
             }
@@ -1285,7 +1286,7 @@ public class ObjectHistoryTest {
                 history.addIncomingSignal(signal1);
                 final var signals0 = medium.getSignals();
 
-                receiveNextSignal(history, medium);
+                final boolean didWork = receiveNextSignal(history, medium);
 
                 final var signals = medium.getSignals();
                 final var invalidatedSignals = difference(signals0, signals);
@@ -1293,6 +1294,7 @@ public class ObjectHistoryTest {
                         () -> assertThat("events", history.getEvents(), hasSize(1)),
                         () -> assertThat("incomingSignals", history.getIncomingSignals(), is(Set.of(signal2))),
                         () -> assertThat("receivedSignals", history.getReceivedSignals(), is(Set.of(signal1))));
+                assertThat("did some work", didWork);
             }
         }// class
 
@@ -1328,7 +1330,7 @@ public class ObjectHistoryTest {
                 history.addIncomingSignal(signal2);
                 final var signals0 = medium.getSignals();
 
-                receiveNextSignal(history, medium);
+                final var didWork = receiveNextSignal(history, medium);
 
                 final var signals = medium.getSignals();
                 final var invalidatedSignals = difference(signals0, signals);
@@ -1340,6 +1342,7 @@ public class ObjectHistoryTest {
                 });
                 assertThat("incomingSignals", history.getIncomingSignals(), empty());
                 assertThat("receivedSignals", history.getReceivedSignals(), allOf(hasItem(signal1), hasItem(signal2)));
+                assertThat("did some work", didWork);
             }
         }// class
 
@@ -1378,12 +1381,13 @@ public class ObjectHistoryTest {
                 history.addIncomingSignal(signal2);
                 history.receiveNextSignal(medium);
 
-                receiveNextSignal(history, medium);
+                final var didWork = receiveNextSignal(history, medium);
 
                 final var events = history.getEvents();
                 assertThat("events", events, hasSize(2));// guard
                 assertThat("the signal of first event is the first signal", events.first().getCausingSignal(),
                         sameInstance(firstSignal));
+                assertThat("did some work", didWork);
             }
 
         }// class
@@ -1428,12 +1432,13 @@ public class ObjectHistoryTest {
                 history.receiveNextSignal(medium);
                 history.addIncomingSignal(signal2);
 
-                receiveNextSignal(history, medium);
+                final var didWork = receiveNextSignal(history, medium);
 
                 final var events = history.getEvents();
                 assertThat("events", events, either(hasSize(2)).or(hasSize(1)));// guard
                 assertThat("the signal of first event is the first signal", events.first().getCausingSignal(),
                         sameInstance(firstSignal));
+                assertThat("did some work", didWork);
             }
 
         }// class
@@ -1480,7 +1485,9 @@ public class ObjectHistoryTest {
             final var history = new ObjectHistory<>(OBJECT_A, WHEN_A, Integer.valueOf(0));
             final Medium<Integer> medium = new MediumTest.RecordingMedium<>();
 
-            receiveNextSignal(history, medium);
+            final boolean didWork = receiveNextSignal(history, medium);
+
+            assertThat("result", !didWork);
         }
     }// class
 
@@ -1986,12 +1993,13 @@ public class ObjectHistoryTest {
     }
 
     @Nonnull
-    private static <STATE> void receiveNextSignal(@Nonnull final ObjectHistory<STATE> history,
+    private static <STATE> boolean receiveNextSignal(@Nonnull final ObjectHistory<STATE> history,
             @Nonnull final Medium<STATE> medium) {
-        history.receiveNextSignal(medium);
+        final boolean didWork = history.receiveNextSignal(medium);
 
         assertInvariants(history);
         MediumTest.assertInvariants(medium);
+        return didWork;
     }
 
     @Nonnull
