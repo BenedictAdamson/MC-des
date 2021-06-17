@@ -146,7 +146,7 @@ public final class Universe<STATE> {
             } // for
         }
 
-        void scheduleReceiveNextSignal(@Nonnull final UUID object) {
+        void scheduleAdvanceObject(@Nonnull final UUID object) {
             executor.execute(() -> {
                 final var history = objectHistories.get(object);
                 final var lastEvent = history.getLastEvent();

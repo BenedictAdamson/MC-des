@@ -384,7 +384,7 @@ public class UniverseTest {
         }// class
 
         @Nested
-        public class ScheduleReceiveNextSignal {
+        public class ScheduleAdvanceObject {
 
             @Nested
             public class EndIsFarEnough {
@@ -420,7 +420,7 @@ public class UniverseTest {
                     final var medium = universe.createMedium(DIRECT_EXECUTOR, advanceTo);
                     medium.addAll(List.of(signal));
 
-                    scheduleReceiveNextSignal(medium, receiver);
+                    scheduleAdvanceObject(medium, receiver);
 
                     final var history = universe.getObjectHistory(receiver);
                     assertAll("receiver did not process a signal",
@@ -457,7 +457,7 @@ public class UniverseTest {
                     final var medium = universe.createMedium(DIRECT_EXECUTOR, advanceTo);
                     medium.addAll(List.of(signal));
 
-                    scheduleReceiveNextSignal(medium, receiver);
+                    scheduleAdvanceObject(medium, receiver);
 
                     final var history = universe.getObjectHistory(receiver);
                     assertAll("receiver", () -> assertThat("incomingSignals", history.getIncomingSignals(), empty()),
@@ -489,9 +489,9 @@ public class UniverseTest {
                 final var universe = new Universe<>(List.of(history0));
                 final var medium = universe.createMedium(DIRECT_EXECUTOR, advanceTo);
                 medium.addAll(List.of(signal1, signal2));
-                medium.scheduleReceiveNextSignal(receiver);
+                medium.scheduleAdvanceObject(receiver);
 
-                scheduleReceiveNextSignal(medium, receiver);
+                scheduleAdvanceObject(medium, receiver);
 
                 final var history = universe.getObjectHistory(receiver);
                 assertAll("receiver",
@@ -533,9 +533,9 @@ public class UniverseTest {
             assertInvariants(medium);
         }
 
-        static <STATE> void scheduleReceiveNextSignal(@Nonnull final Universe<STATE>.SchedulingMedium medium,
+        private static <STATE> void scheduleAdvanceObject(@Nonnull final Universe<STATE>.SchedulingMedium medium,
                 @Nonnull final UUID object) {
-            medium.scheduleReceiveNextSignal(object);
+            medium.scheduleAdvanceObject(object);
 
             assertInvariants(medium);
         }
