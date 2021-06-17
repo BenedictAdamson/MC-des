@@ -168,7 +168,7 @@ public final class ObjectHistory<STATE> {
      */
     @Nonnull
     @GuardedBy("lock")
-    private final NavigableMap<TimestampedId, Event<STATE>> events = new TreeMap<>();
+    private final NavigableMap<TimestampedId, Event<STATE>> events;
 
     /*
      * Maps signal ID to signal.
@@ -205,9 +205,9 @@ public final class ObjectHistory<STATE> {
             this.end = that.end;
             completeTimestampedStatesIfNoMoreHistory();
             stateHistory = new ModifiableValueHistory<>(that.stateHistory);
-            // TODO copy events
             incomingSignals = new HashMap<>(that.incomingSignals);
             receivedSignals = new HashMap<>(that.receivedSignals);
+            events = new TreeMap<>(that.events);
         }
     }
 
@@ -240,6 +240,7 @@ public final class ObjectHistory<STATE> {
         this.stateHistory.appendTransition(start, state);
         this.incomingSignals = new HashMap<>();
         this.receivedSignals = new HashMap<>();
+        this.events = new TreeMap<>();
         this.end = start;
         completeTimestampedStatesIfNoMoreHistory();
     }

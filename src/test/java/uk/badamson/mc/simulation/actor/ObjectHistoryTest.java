@@ -1001,7 +1001,8 @@ public class ObjectHistoryTest {
 
                     final var copy = constructor(history);
 
-                    assertThat("receivedSignals", copy.getReceivedSignals(), is(Set.of(signal)));
+                    assertAll(() -> assertThat("receivedSignals", copy.getReceivedSignals(), is(Set.of(signal))),
+                            () -> assertThat("events", copy.getEvents(), is(history.getEvents())));
                 }
 
             }// class
@@ -1899,7 +1900,8 @@ public class ObjectHistoryTest {
                 () -> assertSame(that.getStart(), copy.getStart(), "start"),
                 () -> assertEquals(that.getStateHistory(), copy.getStateHistory(), "stateHistory"),
                 () -> assertEquals(that.getIncomingSignals(), copy.getIncomingSignals(), "incomingSignals"),
-                () -> assertEquals(that.getReceivedSignals(), copy.getReceivedSignals(), "receivedSignals"));
+                () -> assertEquals(that.getReceivedSignals(), copy.getReceivedSignals(), "receivedSignals"),
+                () -> assertEquals(that.getEvents(), copy.getEvents(), "events"));
 
         return copy;
     }
