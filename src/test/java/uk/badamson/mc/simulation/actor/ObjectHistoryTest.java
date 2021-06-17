@@ -1773,6 +1773,7 @@ public class ObjectHistoryTest {
         final var events = history.getEvents();
         final var end = history.getEnd();
         final var incomingSignals = history.getIncomingSignals();
+        final var lastEvent = history.getLastEvent();
         final var object = history.getObject();
         final var receivedSignals = history.getReceivedSignals();
         final var receivedAndIncomingSignals = history.getReceivedAndIncomingSignals();
@@ -1796,6 +1797,11 @@ public class ObjectHistoryTest {
                 () -> assertThat("The end time is at or after the start time.", end, greaterThanOrEqualTo(start)),
                 () -> assertThat("incomingSignals and receivedSignals are distinct",
                         Collections.disjoint(incomingSignals, receivedSignals)),
+                () -> assertAll("lastEvent",
+                        () -> assertThat("is null if, and only if, the sequence of events is empty.",
+                                lastEvent == null == events.isEmpty()),
+                        () -> assertThat("is either null or is the  last of the sequence of events.",
+                                lastEvent == null || lastEvent == events.last())),
                 () -> assertAll("receivedAndIncomingSignals ",
                         () -> assertThat("include all of incomingSignals",
                                 receivedAndIncomingSignals.containsAll(incomingSignals)),

@@ -682,6 +682,32 @@ public final class ObjectHistory<STATE> {
 
     /**
      * <p>
+     * The last of the {@linkplain #getEvents() sequence of events} that have
+     * {@linkplain Event#getAffectedObject() affected} the {@linkplain #getObject()
+     * simulated object}.
+     * </p>
+     * <ul>
+     * <li>The last event is null if, and only if, the sequence of events is
+     * empty.</li>
+     * <li>The last event is either null or is the {@linkplain SortedSet#last()
+     * last} of the sequence of events.</li>
+     * <li>This method is likely to be more efficient than using
+     * {@link #getEvents()} and then extracting the last event from the
+     * sequence.</li>
+     * </ul>
+     *
+     * @see #getEvents()
+     */
+    @Nullable
+    public Event<STATE> getLastEvent() {
+        synchronized (lock) {// hard to test
+            final var lastEntry = events.lastEntry();
+            return lastEntry == null ? null : lastEntry.getValue();
+        }
+    }
+
+    /**
+     * <p>
      * The unique ID of the object for which this is the history.
      * </p>
      * <ul>
