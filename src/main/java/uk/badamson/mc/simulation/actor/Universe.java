@@ -21,6 +21,7 @@ package uk.badamson.mc.simulation.actor;
 import static java.util.stream.Collectors.toUnmodifiableList;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
@@ -64,8 +65,12 @@ public final class Universe<STATE> {
         @Nonnull
         private final Executor executor;
 
-        SchedulingMedium(@Nonnull final Executor executor) {
+        @Nonnull
+        private final Duration advanceTo;
+
+        SchedulingMedium(@Nonnull final Executor executor, @Nonnull final Duration advanceTo) {
             this.executor = Objects.requireNonNull(executor, "executor");
+            this.advanceTo = Objects.requireNonNull(advanceTo, "advanceTo");
         }
 
         /**
@@ -199,8 +204,8 @@ public final class Universe<STATE> {
     }
 
     @Nonnull
-    SchedulingMedium createMedium(@Nonnull final Executor executor) {
-        return new SchedulingMedium(executor);
+    SchedulingMedium createMedium(@Nonnull final Executor executor, @Nonnull final Duration advanceTo) {
+        return new SchedulingMedium(executor, advanceTo);
     }
 
     /**

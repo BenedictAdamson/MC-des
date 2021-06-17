@@ -45,6 +45,7 @@ import org.junit.jupiter.api.Test;
 import uk.badamson.dbc.assertions.CollectionTest;
 import uk.badamson.dbc.assertions.EqualsSemanticsTest;
 import uk.badamson.dbc.assertions.ObjectTest;
+import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.simulation.TimestampedId;
 
 public class UniverseTest {
@@ -211,6 +212,7 @@ public class UniverseTest {
             private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver, @Nonnull final UUID signalId,
                     @Nonnull final Duration start, @Nonnull final Duration whenSet) {
                 final Integer state0 = Integer.valueOf(0);
+                final Duration advanceTo = ValueHistory.END_OF_TIME;
                 final var history = new ObjectHistory<>(receiver, start, state0);
                 final TimestampedId sentFrom = new TimestampedId(sender, whenSet);
                 final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
@@ -218,7 +220,7 @@ public class UniverseTest {
                 final Universe<Integer> universe = new Universe<Integer>(List.of(history));
                 assert !history.getIncomingSignals().isEmpty();
 
-                final var medium = createMedium(universe);
+                final var medium = createMedium(universe, DIRECT_EXECUTOR, advanceTo);
 
                 assertThat("signals", medium.getSignals(), is(Set.of(signal)));
             }
@@ -240,16 +242,17 @@ public class UniverseTest {
             private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver, @Nonnull final UUID signalId,
                     @Nonnull final Duration start, @Nonnull final Duration whenSet) {
                 final Integer state0 = Integer.valueOf(0);
+                final Duration advanceTo = ValueHistory.END_OF_TIME;
                 final var history = new ObjectHistory<>(receiver, start, state0);
                 final TimestampedId sentFrom = new TimestampedId(sender, whenSet);
                 final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
                 history.addIncomingSignal(signal);
                 final Universe<Integer> universe = new Universe<Integer>(List.of(history));
-                final var medium0 = universe.createMedium(DIRECT_EXECUTOR);
+                final var medium0 = universe.createMedium(DIRECT_EXECUTOR, advanceTo);
                 history.receiveNextSignal(medium0);
                 assert !history.getReceivedSignals().isEmpty();
 
-                final var medium = createMedium(universe);
+                final var medium = createMedium(universe, DIRECT_EXECUTOR, advanceTo);
 
                 assertThat("signals", medium.getSignals(), is(Set.of(signal)));
             }
@@ -257,9 +260,10 @@ public class UniverseTest {
 
         @Test
         public void noObjects() {
+            final Duration advanceTo = ValueHistory.END_OF_TIME;
             final var universe = new Universe<Integer>();
 
-            final var medium = createMedium(universe);
+            final var medium = createMedium(universe, DIRECT_EXECUTOR, advanceTo);
 
             assertThat("signals", medium.getSignals(), empty());
         }
@@ -323,11 +327,12 @@ public class UniverseTest {
             private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver, @Nonnull final UUID signalId,
                     @Nonnull final Duration start, @Nonnull final Duration whenSet) {
                 final Integer state0 = Integer.valueOf(0);
+                final Duration advanceTo = ValueHistory.END_OF_TIME;
                 final var history0 = new ObjectHistory<>(receiver, start, state0);
                 final TimestampedId sentFrom = new TimestampedId(sender, whenSet);
                 final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
                 final Universe<Integer> universe = new Universe<Integer>(List.of(history0));
-                final var medium = universe.createMedium(DIRECT_EXECUTOR);
+                final var medium = universe.createMedium(DIRECT_EXECUTOR, advanceTo);
                 final var signals = Set.of(signal);
 
                 addAll(medium, signals);
@@ -357,11 +362,12 @@ public class UniverseTest {
             private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver, @Nonnull final UUID signalId,
                     @Nonnull final Duration start, @Nonnull final Duration whenSet) {
                 final Integer state0 = Integer.valueOf(0);
+                final Duration advanceTo = ValueHistory.END_OF_TIME;
                 final var history0 = new ObjectHistory<>(receiver, start, state0);
                 final TimestampedId sentFrom = new TimestampedId(sender, whenSet);
                 final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
                 final Universe<Integer> universe = new Universe<Integer>(List.of(history0));
-                final var medium = universe.createMedium(DIRECT_EXECUTOR);
+                final var medium = universe.createMedium(DIRECT_EXECUTOR, advanceTo);
                 final var signals = Set.of(signal);
                 medium.addAll(signals);
 
@@ -488,8 +494,9 @@ public class UniverseTest {
     }
 
     @Nonnull
-    private static <STATE> Universe<STATE>.SchedulingMedium createMedium(@Nonnull final Universe<STATE> universe) {
-        final var medium = universe.createMedium(DIRECT_EXECUTOR);
+    private static <STATE> Universe<STATE>.SchedulingMedium createMedium(@Nonnull final Universe<STATE> universe,
+            @Nonnull final Executor executor, @Nonnull final Duration advanceTo) {
+        final var medium = universe.createMedium(executor, advanceTo);
 
         assertInvariants(universe);
         assertThat("result", medium, notNullValue());// guard
