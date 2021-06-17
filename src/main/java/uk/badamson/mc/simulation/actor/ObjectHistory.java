@@ -533,9 +533,7 @@ public final class ObjectHistory<STATE> {
                 final var signal = entry.getValue();
                 final var whenReceieved = signal.getWhenReceived(stateHistory);// expensive
                 final TimestampedId eventId = new TimestampedId(id, whenReceieved);
-                final boolean earlier = nextEventId == null ? true : eventId.compareTo(nextEventId) < 0;
-
-                if (earlier) {
+                if (nextEventId == null || eventId.compareTo(nextEventId) < 0) {
                     nextSignal = signal;
                     nextEventId = eventId;
                 }
