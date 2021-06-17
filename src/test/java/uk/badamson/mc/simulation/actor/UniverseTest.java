@@ -383,6 +383,125 @@ public class UniverseTest {
 
         }// class
 
+        @Nested
+        public class ScheduleReceiveNextSignal {
+
+            @Nested
+            public class EndIsFarEnough {
+
+                @Test
+                public void a() {
+                    test(OBJECT_A, OBJECT_B, WHEN_A, WHEN_B, WHEN_C);
+                }
+
+                @Test
+                public void b() {
+                    test(OBJECT_B, OBJECT_A, WHEN_B, WHEN_C, WHEN_D);
+                }
+
+                @Test
+                public void close() {
+                    final var advanceTo = WHEN_A;
+                    final var end = advanceTo;// critical
+                    test(OBJECT_A, OBJECT_B, advanceTo, end, WHEN_C);
+                }
+
+                private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver,
+                        @Nonnull final Duration advanceTo, @Nonnull final Duration end, final Duration whenSent) {
+                    assert advanceTo.compareTo(end) <= 0;
+                    assert end.compareTo(whenSent) <= 0;
+                    final UUID signalId = SIGNAL_A;
+                    final Integer state0 = Integer.valueOf(0);
+
+                    final var sentFrom = new TimestampedId(sender, whenSent);
+                    final var signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
+                    final var history0 = new ObjectHistory<>(receiver, end, state0);
+                    final var universe = new Universe<>(List.of(history0));
+                    final var medium = universe.createMedium(DIRECT_EXECUTOR, advanceTo);
+                    medium.addAll(List.of(signal));
+
+                    scheduleReceiveNextSignal(medium, receiver);
+
+                    final var history = universe.getObjectHistory(receiver);
+                    assertAll("receiver did not process a signal",
+                            () -> assertThat("incomingSignals", history.getIncomingSignals(), not(empty())),
+                            () -> assertThat("receivedSignals", history.getReceivedSignals(), empty()));
+                }
+
+            }// class
+
+            @Nested
+            public class HasIncomingSignal {
+
+                @Test
+                public void a() {
+                    test(OBJECT_A, OBJECT_B);
+                }
+
+                @Test
+                public void b() {
+                    test(OBJECT_B, OBJECT_A);
+                }
+
+                private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver) {
+                    final Duration start = WHEN_A;
+                    final Duration whenSent = WHEN_B;
+                    final UUID signalId = SIGNAL_A;
+                    final Integer state0 = Integer.valueOf(0);
+                    final var advanceTo = ValueHistory.END_OF_TIME;
+
+                    final var sentFrom = new TimestampedId(sender, whenSent);
+                    final var signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
+                    final var history0 = new ObjectHistory<>(receiver, start, state0);
+                    final var universe = new Universe<>(List.of(history0));
+                    final var medium = universe.createMedium(DIRECT_EXECUTOR, advanceTo);
+                    medium.addAll(List.of(signal));
+
+                    scheduleReceiveNextSignal(medium, receiver);
+
+                    final var history = universe.getObjectHistory(receiver);
+                    assertAll("receiver", () -> assertThat("incomingSignals", history.getIncomingSignals(), empty()),
+                            () -> assertThat("receivedSignals", history.getReceivedSignals(), not(empty())));
+                }
+
+            }// class
+
+            @Test
+            public void hasAdvancedFarEnough() {
+                final Integer state0 = Integer.valueOf(0);
+                final UUID sender = OBJECT_A;
+                final UUID receiver = OBJECT_B;
+                final Duration start = WHEN_A;
+                final Duration whenSent1 = WHEN_B;
+                final UUID signalId1 = SIGNAL_A;
+                final UUID signalId2 = SIGNAL_B;
+
+                final var sentFrom1 = new TimestampedId(sender, whenSent1);
+                final var signal1 = new SignalTest.TestSignal(signalId1, sentFrom1, receiver);
+                final var event1 = signal1.receive(state0);
+                final var whenReceived1 = event1.getWhenOccurred();
+                final var advanceTo = whenReceived1;
+                final var whenSent2 = advanceTo;
+                final var sentFrom2 = new TimestampedId(sender, whenSent2);
+                final var signal2 = new SignalTest.TestSignal(signalId2, sentFrom2, receiver);
+
+                final var history0 = new ObjectHistory<>(receiver, start, state0);
+                final var universe = new Universe<>(List.of(history0));
+                final var medium = universe.createMedium(DIRECT_EXECUTOR, advanceTo);
+                medium.addAll(List.of(signal1, signal2));
+                medium.scheduleReceiveNextSignal(receiver);
+
+                scheduleReceiveNextSignal(medium, receiver);
+
+                final var history = universe.getObjectHistory(receiver);
+                assertAll("receiver",
+                        () -> assertThat("incomingSignals (did not process the second signal)",
+                                history.getIncomingSignals(), not(empty())),
+                        () -> assertThat("receivedSignals", history.getReceivedSignals(), not(empty())));
+            }
+
+        }// class
+
         static <STATE> void addAll(@Nonnull final Universe<STATE>.SchedulingMedium medium,
                 @Nonnull final Collection<Signal<STATE>> signals) {
             MediumTest.addAll(medium, signals);// inherited
@@ -413,6 +532,13 @@ public class UniverseTest {
 
             assertInvariants(medium);
         }
+
+        static <STATE> void scheduleReceiveNextSignal(@Nonnull final Universe<STATE>.SchedulingMedium medium,
+                @Nonnull final UUID object) {
+            medium.scheduleReceiveNextSignal(object);
+
+            assertInvariants(medium);
+        }
     }// class
 
     static final UUID OBJECT_A = ObjectHistoryTest.OBJECT_A;
@@ -426,6 +552,8 @@ public class UniverseTest {
     static final Duration WHEN_B = ObjectHistoryTest.WHEN_B;
 
     static final Duration WHEN_C = ObjectHistoryTest.WHEN_C;
+
+    static final Duration WHEN_D = ObjectHistoryTest.WHEN_D;
 
     private static final UUID SIGNAL_A = SignalTest.ID_A;
 

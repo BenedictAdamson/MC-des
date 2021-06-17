@@ -146,6 +146,19 @@ public final class Universe<STATE> {
             } // for
         }
 
+        void scheduleReceiveNextSignal(@Nonnull final UUID object) {
+            executor.execute(() -> {
+                final var history = objectHistories.get(object);
+                // TODO optimize so does not copy all the events
+                final var events = history.getEvents();
+                // TODO handle unknown object
+                if (history.getEnd().compareTo(advanceTo) < 0
+                        && (events.isEmpty() || events.last().getWhenOccurred().compareTo(advanceTo) < 0)) {
+                    history.receiveNextSignal(this);
+                }
+            });
+        }
+
     }// class
 
     private final Map<UUID, ObjectHistory<STATE>> objectHistories = new ConcurrentHashMap<>();
