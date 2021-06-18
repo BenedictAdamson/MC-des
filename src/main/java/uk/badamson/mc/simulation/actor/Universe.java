@@ -132,17 +132,16 @@ public final class Universe<STATE> {
          */
         @Override
         public void removeAll(@Nonnull final Collection<Signal<STATE>> signals) {
-            Objects.requireNonNull(signals, "signals");
-            for (final var signal : signals) {
-                Objects.requireNonNull(signal, "signal");
-                final var receiver = signal.getReceiver();
+            for (final var entry : groupByReceiver(signals).entrySet()) {
+                final var receiver = entry.getKey();
+                final var receiverSignals = entry.getValue();
                 final var history = objectHistories.get(receiver);
                 if (history == null) {
-                    throw new IllegalStateException("unknown receiver for " + signal);
+                    throw new IllegalStateException("unknown receiver");
                 }
-                history.removeSignals(Set.of(signal.getId()));
+                final var signalIds = receiverSignals.stream().map(s -> s.getId()).collect(toUnmodifiableSet());
+                history.removeSignals(signalIds);
                 scheduleAdvanceObject(receiver);
-                // TODO optimize by grouping signals by receiver
             } // for
         }
 
