@@ -18,11 +18,13 @@ package uk.badamson.mc.simulation.actor;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toUnmodifiableList;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 
 import java.time.Duration;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -86,16 +88,17 @@ public final class Universe<STATE> {
          */
         @Override
         public void addAll(@Nonnull final Collection<Signal<STATE>> signals) {
-            Objects.requireNonNull(signals, "signals");
-            // TODO optimize by grouping signals by receiver
-            for (final var signal : signals) {
-                Objects.requireNonNull(signal, "signal");
-                final var receiver = signal.getReceiver();
+            for (final var entry : groupByReceiver(signals).entrySet()) {
+                final var receiver = entry.getKey();
+                final var receiverSignals = entry.getValue();
                 final var history = objectHistories.get(receiver);
                 if (history == null) {
-                    throw new IllegalStateException("unknown receiver for " + signal);
+                    throw new IllegalStateException("unknown receiver");
                 }
-                history.addIncomingSignal(signal);
+                // TODO enable adding all receiverSignals in one operation
+                for (final var signal : receiverSignals) {
+                    history.addIncomingSignal(signal);
+                }
                 scheduleAdvanceObject(receiver);
             } // for
         }
@@ -160,6 +163,11 @@ public final class Universe<STATE> {
         }
 
     }// class
+
+    private static <STATE> Map<UUID, List<Signal<STATE>>> groupByReceiver(final Collection<Signal<STATE>> signals) {
+        Objects.requireNonNull(signals, "signals");
+        return signals.stream().collect(groupingBy(s -> s.getReceiver()));
+    }
 
     private final Map<UUID, ObjectHistory<STATE>> objectHistories = new ConcurrentHashMap<>();
 
