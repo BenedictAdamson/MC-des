@@ -95,10 +95,7 @@ public final class Universe<STATE> {
                 if (history == null) {
                     throw new IllegalStateException("unknown receiver");
                 }
-                // TODO enable adding all receiverSignals in one operation
-                for (final var signal : receiverSignals) {
-                    history.addIncomingSignal(signal);
-                }
+                history.addIncomingSignals(receiverSignals);
                 scheduleAdvanceObject(receiver);
             } // for
         }

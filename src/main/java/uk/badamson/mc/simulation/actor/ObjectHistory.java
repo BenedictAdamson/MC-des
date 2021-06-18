@@ -277,25 +277,31 @@ public final class ObjectHistory<STATE> {
 
     /**
      * <p>
-     * Add a signal to the {@linkplain #getIncomingSignals() set of incoming
+     * Add signals to the {@linkplain #getIncomingSignals() set of incoming
      * signals}.
      * </p>
      *
      * @throws NullPointerException
-     *             If {@code signal} is null.
+     *             <ul>
+     *             <li>If {@code signals} is null.</li>
+     *             <li>If {@code signals} contains null.</li>
+     *             </ul>
      * @throws IllegalArgumentException
-     *             If the {@linkplain Signal#getReceiver() receiver} of
-     *             {@code signal} is not {@linkplain UUID#equals(Object) equivalent
+     *             If the {@linkplain Signal#getReceiver() receiver} of any of the
+     *             {@code signals} is not {@linkplain UUID#equals(Object) equivalent
      *             to} the {@linkplain #getObject() object} of this history.
      */
-    public void addIncomingSignal(@Nonnull final Signal<STATE> signal) {
-        Objects.requireNonNull(signal, "signal");
-        if (!object.equals(signal.getReceiver())) {
-            throw new IllegalArgumentException("signal.receiver not equal to this.object");
-        }
+    public void addIncomingSignals(@Nonnull final Collection<Signal<STATE>> signals) {
+        Objects.requireNonNull(signals, "signals");
         synchronized (lock) {
-            incomingSignals.put(signal.getId(), signal);
-        }
+            for (final var signal : signals) {
+                Objects.requireNonNull(signal, "signal");
+                if (!object.equals(signal.getReceiver())) {
+                    throw new IllegalArgumentException("signal.receiver not equal to this.object");
+                }
+                incomingSignals.put(signal.getId(), signal);
+            } // for
+        } // synchronized
     }
 
     /**
@@ -458,10 +464,7 @@ public final class ObjectHistory<STATE> {
 
         final var eventId = event.getId();
         synchronized (lock) {
-            if (event.getWhenOccurred().compareTo(end) <= 0) {
-                return null;// failure: too early
-            }
-            if (!incomingSignals.containsKey(signal.getId())) {
+            if (event.getWhenOccurred().compareTo(end) <= 0 || !incomingSignals.containsKey(signal.getId())) {
                 return null;// failure: unrecognized signal
             }
             final var previousEvents = events.headMap(eventId);
@@ -942,9 +945,9 @@ public final class ObjectHistory<STATE> {
      * ordering is used as a tie breaker.
      * </p>
      * <p>
-     * Because signals could be {@linkplain #addIncomingSignal(Signal) added to the
-     * set of incoming signals} in any order, there is no guarantee that successive
-     * calls to this method will process signals in ascending
+     * Because signals could be {@linkplain #addIncomingSignals(Collection) added to
+     * the set of incoming signals} in any order, there is no guarantee that
+     * successive calls to this method will process signals in ascending
      * {@linkplain Signal#getWhenReceived(ValueHistory) time of reception}. The
      * <i>next incoming signal</i> could actually be received before some signals
      * that have already been processed as {@linkplain #getReceivedSignals()

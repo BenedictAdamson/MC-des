@@ -218,7 +218,7 @@ public class UniverseTest {
                 final var history = new ObjectHistory<>(receiver, start, state0);
                 final TimestampedId sentFrom = new TimestampedId(sender, whenSet);
                 final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
-                history.addIncomingSignal(signal);
+                history.addIncomingSignals(List.of(signal));
                 final Universe<Integer> universe = new Universe<Integer>(List.of(history));
                 assert !history.getIncomingSignals().isEmpty();
 
@@ -248,7 +248,7 @@ public class UniverseTest {
                 final var history = new ObjectHistory<>(receiver, start, state0);
                 final TimestampedId sentFrom = new TimestampedId(sender, whenSet);
                 final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
-                history.addIncomingSignal(signal);
+                history.addIncomingSignals(List.of(signal));
                 final Universe<Integer> universe = new Universe<Integer>(List.of(history));
                 final var medium0 = universe.createMedium(DIRECT_EXECUTOR, advanceTo);
                 history.receiveNextSignal(medium0);
