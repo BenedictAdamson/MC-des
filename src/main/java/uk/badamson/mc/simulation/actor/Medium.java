@@ -18,11 +18,10 @@ package uk.badamson.mc.simulation.actor;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import java.util.Collection;
-import java.util.Set;
-
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
+import java.util.Collection;
+import java.util.Set;
 
 /**
  * <p>
@@ -45,18 +44,15 @@ interface Medium<STATE> {
      * {@linkplain #getSignals() signals} being transmitted through this medium.
      * </p>
      *
-     * @param signals
-     *            The signals to be transmitted. The method will not modify this
-     *            collection.
-     * @throws NullPointerException
-     *             <ul>
-     *             <li>If {@code signals} is null</li>
-     *             <li>If {@code signals} contains null</li>
-     *             </ul>
-     * @throws IllegalStateException
-     *             If any of the {@code signals} are inconsistent with this medium.
-     *             For example, if the signal {@linkplain Signal#getReceiver()
-     *             receiver} is unknown.
+     * @param signals The signals to be transmitted. The method will not modify this
+     *                collection.
+     * @throws NullPointerException  <ul>
+     *                               <li>If {@code signals} is null</li>
+     *                               <li>If {@code signals} contains null</li>
+     *                               </ul>
+     * @throws IllegalStateException If any of the {@code signals} are inconsistent with this medium.
+     *                               For example, if the signal {@linkplain Signal#getReceiver()
+     *                               receiver} is unknown.
      * @see Set#addAll(Collection)
      */
     void addAll(@Nonnull Collection<Signal<STATE>> signals);
@@ -85,18 +81,15 @@ interface Medium<STATE> {
      * this medium.
      * </p>
      *
-     * @param signals
-     *            The signals to be removed. The method will not modify this
-     *            collection.
-     * @throws NullPointerException
-     *             <ul>
-     *             <li>If {@code signals} is null</li>
-     *             <li>If {@code signals} contains null</li>
-     *             </ul>
-     * @throws IllegalStateException
-     *             If any of the {@code signals} are inconsistent with this medium.
-     *             For example, if the signal {@linkplain Signal#getReceiver()
-     *             receiver} is unknown.
+     * @param signals The signals to be removed. The method will not modify this
+     *                collection.
+     * @throws NullPointerException  <ul>
+     *                               <li>If {@code signals} is null</li>
+     *                               <li>If {@code signals} contains null</li>
+     *                               </ul>
+     * @throws IllegalStateException If any of the {@code signals} are inconsistent with this medium.
+     *                               For example, if the signal {@linkplain Signal#getReceiver()
+     *                               receiver} is unknown.
      * @see Set#removeAll(Collection)
      */
     void removeAll(@Nonnull Collection<Signal<STATE>> signals);

@@ -18,33 +18,73 @@ package uk.badamson.mc.simulation.rx;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import java.time.Duration;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import uk.badamson.mc.simulation.TimestampedId;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-
-import uk.badamson.mc.simulation.TimestampedId;
+import java.time.Duration;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
 
 /**
  * <p>
  * A state transition of a simulated object.
  * </p>
  *
- * @param <STATE>
- *            The class of object states of this event class. This must be
- *            {@link Immutable immutable}. It ought to have value semantics, but
- *            that is not required.
+ * @param <STATE> The class of object states of this event class. This must be
+ *                {@link Immutable immutable}. It ought to have value semantics, but
+ *                that is not required.
  */
 @Immutable
-@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "class")
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "class")// include = JsonTypeInfo.As.PROPERTY by default
 public abstract class Event<STATE> {
+
+    private final TimestampedId id;
+    private final STATE state;
+    private final Map<UUID, Duration> nextEventDependencies;
+
+    /**
+     * <p>
+     * Construct an event with given attributes and aggregates.
+     * </p>
+     *
+     * @param id                    The unique ID of {@linkplain #getState() state} that the
+     *                              {@linkplain #getObject() simulated object} has as a result of this
+     *                              event.
+     * @param state                 The state that the simulated object has as a result of this event.
+     *                              Null state if the object ceases to exist as a result of this
+     *                              event. That is, if this event is the destruction of the object.
+     * @param nextEventDependencies The identities of other object states that influence what the next
+     *                              event (after this event) of the simulated object will be. The
+     *                              given map must be constant (unmodifiable and never subsequently
+     *                              changing).
+     * @throws NullPointerException     <ul>
+     *                                  <li>If {@code id} is null.</li>
+     *                                  <li>If {@code nextEventDependencies} is null.</li>
+     *                                  <li>If {@code nextEventDependencies} has a null
+     *                                  {@linkplain Map#keySet() key}.</li>
+     *                                  <li>If {@code nextEventDependencies} has a null
+     *                                  {@linkplain Map#values() value}.</li>
+     *                                  </ul>
+     * @throws IllegalArgumentException <ul>
+     *                                  <li>If {@code nextEventDependencies} has a
+     *                                  {@linkplain Map#values() value}
+     *                                  {@linkplain Duration#compareTo(Duration) at or after}
+     *                                  {@code when}.</li>
+     *                                  <li>If {@code state} is null and {@code nextEventDependencies} is
+     *                                  not {@linkplain Map#isEmpty() empty}.</li>
+     *                                  </ul>
+     */
+    protected Event(@Nonnull final TimestampedId id, @Nullable final STATE state,
+                    @Nonnull final Map<UUID, Duration> nextEventDependencies) {
+        this.id = Objects.requireNonNull(id, "id");
+        this.state = state;
+        this.nextEventDependencies = requireValidNextEventDependencies(nextEventDependencies, id, state);
+    }
 
     private static <STATE> Map<UUID, Duration> requireValidNextEventDependencies(
             final Map<UUID, Duration> nextEventDependencies, @Nonnull final TimestampedId id, final STATE state) {
@@ -64,54 +104,6 @@ public abstract class Event<STATE> {
         }
 
         return nextEventDependencies;
-    }
-
-    private final TimestampedId id;
-    private final STATE state;
-    private final Map<UUID, Duration> nextEventDependencies;
-
-    /**
-     * <p>
-     * Construct an event with given attributes and aggregates.
-     * </p>
-     *
-     * @param id
-     *            The unique ID of {@linkplain #getState() state} that the
-     *            {@linkplain #getObject() simulated object} has as a result of this
-     *            event.
-     * @param state
-     *            The state that the simulated object has as a result of this event.
-     *            Null state if the object ceases to exist as a result of this
-     *            event. That is, if this event is the destruction of the object.
-     * @param nextEventDependencies
-     *            The identities of other object states that influence what the next
-     *            event (after this event) of the simulated object will be. The
-     *            given map must be constant (unmodifiable and never subsequently
-     *            changing).
-     * @throws NullPointerException
-     *             <ul>
-     *             <li>If {@code id} is null.</li>
-     *             <li>If {@code nextEventDependencies} is null.</li>
-     *             <li>If {@code nextEventDependencies} has a null
-     *             {@linkplain Map#keySet() key}.</li>
-     *             <li>If {@code nextEventDependencies} has a null
-     *             {@linkplain Map#values() value}.</li>
-     *             </ul>
-     * @throws IllegalArgumentException
-     *             <ul>
-     *             <li>If {@code nextEventDependencies} has a
-     *             {@linkplain Map#values() value}
-     *             {@linkplain Duration#compareTo(Duration) at or after}
-     *             {@code when}.</li>
-     *             <li>If {@code state} is null and {@code nextEventDependencies} is
-     *             not {@linkplain Map#isEmpty() empty}.</li>
-     *             </ul>
-     */
-    protected Event(@Nonnull final TimestampedId id, @Nullable final STATE state,
-            @Nonnull final Map<UUID, Duration> nextEventDependencies) {
-        this.id = Objects.requireNonNull(id, "id");
-        this.state = state;
-        this.nextEventDependencies = requireValidNextEventDependencies(nextEventDependencies, id, state);
     }
 
     /**
@@ -162,23 +154,20 @@ public abstract class Event<STATE> {
      * of an object before its creation.
      * </p>
      *
-     * @param dependentStates
-     *            Information about the states the the
-     *            {@linkplain #getNextEventDependencies() depended on}. The map maps
-     *            the ID of a depended on object to the state of the depended on
-     *            object. The depended on objects, and the time-stamps of the states
-     *            of interest, are given by the
-     *            {@linkplain #getNextEventDependencies() next event dependencies}
-     *            value. The given map may have null values or missing entries for
-     *            depended on objects that do not exist (because they have been
-     *            destroyed or removed).
-     * @throws NullPointerException
-     *             If {@code dependentStates} is null
-     * @throws IllegalStateException
-     *             If the {@linkplain #getState() state} transitioned to due to this
-     *             event was null. That is, if this event was the destruction or
-     *             removal of the {@linkplain #getObject() simulated object}:
-     *             destroyed objects may not be resurrected.
+     * @param dependentStates Information about the states the the
+     *                        {@linkplain #getNextEventDependencies() depended on}. The map maps
+     *                        the ID of a depended on object to the state of the depended on
+     *                        object. The depended on objects, and the time-stamps of the states
+     *                        of interest, are given by the
+     *                        {@linkplain #getNextEventDependencies() next event dependencies}
+     *                        value. The given map may have null values or missing entries for
+     *                        depended on objects that do not exist (because they have been
+     *                        destroyed or removed).
+     * @throws NullPointerException  If {@code dependentStates} is null
+     * @throws IllegalStateException If the {@linkplain #getState() state} transitioned to due to this
+     *                               event was null. That is, if this event was the destruction or
+     *                               removal of the {@linkplain #getObject() simulated object}:
+     *                               destroyed objects may not be resurrected.
      */
     @Nonnull
     public abstract Map<UUID, Event<STATE>> computeNextEvents(@Nonnull Map<UUID, STATE> dependentStates);

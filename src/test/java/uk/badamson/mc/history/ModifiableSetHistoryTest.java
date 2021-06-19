@@ -18,21 +18,16 @@ package uk.badamson.mc.history;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import uk.badamson.dbc.assertions.ObjectTest;
 
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-
-import uk.badamson.dbc.assertions.ObjectTest;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * <p>
@@ -41,15 +36,79 @@ import uk.badamson.dbc.assertions.ObjectTest;
  */
 public class ModifiableSetHistoryTest {
 
+    private static final Duration WHEN_1 = Duration.ZERO;
+    private static final Duration WHEN_2 = Duration.ofSeconds(2);
+    private static final Duration WHEN_3 = Duration.ofSeconds(3);
+
+    public static <VALUE> void assertInvariants(final ModifiableSetHistory<VALUE> history) {
+        ObjectTest.assertInvariants(history);// inherited
+        SetHistoryTest.assertInvariants(history);// inherited
+    }
+
+    public static <VALUE> void assertInvariants(final ModifiableSetHistory<VALUE> history1,
+                                                final ModifiableSetHistory<VALUE> history2) {
+        ObjectTest.assertInvariants(history1, history2);// inherited
+        SetHistoryTest.assertInvariants(history1, history2);// inherited
+    }
+
+    public static <VALUE> void assertInvariants(final ModifiableSetHistory<VALUE> history, final VALUE value) {
+        SetHistoryTest.assertInvariants(history, value);
+    }
+
+    private static <VALUE> void remove(final ModifiableSetHistory<VALUE> history, final VALUE value) {
+        history.remove(value);
+
+        assertInvariants(history);
+        assertInvariants(history, value);
+        final var contains = history.contains(value);
+        assertAll("This history does not contain the given value at any points in time.",
+                () -> assertSame(Boolean.FALSE, contains.getFirstValue(), "[start of time]."),
+                () -> assertTrue(contains.isEmpty(), "[no transitions]."));
+        assertFalse(history.getUniverse().contains(value), "The universe of this time varying set does not contain the given value.");
+    }
+
+    @Test
+    public void constructor_0() {
+        final var history1 = new ModifiableSetHistory<Integer>();
+        final var history2 = new ModifiableSetHistory<Integer>();
+
+        assertInvariants(history1);
+        assertInvariants(history1, history2);
+
+        assertEquals(Collections.EMPTY_SET, history1.getTransitionTimes(), "This has no transition times.");
+        assertEquals(history1, history2, "Value semantics");
+
+        ValueHistoryTest.assertInvariants(history1, WHEN_1);
+        ValueHistoryTest.assertInvariants(history1, WHEN_2);
+        assertInvariants(history1, (Integer) null);
+        assertInvariants(history1, Integer.MIN_VALUE);
+    }
+
     @Nested
     public class AddFrom {
+
+        private <VALUE> void addFrom(final ModifiableSetHistory<VALUE> history, final Duration when,
+                                     final VALUE value) {
+            history.addFrom(when, value);
+
+            assertInvariants(history);
+            assertInvariants(history, value);
+            final ValueHistory<Boolean> contains = history.contains(value);
+            assertSame(Boolean.TRUE, contains.getLastValue(),
+                    "The last value of the contains history for the given value is TRUE.");
+            assertSame(Boolean.TRUE, contains.get(when),
+                    "The value at the given time of the contains history for the given value is TRUE.");
+            final var lastTransitionTime = contains.getLastTransitionTime();
+            assertTrue(lastTransitionTime == null || lastTransitionTime.compareTo(when) <= 0,
+                    "The contains history for the given value has its last transition time is at or before the given time.");
+        }
 
         @Nested
         public class Call1 {
 
             @Test
             public void a() {
-                addFrom_1(WHEN_1, Integer.valueOf(Integer.MIN_VALUE));
+                addFrom_1(WHEN_1, Integer.MIN_VALUE);
             }
 
             private <VALUE> void addFrom_1(final Duration when, final VALUE value) {
@@ -86,7 +145,7 @@ public class ModifiableSetHistoryTest {
         public class Call2 {
 
             private <VALUE> void addFrom_2_differentValues(final Duration when1, final VALUE value1,
-                    final Duration when2, final VALUE value2) {
+                                                           final Duration when2, final VALUE value2) {
                 assert when1.compareTo(when2) < 0;
                 final Set<Duration> expectedTransitionTimes = Set.of(when1, when2);
                 final Map<Duration, Set<VALUE>> expectedTransitions = Map.of(when1, Collections.singleton(value1),
@@ -105,7 +164,7 @@ public class ModifiableSetHistoryTest {
                 assertEquals(expectedTransitionTimes, history.getTransitionTimes(), "transitionTimes");
                 assertEquals(expectedTransitions, ValueHistoryTest.getTransitionValues(history), "Transitions");
 
-                assertAll("contains transisions",
+                assertAll("contains transitions",
                         () -> assertEquals(expectedContainsTransitions1,
                                 ValueHistoryTest.getTransitionValues(history.contains(value1)), "[1]"),
                         () -> assertEquals(expectedContainsTransitions2,
@@ -132,12 +191,12 @@ public class ModifiableSetHistoryTest {
 
             @Test
             public void differentValues_A() {
-                addFrom_2_differentValues(WHEN_1, Integer.valueOf(1), WHEN_2, Integer.valueOf(2));
+                addFrom_2_differentValues(WHEN_1, 1, WHEN_2, 2);
             }
 
             @Test
             public void differentValues_B() {
-                addFrom_2_differentValues(WHEN_1, Integer.valueOf(2), WHEN_2, Integer.valueOf(1));
+                addFrom_2_differentValues(WHEN_1, 2, WHEN_2, 1);
             }
 
             @Test
@@ -147,45 +206,46 @@ public class ModifiableSetHistoryTest {
 
             @Test
             public void sameValue_A() {
-                addFrom_2_sameValue(WHEN_1, WHEN_2, Integer.valueOf(Integer.MIN_VALUE));
+                addFrom_2_sameValue(WHEN_1, WHEN_2, Integer.MIN_VALUE);
             }
 
             @Test
             public void sameValue_B() {
-                addFrom_2_sameValue(WHEN_2, WHEN_3, Integer.valueOf(Integer.MAX_VALUE));
+                addFrom_2_sameValue(WHEN_2, WHEN_3, Integer.MAX_VALUE);
             }
 
             @Test
             public void sameValue_C() {
-                addFrom_2_sameValue(WHEN_2, WHEN_1, Integer.valueOf(Integer.MIN_VALUE));
+                addFrom_2_sameValue(WHEN_2, WHEN_1, Integer.MIN_VALUE);
             }
 
             @Test
             public void sameValue_sameTime() {
                 final Duration when = WHEN_1;
-                addFrom_2_sameValue(when, when, Integer.valueOf(Integer.MIN_VALUE));
+                addFrom_2_sameValue(when, when, Integer.MIN_VALUE);
             }
 
         }// class
-
-        private <VALUE> void addFrom(final ModifiableSetHistory<VALUE> history, final Duration when,
-                final VALUE value) {
-            history.addFrom(when, value);
-
-            assertInvariants(history);
-            assertInvariants(history, value);
-            final ValueHistory<Boolean> contains = history.contains(value);
-            assertSame(Boolean.TRUE, contains.getLastValue(),
-                    "The last value of the contains history for the given value is TRUE.");
-            assertSame(Boolean.TRUE, contains.get(when),
-                    "The value at the given time of the contains history for the given value is TRUE.");
-            assertTrue(contains.getLastTansitionTime().compareTo(when) <= 0,
-                    "The contains history for the given value has its last transition time is at or before the given time.");
-        }
     }// class
 
     @Nested
     public class AddUntil {
+
+        private <VALUE> void addUntil(final ModifiableSetHistory<VALUE> history, final Duration when,
+                                      final VALUE value) {
+            history.addUntil(when, value);
+
+            assertInvariants(history);
+            assertInvariants(history, value);
+            final ValueHistory<Boolean> contains = history.contains(value);
+            assertSame(Boolean.TRUE, contains.getFirstValue(),
+                    "The first value of the contains history for the given value is TRUE.");
+            assertSame(Boolean.TRUE, contains.get(when),
+                    "The value at the given time of the contains history for the given value is TRUE.");
+            final var firstTransitionTime = contains.getFirstTransitionTime();
+            assertTrue(firstTransitionTime == null || when.compareTo(firstTransitionTime) < 0,
+                    "The contains history for the given value has its first transition time after the given time.");
+        }
 
         @Nested
         public class Call1 {
@@ -209,7 +269,7 @@ public class ModifiableSetHistoryTest {
                 assertEquals(Collections.EMPTY_SET, history1.getLastValue(), "Set at end of time");
                 assertEquals(expectedTransitions, ValueHistoryTest.getTransitionValues(history1), "Transitions");
                 assertEquals(expectedContainsTransitions,
-                        ValueHistoryTest.getTransitionValues(history1.contains(value)), "contains transisions");
+                        ValueHistoryTest.getTransitionValues(history1.contains(value)), "contains transitions");
 
                 assertAll("Value semantics", () -> assertNotEquals(history0, history1),
                         () -> assertEquals(history1, history2));
@@ -217,7 +277,7 @@ public class ModifiableSetHistoryTest {
 
             @Test
             public void addUntil_1A() {
-                addUntil_1(WHEN_1, Integer.valueOf(Integer.MIN_VALUE));
+                addUntil_1(WHEN_1, Integer.MIN_VALUE);
             }
 
             @Test
@@ -231,7 +291,7 @@ public class ModifiableSetHistoryTest {
         public class Call2 {
 
             private <VALUE> void addUntil_2_differentValues(final Duration when1, final VALUE value1,
-                    final Duration when2, final VALUE value2) {
+                                                            final Duration when2, final VALUE value2) {
                 assert when1.compareTo(when2) < 0;
                 final Duration justAfter1 = when1.plusNanos(1L);
                 final Duration justAfter2 = when2.plusNanos(1L);
@@ -280,12 +340,12 @@ public class ModifiableSetHistoryTest {
 
             @Test
             public void differentValues_A() {
-                addUntil_2_differentValues(WHEN_1, Integer.valueOf(1), WHEN_2, Integer.valueOf(2));
+                addUntil_2_differentValues(WHEN_1, 1, WHEN_2, 2);
             }
 
             @Test
             public void differentValues_B() {
-                addUntil_2_differentValues(WHEN_1, Integer.valueOf(2), WHEN_2, Integer.valueOf(1));
+                addUntil_2_differentValues(WHEN_1, 2, WHEN_2, 1);
             }
 
             @Test
@@ -295,40 +355,25 @@ public class ModifiableSetHistoryTest {
 
             @Test
             public void sameValue_A() {
-                addUntil_2_sameValue(WHEN_1, WHEN_2, Integer.valueOf(Integer.MIN_VALUE));
+                addUntil_2_sameValue(WHEN_1, WHEN_2, Integer.MIN_VALUE);
             }
 
             @Test
             public void sameValue_B() {
-                addUntil_2_sameValue(WHEN_2, WHEN_3, Integer.valueOf(Integer.MAX_VALUE));
+                addUntil_2_sameValue(WHEN_2, WHEN_3, Integer.MAX_VALUE);
             }
 
             @Test
             public void sameValue_C() {
-                addUntil_2_sameValue(WHEN_2, WHEN_1, Integer.valueOf(Integer.MIN_VALUE));
+                addUntil_2_sameValue(WHEN_2, WHEN_1, Integer.MIN_VALUE);
             }
 
             @Test
             public void sameValue_sameTime() {
                 final Duration when = WHEN_1;
-                addUntil_2_sameValue(when, when, Integer.valueOf(Integer.MIN_VALUE));
+                addUntil_2_sameValue(when, when, Integer.MIN_VALUE);
             }
         }// class
-
-        private <VALUE> void addUntil(final ModifiableSetHistory<VALUE> history, final Duration when,
-                final VALUE value) {
-            history.addUntil(when, value);
-
-            assertInvariants(history);
-            assertInvariants(history, value);
-            final ValueHistory<Boolean> contains = history.contains(value);
-            assertSame(Boolean.TRUE, contains.getFirstValue(),
-                    "The first value of the contains history for the given value is TRUE.");
-            assertSame(Boolean.TRUE, contains.get(when),
-                    "The value at the given time of the contains history for the given value is TRUE.");
-            assertTrue(when.compareTo(contains.getFirstTansitionTime()) < 0,
-                    "The contains history for the given value has its first transition time after the given time.");
-        }
     }// class
 
     @Nested
@@ -336,39 +381,39 @@ public class ModifiableSetHistoryTest {
 
         @Test
         public void absentA() {
-            remove_absent(WHEN_1, Integer.valueOf(1), Integer.valueOf(2));
+            remove_absent(WHEN_1, 1, 2);
         }
 
         @Test
         public void absentB() {
-            remove_absent(WHEN_2, Integer.valueOf(13), Integer.valueOf(7));
+            remove_absent(WHEN_2, 13, 7);
         }
 
         @Test
         public void empty() {
             final ModifiableSetHistory<Integer> history = new ModifiableSetHistory<>();
 
-            remove(history, Integer.valueOf(1));
+            remove(history, 1);
         }
 
         @Test
         public void presentFromA() {
-            remove_presentFrom(WHEN_1, Integer.valueOf(1));
+            remove_presentFrom(WHEN_1, 1);
         }
 
         @Test
         public void presentFromB() {
-            remove_presentFrom(WHEN_2, Integer.valueOf(2));
+            remove_presentFrom(WHEN_2, 2);
         }
 
         @Test
         public void presentUntilA() {
-            remove_presentUntil(WHEN_1, Integer.valueOf(1));
+            remove_presentUntil(WHEN_1, 1);
         }
 
         @Test
         public void presentUntilB() {
-            remove_presentUntil(WHEN_2, Integer.valueOf(2));
+            remove_presentUntil(WHEN_2, 2);
         }
 
         private void remove_absent(final Duration when, final Integer value1, final Integer value2) {
@@ -397,63 +442,4 @@ public class ModifiableSetHistoryTest {
         }
 
     }// class
-
-    private static final Duration WHEN_1 = Duration.ZERO;
-
-    private static final Duration WHEN_2 = Duration.ofSeconds(2);
-
-    private static final Duration WHEN_3 = Duration.ofSeconds(3);
-
-    private static <VALUE> Set<VALUE> assertFirstValueInvariants(final ModifiableSetHistory<VALUE> history) {
-        final Set<VALUE> firstValue = history.getFirstValue();
-
-        return firstValue;
-    }
-
-    public static <VALUE> void assertInvariants(final ModifiableSetHistory<VALUE> history) {
-        ObjectTest.assertInvariants(history);// inherited
-        SetHistoryTest.assertInvariants(history);// inherited
-
-        assertFirstValueInvariants(history);
-    }
-
-    public static <VALUE> void assertInvariants(final ModifiableSetHistory<VALUE> history1,
-            final ModifiableSetHistory<VALUE> history2) {
-        ObjectTest.assertInvariants(history1, history2);// inherited
-        SetHistoryTest.assertInvariants(history1, history2);// inherited
-    }
-
-    public static <VALUE> void assertInvariants(final ModifiableSetHistory<VALUE> history, final VALUE value) {
-        SetHistoryTest.assertInvariants(history, value);
-    }
-
-    private static <VALUE> void remove(final ModifiableSetHistory<VALUE> history, final VALUE value) {
-        history.remove(value);
-
-        assertInvariants(history);
-        assertInvariants(history, value);
-        final var contains = history.contains(value);
-        assertAll("This history does not contain the given value at any points in time.",
-                () -> assertSame(Boolean.FALSE, contains.getFirstValue(), "[start of time]."),
-                () -> assertTrue(contains.isEmpty(), "[no transitions]."));
-        assertTrue(!history.getUniverse().contains(value),
-                "The universe of this time varying set does not contain the given value.");
-    }
-
-    @Test
-    public void constructor_0() {
-        final var history1 = new ModifiableSetHistory<Integer>();
-        final var history2 = new ModifiableSetHistory<Integer>();
-
-        assertInvariants(history1);
-        assertInvariants(history1, history2);
-
-        assertEquals(Collections.EMPTY_SET, history1.getTransitionTimes(), "This has no transition times.");
-        assertEquals(history1, history2, "Value semantics");
-
-        ValueHistoryTest.assertInvariants(history1, WHEN_1);
-        ValueHistoryTest.assertInvariants(history1, WHEN_2);
-        assertInvariants(history1, (Integer) null);
-        assertInvariants(history1, Integer.valueOf(Integer.MIN_VALUE));
-    }
 }

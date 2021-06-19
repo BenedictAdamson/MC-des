@@ -18,6 +18,12 @@ package uk.badamson.mc.history;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.NotThreadSafe;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map.Entry;
@@ -26,22 +32,14 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Stream;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
-import javax.annotation.concurrent.NotThreadSafe;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 /**
  * <p>
  * The modifiable time-wise variation of a value that changes at discrete points
  * in time.
  * </p>
  *
- * @param <VALUE>
- *            The class of values of this value history. This must be an
- *            {@link Immutable immutable} type.
+ * @param <VALUE> The class of values of this value history. This must be an
+ *                {@link Immutable immutable} type.
  */
 @NotThreadSafe
 abstract class AbstractValueHistory<VALUE> implements ValueHistory<VALUE> {
@@ -65,24 +63,28 @@ abstract class AbstractValueHistory<VALUE> implements ValueHistory<VALUE> {
 
     @Override
     @JsonIgnore
-    public @Nullable Duration getFirstTansitionTime() {
+    public @Nullable
+    Duration getFirstTransitionTime() {
         final var transitions = getTransitions();
         return transitions.isEmpty() ? null : transitions.firstKey();
     }
 
     @Override
-    public @Nullable VALUE getFirstValue() {
+    public @Nullable
+    VALUE getFirstValue() {
         return get(START_OF_TIME);
     }
 
     @Override
-    public @Nullable Duration getLastTansitionTime() {
+    public @Nullable
+    Duration getLastTransitionTime() {
         final var transitions = getTransitions();
         return transitions.isEmpty() ? null : transitions.lastKey();
     }
 
     @Override
-    public @Nullable VALUE getLastValue() {
+    public @Nullable
+    VALUE getLastValue() {
         return get(END_OF_TIME);
     }
 
@@ -106,8 +108,9 @@ abstract class AbstractValueHistory<VALUE> implements ValueHistory<VALUE> {
         return new TimestampedValue<>(start, end, get(when));
     }
 
+    @Nonnull
     @Override
-    public @Nonnull SortedSet<Duration> getTransitionTimes() {
+    public SortedSet<Duration> getTransitionTimes() {
         return new TreeSet<>(getTransitions().keySet());
     }
 
@@ -122,21 +125,20 @@ abstract class AbstractValueHistory<VALUE> implements ValueHistory<VALUE> {
         return getTransitions().isEmpty();
     }
 
+    @Nonnull
     @Override
-    public @Nonnull Stream<Entry<Duration, VALUE>> streamOfTransitions() {
+    public Stream<Entry<Duration, VALUE>> streamOfTransitions() {
         return getTransitions().entrySet().stream();
     }
 
     @Override
     public String toString() {
-        final StringBuilder builder = new StringBuilder();
-        builder.append(getClass().getSimpleName());
-        builder.append(" [");
-        builder.append(getFirstValue());
-        builder.append(", ");
-        builder.append(getTransitions());
-        builder.append("]");
-        return builder.toString();
+        return getClass().getSimpleName() +
+                " [" +
+                getFirstValue() +
+                ", " +
+                getTransitions() +
+                "]";
     }
 
 }

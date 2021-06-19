@@ -18,6 +18,9 @@ package uk.badamson.mc.history;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map.Entry;
@@ -25,10 +28,6 @@ import java.util.Objects;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.stream.Stream;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
 
 /**
  * <p>
@@ -57,8 +56,7 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * <li>The {@linkplain #getLastValue() last value} is the given value.</li>
      * </ul>
      *
-     * @param value
-     *            The value {@linkplain #get(Duration) at} all points in time.
+     * @param value The value {@linkplain #get(Duration) at} all points in time.
      */
     public ConstantValueHistory(@Nullable final VALUE value) {
         this.value = value;
@@ -82,11 +80,10 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
     /**
      * {@inheritDoc}
      *
-     * @throws NullPointerException
-     *             {@inheritDoc}
+     * @throws NullPointerException {@inheritDoc}
      */
     @Override
-    public VALUE get(final Duration t) {
+    public VALUE get(@Nonnull final Duration t) {
         Objects.requireNonNull(t, "t");
         return value;
     }
@@ -111,11 +108,13 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      *
      * @return the first transition time.
      */
+    @Nullable
     @Override
-    public Duration getFirstTansitionTime() {
+    public Duration getFirstTransitionTime() {
         return null;
     }
 
+    @Nullable
     @Override
     public VALUE getFirstValue() {
         return value;
@@ -134,11 +133,13 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      *
      * @return the last transition time.
      */
+    @Nullable
     @Override
-    public Duration getLastTansitionTime() {
+    public Duration getLastTransitionTime() {
         return null;
     }
 
+    @Nullable
     @Override
     public VALUE getLastValue() {
         return value;
@@ -156,15 +157,14 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * {@link #getTransitionTimes()} method.</li>
      * </ul>
      *
-     * @param when
-     *            The point in time of interest, expressed as a duration since an
-     *            epoch.
+     * @param when The point in time of interest, expressed as a duration since an
+     *             epoch.
      * @return the transition time at or after the given time.
-     * @throws NullPointerException
-     *             if {@code when} is null.
+     * @throws NullPointerException if {@code when} is null.
      */
+    @Nullable
     @Override
-    public Duration getTansitionTimeAtOrAfter(final Duration when) {
+    public Duration getTransitionTimeAtOrAfter(@Nonnull final Duration when) {
         Objects.requireNonNull(when, "when");
         return null;
     }
@@ -182,6 +182,7 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      *
      * @return a map of the transitions.
      */
+    @Nonnull
     @Override
     public SortedMap<Duration, VALUE> getTransitions() {
         return Collections.emptySortedMap();
@@ -206,6 +207,7 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      *
      * @return the transition times
      */
+    @Nonnull
     @Override
     public SortedSet<Duration> getTransitionTimes() {
         return Collections.emptySortedSet();
@@ -225,7 +227,6 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * <li>This method is more efficient than using the
      * {@link #getTransitionTimes()} method.</li>
      * </ul>
-     *
      */
     @Override
     public boolean isEmpty() {
@@ -247,6 +248,7 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      *
      * @return a stream of the transitions.
      */
+    @Nonnull
     @Override
     public Stream<Entry<Duration, VALUE>> streamOfTransitions() {
         return Stream.empty();

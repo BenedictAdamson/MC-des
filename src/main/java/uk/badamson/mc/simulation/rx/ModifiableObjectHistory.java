@@ -18,16 +18,15 @@ package uk.badamson.mc.simulation.rx;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import java.time.Duration;
-import java.util.Objects;
-import java.util.SortedMap;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
-
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import java.time.Duration;
+import java.util.Objects;
+import java.util.SortedMap;
 
 /**
  * <p>
@@ -35,10 +34,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * to.
  * </p>
  *
- * @param <STATE>
- *            The class of states of the simulated object. This must be
- *            {@link Immutable immutable}. It ought to have value semantics, but
- *            that is not required.
+ * @param <STATE> The class of states of the simulated object. This must be
+ *                {@link Immutable immutable}. It ought to have value semantics, but
+ *                that is not required.
  */
 @ThreadSafe
 public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
@@ -52,16 +50,14 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      * {@code event}.</li>
      * </ul>
      *
-     * @param event
-     *            The first (known) state transition of the {@linkplain #getObject()
-     *            object}.
-     * @throws NullPointerException
-     *             <ul>
-     *             <li>If {@code event} is null</li>
-     *             <li>if the {@linkplain Event#getState() state} of {@code event}
-     *             is null. That is, if the first event is the destruction or
-     *             removal of the {@linkplain #getObject() simulated object}.</li>
-     *             </ul>
+     * @param event The first (known) state transition of the {@linkplain #getObject()
+     *              object}.
+     * @throws NullPointerException <ul>
+     *                                                                                                                                                              <li>If {@code event} is null</li>
+     *                                                                                                                                                              <li>if the {@linkplain Event#getState() state} of {@code event}
+     *                                                                                                                                                              is null. That is, if the first event is the destruction or
+     *                                                                                                                                                              removal of the {@linkplain #getObject() simulated object}.</li>
+     *                                                                                                                                                              </ul>
      */
     public ModifiableObjectHistory(@Nonnull final Event<STATE> event) {
         super(event);
@@ -72,9 +68,7 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      * Copy an object history.
      * </p>
      *
-     * @throws NullPointerException
-     *             If {@code that} is null
-     *
+     * @throws NullPointerException If {@code that} is null
      */
     public ModifiableObjectHistory(@Nonnull final ObjectHistory<STATE> that) {
         super(that);
@@ -92,34 +86,30 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      * equivalent to} the given {@code previousStateTransitions}
      * </ul>
      *
-     * @param previousStateTransitions
-     *            The state transitions before the {@code lastEvent}
-     * @param lastEvent
-     *            The last (known) state transition of the {@linkplain #getObject()
-     *            object}.
-     * @throws NullPointerException
-     *             <ul>
-     *             <li>If {@code stateTransitions} is null</li>
-     *             <li>If {@code lastEvent} is null</li>
-     *             <li>If {@code stateTransitions} is empty and the
-     *             {@linkplain Event#getState() state} of {@code lastEvent} is null.
-     *             That is, if the first event is the destruction or removal of the
-     *             {@linkplain #getObject() simulated object}.</li>
-     *             <li>If {@code stateTransitions} has any null
-     *             {@linkplain SortedMap#values() values}. That is, if the object
-     *             was destroyed or removed before the {@code lastEvent} .</li>
-     *             </ul>
-     * @throws IllegalArgumentException
-     *             <ul>
-     *             <li>If the {@linkplain Event#getWhen() time} of the
-     *             {@code lastEvent} is not {@linkplain Duration#compareTo(Duration)
-     *             after} the {@linkplain SortedMap#lastKey() last} of the given
-     *             {@code previousStateTransitions}.</li>
-     *             <li>If any {@linkplain SortedMap#values() value} of
-     *             {@code previousStateTransitions} is
-     *             {@linkplain Objects#equals(Object, Object) equal to (or equally
-     *             null as)} its predecessor value.</li>
-     *             </ul>
+     * @param previousStateTransitions The state transitions before the {@code lastEvent}
+     * @param lastEvent                The last (known) state transition of the {@linkplain #getObject()
+     *                                 object}.
+     * @throws NullPointerException     <ul>
+     *                                                                                                                                                                                  <li>If {@code stateTransitions} is null</li>
+     *                                                                                                                                                                                  <li>If {@code lastEvent} is null</li>
+     *                                                                                                                                                                                  <li>If {@code stateTransitions} is empty and the
+     *                                                                                                                                                                                  {@linkplain Event#getState() state} of {@code lastEvent} is null.
+     *                                                                                                                                                                                  That is, if the first event is the destruction or removal of the
+     *                                                                                                                                                                                  {@linkplain #getObject() simulated object}.</li>
+     *                                                                                                                                                                                  <li>If {@code stateTransitions} has any null
+     *                                                                                                                                                                                  {@linkplain SortedMap#values() values}. That is, if the object
+     *                                                                                                                                                                                  was destroyed or removed before the {@code lastEvent} .</li>
+     *                                                                                                                                                                                  </ul>
+     * @throws IllegalArgumentException <ul>
+     *                                                                                                                                                                                  <li>If the {@linkplain Event#getWhen() time} of the
+     *                                                                                                                                                                                  {@code lastEvent} is not {@linkplain Duration#compareTo(Duration)
+     *                                                                                                                                                                                  after} the {@linkplain SortedMap#lastKey() last} of the given
+     *                                                                                                                                                                                  {@code previousStateTransitions}.</li>
+     *                                                                                                                                                                                  <li>If any {@linkplain SortedMap#values() value} of
+     *                                                                                                                                                                                  {@code previousStateTransitions} is
+     *                                                                                                                                                                                  {@linkplain Objects#equals(Object, Object) equal to (or equally
+     *                                                                                                                                                                                  null as)} its predecessor value.</li>
+     *                                                                                                                                                                                  </ul>
      */
     @JsonCreator
     public ModifiableObjectHistory(
@@ -149,28 +139,23 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      * </ul>
      * </ul>
      *
-     * @param event
-     *            The event to append. The {@linkplain Event#getState() state}
-     *            transitioned to by the event may be equal to the state
-     *            transitioned to by the current last event, but that should be
-     *            avoided for performance reasons.
-     * @throws NullPointerException
-     *             If {@code event} is null
-     * @throws IllegalArgumentException
-     *             If the {@linkplain Event#getObject() object} of the {@code event}
-     *             is not the same as the {@linkplain #getObject() object} of this
-     *             history.
-     * @throws IllegalStateException
-     *             <li>If the {@linkplain Event#getWhen() time} of the {@code event}
-     *             is not {@linkplain Duration#compareTo(Duration) after} the time
-     *             of the {@linkplain #getLastEvent() last event} of this history.
-     *             That can happen if a different thread appended an event.</li>
-     *             <li>If the {@linkplain Event#getState() state} of the current
-     *             {@linkplain #getLastEvent() last event} is null. That is, if the
-     *             current last event was the destruction or removal of the
-     *             {@linkplain #getObject() simulated object}: destroyed objects may
-     *             not be resurrected.
-     *
+     * @param event The event to append. The {@linkplain Event#getState() state}
+     *              transitioned to by the event may be equal to the state
+     *              transitioned to by the current last event, but that should be
+     *              avoided for performance reasons.
+     * @throws NullPointerException     If {@code event} is null
+     * @throws IllegalArgumentException If the {@linkplain Event#getObject() object} of the {@code event}
+     *                                  is not the same as the {@linkplain #getObject() object} of this
+     *                                  history.
+     * @throws IllegalStateException    <li>If the {@linkplain Event#getWhen() time} of the {@code event}
+     *                                  is not {@linkplain Duration#compareTo(Duration) after} the time
+     *                                  of the {@linkplain #getLastEvent() last event} of this history.
+     *                                  That can happen if a different thread appended an event.</li>
+     *                                  <li>If the {@linkplain Event#getState() state} of the current
+     *                                  {@linkplain #getLastEvent() last event} is null. That is, if the
+     *                                  current last event was the destruction or removal of the
+     *                                  {@linkplain #getObject() simulated object}: destroyed objects may
+     *                                  not be resurrected.
      * @see #compareAndAppend(Event, Event)
      */
     public void append(@Nonnull final Event<STATE> event) {
@@ -204,37 +189,31 @@ public final class ModifiableObjectHistory<STATE> extends ObjectHistory<STATE> {
      * This provides better thread safety than the {@link #append(Event)} method.
      * </p>
      *
-     * @param expectedLastEvent
-     *            The expected current last event.
-     * @param event
-     *            The event to append. The {@linkplain Event#getState() state}
-     *            transitioned to by {@code event} may be equal to the state
-     *            transitioned to by the {@code expectedLastEvent}, but that should
-     *            be avoided for performance reasons.
+     * @param expectedLastEvent The expected current last event.
+     * @param event             The event to append. The {@linkplain Event#getState() state}
+     *                          transitioned to by {@code event} may be equal to the state
+     *                          transitioned to by the {@code expectedLastEvent}, but that should
+     *                          be avoided for performance reasons.
      * @return The method returns whether the {@linkplain #getLastEvent() last
-     *         event} was the same as the given {@code expectedLastEvent}, in which
-     *         case it successfully appended the {@code event}.
-     *
-     * @throws NullPointerException
-     *             <ul>
-     *             <li>If {@code expectedLastEvent} is null.</li>
-     *             <li>If {@code event} is null.</li>
-     *             </ul>
-     * @throws IllegalArgumentException
-     *             <ul>
-     *             <li>If the {@linkplain Event#getObject() object} of the
-     *             {@code event} is not the same as the {@linkplain #getObject()
-     *             object} of this history.</li>
-     *             <li>If the {@linkplain Event#getWhen() time} of the {@code event}
-     *             is not {@linkplain Duration#compareTo(Duration) after} the time
-     *             of the {@code expectedLastEvent}</li>
-     *             <li>If the {@linkplain Event#getState() state} of the
-     *             {@code expectedLastEvent} is null. That is, if the expected last
-     *             event was the destruction or removal of the
-     *             {@linkplain #getObject() simulated object}: destroyed objects may
-     *             not be resurrected.
-     *             </ul>
-     *
+     * event} was the same as the given {@code expectedLastEvent}, in which
+     * case it successfully appended the {@code event}.
+     * @throws NullPointerException     <ul>
+     *                                                                                                                                                                                  <li>If {@code expectedLastEvent} is null.</li>
+     *                                                                                                                                                                                  <li>If {@code event} is null.</li>
+     *                                                                                                                                                                                  </ul>
+     * @throws IllegalArgumentException <ul>
+     *                                                                                                                                                                                  <li>If the {@linkplain Event#getObject() object} of the
+     *                                                                                                                                                                                  {@code event} is not the same as the {@linkplain #getObject()
+     *                                                                                                                                                                                  object} of this history.</li>
+     *                                                                                                                                                                                  <li>If the {@linkplain Event#getWhen() time} of the {@code event}
+     *                                                                                                                                                                                  is not {@linkplain Duration#compareTo(Duration) after} the time
+     *                                                                                                                                                                                  of the {@code expectedLastEvent}</li>
+     *                                                                                                                                                                                  <li>If the {@linkplain Event#getState() state} of the
+     *                                                                                                                                                                                  {@code expectedLastEvent} is null. That is, if the expected last
+     *                                                                                                                                                                                  event was the destruction or removal of the
+     *                                                                                                                                                                                  {@linkplain #getObject() simulated object}: destroyed objects may
+     *                                                                                                                                                                                  not be resurrected.
+     *                                                                                                                                                                                  </ul>
      * @see #append(Event)
      */
     public boolean compareAndAppend(@Nonnull final Event<STATE> expectedLastEvent, @Nonnull final Event<STATE> event) {

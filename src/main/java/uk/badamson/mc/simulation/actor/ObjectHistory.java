@@ -18,39 +18,9 @@ package uk.badamson.mc.simulation.actor;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import static java.util.stream.Collectors.toCollection;
-import static java.util.stream.Collectors.toUnmodifiableSet;
-
-import java.time.Duration;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.SortedSet;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.UUID;
-import java.util.stream.Stream;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.GuardedBy;
-import javax.annotation.concurrent.Immutable;
-import javax.annotation.concurrent.NotThreadSafe;
-import javax.annotation.concurrent.ThreadSafe;
-
-import org.reactivestreams.Publisher;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.EmitResult;
@@ -58,132 +28,61 @@ import uk.badamson.mc.history.ModifiableValueHistory;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.simulation.TimestampedId;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.GuardedBy;
+import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
+import java.time.Duration;
+import java.util.*;
+import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.toCollection;
+import static java.util.stream.Collectors.toUnmodifiableSet;
+
 /**
  * <p>
  * The sequence of state transitions of a simulated object.
  * </p>
  *
- * @param <STATE>
- *            The class of states of the simulated object. This must be
- *            {@link Immutable immutable}. It ought to have value semantics, but
- *            that is not required.
+ * @param <STATE> The class of states of the simulated object. This must be
+ *                {@link Immutable immutable}. It ought to have value semantics, but
+ *                that is not required.
  */
 @ThreadSafe
 public final class ObjectHistory<STATE> {
-
-    @Immutable
-    static final class Continuation<STATE> {
-        @Nonnull
-        final Signal<STATE> nextSignal;
-        @Nonnull
-        final Duration whenNextSignalReceived;
-        @Nullable
-        final Event<STATE> previousEvent;
-        @Nullable
-        final STATE state;
-
-        Continuation(@Nonnull final Signal<STATE> nextSignal, @Nonnull final Duration whenNextSignalReceived,
-                @Nonnull final Event<STATE> previousEvent) {
-            this.nextSignal = Objects.requireNonNull(nextSignal, "nextSignal");
-            this.whenNextSignalReceived = Objects.requireNonNull(whenNextSignalReceived, "whenNextSignalReceived");
-            this.previousEvent = Objects.requireNonNull(previousEvent, "previousEvent");
-            this.state = previousEvent.getState();
-        }
-
-        Continuation(@Nonnull final Signal<STATE> nextSignal, @Nonnull final Duration whenNextSignalReceived,
-                @Nonnull final STATE state) {
-            this.nextSignal = Objects.requireNonNull(nextSignal, "nextSignal");
-            this.whenNextSignalReceived = Objects.requireNonNull(whenNextSignalReceived, "whenNextSignalReceived");
-            this.previousEvent = null;
-            this.state = Objects.requireNonNull(state, "state");
-        }
-
-        @Override
-        public boolean equals(final Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (!(obj instanceof Continuation)) {
-                return false;
-            }
-            final Continuation<?> other = (Continuation<?>) obj;
-            return whenNextSignalReceived.equals(other.whenNextSignalReceived) && nextSignal.equals(other.nextSignal)
-                    && Objects.equals(previousEvent, other.previousEvent) && Objects.equals(state, other.state);
-        }
-
-        @Override
-        public int hashCode() {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + whenNextSignalReceived.hashCode();
-            result = prime * result + nextSignal.hashCode();
-            result = prime * result + (previousEvent == null ? 0 : previousEvent.hashCode());
-            result = prime * result + (state == null ? 0 : state.hashCode());
-            return result;
-        }
-
-        @Override
-        public String toString() {
-            return "ObjectHistory.Continuation [previousEvent=" + previousEvent + ", state=" + state + ", " + nextSignal
-                    + "@" + whenNextSignalReceived + "]";
-        }
-
-    }// class
-
-    @NotThreadSafe
-    private static class StatePublisher<STATE> {
-        final Sinks.Many<Optional<STATE>> sink = Sinks.many().replay().latest();
-        int nSubscribers;
-
-        StatePublisher(@Nullable final STATE state) {
-            sink.tryEmitNext(Optional.ofNullable(state));
-        }
-    }// class
-
-    private static <STATE> Stream<Signal<STATE>> emittedSignalsStream(@Nonnull final Set<Event<STATE>> events) {
-        return events.stream().flatMap(e -> e.getSignalsEmitted().stream());
-    }
 
     @Nonnull
     private final UUID object;
     @Nonnull
     private final Duration start;
-
     /*
      * Use a UUID object as the lock so all ObjectHistory objects can have a
      * predictable lock ordering when locking two instances.
      */
     private final UUID lock = UUID.randomUUID();
-
-    @Nonnull
-    @GuardedBy("lock")
-    private Duration end;
-
     @Nonnull
     @GuardedBy("lock")
     private final ModifiableValueHistory<STATE> stateHistory;
-
     /*
      * Maps event ID to event.
      */
     @Nonnull
     @GuardedBy("lock")
     private final NavigableMap<TimestampedId, Event<STATE>> events;
-
     /*
      * Maps signal ID to signal.
      */
     @Nonnull
     @GuardedBy("lock")
     private final Map<UUID, Signal<STATE>> incomingSignals;
-
     /*
      * Maps signal ID to signal.
      */
     @Nonnull
     @GuardedBy("lock")
     private final Map<UUID, Signal<STATE>> receivedSignals;
-
     /*
      * Maps point-in-time to the publisher for the state information for that point
      * in time.
@@ -191,6 +90,9 @@ public final class ObjectHistory<STATE> {
     @Nonnull
     @GuardedBy("lock")
     private final NavigableMap<Duration, StatePublisher<STATE>> statePublishers = new TreeMap<>();
+    @Nonnull
+    @GuardedBy("lock")
+    private Duration end;
 
     /**
      * <p>
@@ -222,15 +124,11 @@ public final class ObjectHistory<STATE> {
      * {@linkplain SortedSet#isEmpty() is empty}.</li>
      * </ul>
      *
-     * @param object
-     *            The unique ID of the object for which this is the history.
-     * @param start
-     *            The point in time that this history starts.
-     * @param state
-     *            The first (known) state transition of the {@code
-     *            object}.
-     * @throws NullPointerException
-     *             If a {@link Nonnull} argument is null
+     * @param object The unique ID of the object for which this is the history.
+     * @param start  The point in time that this history starts.
+     * @param state  The first (known) state transition of the {@code
+     *               object}.
+     * @throws NullPointerException If a {@link Nonnull} argument is null
      */
     public ObjectHistory(@Nonnull final UUID object, @Nonnull final Duration start, @Nonnull final STATE state) {
         Objects.requireNonNull(state, "state");
@@ -245,6 +143,10 @@ public final class ObjectHistory<STATE> {
         completeTimestampedStatesIfNoMoreHistory();
     }
 
+    private static <STATE> Stream<Signal<STATE>> emittedSignalsStream(@Nonnull final Set<Event<STATE>> events) {
+        return events.stream().flatMap(e -> e.getSignalsEmitted().stream());
+    }
+
     @GuardedBy("lock")
     @Nonnull
     private SortedSet<Event<STATE>> addEvent(@Nonnull final Event<STATE> event, @Nonnull final Signal<STATE> signal) {
@@ -254,10 +156,10 @@ public final class ObjectHistory<STATE> {
         final SortedSet<Event<STATE>> invalidatedEvents = mustInvalidate ? new TreeSet<>(after.values())
                 : Collections.emptySortedSet();
         if (mustInvalidate) {
-            final Set<UUID> invalidatedSignalIds = invalidatedEvents.stream().map(e -> e.getCausingSignal())
+            final Set<UUID> invalidatedSignalIds = invalidatedEvents.stream().map(Event::getCausingSignal)
                     .collect(toUnmodifiableSet());
             final Set<Signal<STATE>> invalidatedSignals = invalidatedSignalIds.stream()
-                    .map(id -> receivedSignals.get(id)).filter(s -> s != null).collect(toUnmodifiableSet());
+                    .map(receivedSignals::get).filter(Objects::nonNull).collect(toUnmodifiableSet());
 
             after.clear();
             receivedSignals.keySet().removeAll(invalidatedSignalIds);
@@ -281,15 +183,13 @@ public final class ObjectHistory<STATE> {
      * signals}.
      * </p>
      *
-     * @throws NullPointerException
-     *             <ul>
-     *             <li>If {@code signals} is null.</li>
-     *             <li>If {@code signals} contains null.</li>
-     *             </ul>
-     * @throws IllegalArgumentException
-     *             If the {@linkplain Signal#getReceiver() receiver} of any of the
-     *             {@code signals} is not {@linkplain UUID#equals(Object) equivalent
-     *             to} the {@linkplain #getObject() object} of this history.
+     * @throws NullPointerException     <ul>
+     *                                  <li>If {@code signals} is null.</li>
+     *                                  <li>If {@code signals} contains null.</li>
+     *                                  </ul>
+     * @throws IllegalArgumentException If the {@linkplain Signal#getReceiver() receiver} of any of the
+     *                                  {@code signals} is not {@linkplain UUID#equals(Object) equivalent
+     *                                  to} the {@linkplain #getObject() object} of this history.
      */
     public void addIncomingSignals(@Nonnull final Collection<Signal<STATE>> signals) {
         Objects.requireNonNull(signals, "signals");
@@ -414,37 +314,32 @@ public final class ObjectHistory<STATE> {
      * <li>All the invalidated events are after the given {@code event}.</li>
      * </ul>
      *
-     * @param expectedPreviousEvent
-     *            The event that is expected to be in the collection of events,
-     *            immediately {@linkplain Event#compareTo(Event) before} the
-     *            {@code event} to be added. Or {@code null} if the {@code event} is
-     *            expected to be the first event.
-     * @param event
-     *            The event to add to the history.
-     * @param signal
-     *            The signal that caused the event.
+     * @param expectedPreviousEvent The event that is expected to be in the collection of events,
+     *                              immediately {@linkplain Event#compareTo(Event) before} the
+     *                              {@code event} to be added. Or {@code null} if the {@code event} is
+     *                              expected to be the first event.
+     * @param event                 The event to add to the history.
+     * @param signal                The signal that caused the event.
      * @return an indication of failure or information about events that were
-     *         removed.
-     * @throws NullPointerException
-     *             If a {@link Nonnull} argument is null.
-     * @throws IllegalArgumentException
-     *             <ul>
-     *             <li>If {@code expectedPreviousEvent} is non null and its
-     *             {@linkplain Event#getAffectedObject() affected object} is not
-     *             {@linkplain UUID#equals(Object) equivalent to} the
-     *             {@linkplain #getObject() object} of this history.</li>
-     *             <li>If the affected object of {@code event} is not equivalent to
-     *             the {@linkplain #getObject() object} of this history.</li>
-     *             <li>If {@code expectedPreviousEvent} is non null and is not
-     *             {@linkplain Event#compareTo(Event) before} {@code event}.</li>
-     *             <li>If the {@linkplain Event#getCausingSignal() ID of the causing
-     *             signal} of {@code event} is not the same as the
-     *             {@linkplain Signal#getId() ID} of {@code signal}.</li>
-     *             </ul>
+     * removed.
+     * @throws NullPointerException     If a {@link Nonnull} argument is null.
+     * @throws IllegalArgumentException <ul>
+     *                                                                                                                                                                                  <li>If {@code expectedPreviousEvent} is non null and its
+     *                                                                                                                                                                                  {@linkplain Event#getAffectedObject() affected object} is not
+     *                                                                                                                                                                                  {@linkplain UUID#equals(Object) equivalent to} the
+     *                                                                                                                                                                                  {@linkplain #getObject() object} of this history.</li>
+     *                                                                                                                                                                                  <li>If the affected object of {@code event} is not equivalent to
+     *                                                                                                                                                                                  the {@linkplain #getObject() object} of this history.</li>
+     *                                                                                                                                                                                  <li>If {@code expectedPreviousEvent} is non null and is not
+     *                                                                                                                                                                                  {@linkplain Event#compareTo(Event) before} {@code event}.</li>
+     *                                                                                                                                                                                  <li>If the {@linkplain Event#getCausingSignal() ID of the causing
+     *                                                                                                                                                                                  signal} of {@code event} is not the same as the
+     *                                                                                                                                                                                  {@linkplain Signal#getId() ID} of {@code signal}.</li>
+     *                                                                                                                                                                                  </ul>
      */
     @Nullable
     SortedSet<Event<STATE>> compareAndAddEvent(@Nullable final Event<STATE> expectedPreviousEvent,
-            @Nonnull final Event<STATE> event, @Nonnull final Signal<STATE> signal) {
+                                               @Nonnull final Event<STATE> event, @Nonnull final Signal<STATE> signal) {
         Objects.requireNonNull(event, "event");
         Objects.requireNonNull(signal, "signal");
         if (!event.getAffectedObject().equals(getObject())) {
@@ -470,7 +365,7 @@ public final class ObjectHistory<STATE> {
             final var previousEvents = events.headMap(eventId);
             final boolean expectationMet = expectedPreviousEvent == null ? previousEvents.isEmpty()
                     : !previousEvents.isEmpty()
-                            && expectedPreviousEvent.equals(previousEvents.get(previousEvents.lastKey()));
+                    && expectedPreviousEvent.equals(previousEvents.get(previousEvents.lastKey()));
             if (expectationMet) {
                 if (events.containsKey(eventId)) {// no-op
                     return Collections.emptySortedSet();
@@ -535,8 +430,8 @@ public final class ObjectHistory<STATE> {
             for (final var entry : incomingSignals.entrySet()) {
                 final var id = entry.getKey();
                 final var signal = entry.getValue();
-                final var whenReceieved = signal.getWhenReceived(stateHistory);// expensive
-                final TimestampedId eventId = new TimestampedId(id, whenReceieved);
+                final var whenReceived = signal.getWhenReceived(stateHistory);// expensive
+                final TimestampedId eventId = new TimestampedId(id, whenReceived);
                 if (nextEventId == null || eventId.compareTo(nextEventId) < 0) {
                     nextSignal = signal;
                     nextEventId = eventId;
@@ -549,14 +444,15 @@ public final class ObjectHistory<STATE> {
     @GuardedBy("lock")
     @Nullable
     private Continuation<STATE> createContinuation(@Nullable final TimestampedId nextEventId,
-            @Nullable final Signal<STATE> nextSignal) {
-        if (nextEventId == null) {
+                                                   @Nullable final Signal<STATE> nextSignal) {
+        if (nextEventId == null || nextSignal == null) {
             return null;
         } else {
             final Duration whenNextSignalReceived = nextEventId.getWhen();
             final var previousEvents = events.headMap(nextEventId);
             if (previousEvents.isEmpty()) {
                 final STATE state = stateHistory.get(whenNextSignalReceived);
+                assert state != null;
                 return new Continuation<>(nextSignal, whenNextSignalReceived, state);
             } else {
                 final Event<STATE> previousEvent = previousEvents.get(previousEvents.lastKey());
@@ -615,7 +511,9 @@ public final class ObjectHistory<STATE> {
     @Nonnull
     @JsonProperty("end")
     public Duration getEnd() {
-        return end;
+        synchronized (lock) {
+            return end;
+        }
     }
 
     /**
@@ -633,7 +531,7 @@ public final class ObjectHistory<STATE> {
      * start} time of this history.</li>
      * <li>The returned event sequence is a snapshot: a copy of data, it is not
      * updated if this object history is subsequently changed.</li>
-     * <li>Note that events may be <i>measured as simultaneous</a>: events can have
+     * <li>Note that events may be <i>measured as simultaneous</i>: events can have
      * {@linkplain Duration#equals(Object) equivalent}
      * {@linkplain Event#getWhenOccurred() times of occurrence}. Note however, that
      * the collection of events is {@linkplain Event#compareTo(Event) ordered by}
@@ -794,7 +692,7 @@ public final class ObjectHistory<STATE> {
      * <ul>
      * <li>The state history is never {@linkplain ValueHistory#isEmpty()
      * empty}.</li>
-     * <li>The {@linkplain ValueHistory#getFirstTansitionTime() first transition
+     * <li>The {@linkplain ValueHistory#getFirstTransitionTime() first transition
      * time} of the state history is the same as the {@linkplain #getStart() start}
      * time of this history.</li>
      * <li>The {@linkplain ValueHistory#getFirstValue() state at the start of time}
@@ -898,12 +796,10 @@ public final class ObjectHistory<STATE> {
      * publication.</li>
      * </ul>
      *
-     * @param when
-     *            The point in time of interest, expressed as the duration since an
-     *            (implied) epoch. All objects in a simulation should use the same
-     *            epoch.
-     * @throws NullPointerException
-     *             If {@code when} is null.
+     * @param when The point in time of interest, expressed as the duration since an
+     *             (implied) epoch. All objects in a simulation should use the same
+     *             epoch.
+     * @throws NullPointerException If {@code when} is null.
      * @see #getStateHistory()
      */
     @Nonnull
@@ -976,13 +872,11 @@ public final class ObjectHistory<STATE> {
      * the given {@code medium}.
      * </p>
      *
-     * @param medium
-     *            The medium used transmitting signals to and from the
-     *            {@linkplain #getObject() simulated object}.
+     * @param medium The medium used transmitting signals to and from the
+     *               {@linkplain #getObject() simulated object}.
      * @return whether received a signal; that is, whether the method did any work
-     *         at all.
+     * at all.
      */
-    @Nonnull
     boolean receiveNextSignal(@Nonnull final Medium<STATE> medium) {
         Objects.requireNonNull(medium, "medium");
         Event<STATE> event;
@@ -992,6 +886,7 @@ public final class ObjectHistory<STATE> {
             if (continuation == null) {
                 return false;
             } else {
+                assert continuation.state != null;
                 event = continuation.nextSignal.receive(continuation.state);// expensive
                 invalidatedEvents = compareAndAddEvent(continuation.previousEvent, event, continuation.nextSignal);
                 // invalidatedEvents will be null if lose a data race
@@ -1037,14 +932,12 @@ public final class ObjectHistory<STATE> {
      * signals with an ID in the given collection of {@code signalIds}.</li>
      * </ul>
      *
-     * @param signalIds
-     *            The {@linkplain Signal#getId() IDs} of the signals to remove.
+     * @param signalIds The {@linkplain Signal#getId() IDs} of the signals to remove.
      * @return emitted signals that have become invalid.
-     * @throws NullPointerException
-     *             <ul>
-     *             <li>If {@code signalIds} is null.</li>
-     *             <li>If {@code signalIds} contains a null.</li>
-     *             </ul>
+     * @throws NullPointerException <ul>
+     *                                                                                                                                                              <li>If {@code signalIds} is null.</li>
+     *                                                                                                                                                              <li>If {@code signalIds} contains a null.</li>
+     *                                                                                                                                                              </ul>
      */
     @Nonnull
     Set<Signal<STATE>> removeSignals(@Nonnull final Set<UUID> signalIds) {
@@ -1052,7 +945,7 @@ public final class ObjectHistory<STATE> {
         final SortedSet<Event<STATE>> removedEvents;
         synchronized (lock) {
             removedEvents = events.values().stream().filter(event -> signalIds.contains(event.getCausingSignal()))
-                    .collect(toCollection(() -> new TreeSet<>()));
+                    .collect(toCollection(TreeSet::new));
             if (removedEvents.isEmpty()) {
                 assert Collections.disjoint(receivedSignals.keySet(), signalIds);
                 incomingSignals.keySet().removeAll(signalIds);
@@ -1060,8 +953,8 @@ public final class ObjectHistory<STATE> {
                 final var firstRemovedEventId = removedEvents.first().getId();
                 removedEvents.addAll(events.tailMap(firstRemovedEventId).values());
                 final Set<Signal<STATE>> unReceivedSignals = removedEvents.stream()
-                        .filter(e -> !signalIds.contains(e.getCausingSignal())).map(e -> e.getCausingSignal())
-                        .map(signalId -> receivedSignals.get(signalId)).collect(toUnmodifiableSet());
+                        .map(Event::getCausingSignal).filter(causingSignal -> !signalIds.contains(causingSignal))
+                        .map(receivedSignals::get).collect(toUnmodifiableSet());
 
                 events.tailMap(firstRemovedEventId, true).clear();
                 stateHistory.removeTransitionsFrom(firstRemovedEventId.getWhen());
@@ -1097,5 +990,74 @@ public final class ObjectHistory<STATE> {
             return "ObjectHistory[" + object + " from " + start + " to " + end + ", stateHistory=" + stateHistory + "]";
         }
     }
+
+    @Immutable
+    static final class Continuation<STATE> {
+        @Nonnull
+        final Signal<STATE> nextSignal;
+        @Nonnull
+        final Duration whenNextSignalReceived;
+        @Nullable
+        final Event<STATE> previousEvent;
+        @Nullable
+        final STATE state;
+
+        Continuation(@Nonnull final Signal<STATE> nextSignal, @Nonnull final Duration whenNextSignalReceived,
+                     @Nonnull final Event<STATE> previousEvent) {
+            this.nextSignal = Objects.requireNonNull(nextSignal, "nextSignal");
+            this.whenNextSignalReceived = Objects.requireNonNull(whenNextSignalReceived, "whenNextSignalReceived");
+            this.previousEvent = Objects.requireNonNull(previousEvent, "previousEvent");
+            this.state = previousEvent.getState();
+        }
+
+        Continuation(@Nonnull final Signal<STATE> nextSignal, @Nonnull final Duration whenNextSignalReceived,
+                     @Nonnull final STATE state) {
+            this.nextSignal = Objects.requireNonNull(nextSignal, "nextSignal");
+            this.whenNextSignalReceived = Objects.requireNonNull(whenNextSignalReceived, "whenNextSignalReceived");
+            this.previousEvent = null;
+            this.state = Objects.requireNonNull(state, "state");
+        }
+
+        @Override
+        public boolean equals(final Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (!(obj instanceof Continuation)) {
+                return false;
+            }
+            final Continuation<?> other = (Continuation<?>) obj;
+            return whenNextSignalReceived.equals(other.whenNextSignalReceived) && nextSignal.equals(other.nextSignal)
+                    && Objects.equals(previousEvent, other.previousEvent) && Objects.equals(state, other.state);
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + whenNextSignalReceived.hashCode();
+            result = prime * result + nextSignal.hashCode();
+            result = prime * result + (previousEvent == null ? 0 : previousEvent.hashCode());
+            result = prime * result + (state == null ? 0 : state.hashCode());
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "ObjectHistory.Continuation [previousEvent=" + previousEvent + ", state=" + state + ", " + nextSignal
+                    + "@" + whenNextSignalReceived + "]";
+        }
+
+    }// class
+
+    @NotThreadSafe
+    private static class StatePublisher<STATE> {
+        final Sinks.Many<Optional<STATE>> sink = Sinks.many().replay().latest();
+        int nSubscribers;
+
+        StatePublisher(@Nullable final STATE state) {
+            sink.tryEmitNext(Optional.ofNullable(state));
+        }
+    }// class
 
 }

@@ -18,35 +18,11 @@ package uk.badamson.mc.simulation.rx;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.time.Duration;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Stream;
-
-import javax.annotation.Nonnull;
-
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.reactivestreams.Publisher;
-
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import uk.badamson.dbc.assertions.EqualsSemanticsTest;
@@ -55,37 +31,72 @@ import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.simulation.TimestampedId;
 import uk.badamson.mc.simulation.rx.EventTest.TestEvent;
 
+import javax.annotation.Nonnull;
+import java.time.Duration;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.*;
+
 public class UniverseTest {
+
+    private static final UUID OBJECT_A = UUID.randomUUID();
+    private static final UUID OBJECT_B = UUID.randomUUID();
+    private static final Duration WHEN_A = Duration.ofMillis(0);
+    private static final Duration WHEN_B = Duration.ofMillis(5000);
+    private static final TimestampedId OBJECT_STATE_ID_A = new TimestampedId(OBJECT_A, WHEN_A);
+    private static final TimestampedId OBJECT_STATE_ID_B = new TimestampedId(OBJECT_B, WHEN_B);
+    private static final TestEvent EVENT_A = new TestEvent(OBJECT_STATE_ID_A, 0, Map.of());
+    private static final TestEvent EVENT_B = new TestEvent(OBJECT_STATE_ID_B, 1, Map.of());
+
+    private static <STATE> void assertEmpty(@Nonnull final Universe<STATE> universe) {
+        assertAll("empty", () -> assertThat("objects", universe.getObjects(), empty()),
+                () -> assertThat("objectHistories", universe.getObjectHistories().keySet(), empty()));
+    }
+
+    public static <STATE> void assertInvariants(@Nonnull final Universe<STATE> universe) {
+        ObjectTest.assertInvariants(universe);// inherited
+
+        final Set<UUID> objects = universe.getObjects();
+        final Map<UUID, ObjectHistory<STATE>> objectHistories = universe.getObjectHistories();
+
+        assertAll("Not null", () -> assertNotNull(objects, "objects"), // guard
+                () -> assertNotNull(objectHistories, "objectHistories")// guard
+        );
+        assertFalse(objects.stream().anyMatch(Objects::isNull), "The set of object IDs does not contain a null.");
+        assertAll("objectHistories", createObjectHistoriesInvariantAssertions(objectHistories));
+        assertEquals(objects, objectHistories.keySet(),
+                "objectHistories has a set of keys equivalent to the set of object IDs");
+    }
+
+    public static <STATE> void assertInvariants(@Nonnull final Universe<STATE> universe1,
+                                                @Nonnull final Universe<STATE> universe2) {
+        ObjectTest.assertInvariants(universe1, universe2);// inherited
+
+        assertAll("Value semantics",
+                () -> EqualsSemanticsTest.assertValueSemantics(universe1, universe2, "objectHistories",
+                        Universe::getObjectHistories),
+                () -> assertEquals(universe1.equals(universe2), universe1.getObjectHistories()
+                        .equals(universe2.getObjectHistories()), "equals"));
+    }
+
+    private static <STATE> Stream<Executable> createObjectHistoriesInvariantAssertions(
+            @Nonnull final Map<UUID, ObjectHistory<STATE>> objectHistories) {
+        return objectHistories.entrySet().stream().map(entry -> () -> {
+            final var object = entry.getKey();
+            final var history = entry.getValue();
+            assertAll("Not null", () -> assertNotNull(object, "key"), () -> assertNotNull(history, "value"));
+            ObjectHistoryTest.assertInvariants(history);
+            assertSame(object, history.getObject(),
+                    "Has only entries for which the object of the value of the entry is the same as the key of the entry.");
+        });
+    }
 
     @Nested
     public class AddObject {
-
-        @Nested
-        public class One {
-
-            @Test
-            public void a() {
-                test(EVENT_A);
-            }
-
-            @Test
-            public void b() {
-                test(EVENT_B);
-            }
-
-            private <STATE> void test(@Nonnull final Event<STATE> event) {
-                final Universe<STATE> universe = new Universe<>();
-
-                AddObject.this.test(universe, event);
-
-                final var objectHistories = universe.getObjectHistories();
-                final var objectHistory = objectHistories.get(event.getObject());
-                assertEquals(1, objectHistories.size(), "number of objects");
-                assertNotNull(objectHistory, "has a histopry for the object");// guard
-                assertSame(event, objectHistory.getLastEvent(), "objectHistory.lastEvent");
-            }
-
-        }// class
 
         private <STATE> void test(@Nonnull final Universe<STATE> universe, @Nonnull final Event<STATE> event) {
             final var objects0 = universe.getObjects();
@@ -109,77 +120,37 @@ public class UniverseTest {
 
             test(universe, EVENT_B);
         }
-    }// class
-
-    @Nested
-    public class AdvanceStatesTo {
 
         @Nested
         public class One {
 
             @Test
-            public void atFirstEvent() {
-                final Duration start = WHEN_A;
-                final Duration when = start;// critical
-
-                test(OBJECT_A, start, Integer.valueOf(0), when);
+            public void a() {
+                test(EVENT_A);
             }
 
             @Test
-            public void beforeFirstEvent() {
-                final Duration start = WHEN_A;
-                final Duration when = start.minusNanos(1);// tough test
-
-                test(OBJECT_A, start, Integer.valueOf(0), when);
+            public void b() {
+                test(EVENT_B);
             }
 
-            @Test
-            public void destruction() {
-                final Duration start = WHEN_A;
-                final Duration when = start.plusSeconds(5);
-                final var state0 = Integer.valueOf(Integer.MAX_VALUE);// magic number
+            private <STATE> void test(@Nonnull final Event<STATE> event) {
+                final Universe<STATE> universe = new Universe<>();
 
-                test(OBJECT_A, start, state0, when);
-            }
+                AddObject.this.test(universe, event);
 
-            @Test
-            public void far() {
-                final Duration start = WHEN_A;
-                final Duration when = start.plusSeconds(5);
-
-                test(OBJECT_A, start, Integer.valueOf(0), when);
-            }
-
-            @Test
-            public void justAfterFirstEvent_A() {
-                final Duration start = WHEN_A;
-                final Duration when = start.plusNanos(1);// critical
-
-                test(OBJECT_A, start, Integer.valueOf(0), when);
-            }
-
-            @Test
-            public void justAfterFirstEvent_B() {
-                final Duration start = WHEN_B;
-                final Duration when = start.plusNanos(1);// critical
-
-                test(OBJECT_A, start, Integer.valueOf(1), when);
-            }
-
-            private void test(@Nonnull final UUID object, @Nonnull final Duration start, @Nonnull final Integer state0,
-                    @Nonnull final Duration when) {
-                final var event0 = new TestEvent(new TimestampedId(object, start), state0, Map.of());
-                final var universe = new Universe<Integer>();
-                universe.addObject(event0);
-
-                final var sequence = AdvanceStatesTo.this.test(universe, when, 1);
-
-                StepVerifier.create(sequence).expectComplete().verify(Duration.ofMillis(100));
-                StepVerifier.create(universe.observeState(object, when)).expectNextCount(1).expectComplete()
-                        .verify(Duration.ofMillis(100));
+                final var objectHistories = universe.getObjectHistories();
+                final var objectHistory = objectHistories.get(event.getObject());
+                assertEquals(1, objectHistories.size(), "number of objects");
+                assertNotNull(objectHistory, "has a history for the object");// guard
+                assertSame(event, objectHistory.getLastEvent(), "objectHistory.lastEvent");
             }
 
         }// class
+    }// class
+
+    @Nested
+    public class AdvanceStatesTo {
 
         @Test
         public void creation() {
@@ -226,7 +197,7 @@ public class UniverseTest {
         }
 
         private <STATE> Mono<Void> test(@Nonnull final Universe<STATE> universe, @Nonnull final Duration when,
-                final int nThreads) {
+                                        final int nThreads) {
             final var sequence = universe.advanceStatesTo(when, nThreads);
 
             assertInvariants(universe);
@@ -234,40 +205,88 @@ public class UniverseTest {
 
             return sequence;
         }
+
+        @Nested
+        public class One {
+
+            @Test
+            public void atFirstEvent() {
+                final Duration start = WHEN_A;
+                final Duration when = start;// critical
+
+                test(OBJECT_A, start, 0, when);
+            }
+
+            @Test
+            public void beforeFirstEvent() {
+                final Duration start = WHEN_A;
+                final Duration when = start.minusNanos(1);// tough test
+
+                test(OBJECT_A, start, 0, when);
+            }
+
+            @Test
+            public void destruction() {
+                final Duration start = WHEN_A;
+                final Duration when = start.plusSeconds(5);
+                final var state0 = Integer.valueOf(Integer.MAX_VALUE);// magic number
+
+                test(OBJECT_A, start, state0, when);
+            }
+
+            @Test
+            public void far() {
+                final Duration start = WHEN_A;
+                final Duration when = start.plusSeconds(5);
+
+                test(OBJECT_A, start, 0, when);
+            }
+
+            @Test
+            public void justAfterFirstEvent_A() {
+                final Duration start = WHEN_A;
+                final Duration when = start.plusNanos(1);// critical
+
+                test(OBJECT_A, start, 0, when);
+            }
+
+            @Test
+            public void justAfterFirstEvent_B() {
+                final Duration start = WHEN_B;
+                final Duration when = start.plusNanos(1);// critical
+
+                test(OBJECT_B, start, 1, when);
+            }
+
+            private void test(@Nonnull final UUID object, @Nonnull final Duration start, @Nonnull final Integer state0,
+                              @Nonnull final Duration when) {
+                final var event0 = new TestEvent(new TimestampedId(object, start), state0, Map.of());
+                final var universe = new Universe<Integer>();
+                universe.addObject(event0);
+
+                final var sequence = AdvanceStatesTo.this.test(universe, when, 1);
+
+                StepVerifier.create(sequence).expectComplete().verify(Duration.ofMillis(100));
+                StepVerifier.create(universe.observeState(object, when)).expectNextCount(1).expectComplete()
+                        .verify(Duration.ofMillis(100));
+            }
+
+        }// class
     }// class
 
     @Nested
     public class Constructor {
 
+        @Test
+        public void noArgs() {
+            final var universe = new Universe<>();
+
+            assertInvariants(universe);
+            assertEmpty(universe);
+        }
+
         @Nested
         public class Copy {
-
-            @Nested
-            public class OneEvent {
-
-                @Test
-                public void a() {
-                    test(EVENT_A);
-                }
-
-                @Test
-                public void b() {
-                    test(EVENT_B);
-                }
-
-                private <STATE> void test(@Nonnull final Event<STATE> event) {
-                    final Universe<STATE> universe = new Universe<>();
-                    universe.addObject(event);
-
-                    final var copy = Copy.this.test(universe);
-
-                    final var objectHistories = copy.getObjectHistories();
-                    final var objectHistory = objectHistories.get(event.getObject());
-                    assertEquals(1, objectHistories.size(), "number of objects");
-                    assertNotNull(objectHistory, "has a histopry for the object");// guard
-                    assertSame(event, objectHistory.getLastEvent(), "objectHistory.lastEvent");
-                }
-            }// class
 
             @Test
             public void empty() {
@@ -333,13 +352,9 @@ public class UniverseTest {
                 assertEquals(universe.getObjects().size(), copy.get().getObjects().size(),
                         "copy can have created objects");
             }
-        }// class
-
-        @Nested
-        public class FromObjectHistories {
 
             @Nested
-            public class One {
+            public class OneEvent {
 
                 @Test
                 public void a() {
@@ -352,13 +367,22 @@ public class UniverseTest {
                 }
 
                 private <STATE> void test(@Nonnull final Event<STATE> event) {
-                    final var object = event.getObject();
-                    final var objectHistory = new ObjectHistory<>(event);
-                    final Map<UUID, ObjectHistory<STATE>> objectHistories = Map.of(object, objectHistory);
+                    final Universe<STATE> universe = new Universe<>();
+                    universe.addObject(event);
 
-                    FromObjectHistories.this.test(objectHistories);
+                    final var copy = Copy.this.test(universe);
+
+                    final var objectHistories = copy.getObjectHistories();
+                    final var objectHistory = objectHistories.get(event.getObject());
+                    assertEquals(1, objectHistories.size(), "number of objects");
+                    assertNotNull(objectHistory, "has a history for the object");// guard
+                    assertSame(event, objectHistory.getLastEvent(), "objectHistory.lastEvent");
                 }
             }// class
+        }// class
+
+        @Nested
+        public class FromObjectHistories {
 
             @Test
             public void empty() {
@@ -382,6 +406,28 @@ public class UniverseTest {
 
                 FromObjectHistories.this.test(objectHistories);
             }
+
+            @Nested
+            public class One {
+
+                @Test
+                public void a() {
+                    test(EVENT_A);
+                }
+
+                @Test
+                public void b() {
+                    test(EVENT_B);
+                }
+
+                private <STATE> void test(@Nonnull final Event<STATE> event) {
+                    final var object = event.getObject();
+                    final var objectHistory = new ObjectHistory<>(event);
+                    final Map<UUID, ObjectHistory<STATE>> objectHistories = Map.of(object, objectHistory);
+
+                    FromObjectHistories.this.test(objectHistories);
+                }
+            }// class
         }// class
 
         @Nested
@@ -389,7 +435,7 @@ public class UniverseTest {
 
             @Test
             public void differentEventTimes() {
-                final var state = Integer.valueOf(0);
+                final var state = 0;
                 final var eventA = new TestEvent(new TimestampedId(OBJECT_A, WHEN_A), state, Map.of());
                 final var eventB = new TestEvent(new TimestampedId(OBJECT_A, WHEN_B), state, Map.of());
                 final var universeA = new Universe<Integer>();
@@ -403,7 +449,7 @@ public class UniverseTest {
 
             @Test
             public void differentObjects() {
-                final var state = Integer.valueOf(0);
+                final var state = 0;
                 final var eventA = new TestEvent(new TimestampedId(OBJECT_A, WHEN_A), state, Map.of());
                 final var eventB = new TestEvent(new TimestampedId(OBJECT_B, WHEN_A), state, Map.of());
                 final var universeA = new Universe<Integer>();
@@ -417,8 +463,8 @@ public class UniverseTest {
 
             @Test
             public void differentStates() {
-                final var eventA = new TestEvent(OBJECT_STATE_ID_A, Integer.valueOf(0), Map.of());
-                final var eventB = new TestEvent(OBJECT_STATE_ID_A, Integer.valueOf(1), Map.of());
+                final var eventA = new TestEvent(OBJECT_STATE_ID_A, 0, Map.of());
+                final var eventB = new TestEvent(OBJECT_STATE_ID_A, 1, Map.of());
                 final var universeA = new Universe<Integer>();
                 universeA.addObject(eventA);
                 final var universeB = new Universe<Integer>();
@@ -448,14 +494,6 @@ public class UniverseTest {
                 assertThat("equals", universeA, is(universeB));
             }
         }// class
-
-        @Test
-        public void noArgs() {
-            final var universe = new Universe<>();
-
-            assertInvariants(universe);
-            assertEmpty(universe);
-        }
 
     }// class
 
@@ -487,17 +525,26 @@ public class UniverseTest {
     @Nested
     public class ObserveNextEvents {
 
+        private <STATE> Mono<Map<UUID, Event<STATE>>> test(@Nonnull final Universe<STATE> universe,
+                                                           @Nonnull final Event<STATE> event) {
+            final var events = universe.observeNextEvents(event);
+
+            assertInvariants(universe);
+            assertNotNull(events, "Not null, result");
+            return events;
+        }
+
         @Nested
         public class NoDependencies {
 
             @Test
             public void a() {
-                test(OBJECT_STATE_ID_A, Integer.valueOf(0));
+                test(OBJECT_STATE_ID_A, 0);
             }
 
             @Test
             public void b() {
-                test(OBJECT_STATE_ID_B, Integer.valueOf(1));
+                test(OBJECT_STATE_ID_B, 1);
             }
 
             private void test(@Nonnull final TimestampedId id, @Nonnull final Integer state) {
@@ -517,17 +564,17 @@ public class UniverseTest {
 
             @Test
             public void a() {
-                test(OBJECT_A, WHEN_A, Integer.valueOf(0), OBJECT_B, WHEN_A.minusNanos(1), Integer.valueOf(2));
+                test(OBJECT_A, WHEN_A, 0, OBJECT_B, WHEN_A.minusNanos(1), 2);
             }
 
             @Test
             public void b() {
-                test(OBJECT_B, WHEN_B, Integer.valueOf(3), OBJECT_A, WHEN_A.minusDays(1), Integer.valueOf(20));
+                test(OBJECT_B, WHEN_B, 3, OBJECT_A, WHEN_A.minusDays(1), 20);
             }
 
             private void test(@Nonnull final UUID eventObject, @Nonnull final Duration eventTime,
-                    @Nonnull final Integer eventState, @Nonnull final UUID dependentObject,
-                    @Nonnull final Duration dependentObjectTime, @Nonnull final Integer dependentState) {
+                              @Nonnull final Integer eventState, @Nonnull final UUID dependentObject,
+                              @Nonnull final Duration dependentObjectTime, @Nonnull final Integer dependentState) {
                 assert !eventObject.equals(dependentObject);
                 assert dependentObjectTime.compareTo(eventTime) < 0;
                 final var dependentObjectInitialEvent = new TestEvent(
@@ -548,19 +595,20 @@ public class UniverseTest {
 
         }// class
 
-        private <STATE> Mono<Map<UUID, Event<STATE>>> test(@Nonnull final Universe<STATE> universe,
-                @Nonnull final Event<STATE> event) {
-            final var events = universe.observeNextEvents(event);
-
-            assertInvariants(universe);
-            assertNotNull(events, "Not null, result");
-            return events;
-        }
-
     }// class
 
     @Nested
     public class ObserveState {
+
+        private <STATE> Publisher<Optional<STATE>> test(@Nonnull final Universe<STATE> universe,
+                                                        @Nonnull final UUID object, @Nonnull final Duration when) {
+            final var states = universe.observeState(object, when);
+
+            assertInvariants(universe);
+            assertNotNull(states, "Not null, result");
+
+            return states;
+        }
 
         @Nested
         public class InitialState {
@@ -587,76 +635,5 @@ public class UniverseTest {
             }
         }// class
 
-        private <STATE> Publisher<Optional<STATE>> test(@Nonnull final Universe<STATE> universe,
-                @Nonnull final UUID object, @Nonnull final Duration when) {
-            final var states = universe.observeState(object, when);
-
-            assertInvariants(universe);
-            assertNotNull(states, "Not null, result");
-
-            return states;
-        }
-
     }// class
-
-    private static final UUID OBJECT_A = UUID.randomUUID();
-    private static final UUID OBJECT_B = UUID.randomUUID();
-
-    private static final Duration WHEN_A = Duration.ofMillis(0);
-    private static final Duration WHEN_B = Duration.ofMillis(5000);
-
-    private static final TimestampedId OBJECT_STATE_ID_A = new TimestampedId(OBJECT_A, WHEN_A);
-    private static final TimestampedId OBJECT_STATE_ID_B = new TimestampedId(OBJECT_B, WHEN_B);
-
-    private static final TestEvent EVENT_A = new TestEvent(OBJECT_STATE_ID_A, Integer.valueOf(0), Map.of());
-    private static final TestEvent EVENT_B = new TestEvent(OBJECT_STATE_ID_B, Integer.valueOf(1), Map.of());
-
-    private static <STATE> void assertEmpty(@Nonnull final Universe<STATE> universe) {
-        assertAll("empty", () -> assertThat("objects", universe.getObjects(), empty()),
-                () -> assertThat("objectHistories", universe.getObjectHistories().keySet(), empty()));
-    }
-
-    public static <STATE> void assertInvariants(@Nonnull final Universe<STATE> universe) {
-        ObjectTest.assertInvariants(universe);// inherited
-
-        final Set<UUID> objects = universe.getObjects();
-        final Map<UUID, ObjectHistory<STATE>> objectHistories = universe.getObjectHistories();
-
-        assertAll("Not null", () -> assertNotNull(objects, "objects"), // guard
-                () -> assertNotNull(objectHistories, "objectHistories")// guard
-        );
-        assertFalse(objects.stream().anyMatch(id -> id == null), "The set of object IDs does not contain a null.");
-        assertAll("objectHistories", createObjectHistoriesInvariantAssertions(objectHistories));
-        assertEquals(objects, objectHistories.keySet(),
-                "objectHistories has a set of keys equivalent to the set of object IDs");
-    }
-
-    public static <STATE> void assertInvariants(@Nonnull final Universe<STATE> universe1,
-            @Nonnull final Universe<STATE> universe2) {
-        ObjectTest.assertInvariants(universe1, universe2);// inherited
-
-        assertAll("Value semantics",
-                () -> EqualsSemanticsTest.assertValueSemantics(universe1, universe2, "objectHistories",
-                        u -> u.getObjectHistories()),
-                () -> assertTrue(universe1.equals(universe2) == universe1.getObjectHistories()
-                        .equals(universe2.getObjectHistories()), "equals"));
-    }
-
-    private static <STATE> Stream<Executable> createObjectHistoriesInvariantAssertions(
-            @Nonnull final Map<UUID, ObjectHistory<STATE>> objectHistories) {
-        return objectHistories.entrySet().stream().map(entry -> {
-            return new Executable() {
-
-                @Override
-                public void execute() {
-                    final var object = entry.getKey();
-                    final var history = entry.getValue();
-                    assertAll("Not null", () -> assertNotNull(object, "key"), () -> assertNotNull(history, "value"));
-                    ObjectHistoryTest.assertInvariants(history);
-                    assertSame(object, history.getObject(),
-                            "Has only entries for which the object of the value of the entry is the same as the key of the entry.");
-                }
-            };
-        });
-    }
 }

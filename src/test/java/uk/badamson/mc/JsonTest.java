@@ -18,14 +18,12 @@ package uk.badamson.mc;
  * along with MC.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import java.io.UncheckedIOException;
-import java.util.Objects;
-
-import org.opentest4j.AssertionFailedError;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
+import java.io.UncheckedIOException;
+import java.util.Objects;
 
 /**
  * <p>
@@ -34,33 +32,25 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
  */
 public class JsonTest {
 
-   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-   static {
-      OBJECT_MAPPER.registerModule(new JavaTimeModule());
-   }
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-   public static void assertCanSerialize(final Object object) {
-      Objects.requireNonNull(object, "object");
-      try {
-         serialize(object);
-      } catch (final JsonProcessingException e) {
-         throw new AssertionFailedError("can serialize as JSON", e);
-      }
-   }
+    static {
+        OBJECT_MAPPER.registerModule(new JavaTimeModule());
+    }
 
-   public static String serialize(final Object object)
+    public static String serialize(final Object object)
             throws JsonProcessingException {
-      return OBJECT_MAPPER.writeValueAsString(object);
-   }
+        return OBJECT_MAPPER.writeValueAsString(object);
+    }
 
-   @SuppressWarnings("unchecked")
-   public static <TYPE> TYPE serializeAndDeserialize(final TYPE object) {
-      Objects.requireNonNull(object, "object");
-      try {
-         final var serialized = serialize(object);
-         return (TYPE) OBJECT_MAPPER.readValue(serialized, object.getClass());
-      } catch (final JsonProcessingException e) {
-         throw new UncheckedIOException("can not deserialize from JSON", e);
-      }
-   }
+    @SuppressWarnings("unchecked")
+    public static <TYPE> TYPE serializeAndDeserialize(final TYPE object) {
+        Objects.requireNonNull(object, "object");
+        try {
+            final var serialized = serialize(object);
+            return (TYPE) OBJECT_MAPPER.readValue(serialized, object.getClass());
+        } catch (final JsonProcessingException e) {
+            throw new UncheckedIOException("can not deserialize from JSON", e);
+        }
+    }
 }

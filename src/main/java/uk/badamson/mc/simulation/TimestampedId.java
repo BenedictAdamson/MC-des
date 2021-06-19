@@ -18,15 +18,14 @@ package uk.badamson.mc.simulation;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import java.time.Duration;
-import java.util.Objects;
-import java.util.UUID;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
-
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import java.time.Duration;
+import java.util.Objects;
+import java.util.UUID;
 
 /**
  * <p>
@@ -44,12 +43,11 @@ public final class TimestampedId implements Comparable<TimestampedId> {
      * Construct an object with given attribute values.
      * </p>
      *
-     * @throws NullPointerException
-     *             If any argument is null.
+     * @throws NullPointerException If any argument is null.
      */
     @JsonCreator
     public TimestampedId(@Nonnull @JsonProperty("object") final UUID object,
-            @Nonnull @JsonProperty("when") final Duration when) {
+                         @Nonnull @JsonProperty("when") final Duration when) {
         this.object = Objects.requireNonNull(object, "object");
         this.when = Objects.requireNonNull(when, "when");
     }
@@ -70,15 +68,13 @@ public final class TimestampedId implements Comparable<TimestampedId> {
      * equivalent to the ordering of their object IDs.</li>
      * </ul>
      *
-     * @param that
-     *            The other ID to compare with this ID.
-     * @return a value that has a sign or zeroness that indicates the order of this
-     *         ID with respect to the given ID.
-     * @throws NullPointerException
-     *             If {@code that} is null.
+     * @param that The other ID to compare with this ID.
+     * @return a value that has a sign or is zero to indicates the order of this
+     * ID with respect to the given ID.
+     * @throws NullPointerException If {@code that} is null.
      */
     @Override
-    public int compareTo(final TimestampedId that) {
+    public int compareTo(@Nonnull final TimestampedId that) {
         Objects.requireNonNull(that, "that");
         int c = when.compareTo(that.when);
         if (c == 0) {

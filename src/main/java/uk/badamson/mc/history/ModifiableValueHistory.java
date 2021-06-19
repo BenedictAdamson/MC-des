@@ -18,23 +18,17 @@ package uk.badamson.mc.history;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import java.time.Duration;
-import java.util.Collections;
-import java.util.Map.Entry;
-import java.util.NavigableMap;
-import java.util.Objects;
-import java.util.SortedMap;
-import java.util.SortedSet;
-import java.util.TreeMap;
-import java.util.stream.Stream;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
-
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import java.time.Duration;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.stream.Stream;
 
 /**
  * <p>
@@ -51,9 +45,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @NotThreadSafe
 public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VALUE> {
 
+    private final NavigableMap<Duration, VALUE> transitions = new TreeMap<>();
     @Nullable
     private VALUE firstValue;
-    private final NavigableMap<Duration, VALUE> transitions = new TreeMap<>();
 
     /**
      * <p>
@@ -80,8 +74,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * time} is the given value.</li>
      * </ul>
      *
-     * @param value
-     *            The value at all points in time
+     * @param value The value at all points in time
      */
     public ModifiableValueHistory(@Nullable final VALUE value) {
         firstValue = value;
@@ -99,22 +92,18 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * {@code transitions} map.</li>
      * </ul>
      *
-     * @param firstValue
-     *            The {@linkplain #get(Duration) value} of this history at the
-     *            {@linkplain #START_OF_TIME start of time}.
-     * @param transitions
-     *            The transitions in the value of this history.
-     * @throws NullPointerException
-     *             If {@code transitions} is null
-     * @throws IllegalArgumentException
-     *             If adjacent {@linkplain SortedMap#values() values} of
-     *             {@code transitions} are
-     *             {@linkplain Objects#equals(Object, Object) equivalent or
-     *             equivalently null}.
+     * @param firstValue  The {@linkplain #get(Duration) value} of this history at the
+     *                    {@linkplain #START_OF_TIME start of time}.
+     * @param transitions The transitions in the value of this history.
+     * @throws NullPointerException     If {@code transitions} is null
+     * @throws IllegalArgumentException If adjacent {@linkplain SortedMap#values() values} of
+     *                                  {@code transitions} are
+     *                                  {@linkplain Objects#equals(Object, Object) equivalent or
+     *                                  equivalently null}.
      */
     @JsonCreator
     public ModifiableValueHistory(@Nullable @JsonProperty("firstValue") final VALUE firstValue,
-            @Nonnull @JsonProperty("transitions") final SortedMap<Duration, VALUE> transitions) {
+                                  @Nonnull @JsonProperty("transitions") final SortedMap<Duration, VALUE> transitions) {
         Objects.requireNonNull(transitions, "transitions");
         this.firstValue = firstValue;
         appendTransitions(transitions.entrySet().stream());
@@ -136,10 +125,8 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * <li>This {@linkplain #equals(Object) equals} the given value history.</li>
      * </ul>
      *
-     * @param that
-     *            The value history to copy.
-     * @throws NullPointerException
-     *             If {@code that} is null
+     * @param that The value history to copy.
+     * @throws NullPointerException If {@code that} is null
      */
     public ModifiableValueHistory(@Nonnull final ValueHistory<VALUE> that) {
         Objects.requireNonNull(that, "that");
@@ -159,31 +146,25 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * values} before the given point in time.</li>
      * <li>Appending a transition increments the {@linkplain SortedSet#size() number
      * of} {@linkplain #getTransitionTimes() transition times}.</li>
-     * <li>The given point in time becomes the {@linkplain #getLastTansitionTime()
+     * <li>The given point in time becomes the {@linkplain #getLastTransitionTime()
      * last transition time}.</li>
      * <li>The given value becomes the {@linkplain #getLastValue() last value}.</li>
      * </ul>
      *
-     * @param when
-     *            The point in time when the transition occurs, represented as the
-     *            duration since an (implied) epoch.
-     * @param value
-     *            The value at and after the transition.
-     *
-     * @throws NullPointerException
-     *             If {@code when} is null.
-     * @throws IllegalStateException
-     *             <ul>
-     *             <li>If {@code when} is not
-     *             {@linkplain Duration#compareTo(Duration) after} the
-     *             {@linkplain #getLastTansitionTime() last transition time}.</li>
-     *             <li>If {@code value} is
-     *             {@linkplain Objects#equals(Object, Object) equal to (or equally
-     *             null as)} the {@linkplain #getLastValue() last value}.</li>
-     *             </ul>
-     *             This history is unchanged if the method throws
-     *             {@link IllegalStateException}.
-     *
+     * @param when  The point in time when the transition occurs, represented as the
+     *              duration since an (implied) epoch.
+     * @param value The value at and after the transition.
+     * @throws NullPointerException  If {@code when} is null.
+     * @throws IllegalStateException <ul>
+     *                                                                                                                                                                   <li>If {@code when} is not
+     *                                                                                                                                                                   {@linkplain Duration#compareTo(Duration) after} the
+     *                                                                                                                                                                   {@linkplain #getLastTransitionTime() last transition time}.</li>
+     *                                                                                                                                                                   <li>If {@code value} is
+     *                                                                                                                                                                   {@linkplain Objects#equals(Object, Object) equal to (or equally
+     *                                                                                                                                                                   null as)} the {@linkplain #getLastValue() last value}.</li>
+     *                                                                                                                                                                   </ul>
+     *                                                                                                                                                                   This history is unchanged if the method throws
+     *                                                                                                                                                                   {@link IllegalStateException}.
      * @see #setValueFrom(Duration, Object)
      */
     public void appendTransition(@Nonnull final Duration when, final VALUE value) throws IllegalStateException {
@@ -229,11 +210,11 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
     /**
      * {@inheritDoc}
      *
-     * @throws NullPointerException
-     *             {@inheritDoc}
+     * @throws NullPointerException {@inheritDoc}
      */
     @Override
-    public @Nullable VALUE get(@Nonnull final Duration when) {
+    public @Nullable
+    VALUE get(@Nonnull final Duration when) {
         Objects.requireNonNull(when, "when");
         final var previousTransition = transitions.floorEntry(when);
         return previousTransition == null ? firstValue : previousTransition.getValue();
@@ -278,7 +259,8 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @return the first transition time.
      */
     @Override
-    public @Nullable Duration getFirstTansitionTime() {
+    public @Nullable
+    Duration getFirstTransitionTime() {
         return transitions.isEmpty() ? null : transitions.firstKey();
     }
 
@@ -298,7 +280,8 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      */
     @Override
     @JsonProperty("firstValue")
-    public @Nullable VALUE getFirstValue() {
+    public @Nullable
+    VALUE getFirstValue() {
         return firstValue;
     }
 
@@ -321,7 +304,8 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @return the last transition time.
      */
     @Override
-    public @Nullable Duration getLastTansitionTime() {
+    public @Nullable
+    Duration getLastTransitionTime() {
         return transitions.isEmpty() ? null : transitions.lastKey();
     }
 
@@ -338,7 +322,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * value}.</li>
      * <li>If this history has {@linkplain #getTransitionTimes() transitions}, the
      * last value is the same as the value at the
-     * {@linkplain #getLastTansitionTime() last transition}.</li>
+     * {@linkplain #getLastTransitionTime() last transition}.</li>
      * <li>This method is more efficient than using the
      * {@link #getTransitionTimes()} and {@link #get(Duration)} methods.</li>
      * </ul>
@@ -346,13 +330,14 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @return the last value.
      */
     @Override
-    public @Nullable VALUE getLastValue() {
+    public @Nullable
+    VALUE getLastValue() {
         final var lastTransition = transitions.lastEntry();
         return lastTransition == null ? firstValue : lastTransition.getValue();
     }
 
     @Override
-    public Duration getTansitionTimeAtOrAfter(@Nonnull final Duration when) {
+    public Duration getTransitionTimeAtOrAfter(@Nonnull final Duration when) {
         Objects.requireNonNull(when, "when");
         return transitions.ceilingKey(when);
     }
@@ -369,7 +354,8 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      */
     @Override
     @JsonProperty("transitions")
-    public @Nonnull SortedMap<Duration, VALUE> getTransitions() {
+    public @Nonnull
+    SortedMap<Duration, VALUE> getTransitions() {
         return new TreeMap<>(transitions);
     }
 
@@ -399,7 +385,8 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @return the transition times
      */
     @Override
-    public @Nonnull SortedSet<Duration> getTransitionTimes() {
+    public @Nonnull
+    SortedSet<Duration> getTransitionTimes() {
         return Collections.unmodifiableSortedSet(transitions.navigableKeySet());
     }
 
@@ -419,7 +406,6 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * <li>This method is more efficient than using the
      * {@link #getTransitionTimes()} method.</li>
      * </ul>
-     *
      */
     @Override
     public boolean isEmpty() {
@@ -441,13 +427,9 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * {@linkplain #getTransitions() transitions} before the point in time.</li>
      * </ul>
      *
-     * @param when
-     *            The point in time from which transitions must be removed,
-     *            represented as the duration since an (implied) epoch.
-     *
-     * @throws NullPointerException
-     *             If {@code when} is null.
-     *
+     * @param when The point in time from which transitions must be removed,
+     *             represented as the duration since an (implied) epoch.
+     * @throws NullPointerException If {@code when} is null.
      * @see #appendTransition(Duration, Object)
      */
     public void removeTransitionsFrom(@Nonnull final Duration when) {
@@ -468,21 +450,16 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * <li>The given value is {@linkplain Object#equals(Object) equal} to
      * {@linkplain #get(Duration) the value at} the given time.</li>
      * <li>If this {@linkplain #isEmpty() has any transitions}, the
-     * {@linkplain #getLastTansitionTime() last transition time} is at or before the
+     * {@linkplain #getLastTransitionTime() last transition time} is at or before the
      * given time.</li>
      * </ul>
      *
-     * @param when
-     *            The point in time from which this history must have the
-     *            {@code value}, represented as the duration since an (implied)
-     *            epoch.
-     * @param value
-     *            The value that this history must have at or after the given point
-     *            in time.
-     *
-     * @throws NullPointerException
-     *             If {@code when} is null.
-     *
+     * @param when  The point in time from which this history must have the
+     *              {@code value}, represented as the duration since an (implied)
+     *              epoch.
+     * @param value The value that this history must have at or after the given point
+     *              in time.
+     * @throws NullPointerException If {@code when} is null.
      * @see #appendTransition(Duration, Object)
      * @see #setValueUntil(Duration, Object)
      */
@@ -511,21 +488,16 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * <li>The given value is {@linkplain Object#equals(Object) equal} to
      * {@linkplain #get(Duration) the value at} the given time.</li>
      * <li>If this {@linkplain #isEmpty() has any transitions}, the
-     * {@linkplain #getFirstTansitionTime() first transition time} is at or after
+     * {@linkplain #getFirstTransitionTime() first transition time} is at or after
      * the given time.</li>
      * </ul>
      *
-     * @param when
-     *            The point in time until which this history must have the
-     *            {@code value}, represented as the duration since an (implied)
-     *            epoch.
-     * @param value
-     *            The value that this history must have at or before the given point
-     *            in time.
-     *
-     * @throws NullPointerException
-     *             If {@code when} is null.
-     *
+     * @param when  The point in time until which this history must have the
+     *              {@code value}, represented as the duration since an (implied)
+     *              epoch.
+     * @param value The value that this history must have at or before the given point
+     *              in time.
+     * @throws NullPointerException If {@code when} is null.
      * @see #setValueFrom(Duration, Object)
      */
     public void setValueUntil(@Nonnull final Duration when, @Nullable final VALUE value) {
@@ -543,7 +515,8 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
     }
 
     @Override
-    public @Nonnull Stream<Entry<Duration, VALUE>> streamOfTransitions() {
+    public @Nonnull
+    Stream<Entry<Duration, VALUE>> streamOfTransitions() {
         return transitions.entrySet().stream();
     }
 

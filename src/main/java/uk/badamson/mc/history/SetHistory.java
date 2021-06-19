@@ -18,13 +18,14 @@ package uk.badamson.mc.history;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import java.time.Duration;
-import java.util.Set;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
+import java.time.Duration;
+import java.util.Set;
 
 /**
  * <p>
@@ -61,10 +62,8 @@ public interface SetHistory<VALUE> extends ValueHistory<Set<VALUE>> {
      * {@linkplain #getTransitionTimes() transition times} of this history.</li>
      * </ul>
      *
-     * @param value
-     *            The value of interest.
+     * @param value The value of interest.
      * @return The containment history of the given value.
-     *
      * @see Set#contains(Object)
      */
     @Nonnull
@@ -92,4 +91,20 @@ public interface SetHistory<VALUE> extends ValueHistory<Set<VALUE>> {
      */
     @Nonnull
     Set<VALUE> getUniverse();
+
+
+    @Override
+    @Nonnull
+    Set<VALUE> get(@Nonnull Duration when);
+
+
+    @Override
+    @Nonnull
+    Set<VALUE> getFirstValue();
+
+
+    @Override
+    @Nonnull
+    @JsonIgnore
+    Set<VALUE> getLastValue();
 }

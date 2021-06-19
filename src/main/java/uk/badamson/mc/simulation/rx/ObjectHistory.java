@@ -18,29 +18,26 @@ package uk.badamson.mc.simulation.rx;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import java.time.Duration;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.SortedMap;
-import java.util.UUID;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
+import uk.badamson.mc.history.ModifiableValueHistory;
+import uk.badamson.mc.history.ValueHistory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
-
-import org.reactivestreams.Publisher;
-
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.core.publisher.Sinks;
-import uk.badamson.mc.history.ModifiableValueHistory;
-import uk.badamson.mc.history.ValueHistory;
+import java.time.Duration;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.SortedMap;
+import java.util.UUID;
 
 /**
  * <p>
@@ -52,123 +49,27 @@ import uk.badamson.mc.history.ValueHistory;
  * {@link ModifiableObjectHistory} derived class however is modifiable.
  * </p>
  *
- * @param <STATE>
- *            The class of states of the simulated object. This must be
- *            {@link Immutable immutable}. It ought to have value semantics, but
- *            that is not required.
+ * @param <STATE> The class of states of the simulated object. This must be
+ *                {@link Immutable immutable}. It ought to have value semantics, but
+ *                that is not required.
  */
 @ThreadSafe
 public class ObjectHistory<STATE> {
 
-    /**
-     * <p>
-     * The state of a simulated object, with a time-stamp indicating one of the
-     * points in time when the simulated object was in that state.
-     * </p>
-     *
-     * @param <STATE>
-     *            The class of states of the simulated object. This must be
-     *            {@link Immutable immutable}. It ought to have value semantics, but
-     *            that is not required.
-     */
-    @Immutable
-    public static final class TimestampedState<STATE> {
-
-        @Nonnull
-        private final Duration when;
-        @Nullable
-        private final STATE state;
-
-        /**
-         * Constructs a value with given attribute values.
-         *
-         * @throws NullPointerException
-         *             If {@code when} is null
-         */
-        public TimestampedState(@Nonnull final Duration when, @Nullable final STATE state) {
-            this.when = Objects.requireNonNull(when, "when");
-            this.state = state;
-        }
-
-        /**
-         * <p>
-         * Whether this object is <dfn>equivalent</dfn> to a given other object.
-         * </p>
-         * <p>
-         * The TimestampedState class has <i>value semantics</i>: the object is
-         * equivalent to another object if, and only if, the other object is also a
-         * TimestampedState and the two have equivalent attribute values.
-         * </p>
-         */
-        @Override
-        public boolean equals(final Object that) {
-            if (this == that) {
-                return true;
-            }
-            if (!(that instanceof TimestampedState)) {
-                return false;
-            }
-            final TimestampedState<?> other = (TimestampedState<?>) that;
-            return when.equals(other.when) && Objects.equals(state, other.state);
-        }
-
-        /**
-         * <p>
-         * A state of the simulated object at the {@linkplain #getWhen() time}
-         * </p>
-         * <ul>
-         * <li>Null if the object does not exist at that time.</li>
-         * </ul>
-         */
-        @Nullable
-        public STATE getState() {
-            return state;
-        }
-
-        /**
-         * <p>
-         * The point in time that the simulated object is in the {@linkplain #getState()
-         * state}
-         * </p>
-         * <p>
-         * Expressed as the duration since an (implied) epoch. All objects in a
-         * simulation should use the same epoch.
-         * </p>
-         */
-        @Nonnull
-        public Duration getWhen() {
-            return when;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(state, when);
-        }
-
-        @Nonnull
-        @Override
-        public String toString() {
-            return "TimestampedState [@" + when + ", " + state + "]";
-        }
-
-    }// class
-
-    @Nonnull
-    private final UUID object;
-    @Nonnull
-    private final Duration start;
     /*
      * Use a UUID object as the lock so all ObjectHistory objects can have a
      * predictable lock ordering when locking two instances.
      */
     protected final UUID lock = UUID.randomUUID();
+    @Nonnull
+    private final UUID object;
+    @Nonnull
+    private final Duration start;
     private final Sinks.Many<Event<STATE>> events = Sinks.many().replay().latest();
     private final Sinks.Many<TimestampedState<STATE>> stateTransitions = Sinks.many().replay().latest();
-
     @Nonnull
     @GuardedBy("lock")
     private final ModifiableValueHistory<STATE> stateHistory;
-
     @Nonnull
     @GuardedBy("lock")
     protected Event<STATE> lastEvent;
@@ -182,16 +83,14 @@ public class ObjectHistory<STATE> {
      * {@code event}.</li>
      * </ul>
      *
-     * @param event
-     *            The first (known) state transition of the {@linkplain #getObject()
-     *            object}.
-     * @throws NullPointerException
-     *             <ul>
-     *             <li>If {@code event} is null</li>
-     *             <li>if the {@linkplain Event#getState() state} of {@code event}
-     *             is null. That is, if the first event is the destruction or
-     *             removal of the {@linkplain #getObject() simulated object}.</li>
-     *             </ul>
+     * @param event The first (known) state transition of the {@linkplain #getObject()
+     *              object}.
+     * @throws NullPointerException <ul>
+     *                                                                                                                                                              <li>If {@code event} is null</li>
+     *                                                                                                                                                              <li>if the {@linkplain Event#getState() state} of {@code event}
+     *                                                                                                                                                              is null. That is, if the first event is the destruction or
+     *                                                                                                                                                              removal of the {@linkplain #getObject() simulated object}.</li>
+     *                                                                                                                                                              </ul>
      */
     public ObjectHistory(@Nonnull final Event<STATE> event) {
         this.lastEvent = Objects.requireNonNull(event, "event");// redundant; satisfy SpotBugs
@@ -207,9 +106,7 @@ public class ObjectHistory<STATE> {
      * Copy an object history.
      * </p>
      *
-     * @throws NullPointerException
-     *             If {@code that} is null
-     *
+     * @throws NullPointerException If {@code that} is null
      */
     public ObjectHistory(@Nonnull final ObjectHistory<STATE> that) {
         Objects.requireNonNull(that, "that");
@@ -234,34 +131,30 @@ public class ObjectHistory<STATE> {
      * equivalent to} the given {@code previousStateTransitions}
      * </ul>
      *
-     * @param previousStateTransitions
-     *            The state transitions before the {@code lastEvent}
-     * @param lastEvent
-     *            The last (known) state transition of the {@linkplain #getObject()
-     *            object}.
-     * @throws NullPointerException
-     *             <ul>
-     *             <li>If {@code stateTransitions} is null</li>
-     *             <li>If {@code lastEvent} is null</li>
-     *             <li>If {@code stateTransitions} is empty and the
-     *             {@linkplain Event#getState() state} of {@code lastEvent} is null.
-     *             That is, if the first event is the destruction or removal of the
-     *             {@linkplain #getObject() simulated object}.</li>
-     *             <li>If {@code stateTransitions} has any null
-     *             {@linkplain SortedMap#values() values}. That is, if the object
-     *             was destroyed or removed before the {@code lastEvent} .</li>
-     *             </ul>
-     * @throws IllegalArgumentException
-     *             <ul>
-     *             <li>If the {@linkplain Event#getWhen() time} of the
-     *             {@code lastEvent} is not {@linkplain Duration#compareTo(Duration)
-     *             after} the {@linkplain SortedMap#lastKey() last} of the given
-     *             {@code previousStateTransitions}.</li>
-     *             <li>If any {@linkplain SortedMap#values() value} of
-     *             {@code previousStateTransitions} is
-     *             {@linkplain Objects#equals(Object, Object) equal to (or equally
-     *             null as)} its predecessor value.</li>
-     *             </ul>
+     * @param previousStateTransitions The state transitions before the {@code lastEvent}
+     * @param lastEvent                The last (known) state transition of the {@linkplain #getObject()
+     *                                 object}.
+     * @throws NullPointerException     <ul>
+     *                                                                                                                                                                                  <li>If {@code stateTransitions} is null</li>
+     *                                                                                                                                                                                  <li>If {@code lastEvent} is null</li>
+     *                                                                                                                                                                                  <li>If {@code stateTransitions} is empty and the
+     *                                                                                                                                                                                  {@linkplain Event#getState() state} of {@code lastEvent} is null.
+     *                                                                                                                                                                                  That is, if the first event is the destruction or removal of the
+     *                                                                                                                                                                                  {@linkplain #getObject() simulated object}.</li>
+     *                                                                                                                                                                                  <li>If {@code stateTransitions} has any null
+     *                                                                                                                                                                                  {@linkplain SortedMap#values() values}. That is, if the object
+     *                                                                                                                                                                                  was destroyed or removed before the {@code lastEvent} .</li>
+     *                                                                                                                                                                                  </ul>
+     * @throws IllegalArgumentException <ul>
+     *                                                                                                                                                                                  <li>If the {@linkplain Event#getWhen() time} of the
+     *                                                                                                                                                                                  {@code lastEvent} is not {@linkplain Duration#compareTo(Duration)
+     *                                                                                                                                                                                  after} the {@linkplain SortedMap#lastKey() last} of the given
+     *                                                                                                                                                                                  {@code previousStateTransitions}.</li>
+     *                                                                                                                                                                                  <li>If any {@linkplain SortedMap#values() value} of
+     *                                                                                                                                                                                  {@code previousStateTransitions} is
+     *                                                                                                                                                                                  {@linkplain Objects#equals(Object, Object) equal to (or equally
+     *                                                                                                                                                                                  null as)} its predecessor value.</li>
+     *                                                                                                                                                                                  </ul>
      */
     @JsonCreator
     public ObjectHistory(
@@ -274,9 +167,11 @@ public class ObjectHistory<STATE> {
         append1(lastEvent);
     }
 
+    @GuardedBy("lock")
     protected final void append1(final Event<STATE> event) {
         lastEvent = event;
         final var state = event.getState();
+        assert stateHistory.isEmpty() || stateHistory.getLastValue() != null;
         if (stateHistory.isEmpty() || !stateHistory.getLastValue().equals(state)) {
             stateHistory.appendTransition(event.getWhen(), state);
         }
@@ -289,6 +184,7 @@ public class ObjectHistory<STATE> {
         }
     }
 
+    @GuardedBy("lock")
     private void emitLastEvent() {
         final var result1 = events.tryEmitNext(lastEvent);
         final var result2 = stateTransitions
@@ -440,12 +336,12 @@ public class ObjectHistory<STATE> {
      * simulated object} has passed through.
      * </p>
      * <ul>
-     * <li>The {@linkplain ValueHistory#getFirstTansitionTime() first transition
+     * <li>The {@linkplain ValueHistory#getFirstTransitionTime() first transition
      * time} of the state history is the same as the {@linkplain #getStart() start}
      * time of this history.</li>
      * <li>The {@linkplain ValueHistory#getFirstValue() state at the start of time}
      * of the state history is null.</li>
-     * <li>The {@linkplain ValueHistory#getLastTansitionTime() last transition time}
+     * <li>The {@linkplain ValueHistory#getLastTransitionTime() last transition time}
      * of the state history is typically the same as the {@linkplain Event#getWhen()
      * time} of the {@linkplain #getLastEvent() last event} of this history. But it
      * will not be if there are events that do not actually change the state.</li>
@@ -553,12 +449,10 @@ public class ObjectHistory<STATE> {
      * publication.</li>
      * </ul>
      *
-     * @param when
-     *            The point in time of interest, expressed as the duration since an
-     *            (implied) epoch. All objects in a simulation should use the same
-     *            epoch.
-     * @throws NullPointerException
-     *             If {@code when} is null.
+     * @param when The point in time of interest, expressed as the duration since an
+     *             (implied) epoch. All objects in a simulation should use the same
+     *             epoch.
+     * @throws NullPointerException If {@code when} is null.
      * @see #getStateHistory()
      */
     @Nonnull
@@ -604,7 +498,100 @@ public class ObjectHistory<STATE> {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [stateHistory=" + stateHistory + ", lastEvent=" + lastEvent + "]";
+        synchronized (lock) {
+            return getClass().getSimpleName() + " [stateHistory=" + stateHistory + ", lastEvent=" + lastEvent + "]";
+        }
     }
+
+    /**
+     * <p>
+     * The state of a simulated object, with a time-stamp indicating one of the
+     * points in time when the simulated object was in that state.
+     * </p>
+     *
+     * @param <STATE> The class of states of the simulated object. This must be
+     *                {@link Immutable immutable}. It ought to have value semantics, but
+     *                that is not required.
+     */
+    @Immutable
+    public static final class TimestampedState<STATE> {
+
+        @Nonnull
+        private final Duration when;
+        @Nullable
+        private final STATE state;
+
+        /**
+         * Constructs a value with given attribute values.
+         *
+         * @throws NullPointerException If {@code when} is null
+         */
+        public TimestampedState(@Nonnull final Duration when, @Nullable final STATE state) {
+            this.when = Objects.requireNonNull(when, "when");
+            this.state = state;
+        }
+
+        /**
+         * <p>
+         * Whether this object is <dfn>equivalent</dfn> to a given other object.
+         * </p>
+         * <p>
+         * The TimestampedState class has <i>value semantics</i>: the object is
+         * equivalent to another object if, and only if, the other object is also a
+         * TimestampedState and the two have equivalent attribute values.
+         * </p>
+         */
+        @Override
+        public boolean equals(final Object that) {
+            if (this == that) {
+                return true;
+            }
+            if (!(that instanceof TimestampedState)) {
+                return false;
+            }
+            final TimestampedState<?> other = (TimestampedState<?>) that;
+            return when.equals(other.when) && Objects.equals(state, other.state);
+        }
+
+        /**
+         * <p>
+         * A state of the simulated object at the {@linkplain #getWhen() time}
+         * </p>
+         * <ul>
+         * <li>Null if the object does not exist at that time.</li>
+         * </ul>
+         */
+        @Nullable
+        public STATE getState() {
+            return state;
+        }
+
+        /**
+         * <p>
+         * The point in time that the simulated object is in the {@linkplain #getState()
+         * state}
+         * </p>
+         * <p>
+         * Expressed as the duration since an (implied) epoch. All objects in a
+         * simulation should use the same epoch.
+         * </p>
+         */
+        @Nonnull
+        public Duration getWhen() {
+            return when;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(state, when);
+        }
+
+        @Nonnull
+        @Override
+        public String toString() {
+            return "TimestampedState [@" + when + ", " + state + "]";
+        }
+
+    }// class
 
 }

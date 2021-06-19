@@ -18,21 +18,13 @@ package uk.badamson.mc.history;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import edu.umd.cs.findbugs.annotations.Nullable;
+import org.junit.jupiter.api.Test;
+import uk.badamson.dbc.assertions.ObjectTest;
 
-import java.time.Duration;
 import java.util.Collections;
 
-import org.junit.jupiter.api.Test;
-
-import edu.umd.cs.findbugs.annotations.Nullable;
-import uk.badamson.dbc.assertions.ObjectTest;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * <p>
@@ -49,24 +41,16 @@ public class ConstantValueHistoryTest {
                 () -> assertEquals(Collections.emptySortedSet(), history.getTransitionTimes(),
                         "The set of transition times is empty."),
                 () -> assertEquals(Collections.emptyMap(), history.getTransitions(), "The transitions map is empty."),
-                () -> assertTrue(history.isEmpty(), "A ConstantValueHistoryis always empty."),
+                () -> assertTrue(history.isEmpty(), "A ConstantValueHistory is always empty."),
                 () -> assertEquals(0, history.streamOfTransitions().count(), "The stream of transitions is empty."),
-                () -> assertNull(history.getFirstTansitionTime(), "The first transition time is null."),
-                () -> assertNull(history.getLastTansitionTime(), "The  last transition time is null."));
+                () -> assertNull(history.getFirstTransitionTime(), "The first transition time is null."),
+                () -> assertNull(history.getLastTransitionTime(), "The  last transition time is null."));
     }
 
     public static <VALUE> void assertInvariants(final ConstantValueHistory<VALUE> history1,
-            final ConstantValueHistory<VALUE> history2) {
+                                                final ConstantValueHistory<VALUE> history2) {
         ObjectTest.assertInvariants(history1, history2);// inherited
         ValueHistoryTest.assertInvariants(history1, history2);// inherited
-    }
-
-    public static <VALUE> void assertInvariants(final ValueHistory<VALUE> history, final Duration time) {
-        ValueHistoryTest.assertInvariants(history, time);// inherited
-
-        assertNull(history.getTansitionTimeAtOrAfter(time), "The transition time at or after all given times is null");
-        assertThat("timestampedValue", history.getTimestampedValue(time), is(
-                new TimestampedValue<>(ValueHistory.START_OF_TIME, ValueHistory.END_OF_TIME, history.getFirstValue())));
     }
 
     private <VALUE> void constructor(@Nullable final VALUE value) {
@@ -92,7 +76,7 @@ public class ConstantValueHistoryTest {
 
     @Test
     public void constructor_2Equals_B() {
-        constructor_2Equals(Integer.valueOf(Integer.MAX_VALUE));
+        constructor_2Equals(Integer.MAX_VALUE);
     }
 
     @Test
@@ -107,7 +91,7 @@ public class ConstantValueHistoryTest {
 
     @Test
     public void constructor_B() {
-        constructor(Integer.valueOf(Integer.MAX_VALUE));
+        constructor(Integer.MAX_VALUE);
     }
 
     @Test

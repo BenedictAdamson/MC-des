@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation.actor;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2021.
  *
  * This file is part of MC-des.
  *
@@ -18,16 +18,15 @@ package uk.badamson.mc.simulation.actor;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import java.time.Duration;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
+import uk.badamson.mc.simulation.TimestampedId;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
-
-import uk.badamson.mc.simulation.TimestampedId;
+import java.time.Duration;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * <p>
@@ -39,10 +38,9 @@ import uk.badamson.mc.simulation.TimestampedId;
  * also the only means by which simulated objects can emit signals.
  * </p>
  *
- * @param <STATE>
- *            The class of states of a receiver. This must be {@link Immutable
- *            immutable}. It ought to have value semantics, but that is not
- *            required.
+ * @param <STATE> The class of states of a receiver. This must be {@link Immutable
+ *                immutable}. It ought to have value semantics, but that is not
+ *                required.
  */
 @Immutable
 public final class Event<STATE> implements Comparable<Event<STATE>> {
@@ -61,25 +59,23 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
      * Construct an event with given attribute values.
      * </p>
      *
-     * @throws NullPointerException
-     *             <ul>
-     *             <li>If any {@link Nonnull} argument is null.</li>
-     *             <li>If {@code signalsEmitted} contains a null.</li>
-     *             </ul>
-     * @throws IllegalArgumentException
-     *             If {@code signalsEmitted} contains a signal that was not sent by
-     *             the event represented by this effect. That is, if the signal was
-     *             not
-     *             <ul>
-     *             <li>{@linkplain Signal#getSender() sent} from the same object as
-     *             the {@code affectedObject}, or</li>
-     *             <li>{@linkplain Signal#getWhenSent() sent} at the same time as
-     *             {@linkplain TimestampedId#getWhen() time-stamp} of the
-     *             {@code id}.</li>
-     *             </ul>
+     * @throws NullPointerException     <ul>
+     *                                  <li>If any {@link Nonnull} argument is null.</li>
+     *                                  <li>If {@code signalsEmitted} contains a null.</li>
+     *                                  </ul>
+     * @throws IllegalArgumentException If {@code signalsEmitted} contains a signal that was not sent by
+     *                                  the event represented by this effect. That is, if the signal was
+     *                                  not
+     *                                  <ul>
+     *                                  <li>{@linkplain Signal#getSender() sent} from the same object as
+     *                                  the {@code affectedObject}, or</li>
+     *                                  <li>{@linkplain Signal#getWhenSent() sent} at the same time as
+     *                                  {@linkplain TimestampedId#getWhen() time-stamp} of the
+     *                                  {@code id}.</li>
+     *                                  </ul>
      */
     public Event(@Nonnull final TimestampedId id, @Nonnull final UUID affectedObject, @Nullable final STATE state,
-            @Nonnull final Set<Signal<STATE>> signalsEmitted) {
+                 @Nonnull final Set<Signal<STATE>> signalsEmitted) {
         this.id = Objects.requireNonNull(id, "id");
         this.affectedObject = Objects.requireNonNull(affectedObject, "affectedObject");
         this.state = state;
@@ -120,7 +116,6 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
      * The {@link Event} class has <i>entity semantics</i> with the
      * {@linkplain #getId() event ID} serving as the unique ID.
      * </p>
-     *
      */
     @Override
     public boolean equals(final Object that) {

@@ -18,21 +18,15 @@ package uk.badamson.mc.history;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import java.time.Duration;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.SortedSet;
-import java.util.stream.Stream;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.time.Duration;
+import java.util.*;
+import java.util.stream.Stream;
 
 /**
  * <p>
@@ -45,9 +39,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
  * duration} since an (implied) epoch.
  * </p>
  *
- * @param <VALUE>
- *            The class of values of this value history. This must be
- *            {@link Immutable immutable}, or have reference semantics.
+ * @param <VALUE> The class of values of this value history. This must be
+ *                {@link Immutable immutable}, or have reference semantics.
  */
 @NotThreadSafe
 public interface ValueHistory<VALUE> {
@@ -80,8 +73,7 @@ public interface ValueHistory<VALUE> {
      * transitions}.
      * </p>
      *
-     * @param that
-     *            The other object
+     * @param that The other object
      * @return Whether equal.
      */
     @Override
@@ -92,12 +84,10 @@ public interface ValueHistory<VALUE> {
      * Get the value at a given point in time.
      * </p>
      *
-     * @param when
-     *            The point in time of interest, expressed as a duration since an
-     *            (implied) epoch.
+     * @param when The point in time of interest, expressed as a duration since an
+     *             (implied) epoch.
      * @return The value at the given point in time.
-     * @throws NullPointerException
-     *             If {@code when} is null.
+     * @throws NullPointerException If {@code when} is null.
      */
     @Nullable
     VALUE get(@Nonnull Duration when);
@@ -122,7 +112,7 @@ public interface ValueHistory<VALUE> {
      */
     @Nullable
     @JsonIgnore
-    Duration getFirstTansitionTime();
+    Duration getFirstTransitionTime();
 
     /**
      * <p>
@@ -162,7 +152,7 @@ public interface ValueHistory<VALUE> {
      */
     @Nullable
     @JsonIgnore
-    Duration getLastTansitionTime();
+    Duration getLastTransitionTime();
 
     /**
      * <p>
@@ -177,7 +167,7 @@ public interface ValueHistory<VALUE> {
      * equally null as)} the {@linkplain #getFirstValue() first value}.</li>
      * <li>If this history has {@linkplain #getTransitionTimes() transitions}, the
      * last value is {@linkplain Objects#equals(Object, Object) equal to (or equally
-     * null as)} the value at the {@linkplain #getLastTansitionTime() last
+     * null as)} the value at the {@linkplain #getLastTransitionTime() last
      * transition}.</li>
      * <li>This method is typically more efficient than using the
      * {@link #getTransitionTimes()} and {@link #get(Duration)} methods.</li>
@@ -208,15 +198,13 @@ public interface ValueHistory<VALUE> {
      * {@link #getTransitionTimes()} method.</li>
      * </ul>
      *
-     * @param when
-     *            The point in time of interest, expressed as a duration since an
-     *            (implied) epoch.
+     * @param when The point in time of interest, expressed as a duration since an
+     *             (implied) epoch.
      * @return the transition time at or after the given time.
-     * @throws NullPointerException
-     *             if {@code when} is null.
+     * @throws NullPointerException if {@code when} is null.
      */
     @Nullable
-    Duration getTansitionTimeAtOrAfter(@Nonnull Duration when);
+    Duration getTransitionTimeAtOrAfter(@Nonnull Duration when);
 
     /**
      * <p>
@@ -242,12 +230,10 @@ public interface ValueHistory<VALUE> {
      * transition times at or after {@code when}.</li>
      * </ul>
      *
-     * @param when
-     *            The point in time of interest, expressed as a duration since an
-     *            (implied) epoch.
+     * @param when The point in time of interest, expressed as a duration since an
+     *             (implied) epoch.
      * @return The time-stamped value
-     * @throws NullPointerException
-     *             If {@code when} is null.
+     * @throws NullPointerException If {@code when} is null.
      */
     @Nonnull
     TimestampedValue<VALUE> getTimestampedValue(@Nonnull Duration when);
@@ -295,7 +281,7 @@ public interface ValueHistory<VALUE> {
      * {@linkplain ValueHistory#START_OF_TIME start of time}), the
      * {@linkplain #get(Duration) value} just before the point in time is equal to
      * the value at the point in time.</li>
-     * <li>The {@linkplain #getTansitionTimeAtOrAfter(Duration) transition time at
+     * <li>The {@linkplain #getTransitionTimeAtOrAfter(Duration) transition time at
      * or after a time} that {@linkplain Duration#equals(Object) equals} one of the
      * transition times equals that transition time.</li>
      * <li>The returned set might be an
@@ -340,7 +326,6 @@ public interface ValueHistory<VALUE> {
      * <li>This method is typically more efficient than using the
      * {@link #getTransitionTimes()} method.</li>
      * </ul>
-     *
      */
     @JsonIgnore
     boolean isEmpty();

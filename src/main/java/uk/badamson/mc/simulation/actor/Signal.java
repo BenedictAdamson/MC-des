@@ -18,67 +18,33 @@ package uk.badamson.mc.simulation.actor;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import java.time.Duration;
-import java.util.Objects;
-import java.util.UUID;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import uk.badamson.mc.history.TimestampedValue;
+import uk.badamson.mc.history.ValueHistory;
+import uk.badamson.mc.simulation.TimestampedId;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-
-import uk.badamson.mc.history.TimestampedValue;
-import uk.badamson.mc.history.ValueHistory;
-import uk.badamson.mc.simulation.TimestampedId;
+import java.time.Duration;
+import java.util.Objects;
+import java.util.UUID;
 
 /**
  * <p>
  * A signal (or message) sent from one simulated object to another.
  * </p>
  *
- * @param <STATE>
- *            The class of states of a receiver. This must be {@link Immutable
- *            immutable}. It ought to have value semantics, but that is not
- *            required.
+ * @param <STATE> The class of states of a receiver. This must be {@link Immutable
+ *                immutable}. It ought to have value semantics, but that is not
+ *                required.
  */
 @Immutable
-@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "class")
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "class")// include = JsonTypeInfo.As.PROPERTY by default
 public abstract class Signal<STATE> {
-
-    /**
-     * <p>
-     * An exception class for indicating that processing reception of a
-     * {@link Signal} is impossible because the state of the
-     * {@linkplain Signal#getReceiver() receiver} indicates that reception of the
-     * signal would be impossible.
-     * </p>
-     */
-    @SuppressWarnings("serial")
-    public static class UnreceivableSignalException extends IllegalStateException {
-
-        private static final String DEFAULT_MESSAGE = "Reception of the signal would be impossible";
-
-        public UnreceivableSignalException() {
-            super(DEFAULT_MESSAGE);
-        }
-
-        public UnreceivableSignalException(final String s) {
-            super(s);
-        }
-
-        public UnreceivableSignalException(final String message, final Throwable cause) {
-            super(message, cause);
-        }
-
-        public UnreceivableSignalException(final Throwable cause) {
-            super(DEFAULT_MESSAGE, cause);
-        }
-
-    }// class
 
     /**
      * <p>
@@ -92,7 +58,6 @@ public abstract class Signal<STATE> {
     @Nonnull
     @Nonnegative
     public static final Duration NEVER_RECEIVED = Duration.ofSeconds(Long.MAX_VALUE, 999_999_999);
-
     @Nonnull
     private final UUID id;
     @Nonnull
@@ -105,16 +70,12 @@ public abstract class Signal<STATE> {
      * Construct a signal with given attribute values.
      * </p>
      *
-     * @param id
-     *            The unique ID for this signal.
-     * @param sentFrom
-     *            The ID of the simulated object that sent this signal, and the
-     *            point in time that it sent (emitted) the signal.
-     * @param receiver
-     *            The ID of the simulated object that this signal was sent to; the
-     *            object that will receive it.
-     * @throws NullPointerException
-     *             If an {@linkplain Nonnull} argument is null
+     * @param id       The unique ID for this signal.
+     * @param sentFrom The ID of the simulated object that sent this signal, and the
+     *                 point in time that it sent (emitted) the signal.
+     * @param receiver The ID of the simulated object that this signal was sent to; the
+     *                 object that will receive it.
+     * @throws NullPointerException If an {@linkplain Nonnull} argument is null
      */
     protected Signal(@Nonnull final UUID id, @Nonnull final TimestampedId sentFrom, @Nonnull final UUID receiver) {
         this.id = Objects.requireNonNull(id, "id");
@@ -262,11 +223,9 @@ public abstract class Signal<STATE> {
      * <li>Otherwise it returns {@link #NEVER_RECEIVED}.</li>
      * </ul>
      *
-     * @param receiverState
-     *            The state that the simulated object has as a result of this
-     *            effect. A null state indicates that the simulated object is
-     *            destroyed or removed.
-     *
+     * @param receiverState The state that the simulated object has as a result of this
+     *                      effect. A null state indicates that the simulated object is
+     *                      destroyed or removed.
      * @see #receive(Object)
      * @see #getWhenReceived(ValueHistory)
      */
@@ -281,7 +240,7 @@ public abstract class Signal<STATE> {
             try {
                 haveEnoughTime = whenSent.compareTo(NEVER_RECEIVED.minus(propagationDelay)) < 0;
             } catch (final ArithmeticException e) {
-                throw new AssertionError("propagationDelay nonnegative (was negative)", e);
+                throw new AssertionError("propagationDelay non-negative (was negative)", e);
             }
             assert !Duration.ZERO.equals(propagationDelay);
             if (haveEnoughTime) {
@@ -327,20 +286,16 @@ public abstract class Signal<STATE> {
      * delay}.</li>
      * </ul>
      *
-     * @param receiverStateHistory
-     *            The time-wise variation of the state of the receiver. A null
-     *            {@linkplain ValueHistory#get(Duration) value at a point in time}
-     *            indicates that the simulated object was destroyed or removed at or
-     *            before that point in time.
-     * @throws NullPointerException
-     *             If {@code receiverStateHistory} is null.
-     * @throws IllegalArgumentException
-     *             If the {@code receiverStateHistory} has a
-     *             {@linkplain ValueHistory#getTransitions() transition} to a null
-     *             state at a time before the last transition. That is, if
-     *             {@code receiverStateHistory} indicates resurrection of a
-     *             destroyed object.
-     *
+     * @param receiverStateHistory The time-wise variation of the state of the receiver. A null
+     *                             {@linkplain ValueHistory#get(Duration) value at a point in time}
+     *                             indicates that the simulated object was destroyed or removed at or
+     *                             before that point in time.
+     * @throws NullPointerException     If {@code receiverStateHistory} is null.
+     * @throws IllegalArgumentException If the {@code receiverStateHistory} has a
+     *                                  {@linkplain ValueHistory#getTransitions() transition} to a null
+     *                                  state at a time before the last transition. That is, if
+     *                                  {@code receiverStateHistory} indicates resurrection of a
+     *                                  destroyed object.
      * @see #getWhenReceived(Object)
      */
     @Nonnull
@@ -402,26 +357,20 @@ public abstract class Signal<STATE> {
      * (also immutable) arguments of the method.</li>
      * </ul>
      *
-     * @param when
-     *            The point in time that reception of the signal occurred
-     * @throws NullPointerException
-     *             If a {@link Nonnull} argument is null.
-     * @throws IllegalArgumentException
-     *             If {@code when} is not {@linkplain Duration#compareTo(Duration)
-     *             after} {@linkplain #getWhenSent() when this signal was sent}.
-     * @throws UnreceivableSignalException
-     *             If it is impossible for the receiver to receive this signal at
-     *             the {@code when} time while its state is {@code receiverState}.
-     *             In particular, the method <em>may</em> throw this if {@code when}
-     *             is not {@linkplain Duration#equals(Object) equal to} the
-     *             {@linkplain #getWhenSent() sending time} plus the
-     *             {@linkplain #getPropagationDelay(Object) propagation delay}. This
-     *             is a non-fatal error: if this exception is thrown, all invariants
-     *             have been maintained.
-     * @throws IllegalStateException
-     *             If the {@code when} or this signal is inconsistent with
-     *             {@code receiverState} in some way.
-     *
+     * @param when The point in time that reception of the signal occurred
+     * @throws NullPointerException        If a {@link Nonnull} argument is null.
+     * @throws IllegalArgumentException    If {@code when} is not {@linkplain Duration#compareTo(Duration)
+     *                                     after} {@linkplain #getWhenSent() when this signal was sent}.
+     * @throws UnreceivableSignalException If it is impossible for the receiver to receive this signal at
+     *                                     the {@code when} time while its state is {@code receiverState}.
+     *                                     In particular, the method <em>may</em> throw this if {@code when}
+     *                                     is not {@linkplain Duration#equals(Object) equal to} the
+     *                                     {@linkplain #getWhenSent() sending time} plus the
+     *                                     {@linkplain #getPropagationDelay(Object) propagation delay}. This
+     *                                     is a non-fatal error: if this exception is thrown, all invariants
+     *                                     have been maintained.
+     * @throws IllegalStateException       If the {@code when} or this signal is inconsistent with
+     *                                     {@code receiverState} in some way.
      * @see #receive(Object)
      */
     @Nonnull
@@ -454,18 +403,14 @@ public abstract class Signal<STATE> {
      * receiver in the given {@code receiverState}.</li>
      * </ul>
      *
-     * @param receiverState
-     *            The state of the {@linkplain #getReceiver() receiver} for which to
-     *            compute the {@linkplain Event effect} of this signal.
-     * @throws NullPointerException
-     *             If {@code receiverState} is null.
-     * @throws UnreceivableSignalException
-     *             If it is impossible for the receiver to receive this signal while
-     *             its state is {@code receiverState}. This is a non-fatal error: if
-     *             this exception is thrown, all invariants have been maintained.
-     * @throws IllegalStateException
-     *             If this signal is inconsistent with {@code receiverState} in some
-     *             way.
+     * @param receiverState The state of the {@linkplain #getReceiver() receiver} for which to
+     *                      compute the {@linkplain Event effect} of this signal.
+     * @throws NullPointerException        If {@code receiverState} is null.
+     * @throws UnreceivableSignalException If it is impossible for the receiver to receive this signal while
+     *                                     its state is {@code receiverState}. This is a non-fatal error: if
+     *                                     this exception is thrown, all invariants have been maintained.
+     * @throws IllegalStateException       If this signal is inconsistent with {@code receiverState} in some
+     *                                     way.
      */
     @Nonnull
     public final Event<STATE> receive(@Nonnull final STATE receiverState) throws UnreceivableSignalException {
@@ -482,5 +427,35 @@ public abstract class Signal<STATE> {
     public String toString() {
         return getClass().getSimpleName() + "[" + id + ": " + sentFrom + "⇝" + receiver + "]";
     }
+
+    /**
+     * <p>
+     * An exception class for indicating that processing reception of a
+     * {@link Signal} is impossible because the state of the
+     * {@linkplain Signal#getReceiver() receiver} indicates that reception of the
+     * signal would be impossible.
+     * </p>
+     */
+    public static class UnreceivableSignalException extends IllegalStateException {
+
+        private static final String DEFAULT_MESSAGE = "Reception of the signal would be impossible";
+
+        public UnreceivableSignalException() {
+            super(DEFAULT_MESSAGE);
+        }
+
+        public UnreceivableSignalException(final String s) {
+            super(s);
+        }
+
+        public UnreceivableSignalException(final String message, final Throwable cause) {
+            super(message, cause);
+        }
+
+        public UnreceivableSignalException(final Throwable cause) {
+            super(DEFAULT_MESSAGE, cause);
+        }
+
+    }// class
 
 }

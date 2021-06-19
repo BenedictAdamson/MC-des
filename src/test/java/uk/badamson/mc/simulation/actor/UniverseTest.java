@@ -18,311 +18,158 @@ package uk.badamson.mc.simulation.actor;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.Executor;
-
-import javax.annotation.Nonnull;
-
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
 import uk.badamson.dbc.assertions.CollectionTest;
 import uk.badamson.dbc.assertions.EqualsSemanticsTest;
 import uk.badamson.dbc.assertions.ObjectTest;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.simulation.TimestampedId;
 
+import javax.annotation.Nonnull;
+import java.time.Duration;
+import java.util.*;
+import java.util.concurrent.Executor;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.*;
+
 public class UniverseTest {
 
-    @Nested
-    public class Constructor {
+    static final UUID OBJECT_A = ObjectHistoryTest.OBJECT_A;
+    static final UUID OBJECT_B = ObjectHistoryTest.OBJECT_B;
+    static final UUID OBJECT_C = ObjectHistoryTest.OBJECT_C;
+    static final Duration WHEN_A = ObjectHistoryTest.WHEN_A;
+    static final Duration WHEN_B = ObjectHistoryTest.WHEN_B;
+    static final Duration WHEN_C = ObjectHistoryTest.WHEN_C;
+    static final Duration WHEN_D = ObjectHistoryTest.WHEN_D;
+    private static final UUID SIGNAL_A = SignalTest.ID_A;
+    private static final UUID SIGNAL_B = SignalTest.ID_B;
+    private static final Executor DIRECT_EXECUTOR = Runnable::run;
 
-        @Nested
-        public class Copy {
+    private static <STATE> void assertEmpty(@Nonnull final Universe<STATE> universe) {
+        assertAll("empty", () -> assertThat("objects", universe.getObjects(), empty()),
+                () -> assertThat("objectHistories", universe.getObjectHistories(), empty()));
+    }
 
-            @Nested
-            public class One {
+    public static <STATE> void assertInvariants(@Nonnull final Universe<STATE> universe) {
+        ObjectTest.assertInvariants(universe);// inherited
 
-                @Test
-                public void a() {
-                    test(OBJECT_A, WHEN_A, Integer.valueOf(0));
-                }
+        final Set<UUID> objects = universe.getObjects();
+        final Collection<ObjectHistory<STATE>> objectHistories = universe.getObjectHistories();
 
-                @Test
-                public void b() {
-                    test(OBJECT_B, WHEN_B, Integer.valueOf(1));
-                }
+        assertAll("Not null", () -> assertNotNull(objects, "objects"), // guard
+                () -> assertNotNull(objectHistories, "objectHistories")// guard
+        );
+        assertFalse(objects.stream().anyMatch(Objects::isNull), "The set of object IDs does not contain a null.");
+        CollectionTest.assertForAllElements("objectHistories", objectHistories, history -> {
+            assertThat(history, notNullValue());// guard
+            ObjectHistoryTest.assertInvariants(history);
+        });
+    }
 
-                private void test(@Nonnull final UUID object, @Nonnull final Duration start,
-                        @Nonnull final Integer state) {
-                    final var objectHistory = new ObjectHistory<>(object, start, state);
-                    final Collection<ObjectHistory<Integer>> objectHistories = List.of(objectHistory);
-                    final var universe = new Universe<Integer>(objectHistories);
+    public static <STATE> void assertInvariants(@Nonnull final Universe<STATE> universe1,
+                                                @Nonnull final Universe<STATE> universe2) {
+        ObjectTest.assertInvariants(universe1, universe2);// inherited
 
-                    constructor(universe);
-                }
-            }// class
+        assertAll("Value semantics",
+                () -> EqualsSemanticsTest.assertValueSemantics(universe1, universe2, "objectHistories",
+                        Universe::getObjectHistories),
+                () -> assertEquals(universe1.equals(universe2), universe1.getObjectHistories()
+                        .equals(universe2.getObjectHistories()), "equals"));
+    }
 
-            @Test
-            public void empty() {
-                final var universe = new Universe<Integer>();
+    private static <STATE> void constructor(@Nonnull final Collection<ObjectHistory<STATE>> objectHistories) {
+        final var universe = new Universe<>(objectHistories);
 
-                constructor(universe);
+        assertInvariants(universe);
+        assertThat("copied objectHistories", new HashSet<>(universe.getObjectHistories()),
+                is(new HashSet<>(objectHistories)));
+    }
 
-                assertEmpty(universe);
-            }
-        }// class
+    private static <STATE> void constructor(@Nonnull final Universe<STATE> that) {
+        final var copy = new Universe<>(that);
 
-        @Nested
-        public class FromObjectHistories {
+        assertInvariants(copy);
+        assertInvariants(that);
+        assertInvariants(copy, that);
+        assertThat("equals", copy, is(that));
 
-            @Nested
-            public class One {
+        assertAll("copied content", () -> assertThat("objects", copy.getObjects(), is(that.getObjects())),
+                () -> assertThat("objectHistories", copy.getObjectHistories(), is(that.getObjectHistories())));
+    }
 
-                @Test
-                public void a() {
-                    test(OBJECT_A, WHEN_A, Integer.valueOf(0));
-                }
+    @Nonnull
+    private static <STATE> Universe<STATE>.SchedulingMedium createMedium(@Nonnull final Universe<STATE> universe,
+                                                                         @Nonnull final Executor executor, @Nonnull final Duration advanceTo) {
+        final var medium = universe.createMedium(executor, advanceTo);
 
-                @Test
-                public void b() {
-                    test(OBJECT_B, WHEN_B, Integer.valueOf(1));
-                }
+        assertInvariants(universe);
+        assertThat("result", medium, notNullValue());// guard
+        SchedulingMediumTest.assertInvariants(medium);
 
-                private void test(@Nonnull final UUID object, @Nonnull final Duration start,
-                        @Nonnull final Integer state) {
-                    final var objectHistory = new ObjectHistory<>(object, start, state);
-                    final Collection<ObjectHistory<Integer>> objectHistories = List.of(objectHistory);
+        return medium;
+    }
 
-                    constructor(objectHistories);
-                }
-            }// class
+    private static <STATE> ObjectHistory<STATE> getObjectHistory(@Nonnull final Universe<STATE> universe,
+                                                                 @Nonnull final UUID object) {
+        final var objectHistory = universe.getObjectHistory(object);
 
-            @Test
-            public void empty() {
-                constructor(List.of());
-            }
-
-            @Test
-            public void two() {
-                final var objectHistoryA = new ObjectHistory<>(OBJECT_A, WHEN_A, Integer.valueOf(0));
-                final var objectHistoryB = new ObjectHistory<>(OBJECT_B, WHEN_B, Integer.valueOf(1));
-                final Collection<ObjectHistory<Integer>> objectHistories = List.of(objectHistoryA, objectHistoryB);
-
-                constructor(objectHistories);
-            }
-        }// class
-
-        @Nested
-        public class Two {
-
-            @Test
-            public void different_objects() {
-                final var state = Integer.valueOf(0);
-                final var objectHistoryA = new ObjectHistory<>(OBJECT_A, WHEN_A, state);
-                final var objectHistoryB = new ObjectHistory<>(OBJECT_B, WHEN_A, state);
-                final Collection<ObjectHistory<Integer>> objectHistoriesA = List.of(objectHistoryA);
-                final Collection<ObjectHistory<Integer>> objectHistoriesB = List.of(objectHistoryB);
-                final var universeA = new Universe<Integer>(objectHistoriesA);
-                final var universeB = new Universe<Integer>(objectHistoriesB);
-
-                assertInvariants(universeA, universeB);
-                assertThat(universeA, not(is(universeB)));
-            }
-
-            @Test
-            public void different_stateHistories() {
-                final var objectHistoryA = new ObjectHistory<>(OBJECT_A, WHEN_A, Integer.valueOf(0));
-                final var objectHistoryB = new ObjectHistory<>(OBJECT_A, WHEN_B, Integer.valueOf(1));
-                final Collection<ObjectHistory<Integer>> objectHistoriesA = List.of(objectHistoryA);
-                final Collection<ObjectHistory<Integer>> objectHistoriesB = List.of(objectHistoryB);
-                final var universeA = new Universe<Integer>(objectHistoriesA);
-                final var universeB = new Universe<Integer>(objectHistoriesB);
-
-                assertInvariants(universeA, universeB);
-                assertThat(universeA, not(is(universeB)));
-            }
-
-            @Test
-            public void equivalent_empty() {
-                final var universeA = new Universe<Integer>();
-                final var universeB = new Universe<Integer>();
-
-                assertInvariants(universeA, universeB);
-                assertThat("equals", universeA, is(universeB));
-            }
-
-            @Test
-            public void equivalent_nonEmpty() {
-                final var object = OBJECT_A;
-                final var objectHistoryA = new ObjectHistory<>(object, WHEN_A, Integer.valueOf(0));
-                final var objectHistoryB = new ObjectHistory<>(object, WHEN_A, Integer.valueOf(0));
-                final Collection<ObjectHistory<Integer>> objectHistoriesA = List.of(objectHistoryA);
-                final Collection<ObjectHistory<Integer>> objectHistoriesB = List.of(objectHistoryB);
-                final var universeA = new Universe<Integer>(objectHistoriesA);
-                final var universeB = new Universe<Integer>(objectHistoriesB);
-
-                assertInvariants(universeA, universeB);
-                assertThat("equals", universeA, is(universeB));
-            }
-        }// class
-
-        @Test
-        public void noArgs() {
-            final var universe = new Universe<>();
-
-            assertInvariants(universe);
-            assertEmpty(universe);
+        assertInvariants(universe);
+        assertThat("Returns null if, and only if, object is not the ID of an object in this universe",
+                objectHistory == null == !universe.getObjects().contains(object));
+        if (objectHistory != null) {
+            ObjectHistoryTest.assertInvariants(objectHistory);
+            assertThat("objectHistory.object", objectHistory.getObject(), is(object));
         }
 
-    }// class
-
-    @Nested
-    public class CreateMedium {
-
-        @Nested
-        public class OneIncomingSignal {
-
-            @Test
-            public void a() {
-                test(OBJECT_A, OBJECT_B, SIGNAL_A, WHEN_A, WHEN_B);
-            }
-
-            @Test
-            public void b() {
-                test(OBJECT_B, OBJECT_C, SIGNAL_B, WHEN_B, WHEN_C);
-            }
-
-            private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver, @Nonnull final UUID signalId,
-                    @Nonnull final Duration start, @Nonnull final Duration whenSet) {
-                final Integer state0 = Integer.valueOf(0);
-                final Duration advanceTo = ValueHistory.END_OF_TIME;
-                final var history = new ObjectHistory<>(receiver, start, state0);
-                final TimestampedId sentFrom = new TimestampedId(sender, whenSet);
-                final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
-                history.addIncomingSignals(List.of(signal));
-                final Universe<Integer> universe = new Universe<Integer>(List.of(history));
-                assert !history.getIncomingSignals().isEmpty();
-
-                final var medium = createMedium(universe, DIRECT_EXECUTOR, advanceTo);
-
-                assertThat("signals", medium.getSignals(), is(Set.of(signal)));
-            }
-        }// class
-
-        @Nested
-        public class OneReceivedSignal {
-
-            @Test
-            public void a() {
-                test(OBJECT_A, OBJECT_B, SIGNAL_A, WHEN_A, WHEN_B);
-            }
-
-            @Test
-            public void b() {
-                test(OBJECT_B, OBJECT_C, SIGNAL_B, WHEN_B, WHEN_C);
-            }
-
-            private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver, @Nonnull final UUID signalId,
-                    @Nonnull final Duration start, @Nonnull final Duration whenSet) {
-                final Integer state0 = Integer.valueOf(0);
-                final Duration advanceTo = ValueHistory.END_OF_TIME;
-                final var history = new ObjectHistory<>(receiver, start, state0);
-                final TimestampedId sentFrom = new TimestampedId(sender, whenSet);
-                final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
-                history.addIncomingSignals(List.of(signal));
-                final Universe<Integer> universe = new Universe<Integer>(List.of(history));
-                final var medium0 = universe.createMedium(DIRECT_EXECUTOR, advanceTo);
-                history.receiveNextSignal(medium0);
-                assert !history.getReceivedSignals().isEmpty();
-
-                final var medium = createMedium(universe, DIRECT_EXECUTOR, advanceTo);
-
-                assertThat("signals", medium.getSignals(), is(Set.of(signal)));
-            }
-        }// class
-
-        @Test
-        public void noObjects() {
-            final Duration advanceTo = ValueHistory.END_OF_TIME;
-            final var universe = new Universe<Integer>();
-
-            final var medium = createMedium(universe, DIRECT_EXECUTOR, advanceTo);
-
-            assertThat("signals", medium.getSignals(), empty());
-        }
-
-    }// class
+        return objectHistory;
+    }
 
     private static class DeferringExecutor implements Executor {
 
-        private final List<Runnable> deferred = new ArrayList<>();
-
         @Override
-        public void execute(final Runnable command) {
-            deferred.add(command);
+        public void execute(@Nonnull final Runnable command) {
+            // Do nothing
         }
 
-    }// class
-
-    @Nested
-    public class GetObjectHistory {
-
-        @Nested
-        public class Present {
-
-            @Test
-            public void a() {
-                test(OBJECT_A);
-            }
-
-            @Test
-            public void b() {
-                test(OBJECT_B);
-            }
-
-            private void test(@Nonnull final UUID object) {
-                final Duration start = WHEN_A;
-                final Integer state = Integer.valueOf(0);
-                final var objectHistory0 = new ObjectHistory<>(object, start, state);
-                final var universe = new Universe<>(List.of(objectHistory0));
-
-                final var objectHistory = getObjectHistory(universe, object);
-
-                assertThat("objectHistory", objectHistory, is(objectHistory0));
-            }
-
-        }// class
-
-        @Test
-        public void absent() {
-            final var universe = new Universe<Integer>();
-
-            final var objectHistory = getObjectHistory(universe, OBJECT_A);
-
-            assertThat("objectHistory", objectHistory, nullValue());
-        }
     }// class
 
     public static class SchedulingMediumTest {
+
+        static <STATE> void addAll(@Nonnull final Universe<STATE>.SchedulingMedium medium,
+                                   @Nonnull final Collection<Signal<STATE>> signals) {
+            MediumTest.addAll(medium, signals);// inherited
+
+            assertInvariants(medium);
+        }
+
+        static <STATE> void assertInvariants(@Nonnull final Universe<STATE>.SchedulingMedium medium) {
+            ObjectTest.assertInvariants(medium);// inherited
+            MediumTest.assertInvariants(medium);// inherited
+
+            final var signals = medium.getSignals();
+            CollectionTest.assertForAllElements(medium.getUniverse().getObjectHistories(), history -> {
+                assertThat("history", history, notNullValue());// guard
+                assertThat("signals contains the received and incoming signals of all the object histories",
+                        signals.containsAll(history.getReceivedAndIncomingSignals()));
+            });
+        }
+
+        static <STATE> void removeAll(@Nonnull final Universe<STATE>.SchedulingMedium medium,
+                                      @Nonnull final Collection<Signal<STATE>> signals) {
+            MediumTest.removeAll(medium, signals);// inherited
+
+            assertInvariants(medium);
+        }
+
+        private static <STATE> void scheduleAdvanceObject(@Nonnull final Universe<STATE>.SchedulingMedium medium,
+                                                          @Nonnull final UUID object) {
+            medium.scheduleAdvanceObject(object);
+
+            assertInvariants(medium);
+        }
 
         @Nested
         public class AddAll {
@@ -341,25 +188,27 @@ public class UniverseTest {
                 }
 
                 private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver,
-                        @Nonnull final UUID signalId, @Nonnull final Duration start, @Nonnull final Duration whenSet) {
-                    final Integer state0 = Integer.valueOf(0);
+                                  @Nonnull final UUID signalId, @Nonnull final Duration start, @Nonnull final Duration whenSet) {
+                    final Integer state0 = 0;
                     final Duration advanceTo = ValueHistory.END_OF_TIME;
                     final var history0 = new ObjectHistory<>(receiver, start, state0);
                     final TimestampedId sentFrom = new TimestampedId(sender, whenSet);
                     final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
-                    final Universe<Integer> universe = new Universe<Integer>(List.of(history0));
+                    final Universe<Integer> universe = new Universe<>(List.of(history0));
                     final Executor executor = new DeferringExecutor();// critical
                     final var medium = universe.createMedium(executor, advanceTo);
                     final var signals = Set.of(signal);
 
                     addAll(medium, signals);
 
-                    ObjectHistoryTest.assertInvariants(history0);
+                    final var history = universe.getObjectHistory(receiver);
                     UniverseTest.assertInvariants(universe);
                     assertInvariants(medium);
+                    assertThat("receiver history", history, notNullValue());// guard
+                    ObjectHistoryTest.assertInvariants(history);
                     assertAll(() -> assertThat("signals", medium.getSignals(), is(signals)),
                             () -> assertThat("receiver incomingSignals",
-                                    universe.getObjectHistory(receiver).getIncomingSignals(), is(signals)));
+                                    history.getIncomingSignals(), is(signals)));
                 }
 
             }// class
@@ -377,23 +226,23 @@ public class UniverseTest {
                 }
 
                 private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver,
-                        @Nonnull final UUID signalId, @Nonnull final Duration start, @Nonnull final Duration whenSet) {
-                    final Integer state0 = Integer.valueOf(0);
+                                  @Nonnull final UUID signalId, @Nonnull final Duration start, @Nonnull final Duration whenSet) {
+                    final Integer state0 = 0;
                     final Duration advanceTo = ValueHistory.END_OF_TIME;
                     final var history0 = new ObjectHistory<>(receiver, start, state0);
                     final TimestampedId sentFrom = new TimestampedId(sender, whenSet);
                     final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
-                    final Universe<Integer> universe = new Universe<Integer>(List.of(history0));
-                    final Executor executor = DIRECT_EXECUTOR;// critical
-                    final var medium = universe.createMedium(executor, advanceTo);
+                    final Universe<Integer> universe = new Universe<>(List.of(history0));
+                    final var medium = universe.createMedium(DIRECT_EXECUTOR, advanceTo);
                     final var signals = Set.of(signal);
 
                     addAll(medium, signals);
 
+                    final var history = universe.getObjectHistory(receiver);
                     UniverseTest.assertInvariants(universe);
                     assertInvariants(medium);
-                    final var history = universe.getObjectHistory(receiver);
-                    assertAll("scheduled task to recieve signal",
+                    assertThat("receiver history", history, notNullValue());// guard
+                    assertAll("scheduled task to receive signal",
                             () -> assertThat("receivedSignals", history.getReceivedSignals(), not(empty())),
                             () -> assertThat("events", history.getEvents(), not(empty())));
                 }
@@ -419,13 +268,13 @@ public class UniverseTest {
                 }
 
                 private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver,
-                        @Nonnull final UUID signalId, @Nonnull final Duration start, @Nonnull final Duration whenSet) {
-                    final Integer state0 = Integer.valueOf(0);
+                                  @Nonnull final UUID signalId, @Nonnull final Duration start, @Nonnull final Duration whenSet) {
+                    final Integer state0 = 0;
                     final Duration advanceTo = ValueHistory.END_OF_TIME;
                     final var history0 = new ObjectHistory<>(receiver, start, state0);
                     final TimestampedId sentFrom = new TimestampedId(sender, whenSet);
                     final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
-                    final Universe<Integer> universe = new Universe<Integer>(List.of(history0));
+                    final Universe<Integer> universe = new Universe<>(List.of(history0));
                     final Executor executor = new DeferringExecutor();
                     final var medium = universe.createMedium(executor, advanceTo);
                     final var signals = Set.of(signal);
@@ -433,12 +282,14 @@ public class UniverseTest {
 
                     removeAll(medium, signals);
 
-                    ObjectHistoryTest.assertInvariants(history0);
+                    final var history = universe.getObjectHistory(receiver);
                     UniverseTest.assertInvariants(universe);
                     assertInvariants(medium);
+                    assertThat("receiver history", history, notNullValue());// guard
+                    ObjectHistoryTest.assertInvariants(history);
                     assertAll(() -> assertThat("signals", medium.getSignals(), empty()),
                             () -> assertThat("receiver incomingSignals",
-                                    universe.getObjectHistory(receiver).getIncomingSignals(), empty()));
+                                    history.getIncomingSignals(), empty()));
                 }
 
             }// class
@@ -457,16 +308,15 @@ public class UniverseTest {
                 }
 
                 private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent1,
-                        @Nonnull final Duration whenSent2) {
+                                  @Nonnull final Duration whenSent2) {
                     assert start.compareTo(whenSent1) < 0;
                     assert whenSent1.compareTo(whenSent2) < 0;
                     final UUID sender = OBJECT_A;
                     final UUID receiver = OBJECT_B;
-                    final Integer state0 = Integer.valueOf(0);
+                    final Integer state0 = 0;
                     final boolean strobe1 = false;// simplification
                     final boolean strobe2 = true;// tough test: emitted signals
                     final Duration advanceTo = whenSent2;
-                    final Executor executor = DIRECT_EXECUTOR;// critical
 
                     final var sentFrom1 = new TimestampedId(sender, whenSent1);
                     final var signal1 = new SignalTest.TestSignal(SIGNAL_A, sentFrom1, receiver, strobe1);
@@ -474,23 +324,59 @@ public class UniverseTest {
                     final var signal2 = new SignalTest.TestSignal(SIGNAL_B, sentFrom2, receiver, strobe2);
 
                     final var history0 = new ObjectHistory<>(receiver, start, state0);
-                    final Universe<Integer> universe = new Universe<Integer>(List.of(history0));
-                    final var medium = universe.createMedium(executor, advanceTo);
+                    final Universe<Integer> universe = new Universe<>(List.of(history0));
+                    final var medium = universe.createMedium(DIRECT_EXECUTOR, advanceTo);
                     medium.addAll(List.of(signal1, signal2));
 
                     removeAll(medium, List.of(signal1));
 
                     final var history = universe.getObjectHistory(receiver);
+                    assertThat("receiver history", history, notNullValue());// guard
                     assertAll("scheduled and ran tasks to reprocess receiver",
                             () -> assertThat("receivedSignals", history.getReceivedSignals(), not(empty())),
                             () -> assertThat("events", history.getEvents(), not(empty())));
                 }
 
-            }// clas
+            }// class
         }// class
 
         @Nested
         public class ScheduleAdvanceObject {
+
+            @Test
+            public void hasAdvancedFarEnough() {
+                final Integer state0 = 0;
+                final UUID sender = OBJECT_A;
+                final UUID receiver = OBJECT_B;
+                final Duration start = WHEN_A;
+                final Duration whenSent1 = WHEN_B;
+                final UUID signalId1 = SIGNAL_A;
+                final UUID signalId2 = SIGNAL_B;
+
+                final var sentFrom1 = new TimestampedId(sender, whenSent1);
+                final var signal1 = new SignalTest.TestSignal(signalId1, sentFrom1, receiver);
+                final var event1 = signal1.receive(state0);
+                final var whenReceived1 = event1.getWhenOccurred();
+                final var advanceTo = whenReceived1;
+                final var whenSent2 = advanceTo;
+                final var sentFrom2 = new TimestampedId(sender, whenSent2);
+                final var signal2 = new SignalTest.TestSignal(signalId2, sentFrom2, receiver);
+
+                final var history0 = new ObjectHistory<>(receiver, start, state0);
+                final var universe = new Universe<>(List.of(history0));
+                final var medium = universe.createMedium(DIRECT_EXECUTOR, advanceTo);
+                medium.addAll(List.of(signal1, signal2));
+                medium.scheduleAdvanceObject(receiver);
+
+                scheduleAdvanceObject(medium, receiver);
+
+                final var history = universe.getObjectHistory(receiver);
+                assertThat("receiver history", history, notNullValue());// guard
+                assertAll("receiver",
+                        () -> assertThat("incomingSignals (did not process the second signal)",
+                                history.getIncomingSignals(), not(empty())),
+                        () -> assertThat("receivedSignals", history.getReceivedSignals(), not(empty())));
+            }
 
             @Nested
             public class EndIsFarEnough {
@@ -513,14 +399,13 @@ public class UniverseTest {
                 }
 
                 private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver,
-                        @Nonnull final Duration advanceTo, @Nonnull final Duration end, final Duration whenSent) {
+                                  @Nonnull final Duration advanceTo, @Nonnull final Duration end, final Duration whenSent) {
                     assert advanceTo.compareTo(end) <= 0;
                     assert end.compareTo(whenSent) <= 0;
-                    final UUID signalId = SIGNAL_A;
-                    final Integer state0 = Integer.valueOf(0);
+                    final Integer state0 = 0;
 
                     final var sentFrom = new TimestampedId(sender, whenSent);
-                    final var signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
+                    final var signal = new SignalTest.TestSignal(SIGNAL_A, sentFrom, receiver);
                     final var history0 = new ObjectHistory<>(receiver, end, state0);
                     final var universe = new Universe<>(List.of(history0));
                     final var medium = universe.createMedium(DIRECT_EXECUTOR, advanceTo);
@@ -529,6 +414,7 @@ public class UniverseTest {
                     scheduleAdvanceObject(medium, receiver);
 
                     final var history = universe.getObjectHistory(receiver);
+                    assertThat("receiver history", history, notNullValue());// guard
                     assertAll("receiver did not process a signal",
                             () -> assertThat("incomingSignals", history.getIncomingSignals(), not(empty())),
                             () -> assertThat("receivedSignals", history.getReceivedSignals(), empty()));
@@ -553,7 +439,7 @@ public class UniverseTest {
                     final Duration start = WHEN_A;
                     final Duration whenSent = WHEN_B;
                     final UUID signalId = SIGNAL_A;
-                    final Integer state0 = Integer.valueOf(0);
+                    final Integer state0 = 0;
                     final var advanceTo = ValueHistory.END_OF_TIME;
 
                     final var sentFrom = new TimestampedId(sender, whenSent);
@@ -566,6 +452,7 @@ public class UniverseTest {
                     scheduleAdvanceObject(medium, receiver);
 
                     final var history = universe.getObjectHistory(receiver);
+                    assertThat("receiver history", history, notNullValue());// guard
                     assertAll("receiver", () -> assertThat("incomingSignals", history.getIncomingSignals(), empty()),
                             () -> assertThat("receivedSignals", history.getReceivedSignals(), not(empty())));
                 }
@@ -595,7 +482,7 @@ public class UniverseTest {
                     final UUID sender = OBJECT_A;
                     final UUID receiver = OBJECT_A;
                     final UUID signal1Id = SIGNAL_A;
-                    final Integer state0 = Integer.valueOf(0);
+                    final Integer state0 = 0;
 
                     final var sentFrom1 = new TimestampedId(sender, whenSent1);
                     final var signal1 = new SignalTest.TestSignal(signal1Id, sentFrom1, receiver, strobe);
@@ -607,6 +494,7 @@ public class UniverseTest {
                     scheduleAdvanceObject(medium, receiver);
 
                     final var history = universe.getObjectHistory(receiver);
+                    assertThat("receiver history", history, notNullValue());// guard
                     final var lastEvent = history.getLastEvent();
                     assertThat("lastEvent", lastEvent, notNullValue());// guard
                     assertThat("when last event occurred", lastEvent.getWhenOccurred(), greaterThan(advanceTo));
@@ -614,185 +502,278 @@ public class UniverseTest {
 
             }// class
 
+        }// class
+    }// class
+
+    @Nested
+    public class Constructor {
+
+        @Test
+        public void noArgs() {
+            final var universe = new Universe<>();
+
+            assertInvariants(universe);
+            assertEmpty(universe);
+        }
+
+        @Nested
+        public class Copy {
+
             @Test
-            public void hasAdvancedFarEnough() {
-                final Integer state0 = Integer.valueOf(0);
-                final UUID sender = OBJECT_A;
-                final UUID receiver = OBJECT_B;
-                final Duration start = WHEN_A;
-                final Duration whenSent1 = WHEN_B;
-                final UUID signalId1 = SIGNAL_A;
-                final UUID signalId2 = SIGNAL_B;
+            public void empty() {
+                final var universe = new Universe<Integer>();
 
-                final var sentFrom1 = new TimestampedId(sender, whenSent1);
-                final var signal1 = new SignalTest.TestSignal(signalId1, sentFrom1, receiver);
-                final var event1 = signal1.receive(state0);
-                final var whenReceived1 = event1.getWhenOccurred();
-                final var advanceTo = whenReceived1;
-                final var whenSent2 = advanceTo;
-                final var sentFrom2 = new TimestampedId(sender, whenSent2);
-                final var signal2 = new SignalTest.TestSignal(signalId2, sentFrom2, receiver);
+                constructor(universe);
 
-                final var history0 = new ObjectHistory<>(receiver, start, state0);
-                final var universe = new Universe<>(List.of(history0));
-                final var medium = universe.createMedium(DIRECT_EXECUTOR, advanceTo);
-                medium.addAll(List.of(signal1, signal2));
-                medium.scheduleAdvanceObject(receiver);
+                assertEmpty(universe);
+            }
 
-                scheduleAdvanceObject(medium, receiver);
+            @Nested
+            public class One {
 
-                final var history = universe.getObjectHistory(receiver);
-                assertAll("receiver",
-                        () -> assertThat("incomingSignals (did not process the second signal)",
-                                history.getIncomingSignals(), not(empty())),
-                        () -> assertThat("receivedSignals", history.getReceivedSignals(), not(empty())));
+                @Test
+                public void a() {
+                    test(OBJECT_A, WHEN_A, 0);
+                }
+
+                @Test
+                public void b() {
+                    test(OBJECT_B, WHEN_B, 1);
+                }
+
+                private void test(@Nonnull final UUID object, @Nonnull final Duration start,
+                                  @Nonnull final Integer state) {
+                    final var objectHistory = new ObjectHistory<>(object, start, state);
+                    final Collection<ObjectHistory<Integer>> objectHistories = List.of(objectHistory);
+                    final var universe = new Universe<>(objectHistories);
+
+                    constructor(universe);
+                }
+            }// class
+        }// class
+
+        @Nested
+        public class FromObjectHistories {
+
+            @Test
+            public void empty() {
+                constructor(List.of());
+            }
+
+            @Test
+            public void two() {
+                final var objectHistoryA = new ObjectHistory<>(OBJECT_A, WHEN_A, 0);
+                final var objectHistoryB = new ObjectHistory<>(OBJECT_B, WHEN_B, 1);
+                final Collection<ObjectHistory<Integer>> objectHistories = List.of(objectHistoryA, objectHistoryB);
+
+                constructor(objectHistories);
+            }
+
+            @Nested
+            public class One {
+
+                @Test
+                public void a() {
+                    test(OBJECT_A, WHEN_A, 0);
+                }
+
+                @Test
+                public void b() {
+                    test(OBJECT_B, WHEN_B, 1);
+                }
+
+                private void test(@Nonnull final UUID object, @Nonnull final Duration start,
+                                  @Nonnull final Integer state) {
+                    final var objectHistory = new ObjectHistory<>(object, start, state);
+                    final Collection<ObjectHistory<Integer>> objectHistories = List.of(objectHistory);
+
+                    constructor(objectHistories);
+                }
+            }// class
+        }// class
+
+        @Nested
+        public class Two {
+
+            @Test
+            public void different_objects() {
+                final var state = 0;
+                final var objectHistoryA = new ObjectHistory<>(OBJECT_A, WHEN_A, state);
+                final var objectHistoryB = new ObjectHistory<>(OBJECT_B, WHEN_A, state);
+                final Collection<ObjectHistory<Integer>> objectHistoriesA = List.of(objectHistoryA);
+                final Collection<ObjectHistory<Integer>> objectHistoriesB = List.of(objectHistoryB);
+                final var universeA = new Universe<>(objectHistoriesA);
+                final var universeB = new Universe<>(objectHistoriesB);
+
+                assertInvariants(universeA, universeB);
+                assertThat(universeA, not(is(universeB)));
+            }
+
+            @Test
+            public void different_stateHistories() {
+                final var objectHistoryA = new ObjectHistory<>(OBJECT_A, WHEN_A, 0);
+                final var objectHistoryB = new ObjectHistory<>(OBJECT_A, WHEN_B, 1);
+                final Collection<ObjectHistory<Integer>> objectHistoriesA = List.of(objectHistoryA);
+                final Collection<ObjectHistory<Integer>> objectHistoriesB = List.of(objectHistoryB);
+                final var universeA = new Universe<>(objectHistoriesA);
+                final var universeB = new Universe<>(objectHistoriesB);
+
+                assertInvariants(universeA, universeB);
+                assertThat(universeA, not(is(universeB)));
+            }
+
+            @Test
+            public void equivalent_empty() {
+                final var universeA = new Universe<Integer>();
+                final var universeB = new Universe<Integer>();
+
+                assertInvariants(universeA, universeB);
+                assertThat("equals", universeA, is(universeB));
+            }
+
+            @Test
+            public void equivalent_nonEmpty() {
+                final var object = OBJECT_A;
+                final var objectHistoryA = new ObjectHistory<>(object, WHEN_A, 0);
+                final var objectHistoryB = new ObjectHistory<>(object, WHEN_A, 0);
+                final Collection<ObjectHistory<Integer>> objectHistoriesA = List.of(objectHistoryA);
+                final Collection<ObjectHistory<Integer>> objectHistoriesB = List.of(objectHistoryB);
+                final var universeA = new Universe<>(objectHistoriesA);
+                final var universeB = new Universe<>(objectHistoriesB);
+
+                assertInvariants(universeA, universeB);
+                assertThat("equals", universeA, is(universeB));
+            }
+        }// class
+
+    }// class
+
+    @Nested
+    public class CreateMedium {
+
+        @Nested
+        public class OneIncomingSignal {
+
+            @Test
+            public void a() {
+                test(OBJECT_A, OBJECT_B, SIGNAL_A, WHEN_A, WHEN_B);
+            }
+
+            @Test
+            public void b() {
+                test(OBJECT_B, OBJECT_C, SIGNAL_B, WHEN_B, WHEN_C);
+            }
+
+            private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver, @Nonnull final UUID signalId,
+                              @Nonnull final Duration start, @Nonnull final Duration whenSet) {
+                final Integer state0 = 0;
+                final Duration advanceTo = ValueHistory.END_OF_TIME;
+                final var history = new ObjectHistory<>(receiver, start, state0);
+                final TimestampedId sentFrom = new TimestampedId(sender, whenSet);
+                final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
+                history.addIncomingSignals(List.of(signal));
+                final Universe<Integer> universe = new Universe<>(List.of(history));
+                assert !history.getIncomingSignals().isEmpty();
+
+                final var medium = createMedium(universe, DIRECT_EXECUTOR, advanceTo);
+
+                assertThat("signals", medium.getSignals(), is(Set.of(signal)));
+            }
+        }// class
+
+        @Nested
+        public class OneReceivedSignal {
+
+            @Test
+            public void a() {
+                test(OBJECT_A, OBJECT_B, SIGNAL_A, WHEN_A, WHEN_B);
+            }
+
+            @Test
+            public void b() {
+                test(OBJECT_B, OBJECT_C, SIGNAL_B, WHEN_B, WHEN_C);
+            }
+
+            private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver, @Nonnull final UUID signalId,
+                              @Nonnull final Duration start, @Nonnull final Duration whenSet) {
+                final Integer state0 = 0;
+                final Duration advanceTo = ValueHistory.END_OF_TIME;
+                final var history = new ObjectHistory<>(receiver, start, state0);
+                final TimestampedId sentFrom = new TimestampedId(sender, whenSet);
+                final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
+                history.addIncomingSignals(List.of(signal));
+                final Universe<Integer> universe = new Universe<>(List.of(history));
+                final var medium0 = universe.createMedium(DIRECT_EXECUTOR, advanceTo);
+                history.receiveNextSignal(medium0);
+                assert !history.getReceivedSignals().isEmpty();
+
+                final var medium = createMedium(universe, DIRECT_EXECUTOR, advanceTo);
+
+                assertThat("signals", medium.getSignals(), is(Set.of(signal)));
+            }
+        }// class
+
+        @Nested
+        public class NoObjects {
+
+            @Test
+            public void toEndOfTime() {
+                test(DIRECT_EXECUTOR, ValueHistory.END_OF_TIME);
+            }
+
+            @Test
+            public void a() {
+                test(new DeferringExecutor(), WHEN_A);
+            }
+
+            private void test(final Executor executor, final Duration advanceTo) {
+                final var universe = new Universe<Integer>();
+
+                final var medium = createMedium(universe, executor, advanceTo);
+
+                assertThat("signals", medium.getSignals(), empty());
             }
 
         }// class
 
-        static <STATE> void addAll(@Nonnull final Universe<STATE>.SchedulingMedium medium,
-                @Nonnull final Collection<Signal<STATE>> signals) {
-            MediumTest.addAll(medium, signals);// inherited
 
-            assertInvariants(medium);
-        }
-
-        static <STATE> void assertInvariants(@Nonnull final Universe<STATE>.SchedulingMedium medium) {
-            ObjectTest.assertInvariants(medium);// inherited
-            MediumTest.assertInvariants(medium);// inherited
-
-            final var signals = medium.getSignals();
-            CollectionTest.assertForAllElements(medium.getUniverse().getObjectHistories(), history -> {
-                assertThat("signals contains the received and incoming signals of all the object histories",
-                        signals.containsAll(history.getReceivedAndIncomingSignals()));
-            });
-        }
-
-        static <STATE> void assertInvariants(@Nonnull final Universe<STATE>.SchedulingMedium medium1,
-                @Nonnull final Universe<STATE>.SchedulingMedium medium2) {
-            ObjectTest.assertInvariants(medium1, medium2);// inherited
-            MediumTest.assertInvariants(medium1, medium2);// inherited
-        }
-
-        static <STATE> void removeAll(@Nonnull final Universe<STATE>.SchedulingMedium medium,
-                @Nonnull final Collection<Signal<STATE>> signals) {
-            MediumTest.removeAll(medium, signals);// inherited
-
-            assertInvariants(medium);
-        }
-
-        private static <STATE> void scheduleAdvanceObject(@Nonnull final Universe<STATE>.SchedulingMedium medium,
-                @Nonnull final UUID object) {
-            medium.scheduleAdvanceObject(object);
-
-            assertInvariants(medium);
-        }
     }// class
 
-    static final UUID OBJECT_A = ObjectHistoryTest.OBJECT_A;
+    @Nested
+    public class GetObjectHistory {
 
-    static final UUID OBJECT_B = ObjectHistoryTest.OBJECT_B;
+        @Test
+        public void absent() {
+            final var universe = new Universe<Integer>();
 
-    static final UUID OBJECT_C = ObjectHistoryTest.OBJECT_C;
+            final var objectHistory = getObjectHistory(universe, OBJECT_A);
 
-    static final Duration WHEN_A = ObjectHistoryTest.WHEN_A;
-
-    static final Duration WHEN_B = ObjectHistoryTest.WHEN_B;
-
-    static final Duration WHEN_C = ObjectHistoryTest.WHEN_C;
-
-    static final Duration WHEN_D = ObjectHistoryTest.WHEN_D;
-
-    private static final UUID SIGNAL_A = SignalTest.ID_A;
-
-    private static final UUID SIGNAL_B = SignalTest.ID_B;
-
-    private static final Executor DIRECT_EXECUTOR = new Executor() {
-
-        @Override
-        public void execute(final Runnable command) {
-            command.run();
-        }
-    };
-
-    private static <STATE> void assertEmpty(@Nonnull final Universe<STATE> universe) {
-        assertAll("empty", () -> assertThat("objects", universe.getObjects(), empty()),
-                () -> assertThat("objectHistories", universe.getObjectHistories(), empty()));
-    }
-
-    public static <STATE> void assertInvariants(@Nonnull final Universe<STATE> universe) {
-        ObjectTest.assertInvariants(universe);// inherited
-
-        final Set<UUID> objects = universe.getObjects();
-        final Collection<ObjectHistory<STATE>> objectHistories = universe.getObjectHistories();
-
-        assertAll("Not null", () -> assertNotNull(objects, "objects"), // guard
-                () -> assertNotNull(objectHistories, "objectHistories")// guard
-        );
-        assertFalse(objects.stream().anyMatch(id -> id == null), "The set of object IDs does not contain a null.");
-        CollectionTest.assertForAllElements("objectHistories", objectHistories, history -> {
-            assertThat(history, notNullValue());// guard
-            ObjectHistoryTest.assertInvariants(history);
-        });
-    }
-
-    public static <STATE> void assertInvariants(@Nonnull final Universe<STATE> universe1,
-            @Nonnull final Universe<STATE> universe2) {
-        ObjectTest.assertInvariants(universe1, universe2);// inherited
-
-        assertAll("Value semantics",
-                () -> EqualsSemanticsTest.assertValueSemantics(universe1, universe2, "objectHistories",
-                        u -> u.getObjectHistories()),
-                () -> assertTrue(universe1.equals(universe2) == universe1.getObjectHistories()
-                        .equals(universe2.getObjectHistories()), "equals"));
-    }
-
-    private static <STATE> void constructor(@Nonnull final Collection<ObjectHistory<STATE>> objectHistories) {
-        final var universe = new Universe<>(objectHistories);
-
-        assertInvariants(universe);
-        assertThat("copied objectHistories", new HashSet<>(universe.getObjectHistories()),
-                is(new HashSet<>(objectHistories)));
-    }
-
-    private static <STATE> Universe<STATE> constructor(@Nonnull final Universe<STATE> that) {
-        final var copy = new Universe<>(that);
-
-        assertInvariants(copy);
-        assertInvariants(that);
-        assertInvariants(copy, that);
-        assertThat("equals", copy, is(that));
-
-        assertAll("copied content", () -> assertThat("objects", copy.getObjects(), is(that.getObjects())),
-                () -> assertThat("objectHistories", copy.getObjectHistories(), is(that.getObjectHistories())));
-
-        return copy;
-    }
-
-    @Nonnull
-    private static <STATE> Universe<STATE>.SchedulingMedium createMedium(@Nonnull final Universe<STATE> universe,
-            @Nonnull final Executor executor, @Nonnull final Duration advanceTo) {
-        final var medium = universe.createMedium(executor, advanceTo);
-
-        assertInvariants(universe);
-        assertThat("result", medium, notNullValue());// guard
-        SchedulingMediumTest.assertInvariants(medium);
-
-        return medium;
-    }
-
-    private static <STATE> ObjectHistory<STATE> getObjectHistory(@Nonnull final Universe<STATE> universe,
-            @Nonnull final UUID object) {
-        final var objectHistory = universe.getObjectHistory(object);
-
-        assertInvariants(universe);
-        assertThat("Returns null if, and only if, object is not the ID of an object in this universe",
-                objectHistory == null == !universe.getObjects().contains(object));
-        if (objectHistory != null) {
-            ObjectHistoryTest.assertInvariants(objectHistory);
-            assertThat("objectHistory.object", objectHistory.getObject(), is(object));
+            assertThat("objectHistory", objectHistory, nullValue());
         }
 
-        return objectHistory;
-    }
+        @Nested
+        public class Present {
+
+            @Test
+            public void a() {
+                test(OBJECT_A);
+            }
+
+            @Test
+            public void b() {
+                test(OBJECT_B);
+            }
+
+            private void test(@Nonnull final UUID object) {
+                final Integer state = 0;
+                final var objectHistory0 = new ObjectHistory<>(object, WHEN_A, state);
+                final var universe = new Universe<>(List.of(objectHistory0));
+
+                final var objectHistory = getObjectHistory(universe, object);
+
+                assertThat("objectHistory", objectHistory, is(objectHistory0));
+            }
+
+        }// class
+    }// class
 }

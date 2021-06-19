@@ -18,32 +18,17 @@ package uk.badamson.mc.history;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.in;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
-import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.SortedSet;
-import java.util.stream.Stream;
+import uk.badamson.dbc.assertions.EqualsSemanticsTest;
 
 import javax.annotation.Nonnull;
+import java.time.Duration;
+import java.util.*;
+import java.util.stream.Stream;
 
-import uk.badamson.dbc.assertions.EqualsSemanticsTest;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * <p>
@@ -52,50 +37,36 @@ import uk.badamson.dbc.assertions.EqualsSemanticsTest;
  */
 public class ValueHistoryTest {
 
-    private static <VALUE> boolean assertEmptyInvariants(final ValueHistory<VALUE> history) {
-        final boolean empty = history.isEmpty();
+    private static <VALUE> void assertEmptyInvariants(final ValueHistory<VALUE> history) {
 
-        assertTrue(history.getTransitionTimes().isEmpty() == empty,
-                "A value history is empty if, and only if, it has no transitions.");
-
-        return empty;
+        assertEquals(history.getTransitionTimes().isEmpty(), history.isEmpty(), "A value history is empty if, and only if, it has no transitions.");
 
     }
 
-    private static <VALUE> Duration assertFirstTansitionTimeInvariants(final ValueHistory<VALUE> history) {
-        final Duration firstTansitionTime = history.getFirstTansitionTime();
+    private static <VALUE> void assertFirstTransitionTimeInvariants(final ValueHistory<VALUE> history) {
+        final Duration firstTransitionTime = history.getFirstTransitionTime();
         final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
 
-        assertSame(firstTansitionTime, transitionTimes.isEmpty() ? null : transitionTimes.first(),
+        assertSame(firstTransitionTime, transitionTimes.isEmpty() ? null : transitionTimes.first(),
                 "The first value of the set of transition times (if it is not empty) is the same as the first transition time.");
-
-        return firstTansitionTime;
     }
 
-    private static <VALUE> VALUE assertFirstValueInvariants(final ValueHistory<VALUE> history) {
-        final VALUE firstValue = history.getFirstValue();
-
-        assertEquals(history.get(ValueHistory.START_OF_TIME), firstValue,
+    private static <VALUE> void assertFirstValueInvariants(final ValueHistory<VALUE> history) {
+        assertEquals(history.get(ValueHistory.START_OF_TIME), history.getFirstValue(),
                 "The first value is equal to the value at the start of time.");
-
-        return firstValue;
     }
 
-    private static <VALUE> int assertHashCodeInvariants(final ValueHistory<VALUE> history) {
+    private static <VALUE> void assertHashCodeInvariants(final ValueHistory<VALUE> history) {
         final VALUE firstValue = history.getFirstValue();
         final int firstValueHashCode = firstValue == null ? 0 : firstValue.hashCode();
-
         final int hashCode = history.hashCode();
 
         assertEquals(firstValueHashCode + history.getTransitions().hashCode(), hashCode, "hashCode");
-
-        return hashCode;
-
     }
 
     public static <VALUE> void assertInvariants(final ValueHistory<VALUE> history) {
         assertAll("ValueHistory", () -> assertTransitionTimesInvariants(history),
-                () -> assertFirstTansitionTimeInvariants(history), () -> assertLastTansitionTimeInvariants(history),
+                () -> assertFirstTransitionTimeInvariants(history), () -> assertLastTransitionTimeInvariants(history),
                 () -> assertFirstValueInvariants(history), () -> assertLastValueInvariants(history),
                 () -> assertEmptyInvariants(history), () -> assertTransitionsInvariants(history),
                 () -> assertStreamOfTransitionsInvariants(history), () -> assertHashCodeInvariants(history));
@@ -108,74 +79,69 @@ public class ValueHistoryTest {
                         || Objects.equals(history.get(time.minusNanos(1L)), history.get(time)),
                 "For all points in time not in the set of transition times (except the start of time), "
                         + "the value just before the point in time is equal to the value at the point in time."),
-                () -> assertTansitionTimeAtOrAfterInvariants(history, time),
+                () -> assertTransitionTimeAtOrAfterInvariants(history, time),
                 () -> assertTimestampedValueInvariants(history, time));
     }
 
     public static <VALUE> void assertInvariants(final ValueHistory<VALUE> history1,
-            final ValueHistory<VALUE> history2) {
+                                                final ValueHistory<VALUE> history2) {
         assertAll("Value semantics",
                 () -> EqualsSemanticsTest.assertValueSemantics(history1, history2, "firstValue",
-                        h -> h.getFirstValue()),
+                        ValueHistory::getFirstValue),
                 () -> EqualsSemanticsTest.assertValueSemantics(history1, history2, "transitions",
-                        h -> h.getTransitions()));
+                        ValueHistory::getTransitions));
     }
 
-    private static <VALUE> Duration assertLastTansitionTimeInvariants(final ValueHistory<VALUE> history) {
-        final Duration lastTansitionTime = history.getLastTansitionTime();
+    private static <VALUE> void assertLastTransitionTimeInvariants(final ValueHistory<VALUE> history) {
+        final Duration lastTransitionTime = history.getLastTransitionTime();
         final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
 
-        assertSame(lastTansitionTime, transitionTimes.isEmpty() ? null : transitionTimes.last(),
+        assertSame(lastTransitionTime, transitionTimes.isEmpty() ? null : transitionTimes.last(),
                 "The last value of the set of transition times (if it is not empty) is the same as the last transition time.");
-
-        return lastTansitionTime;
     }
 
-    private static <VALUE> VALUE assertLastValueInvariants(final ValueHistory<VALUE> history) {
+    private static <VALUE> void assertLastValueInvariants(final ValueHistory<VALUE> history) {
         final VALUE lastValue = history.getLastValue();
-        final Duration lastTansitionTime = history.getLastTansitionTime();
-        final VALUE valueAtLastTransitionTime = lastTansitionTime == null ? null : history.get(lastTansitionTime);
+        final Duration lastTransitionTime = history.getLastTransitionTime();
+        final VALUE valueAtLastTransitionTime = lastTransitionTime == null ? null : history.get(lastTransitionTime);
         final VALUE firstValue = history.getFirstValue();
 
         assertAll("lastValue",
                 () -> assertEquals(history.get(ValueHistory.END_OF_TIME), lastValue,
                         "The last value is equal to the value at the end of time."),
-                () -> assertTrue(lastTansitionTime != null || Objects.equals(lastValue, firstValue),
+                () -> assertTrue(lastTransitionTime != null || Objects.equals(lastValue, firstValue),
                         "If this history has no transitions, the last value is equal to the first value."),
-                () -> assertTrue(lastTansitionTime == null || Objects.equals(lastValue, valueAtLastTransitionTime),
+                () -> assertTrue(lastTransitionTime == null || Objects.equals(lastValue, valueAtLastTransitionTime),
                         "If this history has transitions, the last value is equal to the value at the last transition."));
-
-        return lastValue;
     }
 
-    private static <VALUE> Stream<Map.Entry<Duration, VALUE>> assertStreamOfTransitionsInvariants(
+    private static <VALUE> void assertStreamOfTransitionsInvariants(
             final ValueHistory<VALUE> history) {
         final Set<Duration> transitionTimes = history.getTransitionTimes();
 
         final Stream<Map.Entry<Duration, VALUE>> stream = history.streamOfTransitions();
 
         assertNotNull(stream, "Always creates a (non null) steam of transitions.");// guard
-        final Map<Duration, VALUE> entries = stream.collect(HashMap::new, (m, e) -> {
-            assertNotNull(e, "streamOfTransitions entry");// guard
-            final Duration when = e.getKey();
-            final VALUE value = e.getValue();
-            assertAll("streamOfTransitions", () -> assertNotNull(when, "streamOfTransitions entry key"),
-                    () -> assertEquals(history.get(when), value,
-                            "The entries of the stream of transitions have values that are eqaul to the value of this history at the time of their corresponding key."));
-            m.put(when, value);
-        }, HashMap::putAll);
+        final Map<Duration, VALUE> entries = stream.collect(HashMap::new, (m, e) -> assertStreamOfTransitionsEntryInvariants(history, m, e), HashMap::putAll);
 
         assertEquals(
-
                 entries.keySet(), transitionTimes,
                 "The stream of transitions contains an entry with a key for each of the transition times of this history.");
-
-        return entries.entrySet().stream();
     }
 
-    private static <VALUE> Duration assertTansitionTimeAtOrAfterInvariants(final ValueHistory<VALUE> history,
-            @Nonnull final Duration when) {
-        final Duration transitionTime = history.getTansitionTimeAtOrAfter(when);
+    private static <VALUE> void assertStreamOfTransitionsEntryInvariants(final ValueHistory<VALUE> history, final HashMap<Duration, VALUE> m, final Map.Entry<Duration, VALUE> e) {
+        assertNotNull(e, "streamOfTransitions entry");// guard
+        final Duration when = e.getKey();
+        final VALUE value = e.getValue();
+        assertAll("streamOfTransitions", () -> assertNotNull(when, "streamOfTransitions entry key"),
+                () -> assertEquals(history.get(when), value,
+                        "The entries of the stream of transitions have values that are equal to the value of this history at the time of their corresponding key."));
+        m.put(when, value);
+    }
+
+    private static <VALUE> void assertTransitionTimeAtOrAfterInvariants(final ValueHistory<VALUE> history,
+                                                                        @Nonnull final Duration when) {
+        final Duration transitionTime = history.getTransitionTimeAtOrAfter(when);
 
         assertAll(
                 () -> assertThat(
@@ -184,11 +150,9 @@ public class ValueHistoryTest {
                 () -> assertThat(
                         "A (non null) transition time at or after the given time is one of the transition times.",
                         transitionTime, anyOf(nullValue(Duration.class), in(history.getTransitionTimes()))));
-
-        return transitionTime;
     }
 
-    private static <VALUE> TimestampedValue<VALUE> assertTimestampedValueInvariants(
+    private static <VALUE> void assertTimestampedValueInvariants(
             @Nonnull final ValueHistory<VALUE> history, @Nonnull final Duration when) {
         final var result = history.getTimestampedValue(when);
 
@@ -202,11 +166,9 @@ public class ValueHistoryTest {
         assertAll("Consistent with arguments", () -> assertThat("start", start, lessThanOrEqualTo(when)),
                 () -> assertThat("end", end, greaterThanOrEqualTo(when)));
         assertEquals(value, history.get(when), "Value consistent with history");
-
-        return result;
     }
 
-    private static <VALUE> SortedMap<Duration, VALUE> assertTransitionsInvariants(final ValueHistory<VALUE> history) {
+    private static <VALUE> void assertTransitionsInvariants(final ValueHistory<VALUE> history) {
         final Set<Duration> transitionTimes = history.getTransitionTimes();
 
         final SortedMap<Duration, VALUE> transitions = history.getTransitions();
@@ -215,32 +177,36 @@ public class ValueHistoryTest {
         assertEquals(transitionTimes, transitions.keySet(),
                 "The keys of the transitions map are equal to the transition times.");
         for (final var entry : transitions.entrySet()) {
-            assertNotNull(entry, "streamOfTransitions entry");// guard
-            final Duration when = entry.getKey();
-            final VALUE value = entry.getValue();
-            assertAll("transitions", () -> assertNotNull(when, "streamOfTransitions entry key"), () -> assertEquals(
-                    history.get(when), value,
-                    "The entries of the transitions map have values that are eqaul to the value of this history at the time of their corresponding key."));
+            assertTransitionsEntryInvariants(history, entry);
         }
-
-        return transitions;
     }
 
-    private static <VALUE> SortedSet<Duration> assertTransitionTimesInvariants(final ValueHistory<VALUE> history) {
+    private static <VALUE> void assertTransitionsEntryInvariants(final ValueHistory<VALUE> history, final Map.Entry<Duration, VALUE> entry) {
+        assertNotNull(entry, "streamOfTransitions entry");// guard
+        final Duration when = entry.getKey();
+        final VALUE value = entry.getValue();
+        assertAll("transitions", () -> assertNotNull(when, "streamOfTransitions entry key"), () -> assertEquals(
+                history.get(when), value,
+                "The entries of the transitions map have values that are equal to the value of this history at the time of their corresponding key."));
+    }
+
+    private static <VALUE> void assertTransitionTimesInvariants(final ValueHistory<VALUE> history) {
         final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
 
         assertNotNull(transitionTimes, "Always have a set of transition times.");// guard
         for (final Duration transitionTime : transitionTimes) {
-            assertNotEquals(ValueHistory.START_OF_TIME, transitionTime,
-                    "There is not a transition at the start of time.");// guard
-            assertAll(() -> assertThat("For all points in time in <" + transitionTime
-                    + "> the set of transition times, the value just before the transition is not equal to the value at the transition.",
-                    history.get(transitionTime.minusNanos(1L)), not(history.get(transitionTime))),
-                    () -> assertEquals(transitionTime, history.getTansitionTimeAtOrAfter(transitionTime),
-                            "The transition time at or after a time that equals one of the transition times equals that transition time."));
+            assertTransitionTimesEntryInvariants(history, transitionTime);
         }
+    }
 
-        return transitionTimes;
+    private static <VALUE> void assertTransitionTimesEntryInvariants(final ValueHistory<VALUE> history, final Duration transitionTime) {
+        assertNotEquals(ValueHistory.START_OF_TIME, transitionTime,
+                "There is not a transition at the start of time.");// guard
+        assertAll(() -> assertThat("For all points in time in <" + transitionTime
+                        + "> the set of transition times, the value just before the transition is not equal to the value at the transition.",
+                history.get(transitionTime.minusNanos(1L)), not(history.get(transitionTime))),
+                () -> assertEquals(transitionTime, history.getTransitionTimeAtOrAfter(transitionTime),
+                        "The transition time at or after a time that equals one of the transition times equals that transition time."));
     }
 
     public static <VALUE> Map<Duration, VALUE> getTransitionValues(final ValueHistory<VALUE> history) {

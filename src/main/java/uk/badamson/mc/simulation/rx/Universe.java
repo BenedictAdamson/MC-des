@@ -18,36 +18,24 @@ package uk.badamson.mc.simulation.rx;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import static java.util.stream.Collectors.toUnmodifiableList;
-
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Stream;
-
-import javax.annotation.Nonnull;
-import javax.annotation.concurrent.Immutable;
-import javax.annotation.concurrent.ThreadSafe;
-
-import org.reactivestreams.Publisher;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import uk.badamson.mc.simulation.TimestampedId;
+
+import javax.annotation.Nonnull;
+import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.ThreadSafe;
+import java.time.Duration;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.toUnmodifiableList;
 
 /**
  * <p>
@@ -65,26 +53,14 @@ import uk.badamson.mc.simulation.TimestampedId;
  * that state.
  * </p>
  *
- * @param <STATE>
- *            The class of states of the simulated objects. This must be
- *            {@link Immutable immutable}. It ought to have value semantics, but
- *            that is not required.
+ * @param <STATE> The class of states of the simulated objects. This must be
+ *                {@link Immutable immutable}. It ought to have value semantics, but
+ *                that is not required.
  */
 @ThreadSafe
 public final class Universe<STATE> {
 
     private static final int MAX_SORT = 32;
-
-    @Nonnull
-    private static Collection<TimestampedId> sortIfSmall(@Nonnull final Collection<TimestampedId> ids) {
-        final var size = ids.size();
-        if (1 < size && size <= MAX_SORT) {
-            return new TreeSet<>(ids);
-        } else {
-            return ids;
-        }
-    }
-
     private final Map<UUID, ModifiableObjectHistory<STATE>> objectHistories = new ConcurrentHashMap<>();
     /*
      * Adding entries to the objectHistories Map is guarded by this lock.
@@ -114,23 +90,20 @@ public final class Universe<STATE> {
      * {@code objectHistories}.</li>
      * </ul>
      *
-     * @param objectHistories
-     *            A snapshot of the history information of all the objects in the
-     *            universe.
-     * @throws NullPointerException
-     *             <ul>
-     *             <li>If {@code objectHistories} is null.</li>
-     *             <li>If {@code objectHistories} has a null
-     *             {@linkplain Map#keySet() key}.</li>
-     *             <li>If {@code objectHistories} has a null
-     *             {@linkplain Map#values() value}.</li>
-     *             </ul>
-     * @throws IllegalArgumentException
-     *             If {@code objectHistories} has an {@linkplain Map#entrySet()
-     *             entry} for which the {@linkplain ObjectHistory#getObject()
-     *             object} of the value of the entry is not
-     *             {@linkplain UUID#equals(Object) equivalent to} the key of the
-     *             entry.
+     * @param objectHistories A snapshot of the history information of all the objects in the
+     *                        universe.
+     * @throws NullPointerException     <ul>
+     *                                                                                                                                                                                  <li>If {@code objectHistories} is null.</li>
+     *                                                                                                                                                                                  <li>If {@code objectHistories} has a null
+     *                                                                                                                                                                                  {@linkplain Map#keySet() key}.</li>
+     *                                                                                                                                                                                  <li>If {@code objectHistories} has a null
+     *                                                                                                                                                                                  {@linkplain Map#values() value}.</li>
+     *                                                                                                                                                                                  </ul>
+     * @throws IllegalArgumentException If {@code objectHistories} has an {@linkplain Map#entrySet()
+     *                                  entry} for which the {@linkplain ObjectHistory#getObject()
+     *                                  object} of the value of the entry is not
+     *                                  {@linkplain UUID#equals(Object) equivalent to} the key of the
+     *                                  entry.
      */
     @JsonCreator
     public Universe(@Nonnull @JsonProperty("objectHistories") final Map<UUID, ObjectHistory<STATE>> objectHistories) {
@@ -148,14 +121,23 @@ public final class Universe<STATE> {
      * Copy a universe.
      * </p>
      *
-     * @throws NullPointerException
-     *             If {@code that} is null.
+     * @throws NullPointerException If {@code that} is null.
      */
     public Universe(@Nonnull final Universe<STATE> that) {
         Objects.requireNonNull(that, "that");
         synchronized (that.objectCreationLock) {// hard to test
             that.objectHistories
                     .forEach((object, history) -> objectHistories.put(object, new ModifiableObjectHistory<>(history)));
+        }
+    }
+
+    @Nonnull
+    private static Collection<TimestampedId> sortIfSmall(@Nonnull final Collection<TimestampedId> ids) {
+        final var size = ids.size();
+        if (1 < size && size <= MAX_SORT) {
+            return new TreeSet<>(ids);
+        } else {
+            return ids;
         }
     }
 
@@ -185,19 +167,16 @@ public final class Universe<STATE> {
      * {@linkplain Event#getState() state} of the event.</li>
      * </ul>
      *
-     * @param event
-     *            The first (known) state transition of the object.
-     * @throws NullPointerException
-     *             <ul>
-     *             <li>If {@code event} is null</li>
-     *             <li>if the {@linkplain Event#getState() state} of {@code event}
-     *             is null. That is, if the first event is the destruction or
-     *             removal of the simulated object.</li>
-     *             </ul>
-     * @throws IllegalArgumentException
-     *             If the {@linkplain #getObjects() set of objects} in this universe
-     *             already {@linkplain Set#contains(Object) contains} the
-     *             {@linkplain Event#getObject() object} of the {@code event}.
+     * @param event The first (known) state transition of the object.
+     * @throws NullPointerException     <ul>
+     *                                                                                                                                                                                  <li>If {@code event} is null</li>
+     *                                                                                                                                                                                  <li>if the {@linkplain Event#getState() state} of {@code event}
+     *                                                                                                                                                                                  is null. That is, if the first event is the destruction or
+     *                                                                                                                                                                                  removal of the simulated object.</li>
+     *                                                                                                                                                                                  </ul>
+     * @throws IllegalArgumentException If the {@linkplain #getObjects() set of objects} in this universe
+     *                                  already {@linkplain Set#contains(Object) contains} the
+     *                                  {@linkplain Event#getObject() object} of the {@code event}.
      */
     public void addObject(@Nonnull final Event<STATE> event) {
         Objects.requireNonNull(event, "event");
@@ -232,18 +211,14 @@ public final class Universe<STATE> {
      * The computation may make use of multiple threads.
      * </p>
      *
-     * @param when
-     *            the latest point in time for which all objects must have reliable
-     *            state information.
-     * @param nThreads
-     *            the number of threads to use for the computation; the degree of
-     *            parallelism. This value should not normally greatly exceed the
-     *            number of CPU cores.
+     * @param when     the latest point in time for which all objects must have reliable
+     *                 state information.
+     * @param nThreads the number of threads to use for the computation; the degree of
+     *                 parallelism. This value should not normally greatly exceed the
+     *                 number of CPU cores.
      * @return a sequence that completes when all the states have been advanced.
-     * @throws NullPointerException
-     *             If {@code when} is null.
-     * @throws IllegalArgumentException
-     *             If {@code nThreads} is not positive.
+     * @throws NullPointerException     If {@code when} is null.
+     * @throws IllegalArgumentException If {@code nThreads} is not positive.
      */
     @Nonnull
     public Mono<Void> advanceStatesTo(@Nonnull final Duration when, final int nThreads) {
@@ -273,7 +248,7 @@ public final class Universe<STATE> {
     }
 
     private void applyNextEvents(@Nonnull final Event<STATE> lastEvent,
-            @Nonnull final Map<UUID, Event<STATE>> nextEvents) {
+                                 @Nonnull final Map<UUID, Event<STATE>> nextEvents) {
         assert 1 <= nextEvents.size();
         if (nextEvents.size() == 1) {
             nextEvents.values().forEach(event -> applyEvent(lastEvent, event));
@@ -420,20 +395,18 @@ public final class Universe<STATE> {
      * given event, using the correct (non provisional) states of the dependencies.
      * </p>
      *
-     * @param event
-     *            The event for which to provide the next event. The
-     *            {@linkplain Event#getObject() simulated object} is typically one
-     *            of the {@linkplain #getObjects() objects} in this universe, and
-     *            the event will typically be the latest event of that object, but
-     *            that is not required.
-     * @throws NullPointerException
-     *             <ul>
-     *             <li>If {@code event} is null</li>
-     *             <li>If the {@linkplain Event#getState() state} transitioned to
-     *             due to the {@code event} is null. That is, if {@code event} was
-     *             the destruction or removal of the {@linkplain Event#getObject()
-     *             simulated object}: destroyed objects may not be resurrected.</li>
-     *             </ul>
+     * @param event The event for which to provide the next event. The
+     *              {@linkplain Event#getObject() simulated object} is typically one
+     *              of the {@linkplain #getObjects() objects} in this universe, and
+     *              the event will typically be the latest event of that object, but
+     *              that is not required.
+     * @throws NullPointerException <ul>
+     *                              <li>If {@code event} is null</li>
+     *                              <li>If the {@linkplain Event#getState() state} transitioned to
+     *                              due to the {@code event} is null. That is, if {@code event} was
+     *                              the destruction or removal of the {@linkplain Event#getObject()
+     *                              simulated object}: destroyed objects may not be resurrected.</li>
+     *                              </ul>
      */
     @Nonnull
     public Mono<Map<UUID, Event<STATE>>> observeNextEvents(@Nonnull final Event<STATE> event) {
@@ -444,7 +417,7 @@ public final class Universe<STATE> {
         final int nDependencies = nextEventDependencies.size();
         if (0 < nDependencies) {
             final var dependencyIds = nextEventDependencies.entrySet().stream().sequential()
-                    .map(entry -> entry.getKey()).collect(toUnmodifiableList());
+                    .map(Map.Entry::getKey).collect(toUnmodifiableList());
             final var dependencyObservers = nextEventDependencies.entrySet().stream().sequential()
                     .map(entry -> Flux.from(observeState(entry.getKey(), entry.getValue())).last())
                     .collect(toUnmodifiableList());
@@ -453,11 +426,8 @@ public final class Universe<STATE> {
                 final Map<UUID, STATE> dependentStates = new HashMap<>();
                 for (int d = 0; d < nDependencies; ++d) {
                     final UUID id = dependencyIds.get(d);
-                    @SuppressWarnings("unchecked")
-                    final Optional<STATE> dependencyState = (Optional<STATE>) states[d];
-                    if (dependencyState.isPresent()) {
-                        dependentStates.put(id, dependencyState.get());
-                    }
+                    @SuppressWarnings("unchecked") final Optional<STATE> dependencyState = (Optional<STATE>) states[d];
+                    dependencyState.ifPresent(state -> dependentStates.put(id, state));
                 }
                 return event.computeNextEvents(dependentStates);
             });
@@ -488,20 +458,16 @@ public final class Universe<STATE> {
      * provisional value can be time consuming.</li>
      * </ul>
      *
-     * @param object
-     *            The unique ID of the object for which the state is wanted.
-     * @param when
-     *            The point in time of interest, expressed as the duration since an
-     *            (implied) epoch. All objects in this universe should use the same
-     *            epoch.
-     * @throws NullPointerException
-     *             <ul>
-     *             <li>If {@code object} is null.</li>
-     *             <li>If {@code when} is null.</li>
-     *             </ul>
-     * @throws IllegalArgumentException
-     *             If the {@code object} is not one of the {@linkplain #getObjects()
-     *             objects} in this universe.
+     * @param object The unique ID of the object for which the state is wanted.
+     * @param when   The point in time of interest, expressed as the duration since an
+     *               (implied) epoch. All objects in this universe should use the same
+     *               epoch.
+     * @throws NullPointerException     <ul>
+     *                                                                                                                                                                                  <li>If {@code object} is null.</li>
+     *                                                                                                                                                                                  <li>If {@code when} is null.</li>
+     *                                                                                                                                                                                  </ul>
+     * @throws IllegalArgumentException If the {@code object} is not one of the {@linkplain #getObjects()
+     *                                  objects} in this universe.
      */
     @Nonnull
     public Publisher<Optional<STATE>> observeState(@Nonnull final UUID object, @Nonnull final Duration when) {

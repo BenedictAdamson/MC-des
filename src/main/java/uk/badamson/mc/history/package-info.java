@@ -6,7 +6,7 @@
  */
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,2021.
  *
  * This file is part of MC-des.
  *

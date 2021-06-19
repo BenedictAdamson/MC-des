@@ -18,28 +18,20 @@ package uk.badamson.mc.simulation.actor;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.toUnmodifiableList;
-import static java.util.stream.Collectors.toUnmodifiableSet;
-
-import java.time.Duration;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
+import java.time.Duration;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import static java.util.stream.Collectors.*;
 
 /**
  * <p>
@@ -54,13 +46,168 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * appended to.
  * </p>
  *
- * @param <STATE>
- *            The class of states of the simulated objects. This must be
- *            {@link Immutable immutable}. It ought to have value semantics, but
- *            that is not required.
+ * @param <STATE> The class of states of the simulated objects. This must be
+ *                {@link Immutable immutable}. It ought to have value semantics, but
+ *                that is not required.
  */
 @ThreadSafe
 public final class Universe<STATE> {
+
+    private final Map<UUID, ObjectHistory<STATE>> objectHistories = new ConcurrentHashMap<>();
+    /*
+     * Adding entries to the objectHistories Map is guarded by this lock.
+     */
+    private final Object objectCreationLock = new Object();
+
+    /**
+     * <p>
+     * Construct an empty universe.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getObjects() set of objects} {@linkplain Set#isEmpty()
+     * is empty}.</li>
+     * </ul>
+     */
+    public Universe() {
+        // Do nothing
+    }
+
+    /**
+     * <p>
+     * Construct a universe given the histories of all the objects in it.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain #getObjectHistories() object histories} of this universe
+     * are {@linkplain Map#equals(Object) equivalent to} the given
+     * {@code objectHistories}.</li>
+     * </ul>
+     *
+     * @param objectHistories A snapshot of the history information of all the objects in the
+     *                        universe.
+     * @throws NullPointerException If {@code objectHistories} is null
+     */
+    @JsonCreator
+    public Universe(@Nonnull @JsonProperty("objectHistories") final Collection<ObjectHistory<STATE>> objectHistories) {
+        Objects.requireNonNull(objectHistories, "objectHistories");
+        objectHistories.forEach(history -> this.objectHistories.put(history.getObject(), new ObjectHistory<>(history)));
+    }
+
+    /**
+     * <p>
+     * Copy a universe.
+     * </p>
+     */
+    public Universe(@Nonnull final Universe<STATE> that) {
+        Objects.requireNonNull(that, "that");
+        synchronized (that.objectCreationLock) {// hard to test
+            that.objectHistories
+                    .forEach((object, history) -> objectHistories.put(object, new ObjectHistory<>(history)));
+        }
+    }
+
+    private static <STATE> Map<UUID, List<Signal<STATE>>> groupByReceiver(final Collection<Signal<STATE>> signals) {
+        Objects.requireNonNull(signals, "signals");
+        return signals.stream().collect(groupingBy(Signal::getReceiver));
+    }
+
+    @Nonnull
+    SchedulingMedium createMedium(@Nonnull final Executor executor, @Nonnull final Duration advanceTo) {
+        return new SchedulingMedium(executor, advanceTo);
+    }
+
+    /**
+     * <p>
+     * Whether this is <dfn>equivalent</dfn> to a given object.
+     * </p>
+     * <p>
+     * The {@link Universe} class has <i>value semantics</i>. This method may give
+     * misleading results if either object is modified during the computation of
+     * equality.
+     * </p>
+     */
+    @Override
+    public boolean equals(final Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof Universe)) {
+            return false;
+        }
+        final Universe<?> other = (Universe<?>) obj;
+        /*
+         * thread-safe because ConcurrentHashMap.equals and ObjectHistory.equals are
+         * thread-safe.
+         */
+        return objectHistories.equals(other.objectHistories);
+    }
+
+    /**
+     * <p>
+     * Get a snapshot of the history information of all the objects in this
+     * universe.
+     * </p>
+     * <ul>
+     * <li>The returned collection will not subsequently change due to events.</li>
+     * <li>Has no null elements.</li>
+     * <li>Has no duplicate elements.</li>
+     * <li>May be unmodifiable.</li>
+     * </ul>
+     */
+    @Nonnull
+    @JsonProperty("objectHistories")
+    public Collection<ObjectHistory<STATE>> getObjectHistories() {
+        synchronized (objectCreationLock) {// hard to test
+            return objectHistories.values().stream().map(ObjectHistory::new).collect(toUnmodifiableList());
+        }
+    }
+
+    /**
+     * <p>
+     * Get a snapshot of the history information of one object in this universe.
+     * </p>
+     * <ul>
+     * <li>Returns null if, and only if, {@code object} is not the
+     * {@linkplain #getObjects() ID} of an object in this universe.</li>
+     * <li>If returns a (non null) object history, the
+     * {@linkplain ObjectHistory#getObject() object ID} of that object history will
+     * be {@linkplain UUID#equals(Object) equivalent to} the given {@code object}
+     * ID.</li>
+     * <li>The returned history will not subsequently change due to events.</li>
+     * </ul>
+     */
+    @Nullable
+    public ObjectHistory<STATE> getObjectHistory(@Nonnull final UUID object) {
+        Objects.requireNonNull(object, "object");
+        final var history = objectHistories.get(object);
+        return history == null ? null : new ObjectHistory<>(history);
+    }
+
+    /**
+     * <p>
+     * The unique IDs of the simulated objects in this universe.
+     * </p>
+     * <ul>
+     * <li>The set of object IDs does not contain a null.</li>
+     * <li>The set of object IDs is an unmodifiable copy (snapshot) of the set of
+     * object IDs; the returned set is constant, and will not update because of
+     * subsequent additions of objects.</li>
+     * </ul>
+     */
+    @Nonnull
+    @JsonIgnore
+    public Set<UUID> getObjects() {
+        return Set.copyOf(objectHistories.keySet());
+    }
+
+    @Override
+    public int hashCode() {
+        return objectHistories.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return "Universe" + objectHistories.values();
+    }
 
     final class SchedulingMedium implements Medium<STATE> {
 
@@ -139,7 +286,7 @@ public final class Universe<STATE> {
                 if (history == null) {
                     throw new IllegalStateException("unknown receiver");
                 }
-                final var signalIds = receiverSignals.stream().map(s -> s.getId()).collect(toUnmodifiableSet());
+                final var signalIds = receiverSignals.stream().map(Signal::getId).collect(toUnmodifiableSet());
                 history.removeSignals(signalIds);
                 // TODO handle invalidated emitted signals
                 scheduleAdvanceObject(receiver);
@@ -160,164 +307,5 @@ public final class Universe<STATE> {
         }
 
     }// class
-
-    private static <STATE> Map<UUID, List<Signal<STATE>>> groupByReceiver(final Collection<Signal<STATE>> signals) {
-        Objects.requireNonNull(signals, "signals");
-        return signals.stream().collect(groupingBy(s -> s.getReceiver()));
-    }
-
-    private final Map<UUID, ObjectHistory<STATE>> objectHistories = new ConcurrentHashMap<>();
-
-    /*
-     * Adding entries to the objectHistories Map is guarded by this lock.
-     */
-    private final Object objectCreationLock = new Object();
-
-    /**
-     * <p>
-     * Construct an empty universe.
-     * </p>
-     * <ul>
-     * <li>The {@linkplain #getObjects() set of objects} {@linkplain Set#isEmpty()
-     * is empty}.</li>
-     * </ul>
-     */
-    public Universe() {
-        // Do nothing
-    }
-
-    /**
-     * <p>
-     * Construct a universe given the histories of all the objects in it.
-     * </p>
-     * <ul>
-     * <li>The {@linkplain #getObjectHistories() object histories} of this universe
-     * are {@linkplain Map#equals(Object) equivalent to} the given
-     * {@code objectHistories}.</li>
-     * </ul>
-     *
-     * @param objectHistories
-     *            A snapshot of the history information of all the objects in the
-     *            universe.
-     * @throws NullPointerException
-     *             If {@code objectHistories} is null
-     */
-    @JsonCreator
-    public Universe(@Nonnull @JsonProperty("objectHistories") final Collection<ObjectHistory<STATE>> objectHistories) {
-        Objects.requireNonNull(objectHistories, "objectHistories");
-        objectHistories.forEach(history -> this.objectHistories.put(history.getObject(), new ObjectHistory<>(history)));
-    }
-
-    /**
-     * <p>
-     * Copy a universe.
-     * </p>
-     */
-    public Universe(@Nonnull final Universe<STATE> that) {
-        Objects.requireNonNull(that, "that");
-        synchronized (that.objectCreationLock) {// hard to test
-            that.objectHistories
-                    .forEach((object, history) -> objectHistories.put(object, new ObjectHistory<>(history)));
-        }
-    }
-
-    @Nonnull
-    SchedulingMedium createMedium(@Nonnull final Executor executor, @Nonnull final Duration advanceTo) {
-        return new SchedulingMedium(executor, advanceTo);
-    }
-
-    /**
-     * <p>
-     * Whether this is <dfn>equivalent</dfn> to a given object.
-     * </p>
-     * <p>
-     * The {@link Universe} class has <i>value semantics</i>. This method may give
-     * misleading results if either object is modified during the computation of
-     * equality.
-     * </p>
-     */
-    @Override
-    public boolean equals(final Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (!(obj instanceof Universe)) {
-            return false;
-        }
-        final Universe<?> other = (Universe<?>) obj;
-        /*
-         * thread-safe because ConcurrentHashMap.equals and ObjectHistory.equals are
-         * thread-safe.
-         */
-        return objectHistories.equals(other.objectHistories);
-    }
-
-    /**
-     * <p>
-     * Get a snapshot of the history information of all the objects in this
-     * universe.
-     * </p>
-     * <ul>
-     * <li>The returned collection will not subsequently change due to events.</li>
-     * <li>Has no null elements.</li>
-     * <li>Has no duplicate elements.</li>
-     * <li>May be unmodifiable.</li>
-     * </ul>
-     */
-    @Nonnull
-    @JsonProperty("objectHistories")
-    public Collection<ObjectHistory<STATE>> getObjectHistories() {
-        synchronized (objectCreationLock) {// hard to test
-            return objectHistories.values().stream().map(h -> new ObjectHistory<>(h)).collect(toUnmodifiableList());
-        }
-    }
-
-    /**
-     * <p>
-     * Get a snapshot of the history information of one object in this universe.
-     * </p>
-     * <ul>
-     * <li>Returns null if, and only if, {@code object} is not the
-     * {@linkplain #getObjects() ID} of an object in this universe.</li>
-     * <li>If returns a (non null) object history, the
-     * {@linkplain ObjectHistory#getObject() object ID} of that object history will
-     * be {@linkplain UUID#equals(Object) equivalent to} the given {@code object}
-     * ID.</li>
-     * <li>The returned history will not subsequently change due to events.</li>
-     * </ul>
-     */
-    @Nullable
-    public ObjectHistory<STATE> getObjectHistory(@Nonnull final UUID object) {
-        Objects.requireNonNull(object, "object");
-        final var history = objectHistories.get(object);
-        return history == null ? null : new ObjectHistory<>(history);
-    }
-
-    /**
-     * <p>
-     * The unique IDs of the simulated objects in this universe.
-     * </p>
-     * <ul>
-     * <li>The set of object IDs does not contain a null.</li>
-     * <li>The set of object IDs is an unmodifiable copy (snapshot) of the set of
-     * object IDs; the returned set is constant, and will not update because of
-     * subsequent additions of objects.</li>
-     * </ul>
-     */
-    @Nonnull
-    @JsonIgnore
-    public Set<UUID> getObjects() {
-        return Set.copyOf(objectHistories.keySet());
-    }
-
-    @Override
-    public int hashCode() {
-        return objectHistories.hashCode();
-    }
-
-    @Override
-    public String toString() {
-        return "Universe" + objectHistories.values();
-    }
 
 }

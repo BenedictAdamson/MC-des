@@ -18,12 +18,11 @@ package uk.badamson.mc.history;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import java.time.Duration;
-import java.util.Objects;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
+import java.time.Duration;
+import java.util.Objects;
 
 /**
  * <p>
@@ -31,10 +30,9 @@ import javax.annotation.concurrent.Immutable;
  * points in time when the variable had a particular value.
  * </p>
  *
- * @param <VALUE>
- *            The class of the time-wise varying value. This must be
- *            {@link Immutable immutable}, or have reference semantics. It ought
- *            to have value semantics, but that is not required.
+ * @param <VALUE> The class of the time-wise varying value. This must be
+ *                {@link Immutable immutable}, or have reference semantics. It ought
+ *                to have value semantics, but that is not required.
  */
 @Immutable
 public final class TimestampedValue<VALUE> {
@@ -49,9 +47,8 @@ public final class TimestampedValue<VALUE> {
     /**
      * Constructs a snapshot with given attribute values.
      *
-     * @throws IllegalArgumentException
-     *             If {@code end} {@linkplain Duration#compareTo(Duration) is
-     *             before} {@code start}
+     * @throws IllegalArgumentException If {@code end} {@linkplain Duration#compareTo(Duration) is
+     *                                  before} {@code start}
      */
     public TimestampedValue(@Nonnull final Duration start, @Nonnull final Duration end, @Nullable final VALUE state) {
         this.start = Objects.requireNonNull(start, "end");
