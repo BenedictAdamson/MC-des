@@ -298,10 +298,10 @@ public final class Universe<STATE> {
                 final var history = objectHistories.get(object);
                 final var lastEvent = history.getLastEvent();
                 if (history.getEnd().compareTo(advanceTo) < 0
-                        && (lastEvent == null || lastEvent.getWhenOccurred().compareTo(advanceTo) < 0)) {
-                    if (history.receiveNextSignal(this)) {
-                        scheduleAdvanceObject(object);
-                    }
+                        && (lastEvent == null || lastEvent.getWhenOccurred().compareTo(advanceTo) < 0)
+                        && history.receiveNextSignal(this)// has side-effect
+                ) {
+                    scheduleAdvanceObject(object);
                 }
             });
         }
