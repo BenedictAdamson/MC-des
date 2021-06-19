@@ -141,6 +141,7 @@ public final class Universe<STATE> {
                 }
                 final var signalIds = receiverSignals.stream().map(s -> s.getId()).collect(toUnmodifiableSet());
                 history.removeSignals(signalIds);
+                // TODO handle invalidated emitted signals
                 scheduleAdvanceObject(receiver);
             } // for
         }
