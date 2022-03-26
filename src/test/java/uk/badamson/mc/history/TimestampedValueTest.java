@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018,2021.
+ * © Copyright Benedict Adamson 2018,2021-22.
  *
  * This file is part of MC-des.
  *
@@ -21,8 +21,8 @@ package uk.badamson.mc.history;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import uk.badamson.dbc.assertions.EqualsSemanticsTest;
-import uk.badamson.dbc.assertions.ObjectTest;
+import uk.badamson.dbc.assertions.EqualsSemanticsVerifier;
+import uk.badamson.dbc.assertions.ObjectVerifier;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -40,7 +40,7 @@ public class TimestampedValueTest {
     private static final Duration WHEN_B = Duration.ofMillis(5000);
 
     public static <STATE> void assertInvariants(@Nonnull final TimestampedValue<STATE> timestamped) {
-        ObjectTest.assertInvariants(timestamped);// inherited
+        ObjectVerifier.assertInvariants(timestamped);// inherited
 
         final var start = timestamped.getStart();
         final var end = timestamped.getEnd();
@@ -51,17 +51,17 @@ public class TimestampedValueTest {
 
     public static <STATE> void assertInvariants(@Nonnull final TimestampedValue<STATE> timestamped1,
                                                 @Nonnull final TimestampedValue<STATE> timestamped2) {
-        ObjectTest.assertInvariants(timestamped1, timestamped2);// inherited
+        ObjectVerifier.assertInvariants(timestamped1, timestamped2);// inherited
 
         final var value1 = timestamped1.getValue();
         final var value2 = timestamped2.getValue();
         if (value1 != null && value2 != null) {
-            ObjectTest.assertInvariants(value1, value2);
+            ObjectVerifier.assertInvariants(value1, value2);
         }
         assertAll("Value semantics",
-                () -> EqualsSemanticsTest.assertValueSemantics(timestamped1, timestamped2, "start",
+                () -> EqualsSemanticsVerifier.assertValueSemantics(timestamped1, timestamped2, "start",
                         TimestampedValue::getStart),
-                () -> EqualsSemanticsTest.assertValueSemantics(timestamped1, timestamped2, "end", TimestampedValue::getEnd),
+                () -> EqualsSemanticsVerifier.assertValueSemantics(timestamped1, timestamped2, "end", TimestampedValue::getEnd),
                 () -> assertEquals(timestamped1.equals(timestamped2), (timestamped1.getStart().equals(timestamped2.getStart())
                         && timestamped1.getEnd().equals(timestamped2.getEnd())
                         && Objects.equals(value1, value2)), "equals"));

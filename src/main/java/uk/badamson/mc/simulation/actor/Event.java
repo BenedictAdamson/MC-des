@@ -18,6 +18,7 @@ package uk.badamson.mc.simulation.actor;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import uk.badamson.mc.simulation.TimestampedId;
 
 import javax.annotation.Nonnull;
@@ -192,6 +193,7 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
      * empty}.</li>
      * </ul>
      */
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification="signalsEmitted is unmodifiable")
     @Nonnull
     public Set<Signal<STATE>> getSignalsEmitted() {
         return signalsEmitted;

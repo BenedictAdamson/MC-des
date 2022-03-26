@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018,2021.
+ * © Copyright Benedict Adamson 2018,2021-22.
  *
  * This file is part of MC-des.
  *
@@ -20,7 +20,7 @@ package uk.badamson.mc.history;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import uk.badamson.dbc.assertions.ObjectTest;
+import uk.badamson.dbc.assertions.ObjectVerifier;
 import uk.badamson.mc.JsonTest;
 
 import javax.annotation.Nonnull;
@@ -47,13 +47,13 @@ public class ModifiableValueHistoryTest {
     private static final Duration WHEN_4 = Duration.ofSeconds(5);
 
     public static <VALUE> void assertInvariants(final ModifiableValueHistory<VALUE> history) {
-        ObjectTest.assertInvariants(history);// inherited
+        ObjectVerifier.assertInvariants(history);// inherited
         ValueHistoryTest.assertInvariants(history);// inherited
     }
 
     public static <VALUE> void assertInvariants(final ModifiableValueHistory<VALUE> history1,
                                                 final ModifiableValueHistory<VALUE> history2) {
-        ObjectTest.assertInvariants(history1, history2);// inherited
+        ObjectVerifier.assertInvariants(history1, history2);// inherited
         ValueHistoryTest.assertInvariants(history1, history2);// inherited
     }
 

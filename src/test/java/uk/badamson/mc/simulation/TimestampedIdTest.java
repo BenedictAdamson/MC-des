@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation;
 /*
- * © Copyright Benedict Adamson 2018,2021.
+ * © Copyright Benedict Adamson 2018,2021-22.
  *
  * This file is part of MC-des.
  *
@@ -20,9 +20,9 @@ package uk.badamson.mc.simulation;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import uk.badamson.dbc.assertions.ComparableTest;
-import uk.badamson.dbc.assertions.EqualsSemanticsTest;
-import uk.badamson.dbc.assertions.ObjectTest;
+import uk.badamson.dbc.assertions.ComparableVerifier;
+import uk.badamson.dbc.assertions.EqualsSemanticsVerifier;
+import uk.badamson.dbc.assertions.ObjectVerifier;
 import uk.badamson.mc.JsonTest;
 
 import javax.annotation.Nonnull;
@@ -49,8 +49,8 @@ public class TimestampedIdTest {
     static final Duration DURATION_B = Duration.ofSeconds(15);
 
     public static void assertInvariants(final TimestampedId id) {
-        ObjectTest.assertInvariants(id);// inherited
-        ComparableTest.assertInvariants(id);
+        ObjectVerifier.assertInvariants(id);// inherited
+        ComparableVerifier.assertInvariants(id);
 
         final UUID objectId = id.getObject();
         final Duration when = id.getWhen();
@@ -59,9 +59,9 @@ public class TimestampedIdTest {
     }
 
     public static void assertInvariants(final TimestampedId id1, final TimestampedId id2) {
-        ObjectTest.assertInvariants(id1, id2);// inherited
-        ComparableTest.assertInvariants(id1, id2);
-        ComparableTest.assertNaturalOrderingIsConsistentWithEquals(id1, id2);
+        ObjectVerifier.assertInvariants(id1, id2);// inherited
+        ComparableVerifier.assertInvariants(id1, id2);
+        ComparableVerifier.assertNaturalOrderingIsConsistentWithEquals(id1, id2);
 
         final Duration when1 = id1.getWhen();
         final Duration when2 = id2.getWhen();
@@ -69,8 +69,8 @@ public class TimestampedIdTest {
         final int compareTo = Integer.signum(id1.compareTo(id2));
 
         assertAll("Value semantics",
-                () -> EqualsSemanticsTest.assertValueSemantics(id1, id2, "object", TimestampedId::getObject),
-                () -> EqualsSemanticsTest.assertValueSemantics(id1, id2, "when", TimestampedId::getWhen));
+                () -> EqualsSemanticsVerifier.assertValueSemantics(id1, id2, "object", TimestampedId::getObject),
+                () -> EqualsSemanticsVerifier.assertValueSemantics(id1, id2, "when", TimestampedId::getWhen));
         assertFalse(!whenEquals && compareTo != Integer.signum(when1.compareTo(when2)),
                 "The natural ordering orders by time-stamp.");
         assertFalse(whenEquals && compareTo != Integer.signum(id1.getObject().compareTo(id2.getObject())),

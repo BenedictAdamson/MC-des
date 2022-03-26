@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation.actor;
 /*
- * © Copyright Benedict Adamson 2021.
+ * © Copyright Benedict Adamson 2021-22.
  *
  * This file is part of MC-des.
  *
@@ -23,8 +23,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import uk.badamson.dbc.assertions.EqualsSemanticsTest;
-import uk.badamson.dbc.assertions.ObjectTest;
+import uk.badamson.dbc.assertions.EqualsSemanticsVerifier;
+import uk.badamson.dbc.assertions.ObjectVerifier;
 import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.history.ConstantValueHistory;
 import uk.badamson.mc.history.ModifiableValueHistory;
@@ -58,7 +58,7 @@ public class SignalTest {
     private static final TimestampedId OBJECT_STATE_ID_B = new TimestampedId(OBJECT_B, WHEN_B);
 
     public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal) {
-        ObjectTest.assertInvariants(signal);// inherited
+        ObjectVerifier.assertInvariants(signal);// inherited
 
         final var id = signal.getId();
         final var receiver = signal.getReceiver();
@@ -75,9 +75,9 @@ public class SignalTest {
 
     public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal1,
                                                 @Nonnull final Signal<STATE> signal2) {
-        ObjectTest.assertInvariants(signal1, signal2);// inherited
+        ObjectVerifier.assertInvariants(signal1, signal2);// inherited
 
-        EqualsSemanticsTest.assertEntitySemantics(signal1, signal2, Signal::getId);
+        EqualsSemanticsVerifier.assertEntitySemantics(signal1, signal2, Signal::getId);
     }
 
     public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal,
@@ -160,7 +160,7 @@ public class SignalTest {
     public static class UnreceivableSignalExceptionTest {
 
         public static void assertInvariants(@Nonnull final Signal.UnreceivableSignalException exception) {
-            ObjectTest.assertInvariants(exception);// inherited
+            ObjectVerifier.assertInvariants(exception);// inherited
         }
 
         @Test

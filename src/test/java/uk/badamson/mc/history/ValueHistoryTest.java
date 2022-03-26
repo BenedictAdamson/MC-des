@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018,2021.
+ * © Copyright Benedict Adamson 2018,2021-22.
  *
  * This file is part of MC-des.
  *
@@ -18,7 +18,7 @@ package uk.badamson.mc.history;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import uk.badamson.dbc.assertions.EqualsSemanticsTest;
+import uk.badamson.dbc.assertions.EqualsSemanticsVerifier;
 
 import javax.annotation.Nonnull;
 import java.time.Duration;
@@ -86,9 +86,9 @@ public class ValueHistoryTest {
     public static <VALUE> void assertInvariants(final ValueHistory<VALUE> history1,
                                                 final ValueHistory<VALUE> history2) {
         assertAll("Value semantics",
-                () -> EqualsSemanticsTest.assertValueSemantics(history1, history2, "firstValue",
+                () -> EqualsSemanticsVerifier.assertValueSemantics(history1, history2, "firstValue",
                         ValueHistory::getFirstValue),
-                () -> EqualsSemanticsTest.assertValueSemantics(history1, history2, "transitions",
+                () -> EqualsSemanticsVerifier.assertValueSemantics(history1, history2, "transitions",
                         ValueHistory::getTransitions));
     }
 

@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation.actor;
 /*
- * © Copyright Benedict Adamson 2021.
+ * © Copyright Benedict Adamson 2021-22.
  *
  * This file is part of MC-des.
  *
@@ -22,9 +22,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
-import uk.badamson.dbc.assertions.ComparableTest;
-import uk.badamson.dbc.assertions.EqualsSemanticsTest;
-import uk.badamson.dbc.assertions.ObjectTest;
+import uk.badamson.dbc.assertions.ComparableVerifier;
+import uk.badamson.dbc.assertions.EqualsSemanticsVerifier;
+import uk.badamson.dbc.assertions.ObjectVerifier;
 import uk.badamson.mc.simulation.TimestampedId;
 import uk.badamson.mc.simulation.TimestampedIdTest;
 import uk.badamson.mc.simulation.actor.SignalTest.TestSignal;
@@ -51,8 +51,8 @@ public class EventTest {
     private static final TimestampedId ID_B = new TimestampedId(SIGNAL_B, WHEN_B);
 
     public static <STATE> void assertInvariants(@Nonnull final Event<STATE> event) {
-        ObjectTest.assertInvariants(event);// inherited
-        ComparableTest.assertInvariants(event);// inherited
+        ObjectVerifier.assertInvariants(event);// inherited
+        ComparableVerifier.assertInvariants(event);// inherited
 
         final var affectedObject = event.getAffectedObject();
         final var causingSignal = event.getCausingSignal();
@@ -74,11 +74,11 @@ public class EventTest {
 
     public static <STATE> void assertInvariants(@Nonnull final Event<STATE> event1,
                                                 @Nonnull final Event<STATE> event2) {
-        ObjectTest.assertInvariants(event1, event2);// inherited
-        ComparableTest.assertInvariants(event1, event2);// inherited
+        ObjectVerifier.assertInvariants(event1, event2);// inherited
+        ComparableVerifier.assertInvariants(event1, event2);// inherited
 
-        EqualsSemanticsTest.assertEntitySemantics(event1, event2, Event::getId);
-        ComparableTest.assertNaturalOrderingIsConsistentWithEquals(event1, event2);
+        EqualsSemanticsVerifier.assertEntitySemantics(event1, event2, Event::getId);
+        ComparableVerifier.assertNaturalOrderingIsConsistentWithEquals(event1, event2);
     }
 
     private static <STATE> void constructor(@Nonnull final TimestampedId id, @Nonnull final UUID affectedObject,

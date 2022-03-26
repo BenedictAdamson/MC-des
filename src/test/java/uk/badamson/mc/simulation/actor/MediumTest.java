@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation.actor;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018-22.
  *
  * This file is part of MC-des.
  *
@@ -18,7 +18,7 @@ package uk.badamson.mc.simulation.actor;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import uk.badamson.dbc.assertions.CollectionTest;
+import uk.badamson.dbc.assertions.CollectionVerifier;
 
 import javax.annotation.Nonnull;
 import java.util.Collection;
@@ -47,7 +47,7 @@ public class MediumTest {
     static <STATE> void assertInvariants(@Nonnull final Medium<STATE> medium) {
         final Set<Signal<STATE>> signals = medium.getSignals();
         assertThat("signals", signals, notNullValue());// guard
-        CollectionTest.assertForAllElements("signals", signals, signal -> {
+        CollectionVerifier.assertForAllElements("signals", signals, signal -> {
             assertThat("signal", signal, notNullValue());// guard
             SignalTest.assertInvariants(signal);
         });

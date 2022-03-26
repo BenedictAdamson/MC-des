@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation.actor;
 /*
- * © Copyright Benedict Adamson 2021.
+ * © Copyright Benedict Adamson 2021-22.
  *
  * This file is part of MC-des.
  *
@@ -25,9 +25,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.reactivestreams.Publisher;
 import reactor.test.StepVerifier;
-import uk.badamson.dbc.assertions.CollectionTest;
-import uk.badamson.dbc.assertions.EqualsSemanticsTest;
-import uk.badamson.dbc.assertions.ObjectTest;
+import uk.badamson.dbc.assertions.CollectionVerifier;
+import uk.badamson.dbc.assertions.EqualsSemanticsVerifier;
+import uk.badamson.dbc.assertions.ObjectVerifier;
 import uk.badamson.dbc.assertions.ThreadSafetyTest;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.history.ValueHistoryTest;
@@ -77,7 +77,7 @@ public class ObjectHistoryTest {
     }
 
     public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history) {
-        ObjectTest.assertInvariants(history);// inherited
+        ObjectVerifier.assertInvariants(history);// inherited
 
         final var events = history.getEvents();
         final var end = history.getEnd();
@@ -132,13 +132,13 @@ public class ObjectHistoryTest {
 
     public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history1,
                                                 @Nonnull final ObjectHistory<STATE> history2) {
-        ObjectTest.assertInvariants(history1, history2);// inherited
+        ObjectVerifier.assertInvariants(history1, history2);// inherited
 
         assertAll("Value semantics",
-                () -> EqualsSemanticsTest.assertValueSemantics(history1, history2, "stateTransitions",
+                () -> EqualsSemanticsVerifier.assertValueSemantics(history1, history2, "stateTransitions",
                         ObjectHistory::getStateTransitions),
-                () -> EqualsSemanticsTest.assertValueSemantics(history1, history2, "object", ObjectHistory::getObject),
-                () -> EqualsSemanticsTest.assertValueSemantics(history1, history2, "end", ObjectHistory::getEnd),
+                () -> EqualsSemanticsVerifier.assertValueSemantics(history1, history2, "object", ObjectHistory::getObject),
+                () -> EqualsSemanticsVerifier.assertValueSemantics(history1, history2, "end", ObjectHistory::getEnd),
                 () -> assertEquals(history1
                         .equals(history2), (history1.getStateTransitions().equals(history2.getStateTransitions())
                         && history1.getObject().equals(history2.getObject())
@@ -310,21 +310,21 @@ public class ObjectHistoryTest {
     public static class ContinuationTest {
 
         static <STATE> void assertInvariants(@Nonnull final ObjectHistory.Continuation<STATE> continuation) {
-            ObjectTest.assertInvariants(continuation);// inherited
+            ObjectVerifier.assertInvariants(continuation);// inherited
             assertAll("Not null", () -> assertThat("nextSignal", continuation.nextSignal, notNullValue()),
                     () -> assertThat("whenNextSignalReceived", continuation.whenNextSignalReceived, notNullValue()));
         }
 
         static <STATE> void assertInvariants(@Nonnull final ObjectHistory.Continuation<STATE> continuation1,
                                              @Nonnull final ObjectHistory.Continuation<STATE> continuation2) {
-            ObjectTest.assertInvariants(continuation1, continuation2);// inherited
+            ObjectVerifier.assertInvariants(continuation1, continuation2);// inherited
             assertAll("Value semantics",
-                    () -> EqualsSemanticsTest.assertValueSemantics(continuation1, continuation2, "nextSignal",
+                    () -> EqualsSemanticsVerifier.assertValueSemantics(continuation1, continuation2, "nextSignal",
                             c -> c.nextSignal),
-                    () -> EqualsSemanticsTest.assertValueSemantics(continuation1, continuation2, "previousEvent",
+                    () -> EqualsSemanticsVerifier.assertValueSemantics(continuation1, continuation2, "previousEvent",
                             c -> c.previousEvent),
-                    () -> EqualsSemanticsTest.assertValueSemantics(continuation1, continuation2, "state", c -> c.state),
-                    () -> EqualsSemanticsTest.assertValueSemantics(continuation1, continuation2,
+                    () -> EqualsSemanticsVerifier.assertValueSemantics(continuation1, continuation2, "state", c -> c.state),
+                    () -> EqualsSemanticsVerifier.assertValueSemantics(continuation1, continuation2,
                             "whenNextSignalReceived", c -> c.whenNextSignalReceived));
         }
 
@@ -421,11 +421,9 @@ public class ObjectHistoryTest {
             final int nSignalsPerThread = 64;
 
             final UUID receiver = OBJECT_A;
-            final UUID sender = OBJECT_B;
             final Duration end = WHEN_A;
             final Integer state0 = 0;
-            final Duration start = end;
-            final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, start, state0);
+            final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, end, state0);
 
             final CountDownLatch ready = new CountDownLatch(1);
             final List<Future<Void>> futures = new ArrayList<>(nThreads);
@@ -436,7 +434,7 @@ public class ObjectHistoryTest {
                     for (int s = 0; s < nSignalsPerThread; ++s) {
                         final UUID signalId = UUID.randomUUID();
                         final Duration whenSent = end.plusMillis(1 + random.nextInt(10_000));
-                        final var sentFrom = new TimestampedId(sender, whenSent);
+                        final var sentFrom = new TimestampedId(OBJECT_B, whenSent);
                         final var signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
                         final Collection<Signal<Integer>> signals = Set.of(signal);
 
@@ -498,11 +496,9 @@ public class ObjectHistoryTest {
 
             private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent,
                               @Nonnull final Duration relativeEnd, @Nonnull final Integer state0) {
-                final UUID sender = OBJECT_A;
                 final UUID receiver = OBJECT_B;
-                final UUID signalId = SIGNAL_ID_A;
-                final var sentFrom = new TimestampedId(sender, whenSent);
-                final var signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
+                final var sentFrom = new TimestampedId(OBJECT_A, whenSent);
+                final var signal = new SignalTest.TestSignal(SIGNAL_ID_A, sentFrom, receiver);
 
                 final var history = new ObjectHistory<>(receiver, start, state0);
                 final Medium<Integer> medium = new MediumTest.RecordingMedium<>();
@@ -544,9 +540,8 @@ public class ObjectHistoryTest {
 
             private void test(@Nonnull final Duration start, @Nonnull final Duration end) {
                 assert start.compareTo(end) < 0;
-                final UUID object = OBJECT_A;
                 final Integer state = 0;
-                final ObjectHistory<Integer> history = new ObjectHistory<>(object, start, state);
+                final ObjectHistory<Integer> history = new ObjectHistory<>(OBJECT_A, start, state);
                 final var stateVerifierAtEnd = StepVerifier.create(history.observeState(end));
                 final var stateVerifierAfterEnd = StepVerifier.create(history.observeState(end.plusNanos(1)));
 
@@ -579,9 +574,8 @@ public class ObjectHistoryTest {
 
             private void test(@Nonnull final Duration end, @Nonnull final Duration start) {
                 assert end.compareTo(start) <= 0;
-                final UUID object = OBJECT_A;
                 final Integer state = 0;
-                final ObjectHistory<Integer> history = new ObjectHistory<>(object, start, state);
+                final ObjectHistory<Integer> history = new ObjectHistory<>(OBJECT_A, start, state);
 
                 advanceEnd(history, end);
 
@@ -604,10 +598,9 @@ public class ObjectHistoryTest {
 
         @Test
         public void endOfTime() {
-            final Duration end0 = WHEN_A;
             final Duration when = ValueHistory.END_OF_TIME;// critical
 
-            test(end0, 0, when);
+            test(WHEN_A, 0, when);
         }
 
         @Test
@@ -671,11 +664,9 @@ public class ObjectHistoryTest {
             final int nEventsPerThread = 64;
 
             final UUID receiver = OBJECT_A;
-            final UUID sender = OBJECT_B;
             final Duration end = WHEN_A;
             final Integer state0 = 0;
-            final Duration start = end;
-            final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, start, state0);
+            final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, end, state0);
 
             final CountDownLatch ready = new CountDownLatch(1);
             final List<Future<Void>> futures = new ArrayList<>(nThreads);
@@ -694,7 +685,7 @@ public class ObjectHistoryTest {
                         final Integer state = random.nextInt();
                         final Duration whenSent = whenOccurred.minusSeconds(1);
                         final Signal<Integer> signal = new SignalTest.TestSignal(signalId,
-                                new TimestampedId(sender, whenSent), receiver);
+                                new TimestampedId(OBJECT_B, whenSent), receiver);
                         final Event<Integer> event = new Event<>(new TimestampedId(signalId, whenOccurred),
                                 receiver, state, Set.of());
 
@@ -715,7 +706,6 @@ public class ObjectHistoryTest {
             @Test
             public void expectationFailed() {
                 final var receiver = OBJECT_A;
-                final var sender = OBJECT_B;
                 final var signalId = SIGNAL_ID_B;
                 final var state0 = 0;
                 final Duration end = WHEN_A;
@@ -724,7 +714,7 @@ public class ObjectHistoryTest {
                         new TimestampedId(SIGNAL_ID_A, whenPreviousOccurred), receiver, 1, Set.of());
                 final Duration whenSent = end.plusDays(1);
                 final Duration whenOccurred = whenSent.plusDays(1);
-                final Signal<Integer> signal = new SignalTest.TestSignal(signalId, new TimestampedId(sender, whenSent),
+                final Signal<Integer> signal = new SignalTest.TestSignal(signalId, new TimestampedId(OBJECT_B, whenSent),
                         receiver);
                 final Event<Integer> event = new Event<>(new TimestampedId(signalId, whenOccurred), receiver,
                         2, Set.of());
@@ -742,20 +732,18 @@ public class ObjectHistoryTest {
             @Test
             public void tooEarly() {
                 final var receiver = OBJECT_A;
-                final var sender = OBJECT_B;
                 final var signalId = SIGNAL_ID_A;
                 final Duration end = WHEN_A;
                 // tough test
-                final Duration whenOccurred = end;// tough test
-                final Duration whenSent = whenOccurred.minusSeconds(1);
-                final Event<Integer> event = new Event<>(new TimestampedId(signalId, whenOccurred), OBJECT_A,
+                final Duration whenSent = end.minusSeconds(1);
+                final Event<Integer> event = new Event<>(new TimestampedId(signalId, end), OBJECT_A,
                         1, Set.of());
-                final Signal<Integer> signal = new SignalTest.TestSignal(signalId, new TimestampedId(sender, whenSent),
+                final Signal<Integer> signal = new SignalTest.TestSignal(signalId, new TimestampedId(OBJECT_B, whenSent),
                         receiver);
                 final var state0 = 0;
                 final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, end, state0);
                 history.addIncomingSignals(List.of(signal));// tough test
-                final var stateVerifier = StepVerifier.create(history.observeState(whenOccurred));
+                final var stateVerifier = StepVerifier.create(history.observeState(end));
 
                 final var result = compareAndAddEvent(history, null, event, signal);
 
@@ -766,14 +754,13 @@ public class ObjectHistoryTest {
             @Test
             public void unknownSignal() {
                 final var receiver = OBJECT_A;
-                final var sender = OBJECT_B;
                 final var signalId = SIGNAL_ID_A;
                 final Duration end = WHEN_A;
                 final Duration whenOccurred = end.plusSeconds(2);
                 final Duration whenSent = whenOccurred.minusSeconds(1);
                 final Event<Integer> event = new Event<>(new TimestampedId(signalId, whenOccurred), OBJECT_A,
                         1, Set.of());
-                final Signal<Integer> signal = new SignalTest.TestSignal(signalId, new TimestampedId(sender, whenSent),
+                final Signal<Integer> signal = new SignalTest.TestSignal(signalId, new TimestampedId(OBJECT_B, whenSent),
                         receiver);
 
                 final var state0 = 0;
@@ -821,14 +808,13 @@ public class ObjectHistoryTest {
                               @Nonnull final Integer state0, @Nonnull final UUID signalId, @Nonnull final Duration whenOccurred,
                               @Nullable final Integer state) {
                 assert end.compareTo(whenOccurred) < 0;
-                final Duration start = end;
                 final Duration whenSent = whenOccurred.minusSeconds(1);
                 final Signal<Integer> signal = new SignalTest.TestSignal(signalId, new TimestampedId(sender, whenSent),
                         receiver);
                 final Event<Integer> event = new Event<>(new TimestampedId(signalId, whenOccurred), receiver,
                         state, Set.of());
 
-                final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, start, state0);
+                final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, end, state0);
                 history.addIncomingSignals(List.of(signal));
                 final var stateVerifier = StepVerifier.create(history.observeState(whenOccurred));
 
@@ -839,7 +825,7 @@ public class ObjectHistoryTest {
                 final var incomingSignals = history.getIncomingSignals();
                 assertAll("result", () -> assertThat("indicates success", result, notNullValue()),
                         () -> assertThat("no events invalidated", result, empty()));
-                assertAll("stateHistory", () -> assertThat("at start (unchanged)", stateHistory.get(start), is(state0)),
+                assertAll("stateHistory", () -> assertThat("at start (unchanged)", stateHistory.get(end), is(state0)),
                         () -> assertThat("at whenOccurred", stateHistory.get(whenOccurred), is(state)),
                         () -> assertThat("added transition iff state changed",
                                 stateHistory.getTransitionTimes().contains(whenOccurred) || state0.equals(state)));
@@ -874,9 +860,7 @@ public class ObjectHistoryTest {
             @Test
             public void sameState() {
                 final var state0 = 0;
-                final var state1 = state0;// critical
-                final var state2 = state1;// critical
-                test(WHEN_A, state0, SIGNAL_ID_A, WHEN_B, state1, SIGNAL_ID_B, WHEN_C, state2);
+                test(WHEN_A, state0, SIGNAL_ID_A, WHEN_B, state0, SIGNAL_ID_B, WHEN_C, state0);
             }
 
             private void test(@Nonnull final Duration end, @Nonnull final Integer state0, @Nonnull final UUID signalId1,
@@ -887,8 +871,7 @@ public class ObjectHistoryTest {
                 assert whenOccurred1.compareTo(whenOccurred2) < 0;
                 final UUID receiver = OBJECT_A;
                 final UUID sender = OBJECT_B;
-                final Duration start = end;
-                final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, start, state0);
+                final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, end, state0);
                 final Duration whenSent1 = whenOccurred1.minusSeconds(1);
                 final Signal<Integer> signal1 = new SignalTest.TestSignal(signalId1,
                         new TimestampedId(sender, whenSent1), receiver);
@@ -912,7 +895,7 @@ public class ObjectHistoryTest {
                 assertAll("result", () -> assertThat("indicates success", result, notNullValue()),
                         () -> assertThat("invalidated event", result, hasItem(event2)),
                         () -> assertThat("number invalidated", result, hasSize(1)));
-                assertAll("stateHistory", () -> assertThat("at start (unchanged)", stateHistory.get(start), is(state0)),
+                assertAll("stateHistory", () -> assertThat("at start (unchanged)", stateHistory.get(end), is(state0)),
                         () -> assertThat("at whenOccurred", stateHistory.get(whenOccurred1), is(state1)),
                         () -> assertThat("added transition iff state changed",
                                 stateHistory.getTransitionTimes().contains(whenOccurred1) || state0.equals(state1)));
@@ -954,7 +937,6 @@ public class ObjectHistoryTest {
 
                 final UUID receiver = OBJECT_A;
                 final UUID sender = OBJECT_B;
-                final Duration start = end;
                 final Duration whenSent1 = whenOccurred1.minusSeconds(1);
                 final Signal<Integer> signal1 = new SignalTest.TestSignal(signalId1,
                         new TimestampedId(sender, whenSent1), receiver);
@@ -967,7 +949,7 @@ public class ObjectHistoryTest {
                 final Event<Integer> event2 = new Event<>(new TimestampedId(signalId2, whenOccurred2), receiver,
                         state2, Set.of());
 
-                final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, start, state0);
+                final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, end, state0);
                 final var stateVerifier = StepVerifier.create(history.observeState(whenOccurred2));
                 history.addIncomingSignals(List.of(signal1));
                 history.compareAndAddEvent(null, event1, signal1);
@@ -980,7 +962,7 @@ public class ObjectHistoryTest {
                 final var incomingSignals = history.getIncomingSignals();
                 assertAll("result", () -> assertThat("indicates success", result, notNullValue()),
                         () -> assertThat("no events invalidated", result, empty()));
-                assertAll("stateHistory", () -> assertThat("at start (unchanged)", stateHistory.get(start), is(state0)),
+                assertAll("stateHistory", () -> assertThat("at start (unchanged)", stateHistory.get(end), is(state0)),
                         () -> assertThat("at whenOccurred1 (unchanged)", stateHistory.get(whenOccurred1), is(state1)),
                         () -> assertThat("at whenOccurred2", stateHistory.get(whenOccurred2), is(state2)),
                         () -> assertThat("transitionTimes", stateHistory.getTransitionTimes(),
@@ -1005,16 +987,14 @@ public class ObjectHistoryTest {
             final int nSignals = nThreads * nCallsPerThread;
 
             final UUID receiver = OBJECT_A;
-            final UUID sender = OBJECT_B;
             final Duration end = WHEN_A;
             final Integer state0 = 0;
-            final Duration start = end;
-            final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, start, state0);
+            final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, end, state0);
             final var random = new Random();
             for (int s = 0; s < nSignals; ++s) {
                 final UUID signalId = UUID.randomUUID();
                 final Duration whenSent = end.plusMillis(1 + random.nextInt(10_000));
-                final var sentFrom = new TimestampedId(sender, whenSent);
+                final var sentFrom = new TimestampedId(OBJECT_B, whenSent);
                 final var signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
 
                 history.addIncomingSignals(List.of(signal));
@@ -1046,12 +1026,10 @@ public class ObjectHistoryTest {
         public void outOfOrderSignals() {
             final UUID sender = OBJECT_A;
             final UUID receiver = OBJECT_B;
-            final Duration start = WHEN_A;
             final Integer state0 = 0;
-            final Duration whenSent1 = WHEN_B;
             final Duration whenSent2 = WHEN_B.plusDays(365);
 
-            final var history = new ObjectHistory<>(receiver, start, state0);
+            final var history = new ObjectHistory<>(receiver, WHEN_A, state0);
 
             final var sentFrom2 = new TimestampedId(sender, whenSent2);
             final var signal2 = new SignalTest.TestSignal(SIGNAL_ID_B, sentFrom2, receiver);
@@ -1059,7 +1037,7 @@ public class ObjectHistoryTest {
             final var event2 = signal2.receive(state0);
             history.compareAndAddEvent(null, event2, signal2);
 
-            final var sentFrom1 = new TimestampedId(sender, whenSent1);
+            final var sentFrom1 = new TimestampedId(sender, WHEN_B);
             final var signal1 = new SignalTest.TestSignal(SIGNAL_ID_A, sentFrom1, receiver);
             history.addIncomingSignals(List.of(signal1));
             assert signal1.getWhenReceived(state0).compareTo(signal2.getWhenReceived(state0)) < 0;
@@ -1180,36 +1158,27 @@ public class ObjectHistoryTest {
 
             @Test
             public void a() {
-                final Duration start = WHEN_A;
-                final Duration whenSent1 = WHEN_B;
-                final Duration whenSent2 = WHEN_C;
-                test(OBJECT_A, OBJECT_B, OBJECT_C, start, 0, whenSent1, SIGNAL_ID_A, whenSent2,
+                test(OBJECT_A, OBJECT_B, OBJECT_C, WHEN_A, 0, WHEN_B, SIGNAL_ID_A, WHEN_C,
                         SIGNAL_ID_B);
             }
 
             @Test
             public void b() {
-                final Duration start = WHEN_A;
-                final Duration whenSent1 = WHEN_B;
-                final Duration whenSent2 = WHEN_C;
-                test(OBJECT_A, OBJECT_B, OBJECT_C, start, 0, whenSent1, SIGNAL_ID_B, whenSent2,
+                test(OBJECT_A, OBJECT_B, OBJECT_C, WHEN_A, 0, WHEN_B, SIGNAL_ID_B, WHEN_C,
                         SIGNAL_ID_A);
             }
 
             @Test
             public void close() {
                 final Duration start = WHEN_B;
-                final Duration whenSent1 = start;
-                final Duration whenSent2 = whenSent1.plusNanos(1);// critical
-                test(OBJECT_B, OBJECT_C, OBJECT_A, start, 1, whenSent1, SIGNAL_ID_B, whenSent2,
+                final Duration whenSent2 = start.plusNanos(1);// critical
+                test(OBJECT_B, OBJECT_C, OBJECT_A, start, 1, start, SIGNAL_ID_B, whenSent2,
                         SIGNAL_ID_A);
             }
 
             @Test
             public void simultaneousReception() {
                 final Duration start = WHEN_B;
-                final Duration whenSent1 = start;
-                final Duration whenSent2 = start;// critical
                 final UUID signal1;
                 final UUID signal2;
                 if (SIGNAL_ID_A.compareTo(SIGNAL_ID_B) < 0) {
@@ -1219,7 +1188,7 @@ public class ObjectHistoryTest {
                     signal1 = SIGNAL_ID_B;
                     signal2 = SIGNAL_ID_A;
                 }
-                test(OBJECT_A, OBJECT_B, OBJECT_C, start, 0, whenSent1, signal1, whenSent2, signal2);
+                test(OBJECT_A, OBJECT_B, OBJECT_C, start, 0, start, signal1, start, signal2);
             }
 
             private void test(@Nonnull final UUID sender1, @Nonnull final UUID sender2, @Nonnull final UUID receiver,
@@ -1431,9 +1400,8 @@ public class ObjectHistoryTest {
             private <STATE> void test(@Nonnull final Duration start, @Nonnull final STATE state) {
                 final Optional<STATE> expectedState = Optional.of(state);
                 final var history = new ObjectHistory<>(OBJECT_A, start, state);
-                final Duration when = start;
 
-                final var states = observeState(history, when);
+                final var states = observeState(history, start);
 
                 StepVerifier.create(states).expectNext(expectedState).expectComplete().verify();
             }
@@ -1511,11 +1479,9 @@ public class ObjectHistoryTest {
             final int nSignalsPerThread = 8;
 
             final UUID receiver = OBJECT_A;
-            final UUID sender = OBJECT_B;
             final Duration end = WHEN_A;
             final Integer state0 = 0;
-            final Duration start = end;
-            final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, start, state0);
+            final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, end, state0);
             final Medium<Integer> medium = new MediumTest.RecordingMedium<>();
 
             final CountDownLatch ready = new CountDownLatch(1);
@@ -1527,7 +1493,7 @@ public class ObjectHistoryTest {
                     for (int s = 0; s < nSignalsPerThread; ++s) {
                         final UUID signalId = UUID.randomUUID();
                         final Duration whenSent = end.plusMillis(1 + random.nextInt(10_000));
-                        final var sentFrom = new TimestampedId(sender, whenSent);
+                        final var sentFrom = new TimestampedId(OBJECT_B, whenSent);
                         final var signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
                         medium.addAll(List.of(signal));
                         history.addIncomingSignals(List.of(signal));
@@ -1690,7 +1656,7 @@ public class ObjectHistoryTest {
                 final var stateHistory = history.getStateHistory();
                 assertThat("invalidated signals", invalidatedSignals, empty());
                 assertThat("events", history.getEvents(), hasSize(2));
-                CollectionTest.assertForAllElements("stateHistory at when events occurred", history.getEvents(), e -> {
+                CollectionVerifier.assertForAllElements("stateHistory at when events occurred", history.getEvents(), e -> {
                     assert e != null;// guaranteed by SortedSet
                     assertThat(stateHistory.get(e.getWhenOccurred()), sameInstance(e.getState()));
                 });
@@ -1715,20 +1681,17 @@ public class ObjectHistoryTest {
 
             private void test(@Nonnull final UUID signalIdA, @Nonnull final UUID signalIdB) {
                 assert !signalIdA.equals(signalIdB);
-                final UUID sender1 = OBJECT_A;
-                final UUID sender2 = OBJECT_B;
                 final UUID receiver = OBJECT_C;
-                final Duration start = WHEN_A;
                 final Duration whenSent = WHEN_B;
                 final Integer state0 = 0;
 
                 final UUID firstSignal = signalIdA.compareTo(signalIdB) < 0 ? signalIdA : signalIdB;
-                final var sentFrom1 = new TimestampedId(sender1, whenSent);
-                final var sentFrom2 = new TimestampedId(sender2, whenSent);
+                final var sentFrom1 = new TimestampedId(OBJECT_A, whenSent);
+                final var sentFrom2 = new TimestampedId(OBJECT_B, whenSent);
                 final var signal1 = new SignalTest.TestSignal(signalIdA, sentFrom1, receiver);
                 final var signal2 = new SignalTest.TestSignal(signalIdB, sentFrom2, receiver);
 
-                final var history = new ObjectHistory<>(receiver, start, state0);
+                final var history = new ObjectHistory<>(receiver, WHEN_A, state0);
                 final Medium<Integer> medium = new MediumTest.RecordingMedium<>();
                 medium.addAll(List.of(signal1, signal2));
                 history.addIncomingSignals(List.of(signal1, signal2));
@@ -1760,20 +1723,17 @@ public class ObjectHistoryTest {
 
             private void test(@Nonnull final UUID signalIdA, @Nonnull final UUID signalIdB) {
                 assert !signalIdA.equals(signalIdB);
-                final UUID sender1 = OBJECT_A;
-                final UUID sender2 = OBJECT_B;
                 final UUID receiver = OBJECT_C;
-                final Duration start = WHEN_A;
                 final Duration whenSent = WHEN_B;
                 final Integer state0 = 0;
 
                 final UUID firstSignal = signalIdA.compareTo(signalIdB) < 0 ? signalIdA : signalIdB;
-                final var sentFrom1 = new TimestampedId(sender1, whenSent);
-                final var sentFrom2 = new TimestampedId(sender2, whenSent);
+                final var sentFrom1 = new TimestampedId(OBJECT_A, whenSent);
+                final var sentFrom2 = new TimestampedId(OBJECT_B, whenSent);
                 final var signal1 = new SignalTest.TestSignal(signalIdA, sentFrom1, receiver);
                 final var signal2 = new SignalTest.TestSignal(signalIdB, sentFrom2, receiver);
 
-                final var history = new ObjectHistory<>(receiver, start, state0);
+                final var history = new ObjectHistory<>(receiver, WHEN_A, state0);
                 final Medium<Integer> medium = new MediumTest.RecordingMedium<>();
                 medium.addAll(List.of(signal1, signal2));
                 history.addIncomingSignals(List.of(signal1));
@@ -1803,17 +1763,15 @@ public class ObjectHistoryTest {
         @Test
         public void alsoRemovingAnEmittedSignal() {
             final UUID receiver = OBJECT_A;
-            final UUID sender = OBJECT_A;
             final UUID signalId = SIGNAL_ID_A;
             final Duration end = WHEN_A;
-            final Duration start = end;
             final Duration whenSent = end.plusSeconds(2);
             final boolean strobe = true;// tough test
             final Integer state0 = 0;
-            final Signal<Integer> signal = new SignalTest.TestSignal(signalId, new TimestampedId(sender, whenSent),
+            final Signal<Integer> signal = new SignalTest.TestSignal(signalId, new TimestampedId(OBJECT_A, whenSent),
                     receiver, strobe);
 
-            final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, start, state0);
+            final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, end, state0);
             final Medium<Integer> medium = new MediumTest.RecordingMedium<>();
             history.addIncomingSignals(List.of(signal));
             history.receiveNextSignal(medium);
@@ -1835,11 +1793,9 @@ public class ObjectHistoryTest {
             final int nEventsPerThread = 64;
 
             final UUID receiver = OBJECT_A;
-            final UUID sender = OBJECT_B;
             final Duration end = WHEN_A;
             final Integer state0 = 0;
-            final Duration start = end;
-            final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, start, state0);
+            final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, end, state0);
 
             final CountDownLatch ready = new CountDownLatch(1);
             final List<Future<Void>> futures = new ArrayList<>(nThreads);
@@ -1858,7 +1814,7 @@ public class ObjectHistoryTest {
                         final Duration whenSent = whenOccurred.minusSeconds(1);
                         final Integer state = random.nextInt();
                         final Signal<Integer> signal = new SignalTest.TestSignal(signalId,
-                                new TimestampedId(sender, whenSent), receiver);
+                                new TimestampedId(OBJECT_B, whenSent), receiver);
                         final Event<Integer> event = new Event<>(new TimestampedId(signalId, whenOccurred),
                                 receiver, state, Set.of());
                         history.addIncomingSignals(List.of(signal));
@@ -1891,18 +1847,16 @@ public class ObjectHistoryTest {
                               final Integer state0) {
                 assert !presentSignal.equals(signalToRemove);
                 final UUID receiver = OBJECT_A;
-                final UUID sender = OBJECT_B;
                 final Duration end = WHEN_A;
-                final Duration start = end;
                 final Duration whenOccurred = end.plusSeconds(1);
                 final Integer state = 1;
                 final Duration whenSent = whenOccurred.minusSeconds(1);
                 final Signal<Integer> signal = new SignalTest.TestSignal(presentSignal,
-                        new TimestampedId(sender, whenSent), receiver);
+                        new TimestampedId(OBJECT_B, whenSent), receiver);
                 final Event<Integer> event = new Event<>(new TimestampedId(presentSignal, whenOccurred),
                         receiver, state, Set.of());
 
-                final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, start, state0);
+                final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, end, state0);
                 history.addIncomingSignals(List.of(signal));
                 history.compareAndAddEvent(null, event, signal);
                 final var receivedSignals0 = history.getReceivedSignals();
@@ -1966,15 +1920,13 @@ public class ObjectHistoryTest {
 
             private void test(@Nonnull final UUID signalId, @Nonnull final Integer state0) {
                 final UUID receiver = OBJECT_A;
-                final UUID sender = OBJECT_A;
                 final Duration end = WHEN_A;
-                final Duration start = end;
                 final Duration whenSent = end.plusSeconds(2);
                 final boolean strobe = true;// tough test
-                final Signal<Integer> signal = new SignalTest.TestSignal(signalId, new TimestampedId(sender, whenSent),
+                final Signal<Integer> signal = new SignalTest.TestSignal(signalId, new TimestampedId(OBJECT_A, whenSent),
                         receiver, strobe);
 
-                final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, start, state0);
+                final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, end, state0);
                 final Medium<Integer> medium = new MediumTest.RecordingMedium<>();
                 history.addIncomingSignals(List.of(signal));
                 history.receiveNextSignal(medium);
@@ -2022,9 +1974,8 @@ public class ObjectHistoryTest {
                 final Integer state0 = 0;
                 final Integer state1 = 1;
                 final Integer state2 = 2;
-                final Duration start = end;
 
-                final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, start, state0);
+                final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, end, state0);
                 final Duration whenSent1 = whenOccurred1.minusSeconds(1);
                 final Signal<Integer> signal1 = new SignalTest.TestSignal(signalId1,
                         new TimestampedId(sender, whenSent1), receiver);

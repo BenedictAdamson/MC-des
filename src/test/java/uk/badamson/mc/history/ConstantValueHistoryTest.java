@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018,2021.
+ * © Copyright Benedict Adamson 2018,2021-22.
  *
  * This file is part of MC-des.
  *
@@ -20,7 +20,7 @@ package uk.badamson.mc.history;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 import org.junit.jupiter.api.Test;
-import uk.badamson.dbc.assertions.ObjectTest;
+import uk.badamson.dbc.assertions.ObjectVerifier;
 
 import java.util.Collections;
 
@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ConstantValueHistoryTest {
 
     public static <VALUE> void assertInvariants(final ConstantValueHistory<VALUE> history) {
-        ObjectTest.assertInvariants(history);// inherited
+        ObjectVerifier.assertInvariants(history);// inherited
         ValueHistoryTest.assertInvariants(history);// inherited
 
         assertAll(
@@ -49,7 +49,7 @@ public class ConstantValueHistoryTest {
 
     public static <VALUE> void assertInvariants(final ConstantValueHistory<VALUE> history1,
                                                 final ConstantValueHistory<VALUE> history2) {
-        ObjectTest.assertInvariants(history1, history2);// inherited
+        ObjectVerifier.assertInvariants(history1, history2);// inherited
         ValueHistoryTest.assertInvariants(history1, history2);// inherited
     }
 
