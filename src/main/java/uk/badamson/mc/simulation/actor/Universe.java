@@ -204,56 +204,27 @@ public final class Universe<STATE> {
 
     final class SchedulingMedium implements Medium<STATE> {
 
-        @Nonnull
-        private final Executor executor;
-
-        @Nonnull
-        private final Duration advanceTo;
-
         SchedulingMedium(@Nonnull final Executor executor, @Nonnull final Duration advanceTo) {
-            this.executor = Objects.requireNonNull(executor, "executor");
-            this.advanceTo = Objects.requireNonNull(advanceTo, "advanceTo");
+            Objects.requireNonNull(executor, "executor");
+            Objects.requireNonNull(advanceTo, "advanceTo");
         }
 
-        /**
-         * {@inheritDoc}
-         *
-         * <p>
-         * Furthermore, for this type, adds the signals to the
-         * {@linkplain Universe#getObjectHistories() object histories} of the
-         * {@linkplain #getUniverse() universe}, as
-         * {@linkplain ObjectHistory#getIncomingSignals() incoming signals} of their
-         * {@linkplain Signal#getReceiver() receivers}
-         * </p>
-         */
         @Override
         public void addAll(@Nonnull final Collection<Signal<STATE>> signals) {
             for (final var entry : groupByReceiver(signals).entrySet()) {
                 final var receiver = entry.getKey();
-                final var receiverSignals = entry.getValue();
                 final var history = objectHistories.get(receiver);
                 if (history == null) {
                     throw new IllegalStateException("unknown receiver");
                 }
-                history.addIncomingSignals(receiverSignals);
-                scheduleAdvanceObject(receiver);
+                // TODO affect the receiver
             } // for
         }
 
-        /**
-         * {@inheritDoc}
-         *
-         * <p>
-         * All the {@linkplain ObjectHistory#getReceivedAndIncomingSignals() received
-         * and incoming signals} in the {@linkplain Universe#getObjectHistories() object
-         * histories} of the {@linkplain #getUniverse() universe} of this medium.
-         * </p>
-         */
         @Nonnull
         @Override
         public Set<Signal<STATE>> getSignals() {
-            return getUniverse().getObjectHistories().stream()
-                    .flatMap(history -> history.getReceivedAndIncomingSignals().stream()).collect(toUnmodifiableSet());
+            return Set.of();// TODO
         }
 
         @Nonnull
@@ -261,41 +232,17 @@ public final class Universe<STATE> {
             return Universe.this;
         }
 
-        /**
-         * {@inheritDoc}
-         *
-         * <p>
-         * Furthermore, for this type, {@linkplain ObjectHistory#removeSignals(Set)
-         * removes} the signals from the {@linkplain Universe#getObjectHistories()
-         * object histories} of the {@linkplain #getUniverse() universe}.
-         * </p>
-         */
         @Override
         public void removeAll(@Nonnull final Collection<Signal<STATE>> signals) {
             for (final var entry : groupByReceiver(signals).entrySet()) {
                 final var receiver = entry.getKey();
-                final var receiverSignals = entry.getValue();
                 final var history = objectHistories.get(receiver);
                 if (history == null) {
                     throw new IllegalStateException("unknown receiver");
                 }
-                final var signalIds = receiverSignals.stream().map(Signal::getId).collect(toUnmodifiableSet());
-                history.removeSignals(signalIds);
+                // TODO remove the signals from the object history
                 // TODO handle invalidated emitted signals
-                scheduleAdvanceObject(receiver);
             } // for
-        }
-
-        void scheduleAdvanceObject(@Nonnull final UUID object) {
-            executor.execute(() -> {
-                final var history = objectHistories.get(object);
-                final var lastEvent = history.getLastEvent();
-                if ((lastEvent == null || lastEvent.getWhenOccurred().compareTo(advanceTo) < 0)
-                        && history.receiveNextSignal(this)// has side-effect
-                ) {
-                    scheduleAdvanceObject(object);
-                }
-            });
         }
 
     }// class
