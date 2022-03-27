@@ -27,7 +27,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.time.Duration;
 import java.util.*;
-import java.util.Map.Entry;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -398,7 +397,7 @@ public class ModifiableValueHistoryTest {
             assertInvariants(history);
             final SortedSet<Duration> transitionTimes = history.getTransitionTimes();
             final SortedMap<Duration, VALUE> transitions = history.getTransitions();
-            final Set<Entry<Duration, VALUE>> transitionsEntries = transitions.entrySet();
+            final Set<Map.Entry<Duration, VALUE>> transitionsEntries = transitions.entrySet();
 
             assertSame(firstValue0, history.getFirstValue(), "The first value of the history is unchanged.");
             assertTrue(transitionTimes.isEmpty() || transitionTimes.last().compareTo(when) < 0,
