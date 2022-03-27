@@ -77,10 +77,6 @@ public final class ObjectHistory<STATE> {
     @GuardedBy("lock")
     private final Map<UUID, Signal<STATE>> receivedSignals;
 
-    @Nonnull
-    @GuardedBy("lock")
-    private Duration end;
-
     /**
      * <p>
      * Copy an object history.
@@ -91,7 +87,6 @@ public final class ObjectHistory<STATE> {
         object = that.object;
         start = that.start;
         synchronized (that.object) {// hard to test
-            this.end = that.end;
             stateHistory = new ModifiableValueHistory<>(that.stateHistory);
             incomingSignals = new HashMap<>(that.incomingSignals);
             receivedSignals = new HashMap<>(that.receivedSignals);
@@ -104,8 +99,6 @@ public final class ObjectHistory<STATE> {
      * Construct an object history with given start information and no signals.
      * </p>
      * <ul>
-     * <li>The {@linkplain #getEnd() end} time is the same as the given
-     * {@code start} time.</li>
      * <li>The {@linkplain #getEvents() events} sequence
      * {@linkplain SortedSet#isEmpty() is empty}.</li>
      * </ul>
@@ -125,7 +118,6 @@ public final class ObjectHistory<STATE> {
         this.incomingSignals = new HashMap<>();
         this.receivedSignals = new HashMap<>();
         this.events = new TreeMap<>();
-        this.end = start;
     }
 
     private static <STATE> Stream<Signal<STATE>> emittedSignalsStream(@Nonnull final Set<Event<STATE>> events) {
@@ -171,7 +163,7 @@ public final class ObjectHistory<STATE> {
      *                                  <li>If {@code signals} is null.</li>
      *                                  <li>If {@code signals} contains null.</li>
      *                                  </ul>
-     * @throws IllegalArgumentException If the {@linkplain Signal#getReceiver() receiver} of any of the
+     * @throws IllegalArgumentException If the {@linkplain Signal#getReceiver() receiver} of any
      *                                  {@code signals} is not {@linkplain UUID#equals(Object) equivalent
      *                                  to} the {@linkplain #getObject() object} of this history.
      */
@@ -186,40 +178,6 @@ public final class ObjectHistory<STATE> {
                 incomingSignals.put(signal.getId(), signal);
             } // for
         } // synchronized
-    }
-
-    /**
-     * <p>
-     * If the current {@linkplain #getEnd() end time} is before a given end time,
-     * advance the end time to the given end time.
-     * </p>
-     */
-    public void advanceEnd(@Nonnull final Duration end) {
-        Objects.requireNonNull(end, "end");
-        // TODO thread safety
-        if (this.end.compareTo(end) < 0) {
-            this.end = end;
-        }
-    }
-
-    /**
-     * <p>
-     * Advance the {@linkplain #getEnd() end time of reliable state information} to
-     * at least a given time.
-     * </p>
-     * <ul>
-     * <li>Changes the end time to the given time if, and only if, it is after the
-     * current end time.</li>
-     * </ul>
-     */
-    public void commitTo(@Nonnull final Duration when) {
-        Objects.requireNonNull(when, "when");
-        synchronized (lock) {
-            if (when.compareTo(this.end) <= 0) {
-                return;// no-op
-            }
-            this.end = when;
-        }
     }
 
     /**
@@ -241,10 +199,6 @@ public final class ObjectHistory<STATE> {
      * <ul>
      * <li>If the given {@code signal} is not {@linkplain Set#contains(Object) one
      * of} the {@linkplain #getIncomingSignals() incoming signals},the method has no
-     * effect, and returns null to indicate failure.</li>
-     * <li>If the {@linkplain Event#getWhenOccurred() time of occurrence} of
-     * {@code event} is not {@linkplain Duration#compareTo(Duration) after} the
-     * {@linkplain #getEnd() end} of the reliable state period,the method has no
      * effect, and returns null to indicate failure.</li>
      * <li>If the actual previous event is not
      * {@linkplain Objects#equals(Object, Object) equivalent or equivalently null}
@@ -290,19 +244,11 @@ public final class ObjectHistory<STATE> {
      * @return an indication of failure or information about events that were
      * removed.
      * @throws NullPointerException     If a {@link Nonnull} argument is null.
-     * @throws IllegalArgumentException <ul>
-     *                                                                                                                                                                                  <li>If {@code expectedPreviousEvent} is non null and its
-     *                                                                                                                                                                                  {@linkplain Event#getAffectedObject() affected object} is not
-     *                                                                                                                                                                                  {@linkplain UUID#equals(Object) equivalent to} the
-     *                                                                                                                                                                                  {@linkplain #getObject() object} of this history.</li>
-     *                                                                                                                                                                                  <li>If the affected object of {@code event} is not equivalent to
-     *                                                                                                                                                                                  the {@linkplain #getObject() object} of this history.</li>
-     *                                                                                                                                                                                  <li>If {@code expectedPreviousEvent} is non null and is not
-     *                                                                                                                                                                                  {@linkplain Event#compareTo(Event) before} {@code event}.</li>
-     *                                                                                                                                                                                  <li>If the {@linkplain Event#getCausingSignal() ID of the causing
-     *                                                                                                                                                                                  signal} of {@code event} is not the same as the
-     *                                                                                                                                                                                  {@linkplain Signal#getId() ID} of {@code signal}.</li>
-     *                                                                                                                                                                                  </ul>
+     * @throws IllegalArgumentException
+     * <ul>
+     *     <li>If the {@linkplain  Event#getAffectedObject() affected object} of the {@code event} is no the {@linkplain  #getObject() object} of this history.</li>
+     *     <li>If the {@linkplain Event#getCausingSignal() causing signal} of the {@code vent} is not {@linkplain  UUID#equals(Object) equivalent to} the {@linkplain  Signal#getId() ID} of the {@code signal}</li>
+     * </ul>
      */
     @Nullable
     SortedSet<Event<STATE>> compareAndAddEvent(@Nullable final Event<STATE> expectedPreviousEvent,
@@ -326,7 +272,7 @@ public final class ObjectHistory<STATE> {
 
         final var eventId = event.getId();
         synchronized (lock) {
-            if (event.getWhenOccurred().compareTo(end) <= 0 || !incomingSignals.containsKey(signal.getId())) {
+            if (!incomingSignals.containsKey(signal.getId())) {
                 return null;// failure: unrecognized signal
             }
             final var previousEvents = events.headMap(eventId);
@@ -442,26 +388,8 @@ public final class ObjectHistory<STATE> {
         // hard to test the thread safety
         synchronized (lock) {
             synchronized (that.lock) {
-                return end.equals(that.end) && stateHistory.equals(that.stateHistory);
+                return stateHistory.equals(that.stateHistory);
             }
-        }
-    }
-
-    /**
-     * <p>
-     * The last point in time for which this history is reliable.
-     * </p>
-     * <ul>
-     * <li>Expressed as the duration since an (implied) epoch. All objects in a
-     * simulation should use the same epoch.</li>
-     * <li>The end time is {@linkplain Duration#compareTo(Duration) at or after} the
-     * {@linkplain #getStart() start} time.</li>
-     * </ul>
-     */
-    @Nonnull
-    public Duration getEnd() {
-        synchronized (lock) {
-            return end;
         }
     }
 
@@ -644,11 +572,6 @@ public final class ObjectHistory<STATE> {
      * time of this history.</li>
      * <li>The {@linkplain ValueHistory#getFirstValue() state at the start of time}
      * of the state history is null.</li>
-     * <li>If the state at the {@linkplain #getEnd() end} time is null (destruction
-     * of the {@linkplain #getObject() object}), the end time is the
-     * {@linkplain ValueHistory#END_OF_TIME end of time}. That is, if reliable state
-     * information indicates that the simulated object was destroyed, it is
-     * guaranteed that the simulated object will never be recreated.</li>
      * <li>The {@linkplain Event#getState() state} resulting from an
      * {@linkplain #getEvents() event} is {@linkplain #equals(Object) equivalent to}
      * the {@linkplain ValueHistory#get(Duration) value} of the state history at the
@@ -687,7 +610,6 @@ public final class ObjectHistory<STATE> {
         int result = 1;
         synchronized (lock) {// hard to test thread safety
             result = prime * result + object.hashCode();
-            result = prime * result + end.hashCode();
             result = prime * result + stateHistory.hashCode();
         }
         return result;
@@ -846,7 +768,7 @@ public final class ObjectHistory<STATE> {
     @Override
     public String toString() {
         synchronized (lock) {
-            return "ObjectHistory[" + object + " from " + start + " to " + end + ", stateHistory=" + stateHistory + "]";
+            return "ObjectHistory[" + object + " from " + start + ", stateHistory=" + stateHistory + "]";
         }
     }
 

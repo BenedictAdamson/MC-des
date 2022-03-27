@@ -372,49 +372,6 @@ public class UniverseTest {
             }
 
             @Nested
-            public class EndIsFarEnough {
-
-                @Test
-                public void a() {
-                    test(OBJECT_A, OBJECT_B, WHEN_A, WHEN_B, WHEN_C);
-                }
-
-                @Test
-                public void b() {
-                    test(OBJECT_B, OBJECT_A, WHEN_B, WHEN_C, WHEN_D);
-                }
-
-                @Test
-                public void close() {
-                    final var advanceTo = WHEN_A;
-                    test(OBJECT_A, OBJECT_B, advanceTo, advanceTo, WHEN_C);
-                }
-
-                private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver,
-                                  @Nonnull final Duration advanceTo, @Nonnull final Duration end, final Duration whenSent) {
-                    assert advanceTo.compareTo(end) <= 0;
-                    assert end.compareTo(whenSent) <= 0;
-                    final Integer state0 = 0;
-
-                    final var sentFrom = new TimestampedId(sender, whenSent);
-                    final var signal = new SignalTest.TestSignal(SIGNAL_A, sentFrom, receiver);
-                    final var history0 = new ObjectHistory<>(receiver, end, state0);
-                    final var universe = new Universe<>(List.of(history0));
-                    final var medium = universe.createMedium(DIRECT_EXECUTOR, advanceTo);
-                    medium.addAll(List.of(signal));
-
-                    scheduleAdvanceObject(medium, receiver);
-
-                    final var history = universe.getObjectHistory(receiver);
-                    assertThat("receiver history", history, notNullValue());// guard
-                    assertAll("receiver did not process a signal",
-                            () -> assertThat("incomingSignals", history.getIncomingSignals(), not(empty())),
-                            () -> assertThat("receivedSignals", history.getReceivedSignals(), empty()));
-                }
-
-            }// class
-
-            @Nested
             public class HasIncomingSignal {
 
                 @Test

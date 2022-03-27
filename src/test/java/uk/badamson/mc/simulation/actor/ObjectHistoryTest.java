@@ -27,7 +27,6 @@ import uk.badamson.dbc.assertions.CollectionVerifier;
 import uk.badamson.dbc.assertions.EqualsSemanticsVerifier;
 import uk.badamson.dbc.assertions.ObjectVerifier;
 import uk.badamson.dbc.assertions.ThreadSafetyTest;
-import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.history.ValueHistoryTest;
 import uk.badamson.mc.simulation.TimestampedId;
 
@@ -65,18 +64,10 @@ public class ObjectHistoryTest {
         assertThat("incomingSignals has all the given signals", history.getIncomingSignals().containsAll(signals));
     }
 
-    private static <STATE> void advanceEnd(@Nonnull final ObjectHistory<STATE> history, @Nonnull final Duration end) {
-        history.advanceEnd(end);
-
-        assertInvariants(history);
-        assertThat("end", history.getEnd(), greaterThanOrEqualTo(end));
-    }
-
     public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history) {
         ObjectVerifier.assertInvariants(history);// inherited
 
         final var events = history.getEvents();
-        final var end = history.getEnd();
         final var incomingSignals = history.getIncomingSignals();
         final var lastEvent = history.getLastEvent();
         final var object = history.getObject();
@@ -88,7 +79,6 @@ public class ObjectHistoryTest {
 
         assertAll("Not null", () -> assertNotNull(events, "events"), // guard
                 () -> assertNotNull(object, "object"), () -> assertNotNull(start, "start"), // guard
-                () -> assertNotNull(end, "end"), // guard
                 () -> assertNotNull(incomingSignals, "incomingSignals"), // guard
                 () -> assertNotNull(receivedSignals, "signalsReceived"), // guard
                 () -> assertNotNull(receivedAndIncomingSignals, "receivedAndIncomingSignals"), // guard
@@ -99,7 +89,6 @@ public class ObjectHistoryTest {
 
         assertAll(() -> assertAll("events", createEventsAssertions(events, object, start)),
                 () -> assertAll("incomingSignals", createIncomingSignalsAssertions(incomingSignals, object)),
-                () -> assertThat("The end time is at or after the start time.", end, greaterThanOrEqualTo(start)),
                 () -> assertThat("incomingSignals and receivedSignals are distinct",
                         Collections.disjoint(incomingSignals, receivedSignals)),
                 () -> assertAll("lastEvent",
@@ -119,10 +108,7 @@ public class ObjectHistoryTest {
                         "The first transition time of the state history is the same as the start time of this history."),
                         () -> assertNull(stateHistory.getFirstValue(),
                                 "The state at the start of time of the state history is null."),
-                        () -> assertFalse(stateHistory.isEmpty(), "The state history is never empty."),
-                        () -> assertThat(
-                                "If reliable state information indicates that the simulated object was destroyed, it is guaranteed that the simulated object will never be recreated.",
-                                !(stateHistory.get(end) == null && !ValueHistory.END_OF_TIME.equals(end)))),
+                        () -> assertFalse(stateHistory.isEmpty(), "The state history is never empty.")),
                 () -> assertEquals(stateTransitions, stateHistory.getTransitions(), "stateTransitions"));
     }
 
@@ -134,22 +120,9 @@ public class ObjectHistoryTest {
                 () -> EqualsSemanticsVerifier.assertValueSemantics(history1, history2, "stateTransitions",
                         ObjectHistory::getStateTransitions),
                 () -> EqualsSemanticsVerifier.assertValueSemantics(history1, history2, "object", ObjectHistory::getObject),
-                () -> EqualsSemanticsVerifier.assertValueSemantics(history1, history2, "end", ObjectHistory::getEnd),
                 () -> assertEquals(history1
                         .equals(history2), (history1.getStateTransitions().equals(history2.getStateTransitions())
-                        && history1.getObject().equals(history2.getObject())
-                        && history1.getEnd().equals(history2.getEnd())), "equals"));
-    }
-
-    private static <STATE> void commitTo(@Nonnull final ObjectHistory<STATE> history, @Nonnull final Duration when) {
-        final var end0 = history.getEnd();
-
-        history.commitTo(when);
-
-        assertInvariants(history);
-        final var end = history.getEnd();
-        assertAll("end", () -> assertThat("does not decrease", end, greaterThanOrEqualTo(end0)),
-                () -> assertThat("at least the given value", end, greaterThanOrEqualTo(when)));
+                        && history1.getObject().equals(history2.getObject())), "equals"));
     }
 
     @Nullable
@@ -198,7 +171,7 @@ public class ObjectHistoryTest {
         assertInvariants(copy);
         assertInvariants(copy, that);
         assertEquals(copy, that);
-        assertAll("Copied", () -> assertSame(that.getEnd(), copy.getEnd(), "end"),
+        assertAll("Copied",
                 () -> assertSame(that.getObject(), copy.getObject(), "object"),
                 () -> assertSame(that.getStart(), copy.getStart(), "start"),
                 () -> assertEquals(that.getStateHistory(), copy.getStateHistory(), "stateHistory"),
@@ -216,7 +189,7 @@ public class ObjectHistoryTest {
         assertInvariants(history);
         final var stateTransitions = history.getStateTransitions();
         assertAll(() -> assertSame(object, history.getObject(), "object"),
-                () -> assertSame(start, history.getStart(), "start"), () -> assertSame(start, history.getEnd(), "end"),
+                () -> assertSame(start, history.getStart(), "start"),
                 () -> assertSame(stateTransitions.firstKey(), history.getStart(), "start"),
                 () -> assertEquals(stateTransitions, Map.of(start, state), "stateTransitions"),
                 () -> assertThat("events", history.getEvents(), empty()));
@@ -465,170 +438,6 @@ public class ObjectHistoryTest {
     }// class
 
     @Nested
-    public class AdvanceEnd {
-
-        @Nested
-        public class Event {
-
-            @Test
-            public void a() {
-                test(WHEN_A, WHEN_B, Duration.ofSeconds(10), 0);
-            }
-
-            @Test
-            public void b() {
-                test(WHEN_B, WHEN_C, Duration.ofSeconds(100), 1);
-            }
-
-            private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent,
-                              @Nonnull final Duration relativeEnd, @Nonnull final Integer state0) {
-                final UUID receiver = OBJECT_B;
-                final var sentFrom = new TimestampedId(OBJECT_A, whenSent);
-                final var signal = new SignalTest.TestSignal(SIGNAL_ID_A, sentFrom, receiver);
-
-                final var history = new ObjectHistory<>(receiver, start, state0);
-                final Medium<Integer> medium = new MediumTest.RecordingMedium<>();
-                medium.addAll(List.of(signal));
-                history.addIncomingSignals(List.of(signal));
-                history.receiveNextSignal(medium);
-                final var event = history.getEvents().last();
-                final var eventTime = event.getWhenOccurred();
-                final var end = eventTime.plus(relativeEnd);
-
-                advanceEnd(history, end);
-
-                assertThat("end (changed)", history.getEnd(), sameInstance(end));
-            }
-
-        }// class
-
-        @Nested
-        public class NoEvents {
-
-            @Test
-            public void close() {
-                test(WHEN_A, WHEN_A.plusNanos(1));
-            }
-
-            @Test
-            public void far() {
-                test(WHEN_B, WHEN_C);
-            }
-
-            private void test(@Nonnull final Duration start, @Nonnull final Duration end) {
-                assert start.compareTo(end) < 0;
-                final Integer state = 0;
-                final ObjectHistory<Integer> history = new ObjectHistory<>(OBJECT_A, start, state);
-
-                advanceEnd(history, end);
-
-                assertThat("end (changed)", history.getEnd(), sameInstance(end));
-            }
-
-        }// class
-
-        @Nested
-        public class TooEarly {
-
-            @Test
-            public void close() {
-                test(WHEN_A, WHEN_A.plusNanos(1));
-            }
-
-            @Test
-            public void far() {
-                test(WHEN_B, WHEN_C);
-            }
-
-            @Test
-            public void same() {
-                test(WHEN_A, WHEN_A);
-            }
-
-            private void test(@Nonnull final Duration end, @Nonnull final Duration start) {
-                assert end.compareTo(start) <= 0;
-                final Integer state = 0;
-                final ObjectHistory<Integer> history = new ObjectHistory<>(OBJECT_A, start, state);
-
-                advanceEnd(history, end);
-
-                assertThat("end (no change)", history.getEnd(), sameInstance(start));
-            }
-
-        }// class
-    }// class
-
-    @Nested
-    public class CommitTo {
-
-        @Test
-        public void before() {
-            final Duration end0 = WHEN_A;
-            final Duration when = end0.minusNanos(1);// tough test
-
-            test(end0, 0, when);
-        }
-
-        @Test
-        public void endOfTime() {
-            final Duration when = ValueHistory.END_OF_TIME;// critical
-
-            test(WHEN_A, 0, when);
-        }
-
-        @Test
-        public void equal() {
-            final long time = 1000;
-            final Duration end0 = Duration.ofMillis(time);
-            final Duration when = Duration.ofMillis(time);
-            assert end0.equals(when);
-            assert end0 != when;// tough test
-
-            test(end0, 0, when);
-        }
-
-        @Test
-        public void far() {
-            final Duration end0 = WHEN_B;
-            final Duration when = end0.plusDays(365);
-
-            test(end0, 1, when);
-        }
-
-        @RepeatedTest(4)
-        public void multipleThreads() {
-            final int nThreads = 32;
-            final Duration end0 = WHEN_B;
-            final var history = new ObjectHistory<>(OBJECT_A, end0, 1);
-
-            final CountDownLatch ready = new CountDownLatch(1);
-            final var random = new Random(0);
-            final List<Future<Void>> futures = new ArrayList<>(nThreads);
-            for (int t = 0; t < nThreads; ++t) {
-                futures.add(ThreadSafetyTest.runInOtherThread(ready,
-                        () -> commitTo(history, end0.plusMillis(random.nextInt(1000)))));
-            }
-            ready.countDown();
-            ThreadSafetyTest.get(futures);
-        }
-
-        @Test
-        public void near() {
-            final Duration end0 = WHEN_A;
-            final Duration when = end0.plusNanos(1);// critical
-
-            test(end0, 0, when);
-        }
-
-        private void test(@Nonnull final Duration end0, final Integer state, @Nonnull final Duration when) {
-            final var history = new ObjectHistory<>(OBJECT_A, end0, state);
-
-            commitTo(history, when);
-        }
-
-    }// class
-
-    @Nested
     public class CompareAndAddEvent {
 
         @RepeatedTest(4)
@@ -696,26 +505,6 @@ public class ObjectHistoryTest {
                 history.addIncomingSignals(List.of(signal));// tough test
 
                 final var result = compareAndAddEvent(history, expectedPreviousEvent, event, signal);
-
-                assertThat("result indicates failure", result, nullValue());
-            }
-
-            @Test
-            public void tooEarly() {
-                final var receiver = OBJECT_A;
-                final var signalId = SIGNAL_ID_A;
-                final Duration end = WHEN_A;
-                // tough test
-                final Duration whenSent = end.minusSeconds(1);
-                final Event<Integer> event = new Event<>(new TimestampedId(signalId, end), OBJECT_A,
-                        1, Set.of());
-                final Signal<Integer> signal = new SignalTest.TestSignal(signalId, new TimestampedId(OBJECT_B, whenSent),
-                        receiver);
-                final var state0 = 0;
-                final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, end, state0);
-                history.addIncomingSignals(List.of(signal));// tough test
-
-                final var result = compareAndAddEvent(history, null, event, signal);
 
                 assertThat("result indicates failure", result, nullValue());
             }
