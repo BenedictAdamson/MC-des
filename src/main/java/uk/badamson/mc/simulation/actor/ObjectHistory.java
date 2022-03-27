@@ -18,9 +18,6 @@ package uk.badamson.mc.simulation.actor;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import org.reactivestreams.Publisher;
-import reactor.core.publisher.Mono;
-import reactor.core.publisher.Sinks;
 import uk.badamson.mc.history.ModifiableValueHistory;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.simulation.TimestampedId;
@@ -29,7 +26,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.Immutable;
-import javax.annotation.concurrent.NotThreadSafe;
 import javax.annotation.concurrent.ThreadSafe;
 import java.time.Duration;
 import java.util.*;
@@ -80,13 +76,7 @@ public final class ObjectHistory<STATE> {
     @Nonnull
     @GuardedBy("lock")
     private final Map<UUID, Signal<STATE>> receivedSignals;
-    /*
-     * Maps point-in-time to the publisher for the state information for that point
-     * in time.
-     */
-    @Nonnull
-    @GuardedBy("lock")
-    private final NavigableMap<Duration, StatePublisher<STATE>> statePublishers = new TreeMap<>();
+
     @Nonnull
     @GuardedBy("lock")
     private Duration end;
@@ -102,7 +92,6 @@ public final class ObjectHistory<STATE> {
         start = that.start;
         synchronized (that.object) {// hard to test
             this.end = that.end;
-            completeTimestampedStatesIfNoMoreHistory();
             stateHistory = new ModifiableValueHistory<>(that.stateHistory);
             incomingSignals = new HashMap<>(that.incomingSignals);
             receivedSignals = new HashMap<>(that.receivedSignals);
@@ -137,7 +126,6 @@ public final class ObjectHistory<STATE> {
         this.receivedSignals = new HashMap<>();
         this.events = new TreeMap<>();
         this.end = start;
-        completeTimestampedStatesIfNoMoreHistory();
     }
 
     private static <STATE> Stream<Signal<STATE>> emittedSignalsStream(@Nonnull final Set<Event<STATE>> events) {
@@ -169,7 +157,6 @@ public final class ObjectHistory<STATE> {
         assert events.lastKey() == event.getId();
         receivedSignals.put(signal.getId(), signal);
         incomingSignals.remove(signal.getId());
-        publishState(event.getWhenOccurred(), state);
 
         return invalidatedEvents;
     }
@@ -212,22 +199,6 @@ public final class ObjectHistory<STATE> {
         // TODO thread safety
         if (this.end.compareTo(end) < 0) {
             this.end = end;
-            final Map<Duration, StatePublisher<STATE>> completingEntries = statePublishers.headMap(end, true);
-            final Collection<StatePublisher<STATE>> completingPublishers = List.copyOf(completingEntries.values());
-            completingEntries.clear();
-            for (final var publisher : completingPublishers) {
-                final var status = publisher.sink.tryEmitComplete();
-                assert status == Sinks.EmitResult.OK;// publisher is reliable
-            }
-        }
-    }
-
-    private void cancelStateObserver(@Nonnull final Duration when) {
-        synchronized (lock) {
-            final var publisher = statePublishers.get(when);
-            if (--publisher.nSubscribers <= 0) {
-                statePublishers.remove(when);
-            }
         }
     }
 
@@ -248,7 +219,6 @@ public final class ObjectHistory<STATE> {
                 return;// no-op
             }
             this.end = when;
-            completeTimestampedStatesIfNoMoreHistory();
         }
     }
 
@@ -373,23 +343,6 @@ public final class ObjectHistory<STATE> {
                 return null;// failure: wrong predecessor
             }
         } // synchronized
-    }
-
-    private void completeTimestampedStatesIfNoMoreHistory() {
-        Collection<StatePublisher<STATE>> publishers = null;
-        synchronized (lock) {
-            if (this.end.equals(ValueHistory.END_OF_TIME)) {// no more states
-                publishers = List.copyOf(statePublishers.values());
-                statePublishers.clear();
-            }
-        }
-        if (publishers != null) {// tell the subscribers
-            for (final var publisher : publishers) {
-                final var result = publisher.sink.tryEmitComplete();
-                // The sink is reliable; it should always successfully complete.
-                assert result == Sinks.EmitResult.OK;
-            }
-        }
     }
 
     /**
@@ -534,7 +487,7 @@ public final class ObjectHistory<STATE> {
      * the {@linkplain Event#getId() event IDs}, so the
      * {@linkplain Event#getCausingSignal() ID of the causing signal} is used as a
      * tie-breaker to produce a strict ordering. In that case, however, the state
-     * transition(s) due to some <i>measured as simultaneous</a> events will not be
+     * transition(s) due to some <i>measured as simultaneous</i> events will not be
      * apparent in the {@linkplain #getStateHistory() state history}; only the
      * <i>measured as simultaneous</i> event with the largest ID of its causing
      * signal will have its state recorded in the state history.
@@ -703,14 +656,6 @@ public final class ObjectHistory<STATE> {
      * <li>The returned state history is a snapshot: a copy of data, it is not
      * updated if this object history is subsequently changed.</li>
      * </ul>
-     * <p>
-     * Using the sequence provided by {@link #observeState(Duration)} to acquire the
-     * state at a given point in time is typically better than using the snapshot of
-     * the state history, because the snapshot is not updated, and because creating
-     * the snapshot can be expensive.
-     * </p>
-     *
-     * @see #observeState(Duration)
      */
     @Nonnull
     public ValueHistory<STATE> getStateHistory() {
@@ -751,72 +696,6 @@ public final class ObjectHistory<STATE> {
     private boolean lockBefore(@Nonnull final ObjectHistory<?> that) {
         assert !lock.equals(that.lock);
         return lock.compareTo(that.lock) < 0;
-    }
-
-    /**
-     * <p>
-     * Provide the state of the {@linkplain #getObject() simulated object} at a
-     * given point in time.
-     * </p>
-     * <ul>
-     * <li>Because {@link Publisher} can not provide null values, the sequence uses
-     * {@link Optional}, with null states (that is, the state of not existing)
-     * indicated by an {@linkplain Optional#isEmpty() empty} Optional.</li>
-     * <li>The sequence of states is finite.</li>
-     * <li>The last state of the sequence of states is the state at the given point
-     * in time.</li>
-     * <li>The last state of the sequence of states may be proceeded may
-     * <i>provisional</i> values for the state at the given point in time. These
-     * provisional values will typically be approximations of the correct value,
-     * with successive values typically being closer to the correct value.</li>
-     * <li>Subscribers are not guaranteed to receive all the <i>provisional</i>
-     * values; concurrency effects may mean that some <i>provisional</i> values are
-     * lost.</li>
-     * <li>The sequence of states does not contain successive duplicates.</li>
-     * <li>The sequence rapidly publishes the first state of the sequence.</li>
-     * <li>The time between publication of the last state of the sequence and
-     * completion of the sequence can be a large. That is, the process of providing
-     * a value and then concluding that it is the correct value rather than a
-     * provisional value can be time consuming.</li>
-     * <li>If the given point in time is {@linkplain Duration#compareTo(Duration) at
-     * or before} the current {@linkplain #getEnd() end} time of this history, the
-     * method can return a {@linkplain Mono#just(Object) sequence that immediately
-     * provides} the correct value.</li>
-     * <li>All states published are the same as the value that could be
-     * {@linkplain ValueHistory#get(Duration) obtained} from the
-     * {@linkplain #getStateHistory() snapshot of the state history} at the time of
-     * publication.</li>
-     * </ul>
-     *
-     * @param when The point in time of interest, expressed as the duration since an
-     *             (implied) epoch. All objects in a simulation should use the same
-     *             epoch.
-     * @throws NullPointerException If {@code when} is null.
-     * @see #getStateHistory()
-     */
-    @Nonnull
-    public Publisher<Optional<STATE>> observeState(@Nonnull final Duration when) {
-        Objects.requireNonNull(when, "when");
-        synchronized (lock) {// hard to test
-            final var state = stateHistory.get(when);
-            final var observeStateFromStateHistory = Mono.just(Optional.ofNullable(state));
-            if (when.compareTo(end) <= 0) {
-                return observeStateFromStateHistory;
-            } else {
-                final var publisher = statePublishers.computeIfAbsent(when, p -> new StatePublisher<>(state));
-                publisher.nSubscribers++;
-                return publisher.sink.asFlux().distinctUntilChanged().doOnCancel(() -> cancelStateObserver(when));
-            }
-        }
-    }
-
-    @GuardedBy("lock")
-    private void publishState(@Nonnull final Duration when, @Nullable final STATE state) {
-        final Optional<STATE> publishedValue = Optional.ofNullable(state);
-        for (final var publisher : statePublishers.tailMap(when).values()) {
-            final var status = publisher.sink.tryEmitNext(publishedValue);
-            assert status == Sinks.EmitResult.OK;// publisher is reliable
-        }
     }
 
     /**
@@ -957,18 +836,6 @@ public final class ObjectHistory<STATE> {
                     receivedSignals.remove(id);
                     incomingSignals.put(id, signal);
                 });
-
-                final Duration lastStateTime;
-                final STATE lastState;
-                if (!events.isEmpty()) {
-                    final var lastEvent = events.lastEntry().getValue();
-                    lastStateTime = lastEvent.getWhenOccurred();
-                    lastState = lastEvent.getState();
-                } else {
-                    lastStateTime = end;
-                    lastState = stateHistory.getLastValue();
-                }
-                publishState(lastStateTime, lastState);
             }
         } // synchronized
 
@@ -1040,16 +907,6 @@ public final class ObjectHistory<STATE> {
                     + "@" + whenNextSignalReceived + "]";
         }
 
-    }// class
-
-    @NotThreadSafe
-    private static class StatePublisher<STATE> {
-        final Sinks.Many<Optional<STATE>> sink = Sinks.many().replay().latest();
-        int nSubscribers;
-
-        StatePublisher(@Nullable final STATE state) {
-            sink.tryEmitNext(Optional.ofNullable(state));
-        }
     }// class
 
 }

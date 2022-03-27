@@ -23,8 +23,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
-import org.reactivestreams.Publisher;
-import reactor.test.StepVerifier;
 import uk.badamson.dbc.assertions.CollectionVerifier;
 import uk.badamson.dbc.assertions.EqualsSemanticsVerifier;
 import uk.badamson.dbc.assertions.ObjectVerifier;
@@ -32,7 +30,6 @@ import uk.badamson.dbc.assertions.ThreadSafetyTest;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.history.ValueHistoryTest;
 import uk.badamson.mc.simulation.TimestampedId;
-import uk.badamson.mc.simulation.actor.ObjectHistory.Continuation;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -59,7 +56,6 @@ public class ObjectHistoryTest {
     static final Duration WHEN_D = Duration.ofMillis(13000);
     static final UUID SIGNAL_ID_A = UUID.randomUUID();
     static final UUID SIGNAL_ID_B = UUID.randomUUID();
-    private static final Duration FLUX_TIMEOUT = Duration.ofMillis(20);
 
     private static <STATE> void addIncomingSignals(@Nonnull final ObjectHistory<STATE> history,
                                                    @Nonnull final Collection<Signal<STATE>> signals) {
@@ -179,10 +175,10 @@ public class ObjectHistoryTest {
     }
 
     @Nullable
-    private static <STATE> Continuation<STATE> computeContinuation(@Nonnull final ObjectHistory<STATE> history) {
+    private static <STATE> ObjectHistory.Continuation<STATE> computeContinuation(@Nonnull final ObjectHistory<STATE> history) {
         final var incomingSignals = history.getIncomingSignals();
 
-        final Continuation<STATE> continuation = history.computeContinuation();
+        final ObjectHistory.Continuation<STATE> continuation = history.computeContinuation();
 
         assertInvariants(history);
         assertThat("The continuation is null if, and only if, there are no more incoming signals.",
@@ -262,16 +258,6 @@ public class ObjectHistoryTest {
     @Nonnull
     private static <T> Set<T> difference(@Nonnull final Set<T> x, @Nonnull final Set<T> y) {
         return x.stream().filter(e -> !y.contains(e)).collect(toUnmodifiableSet());
-    }
-
-    public static <STATE> Publisher<Optional<STATE>> observeState(@Nonnull final ObjectHistory<STATE> history,
-                                                                  @Nonnull final Duration when) {
-        final var states = history.observeState(when);
-
-        assertInvariants(history);
-        assertNotNull(states, "Not null, states");// guard
-
-        return states;
     }
 
     private static <STATE> boolean receiveNextSignal(@Nonnull final ObjectHistory<STATE> history,
@@ -507,20 +493,11 @@ public class ObjectHistoryTest {
                 history.receiveNextSignal(medium);
                 final var event = history.getEvents().last();
                 final var eventTime = event.getWhenOccurred();
-                final var eventState = event.getState();
                 final var end = eventTime.plus(relativeEnd);
-                final var stateVerifierBeforeEvent = StepVerifier.create(history.observeState(eventTime.minusNanos(1)));
-                final var stateVerifierAtEvent = StepVerifier.create(history.observeState(eventTime));
-                final var stateVerifierAtEnd = StepVerifier.create(history.observeState(end));
-                final var stateVerifierAfterEnd = StepVerifier.create(history.observeState(end.plusNanos(1)));
 
                 advanceEnd(history, end);
 
                 assertThat("end (changed)", history.getEnd(), sameInstance(end));
-                stateVerifierBeforeEvent.expectNext(Optional.of(state0)).expectComplete().verify(FLUX_TIMEOUT);
-                stateVerifierAtEvent.expectNext(Optional.ofNullable(eventState)).expectComplete().verify(FLUX_TIMEOUT);
-                stateVerifierAtEnd.expectNext(Optional.ofNullable(eventState)).expectComplete().verify(FLUX_TIMEOUT);
-                stateVerifierAfterEnd.expectNext(Optional.ofNullable(eventState)).verifyTimeout(FLUX_TIMEOUT);
             }
 
         }// class
@@ -542,14 +519,10 @@ public class ObjectHistoryTest {
                 assert start.compareTo(end) < 0;
                 final Integer state = 0;
                 final ObjectHistory<Integer> history = new ObjectHistory<>(OBJECT_A, start, state);
-                final var stateVerifierAtEnd = StepVerifier.create(history.observeState(end));
-                final var stateVerifierAfterEnd = StepVerifier.create(history.observeState(end.plusNanos(1)));
 
                 advanceEnd(history, end);
 
                 assertThat("end (changed)", history.getEnd(), sameInstance(end));
-                stateVerifierAtEnd.expectNext(Optional.of(state)).expectComplete().verify();
-                stateVerifierAfterEnd.expectNext(Optional.of(state)).verifyTimeout(FLUX_TIMEOUT);
             }
 
         }// class
@@ -721,12 +694,10 @@ public class ObjectHistoryTest {
 
                 final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, end, state0);
                 history.addIncomingSignals(List.of(signal));// tough test
-                final var stateVerifier = StepVerifier.create(history.observeState(whenOccurred));
 
                 final var result = compareAndAddEvent(history, expectedPreviousEvent, event, signal);
 
                 assertThat("result indicates failure", result, nullValue());
-                stateVerifier.expectNext(Optional.of(state0)).verifyTimeout(FLUX_TIMEOUT);
             }
 
             @Test
@@ -743,12 +714,10 @@ public class ObjectHistoryTest {
                 final var state0 = 0;
                 final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, end, state0);
                 history.addIncomingSignals(List.of(signal));// tough test
-                final var stateVerifier = StepVerifier.create(history.observeState(end));
 
                 final var result = compareAndAddEvent(history, null, event, signal);
 
                 assertThat("result indicates failure", result, nullValue());
-                stateVerifier.expectNext(Optional.of(state0)).expectComplete().verify();
             }
 
             @Test
@@ -767,12 +736,10 @@ public class ObjectHistoryTest {
                 final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, end, state0);
                 assert !history.getIncomingSignals().contains(signal);// critical
                 assert end.compareTo(whenOccurred) < 0;// tough test
-                final var stateVerifier = StepVerifier.create(history.observeState(whenOccurred));
 
                 final var result = compareAndAddEvent(history, null, event, signal);
 
                 assertThat("result indicates failure", result, nullValue());
-                stateVerifier.expectNext(Optional.of(state0)).verifyTimeout(FLUX_TIMEOUT);
             }
         }// class
 
@@ -816,7 +783,6 @@ public class ObjectHistoryTest {
 
                 final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, end, state0);
                 history.addIncomingSignals(List.of(signal));
-                final var stateVerifier = StepVerifier.create(history.observeState(whenOccurred));
 
                 final var result = compareAndAddEvent(history, null, event, signal);
 
@@ -832,9 +798,6 @@ public class ObjectHistoryTest {
                 assertAll("receivedSignals", () -> assertThat(receivedSignals, hasItem(signal)),
                         () -> assertThat(receivedSignals, hasSize(1)));
                 assertThat("incomingSignals", incomingSignals, empty());
-
-                stateVerifier.expectNext(Optional.ofNullable(state)).verifyTimeout(FLUX_TIMEOUT);
-
             }
 
         }// class
@@ -885,7 +848,6 @@ public class ObjectHistoryTest {
                 history.addIncomingSignals(List.of(signal2));
                 history.compareAndAddEvent(null, event2, signal2);
                 history.addIncomingSignals(List.of(signal1));
-                final var stateVerifier = StepVerifier.create(history.observeState(whenOccurred2));
 
                 final var result = compareAndAddEvent(history, null, event1, signal1);
 
@@ -903,7 +865,6 @@ public class ObjectHistoryTest {
                         () -> assertThat(receivedSignals, hasSize(1)));
                 assertAll("incomingSignals", () -> assertThat(incomingSignals, hasItem(signal2)),
                         () -> assertThat(incomingSignals, hasSize(1)));
-                stateVerifier.expectNext(Optional.of(state1)).verifyTimeout(FLUX_TIMEOUT);
             }
 
         }// class
@@ -942,7 +903,6 @@ public class ObjectHistoryTest {
                         new TimestampedId(sender, whenSent1), receiver);
                 final Event<Integer> event1 = new Event<>(new TimestampedId(signalId1, whenOccurred1), receiver,
                         state1, Set.of());
-                final Event<Integer> expectedPreviousEvent2 = event1;
                 final Duration whenSent2 = whenOccurred1.minusSeconds(1);
                 final Signal<Integer> signal2 = new SignalTest.TestSignal(signalId2,
                         new TimestampedId(sender, whenSent2), receiver);
@@ -950,12 +910,11 @@ public class ObjectHistoryTest {
                         state2, Set.of());
 
                 final ObjectHistory<Integer> history = new ObjectHistory<>(receiver, end, state0);
-                final var stateVerifier = StepVerifier.create(history.observeState(whenOccurred2));
                 history.addIncomingSignals(List.of(signal1));
                 history.compareAndAddEvent(null, event1, signal1);
                 history.addIncomingSignals(List.of(signal2));
 
-                final var result = compareAndAddEvent(history, expectedPreviousEvent2, event2, signal2);
+                final var result = compareAndAddEvent(history, event1, event2, signal2);
 
                 final var stateHistory = history.getStateHistory();
                 final var receivedSignals = history.getReceivedSignals();
@@ -969,8 +928,6 @@ public class ObjectHistoryTest {
                                 allOf(hasItem(whenOccurred1), hasItem(whenOccurred2))));
                 assertThat("receivedSignals", receivedSignals, allOf(hasItem(signal1), hasItem(signal2)));
                 assertThat("incomingSignals", incomingSignals, empty());
-
-                stateVerifier.expectNext(Optional.ofNullable(state2)).verifyTimeout(FLUX_TIMEOUT);
             }
 
         }// class
@@ -1382,95 +1339,6 @@ public class ObjectHistoryTest {
     }// class
 
     @Nested
-    public class ObserveState {
-
-        @Nested
-        public class AtStart {
-
-            @Test
-            public void a() {
-                test(WHEN_A, 0);
-            }
-
-            @Test
-            public void b() {
-                test(WHEN_B, 1);
-            }
-
-            private <STATE> void test(@Nonnull final Duration start, @Nonnull final STATE state) {
-                final Optional<STATE> expectedState = Optional.of(state);
-                final var history = new ObjectHistory<>(OBJECT_A, start, state);
-
-                final var states = observeState(history, start);
-
-                StepVerifier.create(states).expectNext(expectedState).expectComplete().verify();
-            }
-
-        }// class
-
-        @Nested
-        public class BeforeStart {
-
-            @Test
-            public void far() {
-                final Duration start = WHEN_B;
-                final Duration when = start.minusDays(365);
-                test(start, when);
-            }
-
-            @Test
-            public void near() {
-                final Duration start = WHEN_A;
-                final Duration when = start.minusNanos(1);// tough test
-                test(start, when);
-            }
-
-            private void test(@Nonnull final Duration start, @Nonnull final Duration when) {
-                assert when.compareTo(start) < 0;
-                final var expectedState = Optional.<Integer>empty();
-                final var history = new ObjectHistory<>(OBJECT_A, start, 0);
-
-                final var states = observeState(history, when);
-
-                StepVerifier.create(states).expectNext(expectedState).expectComplete().verify();
-            }
-
-        }// class
-
-        @Nested
-        public class Provisional {
-
-            @Test
-            public void far() {
-                final Duration time0 = WHEN_B;
-                final Duration when = time0.plusDays(365);
-
-                test(time0, when, 1);
-            }
-
-            @Test
-            public void near() {
-                final Duration time0 = WHEN_A;
-                final Duration when = time0.plusNanos(1);// critical
-
-                test(time0, when, 0);
-            }
-
-            private void test(@Nonnull final Duration end, @Nonnull final Duration when, @Nonnull final Integer state) {
-                assert end.compareTo(when) < 0;// provisional
-                final var expectedState = Optional.of(state);
-                final var history = new ObjectHistory<>(OBJECT_A, end, state);
-
-                final var states = observeState(history, when);
-
-                StepVerifier.create(states).expectNext(expectedState).expectTimeout(FLUX_TIMEOUT).verify();
-            }
-
-        }// class
-
-    }// class
-
-    @Nested
     public class ReceiveNextSignal {
 
         @RepeatedTest(4)
@@ -1544,7 +1412,6 @@ public class ObjectHistoryTest {
                 medium.addAll(List.of(signal));
                 history.addIncomingSignals(List.of(signal));
                 final var signals0 = medium.getSignals();
-                final var stateVerifier = StepVerifier.create(history.observeState(expectedWhenOccurred));
 
                 final var didWork = receiveNextSignal(history, medium);
 
@@ -1564,8 +1431,6 @@ public class ObjectHistoryTest {
                 assertThat("incomingSignals", history.getIncomingSignals(), empty());
                 assertThat("receivedSignals", history.getReceivedSignals(), hasItem(signal));
                 assertThat("did some work", didWork);
-
-                stateVerifier.expectNext(Optional.ofNullable(expectedState)).verifyTimeout(FLUX_TIMEOUT);
             }
         }// class
 
@@ -1890,12 +1755,10 @@ public class ObjectHistoryTest {
 
             private void test(@Nonnull final Set<UUID> signals, @Nonnull final Integer state0) {
                 final var history = new ObjectHistory<>(OBJECT_A, WHEN_A, state0);
-                final var stateVerifier = StepVerifier.create(history.observeState(ValueHistory.END_OF_TIME));
 
                 final var removed = removeSignals(history, signals);
 
                 assertThat("removed emitted signals", removed, empty());
-                stateVerifier.expectNext(Optional.of(state0)).verifyTimeout(FLUX_TIMEOUT);
             }
 
             @Test
@@ -1932,8 +1795,6 @@ public class ObjectHistoryTest {
                 history.receiveNextSignal(medium);
                 final var event = history.getEvents().last();
                 final var emittedSignals = event.getSignalsEmitted();
-                final var eventTime = event.getWhenOccurred();
-                final var stateVerifier = StepVerifier.create(history.observeState(eventTime));
 
                 final var removedEmittedSignals = removeSignals(history, Set.of(signalId));
 
@@ -1941,7 +1802,6 @@ public class ObjectHistoryTest {
                         () -> assertThat("incomingSignals", history.getIncomingSignals(), empty()),
                         () -> assertThat("events", history.getEvents(), empty()));
                 assertThat("removed emitted signals", removedEmittedSignals, is(emittedSignals));
-                stateVerifier.expectNext(Optional.of(state0)).verifyTimeout(FLUX_TIMEOUT);
             }
 
         }// class
