@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation.actor;
 /*
- * © Copyright Benedict Adamson 2021.
+ * © Copyright Benedict Adamson 2021-22.
  *
  * This file is part of MC-des.
  *
@@ -18,9 +18,6 @@ package uk.badamson.mc.simulation.actor;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import uk.badamson.mc.history.TimestampedValue;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.simulation.TimestampedId;
@@ -43,7 +40,6 @@ import java.util.UUID;
  *                required.
  */
 @Immutable
-@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "class")// include = JsonTypeInfo.As.PROPERTY by default
 public abstract class Signal<STATE> {
 
     /**
@@ -88,7 +84,7 @@ public abstract class Signal<STATE> {
      * Whether this signal is <dfn>equivalent to</dfn> a given other object.
      * </p>
      * <p>
-     * The {@link Signal} class has <i>entity semantics</i> with the
+     * The Signal class has <i>entity semantics</i> with the
      * {@linkplain #getId() ID} attribute acting as the unique ID.
      * </p>
      */
@@ -108,7 +104,6 @@ public abstract class Signal<STATE> {
      * The unique ID for this signal.
      */
     @Nonnull
-    @JsonProperty("id")
     public final UUID getId() {
         return id;
     }
@@ -148,7 +143,6 @@ public abstract class Signal<STATE> {
      * @see #getSender()
      */
     @Nonnull
-    @JsonProperty("receiver")
     public final UUID getReceiver() {
         return receiver;
     }
@@ -166,7 +160,6 @@ public abstract class Signal<STATE> {
      * @see #getReceiver()
      */
     @Nonnull
-    @JsonIgnore
     public final UUID getSender() {
         return sentFrom.getObject();
     }
@@ -186,7 +179,6 @@ public abstract class Signal<STATE> {
      * </ul>
      */
     @Nonnull
-    @JsonProperty("sentFrom")
     public final TimestampedId getSentFrom() {
         return sentFrom;
     }
@@ -327,7 +319,6 @@ public abstract class Signal<STATE> {
      * </p>
      */
     @Nonnull
-    @JsonIgnore
     public final Duration getWhenSent() {
         return sentFrom.getWhen();
     }

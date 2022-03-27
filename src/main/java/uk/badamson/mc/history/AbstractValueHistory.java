@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018,2021.
+ * © Copyright Benedict Adamson 2018,2021-22.
  *
  * This file is part of MC-des.
  *
@@ -18,18 +18,12 @@ package uk.badamson.mc.history;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.stream.Stream;
 
 /**
@@ -62,7 +56,6 @@ abstract class AbstractValueHistory<VALUE> implements ValueHistory<VALUE> {
     }
 
     @Override
-    @JsonIgnore
     public @Nullable
     Duration getFirstTransitionTime() {
         final var transitions = getTransitions();
@@ -127,7 +120,7 @@ abstract class AbstractValueHistory<VALUE> implements ValueHistory<VALUE> {
 
     @Nonnull
     @Override
-    public Stream<Entry<Duration, VALUE>> streamOfTransitions() {
+    public Stream<Map.Entry<Duration, VALUE>> streamOfTransitions() {
         return getTransitions().entrySet().stream();
     }
 

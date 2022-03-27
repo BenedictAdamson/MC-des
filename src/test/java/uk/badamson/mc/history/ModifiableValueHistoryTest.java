@@ -21,7 +21,6 @@ package uk.badamson.mc.history;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import uk.badamson.dbc.assertions.ObjectVerifier;
-import uk.badamson.mc.JsonTest;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -333,50 +332,6 @@ public class ModifiableValueHistoryTest {
                 test(1, transitions);
             }
         }// class
-    }// class
-
-    @Nested
-    public class JSON {
-
-        @Test
-        public void empty() {
-            final var history = new ModifiableValueHistory<Integer>();
-
-            test(history);
-        }
-
-        @Test
-        public void one_nonnull() {
-            final var history = new ModifiableValueHistory<>(0);
-            history.appendTransition(WHEN_1, 1);
-
-            test(history);
-        }
-
-        @Test
-        public void one_null() {
-            final var history = new ModifiableValueHistory<Integer>();
-            history.appendTransition(WHEN_1, 0);
-
-            test(history);
-        }
-
-        private <VALUE> void test(@Nonnull final ModifiableValueHistory<VALUE> history) {
-            final var deserialized = JsonTest.serializeAndDeserialize(history);
-
-            assertInvariants(history);
-            assertInvariants(history, deserialized);
-            assertEquals(history, deserialized);
-        }
-
-        @Test
-        public void two() {
-            final var history = new ModifiableValueHistory<>(3);
-            history.appendTransition(WHEN_2, 2);
-            history.appendTransition(WHEN_3, 1);
-
-            test(history);
-        }
     }// class
 
     @Nested

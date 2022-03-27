@@ -18,20 +18,16 @@ package uk.badamson.mc.simulation.actor;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import uk.badamson.dbc.assertions.EqualsSemanticsVerifier;
 import uk.badamson.dbc.assertions.ObjectVerifier;
-import uk.badamson.mc.JsonTest;
 import uk.badamson.mc.history.ConstantValueHistory;
 import uk.badamson.mc.history.ModifiableValueHistory;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.simulation.TimestampedId;
 import uk.badamson.mc.simulation.TimestampedIdTest;
-import uk.badamson.mc.simulation.actor.Signal.UnreceivableSignalException;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
@@ -135,11 +131,11 @@ public class SignalTest {
     }
 
     public static <STATE> Event<STATE> receive(@Nonnull final Signal<STATE> signal, @Nonnull final STATE receiverState)
-            throws UnreceivableSignalException {
+            throws Signal.UnreceivableSignalException {
         final Event<STATE> effect;
         try {
             effect = signal.receive(receiverState);
-        } catch (final UnreceivableSignalException e) {
+        } catch (final Signal.UnreceivableSignalException e) {
             assertInvariants(signal);
             throw e;
         }
@@ -192,10 +188,9 @@ public class SignalTest {
 
         private final boolean strobe;
 
-        @JsonCreator
-        TestSignal(@Nonnull @JsonProperty("id") final UUID id,
-                   @Nonnull @JsonProperty("sentFrom") final TimestampedId sentFrom,
-                   @Nonnull @JsonProperty("receiver") final UUID receiver) {
+        TestSignal(@Nonnull final UUID id,
+                   @Nonnull final TimestampedId sentFrom,
+                   @Nonnull final UUID receiver) {
             super(id, sentFrom, receiver);
             strobe = false;
         }
@@ -217,7 +212,7 @@ public class SignalTest {
         @Nonnull
         @Override
         protected Event<Integer> receive(@Nonnull final Duration when, @Nonnull final Integer receiverState)
-                throws UnreceivableSignalException {
+                throws Signal.UnreceivableSignalException {
             Objects.requireNonNull(when, "when");
             Objects.requireNonNull(receiverState, "receiverState");
 
@@ -300,33 +295,6 @@ public class SignalTest {
     }// class
 
     @Nested
-    public class JSON {
-
-        @Test
-        public void a() {
-            test(ID_A, OBJECT_STATE_ID_A, OBJECT_A);
-        }
-
-        @Test
-        public void b() {
-            test(ID_B, OBJECT_STATE_ID_B, OBJECT_B);
-        }
-
-        private void test(@Nonnull final UUID id, @Nonnull final TimestampedId sentFrom,
-                          @Nonnull final UUID receiver) {
-            final var signal = new TestSignal(id, sentFrom, receiver);
-            final var deserialized = JsonTest.serializeAndDeserialize(signal);
-
-            assertInvariants(signal);
-            assertInvariants(signal, deserialized);
-            assertAll(() -> assertThat("equals", deserialized, is(signal)),
-                    () -> assertEquals(signal.getId(), deserialized.getId(), "id"),
-                    () -> assertEquals(signal.getSentFrom(), deserialized.getSentFrom(), "sentFrom"),
-                    () -> assertEquals(signal.getReceiver(), deserialized.getReceiver(), "receiver"));
-        }
-    }// class
-
-    @Nested
     public class Receive {
 
         @Test
@@ -353,7 +321,7 @@ public class SignalTest {
 
             try {
                 receive(signal, receiverState);
-            } catch (final UnreceivableSignalException e) {
+            } catch (final Signal.UnreceivableSignalException e) {
                 if (!expectUnreceivableSignalException) {
                     throw new AssertionError("Throws UnreceivableSignalException only as specified", e);
                 }

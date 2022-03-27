@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation.actor;
 /*
- * © Copyright Benedict Adamson 2018,2021.
+ * © Copyright Benedict Adamson 2018,2021-22.
  *
  * This file is part of MC-des.
  *
@@ -18,12 +18,9 @@ package uk.badamson.mc.simulation.actor;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
-import reactor.core.publisher.Sinks.EmitResult;
 import uk.badamson.mc.history.ModifiableValueHistory;
 import uk.badamson.mc.history.ValueHistory;
 import uk.badamson.mc.simulation.TimestampedId;
@@ -390,7 +387,7 @@ public final class ObjectHistory<STATE> {
             for (final var publisher : publishers) {
                 final var result = publisher.sink.tryEmitComplete();
                 // The sink is reliable; it should always successfully complete.
-                assert result == EmitResult.OK;
+                assert result == Sinks.EmitResult.OK;
             }
         }
     }
@@ -466,7 +463,7 @@ public final class ObjectHistory<STATE> {
      * Whether this object is <dfn>equivalent</dfn> to a given object.
      * </p>
      * <p>
-     * The {@link ObjectHistory} class has <i>value semantics</i>.
+     * The {ObjectHistory class has <i>value semantics</i>.
      * </p>
      */
     @Override
@@ -509,7 +506,6 @@ public final class ObjectHistory<STATE> {
      * </ul>
      */
     @Nonnull
-    @JsonProperty("end")
     public Duration getEnd() {
         synchronized (lock) {
             return end;
@@ -540,7 +536,7 @@ public final class ObjectHistory<STATE> {
      * tie-breaker to produce a strict ordering. In that case, however, the state
      * transition(s) due to some <i>measured as simultaneous</a> events will not be
      * apparent in the {@linkplain #getStateHistory() state history}; only the
-     * <i>measured as simultaneous</a> event with the largest ID of its causing
+     * <i>measured as simultaneous</i> event with the largest ID of its causing
      * signal will have its state recorded in the state history.
      * </ul>
      *
@@ -617,7 +613,6 @@ public final class ObjectHistory<STATE> {
      * </ul>
      */
     @Nonnull
-    @JsonProperty("object")
     public UUID getObject() {
         return object;
     }
@@ -679,7 +674,6 @@ public final class ObjectHistory<STATE> {
      * </ul>
      */
     @Nonnull
-    @JsonIgnore
     public Duration getStart() {
         return start;
     }
@@ -719,7 +713,6 @@ public final class ObjectHistory<STATE> {
      * @see #observeState(Duration)
      */
     @Nonnull
-    @JsonIgnore
     public ValueHistory<STATE> getStateHistory() {
         synchronized (lock) {// hard to test
             return new ModifiableValueHistory<>(stateHistory);
@@ -733,7 +726,6 @@ public final class ObjectHistory<STATE> {
      * </p>
      */
     @Nonnull
-    @JsonProperty("stateTransitions")
     public SortedMap<Duration, STATE> getStateTransitions() {
         synchronized (lock) {// hard to test
             /*
@@ -833,7 +825,7 @@ public final class ObjectHistory<STATE> {
      * {@linkplain #getIncomingSignals() incoming signals}.
      * </p>
      * <p>
-     * The <dfn>next incoming signal<dfn> is the same as one of the
+     * The <dfn>next incoming signal</dfn> is the same as one of the
      * {@linkplain #getIncomingSignals() incoming signals}. It is the incoming
      * signal that has the earliest {@linkplain Signal#getWhenReceived(ValueHistory)
      * reception time}, for the current {@linkplain #getStateHistory() state

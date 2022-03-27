@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation;
 /*
- * © Copyright Benedict Adamson 2018,2021.
+ * © Copyright Benedict Adamson 2018,2021-22.
  *
  * This file is part of MC-des.
  *
@@ -17,9 +17,6 @@ package uk.badamson.mc.simulation;
  * You should have received a copy of the GNU General Public License
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
@@ -45,9 +42,8 @@ public final class TimestampedId implements Comparable<TimestampedId> {
      *
      * @throws NullPointerException If any argument is null.
      */
-    @JsonCreator
-    public TimestampedId(@Nonnull @JsonProperty("object") final UUID object,
-                         @Nonnull @JsonProperty("when") final Duration when) {
+    public TimestampedId(@Nonnull final UUID object,
+                         @Nonnull final Duration when) {
         this.object = Objects.requireNonNull(object, "object");
         this.when = Objects.requireNonNull(when, "when");
     }
@@ -57,7 +53,7 @@ public final class TimestampedId implements Comparable<TimestampedId> {
      * The <i>natural ordering</i> relation of this ID.
      * </p>
      * <ul>
-     * <li>The <i>natural ordering</i> of {@link TimestampedId} is consistent with
+     * <li>The <i>natural ordering</i> of TimestampedId is consistent with
      * {@linkplain #equals(Object) equals}.</li>
      * <li>The <i>natural ordering</i> orders by {@linkplain #getWhen() time-stamp};
      * if two IDs have different time-stamps, their ordering is equivalent to the
@@ -69,7 +65,7 @@ public final class TimestampedId implements Comparable<TimestampedId> {
      * </ul>
      *
      * @param that The other ID to compare with this ID.
-     * @return a value that has a sign or is zero to indicates the order of this
+     * @return a value that has a sign or is zero to indicate the order of this
      * ID with respect to the given ID.
      * @throws NullPointerException If {@code that} is null.
      */
@@ -85,10 +81,10 @@ public final class TimestampedId implements Comparable<TimestampedId> {
 
     /**
      * <p>
-     * Whether this {@link TimestampedId} is equivalent to another object.
+     * Whether this is equivalent to another object.
      * </p>
      * <p>
-     * {@link TimestampedId} objects have value semantics: two IDs are equivalent
+     * TimestampedId objects have value semantics: two IDs are equivalent
      * if, and only if, they have equivalent {@linkplain #getObject() object IDs}
      * and {@linkplain #getWhen() time-stamps}.
      * </p>

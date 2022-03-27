@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018,2021.
+ * © Copyright Benedict Adamson 2018,2021-22.
  *
  * This file is part of MC-des.
  *
@@ -17,8 +17,6 @@ package uk.badamson.mc.history;
  * You should have received a copy of the GNU General Public License
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -63,10 +61,10 @@ public interface ValueHistory<VALUE> {
      * Whether this value history <dfn>equals</dfn> another object.
      * </p>
      * <p>
-     * The {@link ValueHistory} class has <i>value semantics</i>: for this to equal
-     * another object, the other object must also be a {@link ValueHistory}, and the
-     * two value histories must have {@linkplain Objects#equals(Object) equal (or
-     * equally null)} {@linkplain #get(Duration) values} at all points in time. The
+     * The ValueHistory class has <i>value semantics</i>: for this to equal
+     * another object, the other object must also be a ValueHistory, and the
+     * two value histories must have equal (or
+     * equally null) {@linkplain #get(Duration) values} at all points in time. The
      * latter is equivalent to having their {@linkplain #getFirstValue() first
      * values} equal (or equally null) and having
      * {@linkplain SortedMap#equals(Object) equal} {@linkplain #getTransitions()
@@ -111,7 +109,6 @@ public interface ValueHistory<VALUE> {
      * @return the first transition time.
      */
     @Nullable
-    @JsonIgnore
     Duration getFirstTransitionTime();
 
     /**
@@ -151,7 +148,6 @@ public interface ValueHistory<VALUE> {
      * @return the last transition time.
      */
     @Nullable
-    @JsonIgnore
     Duration getLastTransitionTime();
 
     /**
@@ -176,7 +172,6 @@ public interface ValueHistory<VALUE> {
      * @return the last value.
      */
     @Nullable
-    @JsonIgnore
     VALUE getLastValue();
 
     /**
@@ -296,7 +291,6 @@ public interface ValueHistory<VALUE> {
      * @return the transition times
      */
     @Nonnull
-    @JsonIgnore
     SortedSet<Duration> getTransitionTimes();
 
     /**
@@ -304,8 +298,8 @@ public interface ValueHistory<VALUE> {
      * A hash code for this value history.
      * </p>
      * <p>
-     * The hash code of a value history is the {@linkplain Object#hashCode() hash
-     * code} of the {@linkplain #getFirstValue() first value} (or 0 if the first
+     * The hash code of a value history is the hash
+     * code of the {@linkplain #getFirstValue() first value} (or 0 if the first
      * value is null) plus the {@linkplain Map#hashCode() hash code} of the
      * {@linkplain #getTransitions() transitions}.
      * </p>
@@ -327,7 +321,6 @@ public interface ValueHistory<VALUE> {
      * {@link #getTransitionTimes()} method.</li>
      * </ul>
      */
-    @JsonIgnore
     boolean isEmpty();
 
     /**

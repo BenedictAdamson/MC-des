@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation.actor;
 /*
- * © Copyright Benedict Adamson 2018,2021.
+ * © Copyright Benedict Adamson 2018,2021-22.
  *
  * This file is part of MC-des.
  *
@@ -17,10 +17,6 @@ package uk.badamson.mc.simulation.actor;
  * You should have received a copy of the GNU General Public License
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -40,7 +36,7 @@ import static java.util.stream.Collectors.*;
  * </p>
  * <p>
  * The histories of the objects may be <dfn>asynchronous</dfn>: different
- * objects may have state transitions at different times.</li>
+ * objects may have state transitions at different times.
  * <p>
  * This collection is modifiable: the histories of the simulated objects may be
  * appended to.
@@ -86,8 +82,7 @@ public final class Universe<STATE> {
      *                        universe.
      * @throws NullPointerException If {@code objectHistories} is null
      */
-    @JsonCreator
-    public Universe(@Nonnull @JsonProperty("objectHistories") final Collection<ObjectHistory<STATE>> objectHistories) {
+    public Universe(@Nonnull final Collection<ObjectHistory<STATE>> objectHistories) {
         Objects.requireNonNull(objectHistories, "objectHistories");
         objectHistories.forEach(history -> this.objectHistories.put(history.getObject(), new ObjectHistory<>(history)));
     }
@@ -120,7 +115,7 @@ public final class Universe<STATE> {
      * Whether this is <dfn>equivalent</dfn> to a given object.
      * </p>
      * <p>
-     * The {@link Universe} class has <i>value semantics</i>. This method may give
+     * The Universe class has <i>value semantics</i>. This method may give
      * misleading results if either object is modified during the computation of
      * equality.
      * </p>
@@ -154,7 +149,6 @@ public final class Universe<STATE> {
      * </ul>
      */
     @Nonnull
-    @JsonProperty("objectHistories")
     public Collection<ObjectHistory<STATE>> getObjectHistories() {
         synchronized (objectCreationLock) {// hard to test
             return objectHistories.values().stream().map(ObjectHistory::new).collect(toUnmodifiableList());
@@ -194,7 +188,6 @@ public final class Universe<STATE> {
      * </ul>
      */
     @Nonnull
-    @JsonIgnore
     public Set<UUID> getObjects() {
         return Set.copyOf(objectHistories.keySet());
     }

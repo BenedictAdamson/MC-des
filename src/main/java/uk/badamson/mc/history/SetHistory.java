@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018,21.
+ * © Copyright Benedict Adamson 2018,21-22.
  *
  * This file is part of MC-des.
  *
@@ -17,8 +17,6 @@ package uk.badamson.mc.history;
  * You should have received a copy of the GNU General Public License
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -105,6 +103,5 @@ public interface SetHistory<VALUE> extends ValueHistory<Set<VALUE>> {
 
     @Override
     @Nonnull
-    @JsonIgnore
     Set<VALUE> getLastValue();
 }

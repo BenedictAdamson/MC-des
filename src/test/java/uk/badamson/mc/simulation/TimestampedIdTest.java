@@ -23,9 +23,7 @@ import org.junit.jupiter.api.Test;
 import uk.badamson.dbc.assertions.ComparableVerifier;
 import uk.badamson.dbc.assertions.EqualsSemanticsVerifier;
 import uk.badamson.dbc.assertions.ObjectVerifier;
-import uk.badamson.mc.JsonTest;
 
-import javax.annotation.Nonnull;
 import java.time.Duration;
 import java.util.UUID;
 
@@ -171,34 +169,6 @@ public class TimestampedIdTest {
 
             }// class
         }// class
-
-    }// class
-
-    @Nested
-    public class JSON {
-
-        @Test
-        public void a() {
-            test(OBJECT_A, DURATION_A);
-        }
-
-        @Test
-        public void b() {
-            test(OBJECT_B, DURATION_B);
-        }
-
-        private void test(@Nonnull final TimestampedId id) {
-            final var deserialized = JsonTest.serializeAndDeserialize(id);
-
-            assertInvariants(id);
-            assertInvariants(id, deserialized);
-            assertEquals(id, deserialized);
-        }
-
-        private void test(@Nonnull final UUID object, @Nonnull final Duration when) {
-            final TimestampedId id = new TimestampedId(object, when);
-            test(id);
-        }
 
     }// class
 

@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018,2021.
+ * © Copyright Benedict Adamson 2018,2021-22.
  *
  * This file is part of MC-des.
  *
@@ -18,16 +18,12 @@ package uk.badamson.mc.history;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.time.Duration;
 import java.util.*;
-import java.util.Map.Entry;
 import java.util.stream.Stream;
 
 /**
@@ -101,9 +97,8 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      *                                  {@linkplain Objects#equals(Object, Object) equivalent or
      *                                  equivalently null}.
      */
-    @JsonCreator
-    public ModifiableValueHistory(@Nullable @JsonProperty("firstValue") final VALUE firstValue,
-                                  @Nonnull @JsonProperty("transitions") final SortedMap<Duration, VALUE> transitions) {
+    public ModifiableValueHistory(@Nullable final VALUE firstValue,
+                                  @Nonnull final SortedMap<Duration, VALUE> transitions) {
         Objects.requireNonNull(transitions, "transitions");
         this.firstValue = firstValue;
         appendTransitions(transitions.entrySet().stream());
@@ -180,7 +175,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
         transitions.put(when, value);
     }
 
-    private void appendTransitions(@Nonnull final Stream<Entry<Duration, VALUE>> streamOfTransitions) {
+    private void appendTransitions(@Nonnull final Stream<Map.Entry<Duration, VALUE>> streamOfTransitions) {
         streamOfTransitions.sequential().forEach(entry -> transitions.put(entry.getKey(), entry.getValue()));
     }
 
@@ -208,8 +203,6 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
     }
 
     /**
-     * {@inheritDoc}
-     *
      * @throws NullPointerException {@inheritDoc}
      */
     @Override
@@ -279,7 +272,6 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @return the first value.
      */
     @Override
-    @JsonProperty("firstValue")
     public @Nullable
     VALUE getFirstValue() {
         return firstValue;
@@ -346,14 +338,13 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * {@inheritDoc}
      *
      * <p>
-     * Furthermore, for the {@link ModifiableValueHistory} type
+     * Furthermore, for the ModifiableValueHistory type
      * </p>
      * <ul>
      * <li>The transitions map is a newly constructed object.</li>
      * </ul>
      */
     @Override
-    @JsonProperty("transitions")
     public @Nonnull
     SortedMap<Duration, VALUE> getTransitions() {
         return new TreeMap<>(transitions);
@@ -516,7 +507,7 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
 
     @Override
     public @Nonnull
-    Stream<Entry<Duration, VALUE>> streamOfTransitions() {
+    Stream<Map.Entry<Duration, VALUE>> streamOfTransitions() {
         return transitions.entrySet().stream();
     }
 
