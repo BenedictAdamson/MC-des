@@ -19,7 +19,6 @@ package uk.badamson.mc.simulation.actor;
  */
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import uk.badamson.mc.simulation.TimestampedId;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -72,8 +71,7 @@ public final class Event<STATE> {
      *                                  <li>{@linkplain Signal#getSender() sent} from the same object as
      *                                  the {@code affectedObject}, or</li>
      *                                  <li>{@linkplain Signal#getWhenSent() sent} at the same time as
-     *                                  {@linkplain TimestampedId#getWhen() time-stamp} of the
-     *                                  {@code id}.</li>
+     *                                  {@code when}.</li>
      *                                  </ul>
      */
     public Event(@Nonnull final Signal<STATE> causingSignal, @Nonnull final Duration when, @Nonnull final Actor<STATE> affectedObject, @Nullable final STATE state,
