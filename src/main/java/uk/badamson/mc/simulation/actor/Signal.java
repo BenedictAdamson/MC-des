@@ -55,13 +55,13 @@ public abstract class Signal<STATE> {
     public static final Duration NEVER_RECEIVED = Duration.ofSeconds(Long.MAX_VALUE, 999_999_999);
 
     @Nonnull
-    private final ObjectHistory<STATE> sender;
+    private final Actor<STATE> sender;
 
     @Nonnull
     private final Duration whenSent;
 
     @Nonnull
-    private final ObjectHistory<STATE> receiver;
+    private final Actor<STATE> receiver;
 
     /**
      * <p>
@@ -69,7 +69,7 @@ public abstract class Signal<STATE> {
      * </p>
      * @throws NullPointerException If any {@linkplain Nonnull} argument is null
      */
-    protected Signal(@Nonnull final ObjectHistory<STATE> sender, @Nonnull final Duration whenSent, @Nonnull final ObjectHistory<STATE> receiver) {
+    protected Signal(@Nonnull final Actor<STATE> sender, @Nonnull final Duration whenSent, @Nonnull final Actor<STATE> receiver) {
         this.sender = Objects.requireNonNull(sender, "sender");
         this.whenSent = Objects.requireNonNull(whenSent, "whenSent");
         this.receiver = Objects.requireNonNull(receiver, "receiver");
@@ -110,7 +110,7 @@ public abstract class Signal<STATE> {
      * @see #getSender()
      */
     @Nonnull
-    public final ObjectHistory<STATE> getReceiver() {
+    public final Actor<STATE> getReceiver() {
         return receiver;
     }
 
@@ -127,7 +127,7 @@ public abstract class Signal<STATE> {
      * @see #getReceiver()
      */
     @Nonnull
-    public final ObjectHistory<STATE> getSender() {
+    public final Actor<STATE> getSender() {
         return sender;
     }
 

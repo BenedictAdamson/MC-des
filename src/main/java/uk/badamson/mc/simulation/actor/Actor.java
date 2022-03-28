@@ -31,7 +31,7 @@ import java.util.*;
 
 /**
  * <p>
- * The sequence of state transitions of a simulated object.
+ * A simulated object.
  * </p>
  *
  * @param <STATE> The class of states of the simulated object. This must be
@@ -39,7 +39,7 @@ import java.util.*;
  *                that is not required.
  */
 @ThreadSafe
-public final class ObjectHistory<STATE> {
+public final class Actor<STATE> {
 
     @Nonnull
     private final Duration start;
@@ -57,19 +57,18 @@ public final class ObjectHistory<STATE> {
 
     /**
      * <p>
-     * Construct an object history with given start information and no signals.
+     * Construct an actor with a given start information and no events.
      * </p>
      * <ul>
      * <li>The {@linkplain #getEvents() events} sequence
-     * {@linkplain SortedSet#isEmpty() is empty}.</li>
+     * {@linkplain List#isEmpty() is empty}.</li>
      * </ul>
      *
-     * @param start  The point in time that this history starts.
-     * @param state  The first (known) state transition of the {@code
-     *               object}.
-     * @throws NullPointerException If a {@link Nonnull} argument is null
+     * @param start  The first point in time for which the actor has a known state.
+     * @param state  The first (known) state transition of the actor.
+     * @throws NullPointerException If any argument is null
      */
-    public ObjectHistory(@Nonnull final Duration start, @Nonnull final STATE state) {
+    public Actor(@Nonnull final Duration start, @Nonnull final STATE state) {
         Objects.requireNonNull(state, "state");
         this.start = Objects.requireNonNull(start, "start");
         this.stateHistory.appendTransition(start, state);
@@ -78,16 +77,16 @@ public final class ObjectHistory<STATE> {
     /**
      * <p>
      * Get a snapshot of the sequence of events that have
-     * {@linkplain Event#getAffectedObject() affected} the simulated object.
+     * {@linkplain Event#getAffectedObject() affected} this actor.
      * </p>
      * <ul>
      * <li>The events sequence may be {@linkplain List#isEmpty() empty}.</li>
-     * <li>All events {@linkplain Event#getAffectedObject() affect} this object.</li>
+     * <li>All events {@linkplain Event#getAffectedObject() affect} this actor.</li>
      * <li>All events {@linkplain Event#getWhen() occurred}
      * {@linkplain Duration#compareTo(Duration) after} the {@linkplain #getStart()
      * start} time of this history.</li>
      * <li>The returned event sequence is a snapshot: a copy of data, it is not
-     * updated if this object history is subsequently changed.</li>
+     * updated if this actor is subsequently changed.</li>
      * <li>Note that events may be <i>measured as simultaneous</i>: events can have
      * {@linkplain Duration#equals(Object) equivalent}
      * {@linkplain Event#getWhen() times of occurrence}. However, the state
@@ -109,12 +108,11 @@ public final class ObjectHistory<STATE> {
 
     /**
      * <p>
-     * The last of the {@linkplain #getEvents() sequence of events} that have
-     * {@linkplain Event#getAffectedObject() affected} this simulated object.
+     * The last of the {@linkplain #getEvents() events} of this actor.
      * </p>
      * <ul>
      * <li>The last event is null if, and only if, the sequence of events is
-     * empty.</li>
+     * {@linkplain  List#isEmpty() empty}.</li>
      * <li>This method is likely to be more efficient than using
      * {@link #getEvents()} and then extracting the last event from the
      * sequence.</li>
@@ -136,15 +134,14 @@ public final class ObjectHistory<STATE> {
 
     /**
      * <p>
-     * The point in time that this history starts.
+     * The earliest point in time for which the state of this actor is known.
      * </p>
      * <p>
-     * The earliest point in time for which the state of the simulated object is
-     * known. Expressed as the duration since an (implied) epoch. All objects in a
+     * Expressed as the duration since an (implied) epoch. All objects in a
      * simulation should use the same epoch.
      * </p>
      * <ul>
-     * <li>Constant: the history always returns the same start time.</li>
+     * <li>Constant: this always returns the same start time.</li>
      * </ul>
      */
     @Nonnull
@@ -155,14 +152,14 @@ public final class ObjectHistory<STATE> {
     /**
      * <p>
      * Get a snapshot of the history of states that the
-     * simulated object has passed through.
+     * actor has passed through.
      * </p>
      * <ul>
      * <li>The state history is never {@linkplain ValueHistory#isEmpty()
      * empty}.</li>
      * <li>The {@linkplain ValueHistory#getFirstTransitionTime() first transition
      * time} of the state history is the same as the {@linkplain #getStart() start}
-     * time of this history.</li>
+     * time of this actor.</li>
      * <li>The {@linkplain ValueHistory#getFirstValue() state at the start of time}
      * of the state history is null.</li>
      * <li>The {@linkplain Event#getState() state} resulting from an
@@ -170,7 +167,7 @@ public final class ObjectHistory<STATE> {
      * the {@linkplain ValueHistory#get(Duration) value} of the state history at the
      * {@linkplain Event#getWhen() time of occurrence} of the event.</li>
      * <li>The returned state history is a snapshot: a copy of data, it is not
-     * updated if this object history is subsequently changed.</li>
+     * updated if this actor is subsequently changed.</li>
      * </ul>
      */
     @Nonnull
@@ -183,7 +180,7 @@ public final class ObjectHistory<STATE> {
     /**
      * <p>
      * The {@linkplain ValueHistory#getTransitions() transitions} in the
-     * {@linkplain #getStateHistory() state history} of this object history.
+     * {@linkplain #getStateHistory() state history} of this actor.
      * </p>
      */
     @Nonnull

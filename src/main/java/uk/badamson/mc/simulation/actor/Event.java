@@ -51,7 +51,7 @@ public final class Event<STATE> {
     @Nonnull
     private final Duration when;
     @Nonnull
-    private final ObjectHistory<STATE> affectedObject;
+    private final Actor<STATE> affectedObject;
     @Nullable
     private final STATE state;
     @Nonnull
@@ -77,7 +77,7 @@ public final class Event<STATE> {
      *                                  {@code id}.</li>
      *                                  </ul>
      */
-    public Event(@Nonnull final Signal<STATE> causingSignal, @Nonnull final Duration when, @Nonnull final ObjectHistory<STATE> affectedObject, @Nullable final STATE state,
+    public Event(@Nonnull final Signal<STATE> causingSignal, @Nonnull final Duration when, @Nonnull final Actor<STATE> affectedObject, @Nullable final STATE state,
                  @Nonnull final Set<Signal<STATE>> signalsEmitted) {
         this.causingSignal = Objects.requireNonNull(causingSignal, "causingSignal");
         this.when = Objects.requireNonNull(when, "when");
@@ -101,7 +101,7 @@ public final class Event<STATE> {
      * </p>
      */
     @Nonnull
-    public ObjectHistory<STATE> getAffectedObject() {
+    public Actor<STATE> getAffectedObject() {
         return affectedObject;
     }
 

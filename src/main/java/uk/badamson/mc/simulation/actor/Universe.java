@@ -22,20 +22,13 @@ import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.time.Duration;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
 
-import static java.util.stream.Collectors.toUnmodifiableList;
-
 /**
  * <p>
- * A collection of simulated objects and their {@linkplain ObjectHistory
- * histories}.
+ * A collection of {@linkplain Actor simulated objects and their histories}.
  * </p>
  * <p>
  * The histories of the objects may be <dfn>asynchronous</dfn>: different
@@ -52,9 +45,9 @@ import static java.util.stream.Collectors.toUnmodifiableList;
 @ThreadSafe
 public final class Universe<STATE> {
 
-    private final Collection<ObjectHistory<STATE>> objectHistories = new CopyOnWriteArrayList<>();
+    private final Collection<Actor<STATE>> actors = new CopyOnWriteArrayList<>();
     /*
-     * Adding entries to the objectHistories Map is guarded by this lock.
+     * Adding entries to the actors Map is guarded by this lock.
      */
     private final Object objectCreationLock = new Object();
 
@@ -63,7 +56,7 @@ public final class Universe<STATE> {
      * Construct an empty universe.
      * </p>
      * <ul>
-     * <li>The {@linkplain #getObjectHistories() collection of object histories} {@linkplain Collection#isEmpty()
+     * <li>The {@linkplain #getActors() collection of actors} {@linkplain Collection#isEmpty()
      * is empty}.</li>
      * </ul>
      */
@@ -76,18 +69,18 @@ public final class Universe<STATE> {
      * Construct a universe given the histories of all the objects in it.
      * </p>
      * <ul>
-     * <li>The {@linkplain #getObjectHistories() object histories} of this universe
+     * <li>The {@linkplain #getActors() object histories} of this universe
      * are {@linkplain Map#equals(Object) equivalent to} the given
      * {@code objectHistories}.</li>
      * </ul>
      *
-     * @param objectHistories A snapshot of the history information of all the objects in the
+     * @param actors A snapshot of the history information of all the objects in the
      *                        universe.
      * @throws NullPointerException If {@code objectHistories} is null
      */
-    public Universe(@Nonnull final Collection<ObjectHistory<STATE>> objectHistories) {
-        Objects.requireNonNull(objectHistories, "objectHistories");
-        this.objectHistories.addAll(objectHistories);
+    public Universe(@Nonnull final Collection<Actor<STATE>> actors) {
+        Objects.requireNonNull(actors, "actors");
+        this.actors.addAll(actors);
     }
 
     @Nonnull
@@ -108,15 +101,15 @@ public final class Universe<STATE> {
      * </ul>
      */
     @Nonnull
-    public Collection<ObjectHistory<STATE>> getObjectHistories() {
+    public Collection<Actor<STATE>> getActors() {
         synchronized (objectCreationLock) {// hard to test
-            return objectHistories.stream().collect(toUnmodifiableList());
+            return List.copyOf(actors);
         }
     }
 
     @Override
     public String toString() {
-        return "Universe" + objectHistories;
+        return "Universe" + actors;
     }
 
     final class SchedulingMedium implements Medium<STATE> {

@@ -37,12 +37,12 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
-public class ObjectHistoryTest {
+public class ActorTest {
 
     static final Duration WHEN_A = Duration.ofMillis(0);
     static final Duration WHEN_B = Duration.ofMillis(5000);
 
-    public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history) {
+    public static <STATE> void assertInvariants(@Nonnull final Actor<STATE> history) {
         ObjectVerifier.assertInvariants(history);// inherited
 
         final var events = history.getEvents();
@@ -73,22 +73,22 @@ public class ObjectHistoryTest {
                 () -> assertEquals(stateTransitions, stateHistory.getTransitions(), "stateTransitions"));
     }
 
-    public static <STATE> void assertInvariants(@Nonnull final ObjectHistory<STATE> history1,
-                                                @Nonnull final ObjectHistory<STATE> history2) {
+    public static <STATE> void assertInvariants(@Nonnull final Actor<STATE> history1,
+                                                @Nonnull final Actor<STATE> history2) {
         ObjectVerifier.assertInvariants(history1, history2);// inherited
     }
 
     private static <STATE> void constructor(@Nonnull final Duration start,
                                             @Nonnull final STATE state) {
-        final var history = new ObjectHistory<>(start, state);
+        final var actor = new Actor<>(start, state);
 
-        assertInvariants(history);
-        final var stateTransitions = history.getStateTransitions();
+        assertInvariants(actor);
+        final var stateTransitions = actor.getStateTransitions();
         assertAll(
-                () -> assertSame(start, history.getStart(), "start"),
-                () -> assertSame(stateTransitions.firstKey(), history.getStart(), "start"),
+                () -> assertSame(start, actor.getStart(), "start"),
+                () -> assertSame(stateTransitions.firstKey(), actor.getStart(), "start"),
                 () -> assertEquals(stateTransitions, Map.of(start, state), "stateTransitions"),
-                () -> assertThat("events", history.getEvents(), empty()));
+                () -> assertThat("events", actor.getEvents(), empty()));
 
     }
 

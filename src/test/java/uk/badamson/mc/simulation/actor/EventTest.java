@@ -36,10 +36,10 @@ public class EventTest {
 
     private static final Duration WHEN_A = Duration.ofMillis(0);
     private static final Duration WHEN_B = Duration.ofMillis(5000);
-    private static final ObjectHistory<Integer> OBJECT_HISTORY_A = new ObjectHistory<>(WHEN_A, 0);
-    private static final ObjectHistory<Integer> OBJECT_HISTORY_B = new ObjectHistory<>(WHEN_B, 1);
-    private static final Signal<Integer> SIGNAL_A = new SignalTest.TestSignal(OBJECT_HISTORY_A, WHEN_A, OBJECT_HISTORY_B);
-    private static final Signal<Integer> SIGNAL_B = new SignalTest.TestSignal(OBJECT_HISTORY_B, WHEN_B, OBJECT_HISTORY_A);
+    private static final Actor<Integer> ACTOR_A = new Actor<>(WHEN_A, 0);
+    private static final Actor<Integer> ACTOR_B = new Actor<>(WHEN_B, 1);
+    private static final Signal<Integer> SIGNAL_A = new SignalTest.TestSignal(ACTOR_A, WHEN_A, ACTOR_B);
+    private static final Signal<Integer> SIGNAL_B = new SignalTest.TestSignal(ACTOR_B, WHEN_B, ACTOR_A);
 
     public static <STATE> void assertInvariants(@Nonnull final Event<STATE> event) {
         ObjectVerifier.assertInvariants(event);// inherited
@@ -66,7 +66,7 @@ public class EventTest {
     private static <STATE> void constructor(
             @Nonnull final Signal<STATE> causingSignal,
             @Nonnull final Duration when,
-            @Nonnull final ObjectHistory<STATE> affectedObject,
+            @Nonnull final Actor<STATE> affectedObject,
                                             @Nullable final STATE state,
             @Nonnull final Set<Signal<STATE>> signalsEmitted) {
         final var event = new Event<>(causingSignal, when, affectedObject, state, signalsEmitted);
@@ -82,7 +82,7 @@ public class EventTest {
 
     private static <STATE> Stream<Executable> createSignalsEmittedInvariantAssertions(
             final Duration when,
-                                                                                      final ObjectHistory<STATE> affectedObject, final Set<Signal<STATE>> signalsEmitted) {
+            final Actor<STATE> affectedObject, final Set<Signal<STATE>> signalsEmitted) {
         return signalsEmitted.stream().map(signal -> () -> {
             assertNotNull(signal, "signal");
             SignalTest.assertInvariants(signal);
@@ -93,24 +93,24 @@ public class EventTest {
 
     @Test
     public void destruction() {
-        constructor(SIGNAL_A, WHEN_A, OBJECT_HISTORY_A, null, Set.of());
+        constructor(SIGNAL_A, WHEN_A, ACTOR_A, null, Set.of());
     }
 
     @Test
     public void noSignalsEmitted_A() {
-        constructor(SIGNAL_A, WHEN_A, OBJECT_HISTORY_A, 0, Set.of());
+        constructor(SIGNAL_A, WHEN_A, ACTOR_A, 0, Set.of());
     }
 
     @Test
     public void noSignalsEmitted_B() {
-        constructor(SIGNAL_B, WHEN_B, OBJECT_HISTORY_B, 1, Set.of());
+        constructor(SIGNAL_B, WHEN_B, ACTOR_B, 1, Set.of());
     }
 
     @Test
     public void signalEmitted() {
         final var when = WHEN_A;
-        final var receiver = OBJECT_HISTORY_A;
-        final Set<Signal<Integer>> signalsEmitted = Set.of(new SignalTest.TestSignal(receiver, when, OBJECT_HISTORY_B));
+        final var receiver = ACTOR_A;
+        final Set<Signal<Integer>> signalsEmitted = Set.of(new SignalTest.TestSignal(receiver, when, ACTOR_B));
         constructor(SIGNAL_A, when, receiver, 0, signalsEmitted);
     }
 

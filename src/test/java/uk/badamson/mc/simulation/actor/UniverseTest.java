@@ -36,43 +36,37 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class UniverseTest {
 
-    static final Duration WHEN_A = ObjectHistoryTest.WHEN_A;
-    static final Duration WHEN_B = ObjectHistoryTest.WHEN_B;
+    static final Duration WHEN_A = ActorTest.WHEN_A;
+    static final Duration WHEN_B = ActorTest.WHEN_B;
     private static final Executor DIRECT_EXECUTOR = Runnable::run;
 
     private static <STATE> void assertEmpty(@Nonnull final Universe<STATE> universe) {
-        assertThat("objectHistories", universe.getObjectHistories(), empty());
+        assertThat("actors", universe.getActors(), empty());
     }
 
     public static <STATE> void assertInvariants(@Nonnull final Universe<STATE> universe) {
         ObjectVerifier.assertInvariants(universe);// inherited
 
-        final Collection<ObjectHistory<STATE>> objectHistories = universe.getObjectHistories();
+        final Collection<Actor<STATE>> actors = universe.getActors();
 
-        assertNotNull(objectHistories, "objectHistories");// guard
-        CollectionVerifier.assertForAllElements("objectHistories", objectHistories, history -> {
-            assertThat(history, notNullValue());// guard
-            ObjectHistoryTest.assertInvariants(history);
+        assertNotNull(actors, "actors");// guard
+        CollectionVerifier.assertForAllElements("actors", actors, actor -> {
+            assertThat(actor, notNullValue());// guard
+            ActorTest.assertInvariants(actor);
         });
     }
 
     public static <STATE> void assertInvariants(@Nonnull final Universe<STATE> universe1,
                                                 @Nonnull final Universe<STATE> universe2) {
         ObjectVerifier.assertInvariants(universe1, universe2);// inherited
-
-        assertAll("Value semantics",
-                () -> EqualsSemanticsVerifier.assertValueSemantics(universe1, universe2, "objectHistories",
-                        Universe::getObjectHistories),
-                () -> assertEquals(universe1.equals(universe2), universe1.getObjectHistories()
-                        .equals(universe2.getObjectHistories()), "equals"));
     }
 
-    private static <STATE> void constructor(@Nonnull final Collection<ObjectHistory<STATE>> objectHistories) {
-        final var universe = new Universe<>(objectHistories);
+    private static <STATE> void constructor(@Nonnull final Collection<Actor<STATE>> actors) {
+        final var universe = new Universe<>(actors);
 
         assertInvariants(universe);
-        assertThat("copied objectHistories", new HashSet<>(universe.getObjectHistories()),
-                is(new HashSet<>(objectHistories)));
+        assertThat("copied actors", new HashSet<>(universe.getActors()),
+                is(new HashSet<>(actors)));
     }
 
     @Nonnull
@@ -102,8 +96,8 @@ public class UniverseTest {
             ObjectVerifier.assertInvariants(medium);// inherited
             MediumTest.assertInvariants(medium);// inherited
 
-            CollectionVerifier.assertForAllElements(medium.getUniverse().getObjectHistories(), history -> {
-                assertThat("history", history, notNullValue());// guard
+            CollectionVerifier.assertForAllElements(medium.getUniverse().getActors(), actor -> {
+                assertThat("actor", actor, notNullValue());// guard
             });
         }
 
@@ -136,9 +130,9 @@ public class UniverseTest {
 
             @Test
             public void two() {
-                final var objectHistoryA = new ObjectHistory<>(WHEN_A, 0);
-                final var objectHistoryB = new ObjectHistory<>(WHEN_B, 1);
-                final Collection<ObjectHistory<Integer>> objectHistories = List.of(objectHistoryA, objectHistoryB);
+                final var actorA = new Actor<>(WHEN_A, 0);
+                final var actorB = new Actor<>(WHEN_B, 1);
+                final Collection<Actor<Integer>> objectHistories = List.of(actorA, actorB);
 
                 constructor(objectHistories);
             }
@@ -158,10 +152,10 @@ public class UniverseTest {
 
                 private void test(@Nonnull final Duration start,
                                   @Nonnull final Integer state) {
-                    final var objectHistory = new ObjectHistory<>(start, state);
-                    final Collection<ObjectHistory<Integer>> objectHistories = List.of(objectHistory);
+                    final var actor = new Actor<>(start, state);
+                    final Collection<Actor<Integer>> actors = List.of(actor);
 
-                    constructor(objectHistories);
+                    constructor(actors);
                 }
             }// class
         }// class

@@ -42,8 +42,8 @@ public class SignalTest {
 
     private static final Duration WHEN_A = Duration.ofMillis(0);
     private static final Duration WHEN_B = Duration.ofMillis(5000);
-    private static final ObjectHistory<Integer> OBJECT_HISTORY_A = new ObjectHistory<>(WHEN_A, 0);
-    private static final ObjectHistory<Integer> OBJECT_HISTORY_B = new ObjectHistory<>(WHEN_B, 1);
+    private static final Actor<Integer> ACTOR_A = new Actor<>(WHEN_A, 0);
+    private static final Actor<Integer> ACTOR_B = new Actor<>(WHEN_B, 1);
 
     public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal) {
         ObjectVerifier.assertInvariants(signal);// inherited
@@ -86,7 +86,7 @@ public class SignalTest {
         }
     }
 
-    private static Signal<Integer> constructor(@Nonnull final ObjectHistory<Integer> sender, @Nonnull final Duration whenSent, @Nonnull final ObjectHistory<Integer> receiver) {
+    private static Signal<Integer> constructor(@Nonnull final Actor<Integer> sender, @Nonnull final Duration whenSent, @Nonnull final Actor<Integer> receiver) {
         final Signal<Integer> signal = new TestSignal(sender, whenSent, receiver);
 
         assertInvariants(signal);
@@ -174,12 +174,12 @@ public class SignalTest {
 
         private final boolean strobe;
 
-        TestSignal(@Nonnull final ObjectHistory<Integer> sender, @Nonnull final Duration whenSent, @Nonnull final ObjectHistory<Integer> receiver, final boolean strobe) {
+        TestSignal(@Nonnull final Actor<Integer> sender, @Nonnull final Duration whenSent, @Nonnull final Actor<Integer> receiver, final boolean strobe) {
             super(sender, whenSent, receiver);
             this.strobe = strobe;
         }
 
-        TestSignal(@Nonnull final ObjectHistory<Integer> sender, @Nonnull final Duration whenSent, @Nonnull final ObjectHistory<Integer> receiver) {
+        TestSignal(@Nonnull final Actor<Integer> sender, @Nonnull final Duration whenSent, @Nonnull final Actor<Integer> receiver) {
             this(sender, whenSent, receiver, false);
         }
 
@@ -220,7 +220,7 @@ public class SignalTest {
 
         @Test
         public void a() {
-            final var signal = constructor(OBJECT_HISTORY_A, WHEN_A, OBJECT_HISTORY_B);
+            final var signal = constructor(ACTOR_A, WHEN_A, ACTOR_B);
 
             assertInvariants(signal, 0);
             assertInvariants(signal, Integer.MAX_VALUE);
@@ -229,12 +229,12 @@ public class SignalTest {
 
         @Test
         public void b() {
-            constructor(OBJECT_HISTORY_B, WHEN_B, OBJECT_HISTORY_A);
+            constructor(ACTOR_B, WHEN_B, ACTOR_A);
         }
 
         @Test
         public void endOfTime() {
-            final var signal = constructor(OBJECT_HISTORY_A, Signal.NEVER_RECEIVED, OBJECT_HISTORY_B);
+            final var signal = constructor(ACTOR_A, Signal.NEVER_RECEIVED, ACTOR_B);
 
             assertInvariants(signal, 0);
             assertInvariants(signal, Integer.MAX_VALUE);
@@ -242,14 +242,14 @@ public class SignalTest {
 
         @Test
         public void reflexive() {
-            final ObjectHistory<Integer> objectHistory = OBJECT_HISTORY_A;
-            constructor(objectHistory, WHEN_A, objectHistory);
+            final Actor<Integer> actor = ACTOR_A;
+            constructor(actor, WHEN_A, actor);
         }
 
         @Test
         public void two() {
-            final Signal<Integer> signalA = new TestSignal(OBJECT_HISTORY_A, WHEN_A, OBJECT_HISTORY_B);
-            final Signal<Integer> signalB = new TestSignal(OBJECT_HISTORY_B, WHEN_B, OBJECT_HISTORY_A);
+            final Signal<Integer> signalA = new TestSignal(ACTOR_A, WHEN_A, ACTOR_B);
+            final Signal<Integer> signalB = new TestSignal(ACTOR_B, WHEN_B, ACTOR_A);
 
             assertInvariants(signalA, signalB);
             assertNotEquals(signalA, signalB);
@@ -262,25 +262,25 @@ public class SignalTest {
 
         @Test
         public void a() {
-            test(OBJECT_HISTORY_A, WHEN_A, OBJECT_HISTORY_B, 0);
+            test(ACTOR_A, WHEN_A, ACTOR_B, 0);
         }
 
         @Test
         public void atEndOfTime() {
             assertThrows(Signal.UnreceivableSignalException.class,
-                    () -> test(OBJECT_HISTORY_A, Signal.NEVER_RECEIVED, OBJECT_HISTORY_B, Integer.MAX_VALUE)
+                    () -> test(ACTOR_A, Signal.NEVER_RECEIVED, ACTOR_B, Integer.MAX_VALUE)
             );
         }
 
         @Test
         public void b() {
-            test(OBJECT_HISTORY_B, WHEN_B, OBJECT_HISTORY_A, 1);
+            test(ACTOR_B, WHEN_B, ACTOR_A, 1);
         }
 
         private void test(
-                @Nonnull final ObjectHistory<Integer> sender,
+                @Nonnull final Actor<Integer> sender,
                 @Nonnull final Duration whenSent,
-                @Nonnull final ObjectHistory<Integer> receiver,
+                @Nonnull final Actor<Integer> receiver,
                 @Nonnull final Integer receiverState)
                 throws Signal.UnreceivableSignalException {
             final var signal = new TestSignal(sender, whenSent, receiver);
@@ -313,7 +313,7 @@ public class SignalTest {
                 }
 
                 private void test(@Nonnull final Duration whenSet, @Nullable final Integer receiverState) {
-                    final var signal = new TestSignal(OBJECT_HISTORY_A, whenSet, OBJECT_HISTORY_B);
+                    final var signal = new TestSignal(ACTOR_A, whenSet, ACTOR_B);
                     final ValueHistory<Integer> receiverStateHistory = new ConstantValueHistory<>(receiverState);
 
                     final var whenReceived = getWhenReceived(signal, receiverStateHistory);
@@ -369,7 +369,7 @@ public class SignalTest {
                 private void test(@Nonnull final Duration whenSet, @Nonnull final Duration transitionTime,
                                   @Nonnull final Integer receiverState0, @Nonnull final Integer receiverState1) {
                     assert whenSet.compareTo(transitionTime) < 0;
-                    final var signal = new TestSignal(OBJECT_HISTORY_A, whenSet, OBJECT_HISTORY_B);
+                    final var signal = new TestSignal(ACTOR_A, whenSet, ACTOR_B);
                     final ModifiableValueHistory<Integer> receiverStateHistory = new ModifiableValueHistory<>(
                             receiverState0);
                     receiverStateHistory.appendTransition(transitionTime, receiverState1);
