@@ -24,7 +24,6 @@ import uk.badamson.dbc.assertions.CollectionVerifier;
 import uk.badamson.dbc.assertions.EqualsSemanticsVerifier;
 import uk.badamson.dbc.assertions.ObjectVerifier;
 import uk.badamson.mc.history.ValueHistory;
-import uk.badamson.mc.simulation.TimestampedId;
 
 import javax.annotation.Nonnull;
 import java.time.Duration;
@@ -37,31 +36,20 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class UniverseTest {
 
-    static final UUID OBJECT_A = ObjectHistoryTest.OBJECT_A;
-    static final UUID OBJECT_B = ObjectHistoryTest.OBJECT_B;
-    static final UUID OBJECT_C = ObjectHistoryTest.OBJECT_C;
     static final Duration WHEN_A = ObjectHistoryTest.WHEN_A;
     static final Duration WHEN_B = ObjectHistoryTest.WHEN_B;
-    static final Duration WHEN_C = ObjectHistoryTest.WHEN_C;
-    private static final UUID SIGNAL_A = SignalTest.ID_A;
-    private static final UUID SIGNAL_B = SignalTest.ID_B;
     private static final Executor DIRECT_EXECUTOR = Runnable::run;
 
     private static <STATE> void assertEmpty(@Nonnull final Universe<STATE> universe) {
-        assertAll("empty", () -> assertThat("objects", universe.getObjects(), empty()),
-                () -> assertThat("objectHistories", universe.getObjectHistories(), empty()));
+        assertThat("objectHistories", universe.getObjectHistories(), empty());
     }
 
     public static <STATE> void assertInvariants(@Nonnull final Universe<STATE> universe) {
         ObjectVerifier.assertInvariants(universe);// inherited
 
-        final Set<UUID> objects = universe.getObjects();
         final Collection<ObjectHistory<STATE>> objectHistories = universe.getObjectHistories();
 
-        assertAll("Not null", () -> assertNotNull(objects, "objects"), // guard
-                () -> assertNotNull(objectHistories, "objectHistories")// guard
-        );
-        assertFalse(objects.stream().anyMatch(Objects::isNull), "The set of object IDs does not contain a null.");
+        assertNotNull(objectHistories, "objectHistories");// guard
         CollectionVerifier.assertForAllElements("objectHistories", objectHistories, history -> {
             assertThat(history, notNullValue());// guard
             ObjectHistoryTest.assertInvariants(history);
@@ -87,18 +75,6 @@ public class UniverseTest {
                 is(new HashSet<>(objectHistories)));
     }
 
-    private static <STATE> void constructor(@Nonnull final Universe<STATE> that) {
-        final var copy = new Universe<>(that);
-
-        assertInvariants(copy);
-        assertInvariants(that);
-        assertInvariants(copy, that);
-        assertThat("equals", copy, is(that));
-
-        assertAll("copied content", () -> assertThat("objects", copy.getObjects(), is(that.getObjects())),
-                () -> assertThat("objectHistories", copy.getObjectHistories(), is(that.getObjectHistories())));
-    }
-
     @Nonnull
     private static <STATE> Universe<STATE>.SchedulingMedium createMedium(@Nonnull final Universe<STATE> universe,
                                                                          @Nonnull final Executor executor, @Nonnull final Duration advanceTo) {
@@ -109,21 +85,6 @@ public class UniverseTest {
         SchedulingMediumTest.assertInvariants(medium);
 
         return medium;
-    }
-
-    private static <STATE> ObjectHistory<STATE> getObjectHistory(@Nonnull final Universe<STATE> universe,
-                                                                 @Nonnull final UUID object) {
-        final var objectHistory = universe.getObjectHistory(object);
-
-        assertInvariants(universe);
-        assertThat("Returns null if, and only if, object is not the ID of an object in this universe",
-                objectHistory == null == !universe.getObjects().contains(object));
-        if (objectHistory != null) {
-            ObjectHistoryTest.assertInvariants(objectHistory);
-            assertThat("objectHistory.object", objectHistory.getObject(), is(object));
-        }
-
-        return objectHistory;
     }
 
     private static class DeferringExecutor implements Executor {
@@ -152,48 +113,6 @@ public class UniverseTest {
 
             assertInvariants(medium);
         }
-
-        @Nested
-        public class RemoveAll {
-
-            @Nested
-            public class DeferredTasks {
-
-                @Test
-                public void a() {
-                    test(OBJECT_A, OBJECT_B, SIGNAL_A, WHEN_A, WHEN_B);
-                }
-
-                @Test
-                public void b() {
-                    test(OBJECT_B, OBJECT_C, SIGNAL_B, WHEN_B, WHEN_C);
-                }
-
-                private void test(@Nonnull final UUID sender, @Nonnull final UUID receiver,
-                                  @Nonnull final UUID signalId, @Nonnull final Duration start, @Nonnull final Duration whenSet) {
-                    final Integer state0 = 0;
-                    final Duration advanceTo = ValueHistory.END_OF_TIME;
-                    final var history0 = new ObjectHistory<>(receiver, start, state0);
-                    final TimestampedId sentFrom = new TimestampedId(sender, whenSet);
-                    final Signal<Integer> signal = new SignalTest.TestSignal(signalId, sentFrom, receiver);
-                    final Universe<Integer> universe = new Universe<>(List.of(history0));
-                    final Executor executor = new DeferringExecutor();
-                    final var medium = universe.createMedium(executor, advanceTo);
-                    final var signals = Set.of(signal);
-                    medium.addAll(signals);
-
-                    removeAll(medium, signals);
-
-                    final var history = universe.getObjectHistory(receiver);
-                    UniverseTest.assertInvariants(universe);
-                    assertInvariants(medium);
-                    assertThat("receiver history", history, notNullValue());// guard
-                    ObjectHistoryTest.assertInvariants(history);
-                    assertThat("signals", medium.getSignals(), empty());
-                }
-
-            }// class
-        }// class
     }// class
 
     @Nested
@@ -208,42 +127,6 @@ public class UniverseTest {
         }
 
         @Nested
-        public class Copy {
-
-            @Test
-            public void empty() {
-                final var universe = new Universe<Integer>();
-
-                constructor(universe);
-
-                assertEmpty(universe);
-            }
-
-            @Nested
-            public class One {
-
-                @Test
-                public void a() {
-                    test(OBJECT_A, WHEN_A, 0);
-                }
-
-                @Test
-                public void b() {
-                    test(OBJECT_B, WHEN_B, 1);
-                }
-
-                private void test(@Nonnull final UUID object, @Nonnull final Duration start,
-                                  @Nonnull final Integer state) {
-                    final var objectHistory = new ObjectHistory<>(object, start, state);
-                    final Collection<ObjectHistory<Integer>> objectHistories = List.of(objectHistory);
-                    final var universe = new Universe<>(objectHistories);
-
-                    constructor(universe);
-                }
-            }// class
-        }// class
-
-        @Nested
         public class FromObjectHistories {
 
             @Test
@@ -253,8 +136,8 @@ public class UniverseTest {
 
             @Test
             public void two() {
-                final var objectHistoryA = new ObjectHistory<>(OBJECT_A, WHEN_A, 0);
-                final var objectHistoryB = new ObjectHistory<>(OBJECT_B, WHEN_B, 1);
+                final var objectHistoryA = new ObjectHistory<>(WHEN_A, 0);
+                final var objectHistoryB = new ObjectHistory<>(WHEN_B, 1);
                 final Collection<ObjectHistory<Integer>> objectHistories = List.of(objectHistoryA, objectHistoryB);
 
                 constructor(objectHistories);
@@ -265,76 +148,22 @@ public class UniverseTest {
 
                 @Test
                 public void a() {
-                    test(OBJECT_A, WHEN_A, 0);
+                    test(WHEN_A, 0);
                 }
 
                 @Test
                 public void b() {
-                    test(OBJECT_B, WHEN_B, 1);
+                    test(WHEN_B, 1);
                 }
 
-                private void test(@Nonnull final UUID object, @Nonnull final Duration start,
+                private void test(@Nonnull final Duration start,
                                   @Nonnull final Integer state) {
-                    final var objectHistory = new ObjectHistory<>(object, start, state);
+                    final var objectHistory = new ObjectHistory<>(start, state);
                     final Collection<ObjectHistory<Integer>> objectHistories = List.of(objectHistory);
 
                     constructor(objectHistories);
                 }
             }// class
-        }// class
-
-        @Nested
-        public class Two {
-
-            @Test
-            public void different_objects() {
-                final var state = 0;
-                final var objectHistoryA = new ObjectHistory<>(OBJECT_A, WHEN_A, state);
-                final var objectHistoryB = new ObjectHistory<>(OBJECT_B, WHEN_A, state);
-                final Collection<ObjectHistory<Integer>> objectHistoriesA = List.of(objectHistoryA);
-                final Collection<ObjectHistory<Integer>> objectHistoriesB = List.of(objectHistoryB);
-                final var universeA = new Universe<>(objectHistoriesA);
-                final var universeB = new Universe<>(objectHistoriesB);
-
-                assertInvariants(universeA, universeB);
-                assertThat(universeA, not(is(universeB)));
-            }
-
-            @Test
-            public void different_stateHistories() {
-                final var objectHistoryA = new ObjectHistory<>(OBJECT_A, WHEN_A, 0);
-                final var objectHistoryB = new ObjectHistory<>(OBJECT_A, WHEN_B, 1);
-                final Collection<ObjectHistory<Integer>> objectHistoriesA = List.of(objectHistoryA);
-                final Collection<ObjectHistory<Integer>> objectHistoriesB = List.of(objectHistoryB);
-                final var universeA = new Universe<>(objectHistoriesA);
-                final var universeB = new Universe<>(objectHistoriesB);
-
-                assertInvariants(universeA, universeB);
-                assertThat(universeA, not(is(universeB)));
-            }
-
-            @Test
-            public void equivalent_empty() {
-                final var universeA = new Universe<Integer>();
-                final var universeB = new Universe<Integer>();
-
-                assertInvariants(universeA, universeB);
-                assertThat("equals", universeA, is(universeB));
-            }
-
-            @Test
-            public void equivalent_nonEmpty() {
-                final var object = OBJECT_A;
-                final var objectHistoryA = new ObjectHistory<>(object, WHEN_A, 0);
-                final var objectHistoryB = new ObjectHistory<>(object, WHEN_A, 0);
-                final Collection<ObjectHistory<Integer>> objectHistoriesA = List.of(objectHistoryA);
-                final Collection<ObjectHistory<Integer>> objectHistoriesB = List.of(objectHistoryB);
-                final var universeA = new Universe<>(objectHistoriesA);
-                final var universeB = new Universe<>(objectHistoriesB);
-
-                assertInvariants(universeA, universeB);
-                assertThat("equals", universeA, is(universeB));
-            }
         }// class
 
     }// class
@@ -366,43 +195,5 @@ public class UniverseTest {
         }// class
 
 
-    }// class
-
-    @Nested
-    public class GetObjectHistory {
-
-        @Test
-        public void absent() {
-            final var universe = new Universe<Integer>();
-
-            final var objectHistory = getObjectHistory(universe, OBJECT_A);
-
-            assertThat("objectHistory", objectHistory, nullValue());
-        }
-
-        @Nested
-        public class Present {
-
-            @Test
-            public void a() {
-                test(OBJECT_A);
-            }
-
-            @Test
-            public void b() {
-                test(OBJECT_B);
-            }
-
-            private void test(@Nonnull final UUID object) {
-                final Integer state = 0;
-                final var objectHistory0 = new ObjectHistory<>(object, WHEN_A, state);
-                final var universe = new Universe<>(List.of(objectHistory0));
-
-                final var objectHistory = getObjectHistory(universe, object);
-
-                assertThat("objectHistory", objectHistory, is(objectHistory0));
-            }
-
-        }// class
     }// class
 }

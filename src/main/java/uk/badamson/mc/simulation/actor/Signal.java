@@ -20,7 +20,6 @@ package uk.badamson.mc.simulation.actor;
 
 import uk.badamson.mc.history.TimestampedValue;
 import uk.badamson.mc.history.ValueHistory;
-import uk.badamson.mc.simulation.TimestampedId;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
@@ -54,58 +53,26 @@ public abstract class Signal<STATE> {
     @Nonnull
     @Nonnegative
     public static final Duration NEVER_RECEIVED = Duration.ofSeconds(Long.MAX_VALUE, 999_999_999);
+
     @Nonnull
-    private final UUID id;
+    private final ObjectHistory<STATE> sender;
+
     @Nonnull
-    private final TimestampedId sentFrom;
+    private final Duration whenSent;
+
     @Nonnull
-    private final UUID receiver;
+    private final ObjectHistory<STATE> receiver;
 
     /**
      * <p>
      * Construct a signal with given attribute values.
      * </p>
-     *
-     * @param id       The unique ID for this signal.
-     * @param sentFrom The ID of the simulated object that sent this signal, and the
-     *                 point in time that it sent (emitted) the signal.
-     * @param receiver The ID of the simulated object that this signal was sent to; the
-     *                 object that will receive it.
-     * @throws NullPointerException If an {@linkplain Nonnull} argument is null
+     * @throws NullPointerException If any {@linkplain Nonnull} argument is null
      */
-    protected Signal(@Nonnull final UUID id, @Nonnull final TimestampedId sentFrom, @Nonnull final UUID receiver) {
-        this.id = Objects.requireNonNull(id, "id");
-        this.sentFrom = Objects.requireNonNull(sentFrom, "sentFrom");
+    protected Signal(@Nonnull final ObjectHistory<STATE> sender, @Nonnull final Duration whenSent, @Nonnull final ObjectHistory<STATE> receiver) {
+        this.sender = Objects.requireNonNull(sender, "sender");
+        this.whenSent = Objects.requireNonNull(whenSent, "whenSent");
         this.receiver = Objects.requireNonNull(receiver, "receiver");
-    }
-
-    /**
-     * <p>
-     * Whether this signal is <dfn>equivalent to</dfn> a given other object.
-     * </p>
-     * <p>
-     * The Signal class has <i>entity semantics</i> with the
-     * {@linkplain #getId() ID} attribute acting as the unique ID.
-     * </p>
-     */
-    @Override
-    public final boolean equals(final Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (!(obj instanceof Signal)) {
-            return false;
-        }
-        final Signal<?> other = (Signal<?>) obj;
-        return id.equals(other.id);
-    }
-
-    /**
-     * The unique ID for this signal.
-     */
-    @Nonnull
-    public final UUID getId() {
-        return id;
     }
 
     /**
@@ -136,20 +103,20 @@ public abstract class Signal<STATE> {
 
     /**
      * <p>
-     * The ID of the simulated object that this signal was sent to; the object that
+     * The simulated object that this signal was sent to; the object that
      * will receive it.
      * </p>
      *
      * @see #getSender()
      */
     @Nonnull
-    public final UUID getReceiver() {
+    public final ObjectHistory<STATE> getReceiver() {
         return receiver;
     }
 
     /**
      * <p>
-     * The ID of the simulated object that sent this signal.
+     * The simulated object that sent this signal.
      * </p>
      * <p>
      * An object may send signals to itself. That is; the sender and
@@ -160,27 +127,8 @@ public abstract class Signal<STATE> {
      * @see #getReceiver()
      */
     @Nonnull
-    public final UUID getSender() {
-        return sentFrom.getObject();
-    }
-
-    /**
-     * <p>
-     * The ID of the simulated object that sent this signal, and the point in time
-     * that it sent (emitted) the signal.
-     * </p>
-     * <ul>
-     * <li>The {@linkplain TimestampedId#getObject() object} of the sent-from
-     * information is the same as the {@linkplain #getSender() sender} of this
-     * signal.</li>
-     * <li>The {@linkplain TimestampedId#getWhen() time-stamp} of the sent-from
-     * information is the same as the {@linkplain #getWhenSent() sending time} of
-     * this signal.</li>
-     * </ul>
-     */
-    @Nonnull
-    public final TimestampedId getSentFrom() {
-        return sentFrom;
+    public final ObjectHistory<STATE> getSender() {
+        return sender;
     }
 
     /**
@@ -320,12 +268,7 @@ public abstract class Signal<STATE> {
      */
     @Nonnull
     public final Duration getWhenSent() {
-        return sentFrom.getWhen();
-    }
-
-    @Override
-    public final int hashCode() {
-        return id.hashCode();
+        return whenSent;
     }
 
     /**
@@ -335,13 +278,12 @@ public abstract class Signal<STATE> {
      * ID.
      * </p>
      * <ul>
-     * <li>The {@linkplain Event#getCausingSignal() ID of the signal causing} the
-     * returned event is the same as the {@linkplain #getId() ID} of this
-     * signal.</li>
+     * <li>The {@linkplain Event#getCausingSignal() signal causing} the
+     * returned event is this signal.</li>
      * <li>The {@linkplain Event#getAffectedObject() affected object} of the
      * returned event is {@linkplain UUID#equals(Object) equal to} the
      * {@linkplain #getReceiver() receiver} of this signal.</li>
-     * <li>The {@linkplain Event#getWhenOccurred() time of occurrence} of the
+     * <li>The {@linkplain Event#getWhen() time of occurrence} of the
      * returned event is the same as {@code when}.</li>
      * <li>The implementation must be deterministic: the returned value may depend
      * only on the ({@linkplain Immutable immutable}) state of this signal and the
@@ -379,16 +321,14 @@ public abstract class Signal<STATE> {
      * <i>primitive operations</i>.
      * </p>
      * <ul>
-     * <li>The {@linkplain Event#getCausingSignal() ID of the signal causing} the
-     * returned event is the same as the {@linkplain #getId() ID} of this
-     * signal.</li>
+     * <li>The {@linkplain Event#getCausingSignal() signal causing} the returned event is this signal.</li>
      * <li>The {@linkplain Event#getAffectedObject() affected object} of the
      * returned event is {@linkplain UUID#equals(Object) equal to} the
      * {@linkplain #getReceiver() receiver} of this signal.</li>
-     * <li>The {@linkplain Event#getWhenOccurred() occurrence time} of the returned
+     * <li>The {@linkplain Event#getWhen() occurrence time} of the returned
      * event is {@linkplain Duration#compareTo(Duration) before} the maximum
      * possible {@link Duration} value.</li>
-     * <li>The {@linkplain Event#getWhenOccurred() time of occurrence} of the
+     * <li>The {@linkplain Event#getWhen() time of occurrence} of the
      * returned event is {@linkplain Duration#equals(Object) equal to} the
      * {@linkplain #getWhenReceived(Object) reception time} of this signal, for the
      * receiver in the given {@code receiverState}.</li>
@@ -412,11 +352,6 @@ public abstract class Signal<STATE> {
         } else {
             throw new UnreceivableSignalException();
         }
-    }
-
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + "[" + id + ": " + sentFrom + "⇝" + receiver + "]";
     }
 
     /**

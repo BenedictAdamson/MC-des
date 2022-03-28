@@ -43,8 +43,6 @@ import java.util.*;
 public final class ObjectHistory<STATE> {
 
     @Nonnull
-    private final UUID object;
-    @Nonnull
     private final Duration start;
     /*
      * Use a UUID object as the lock so all ObjectHistory objects can have a
@@ -63,21 +61,6 @@ public final class ObjectHistory<STATE> {
 
     /**
      * <p>
-     * Copy an object history.
-     * </p>
-     */
-    public ObjectHistory(@Nonnull final ObjectHistory<STATE> that) {
-        Objects.requireNonNull(that, "that");
-        object = that.object;
-        start = that.start;
-        synchronized (that.object) {// hard to test
-            stateHistory = new ModifiableValueHistory<>(that.stateHistory);
-            events = new TreeMap<>(that.events);
-        }
-    }
-
-    /**
-     * <p>
      * Construct an object history with given start information and no signals.
      * </p>
      * <ul>
@@ -85,15 +68,13 @@ public final class ObjectHistory<STATE> {
      * {@linkplain SortedSet#isEmpty() is empty}.</li>
      * </ul>
      *
-     * @param object The unique ID of the object for which this is the history.
      * @param start  The point in time that this history starts.
      * @param state  The first (known) state transition of the {@code
      *               object}.
      * @throws NullPointerException If a {@link Nonnull} argument is null
      */
-    public ObjectHistory(@Nonnull final UUID object, @Nonnull final Duration start, @Nonnull final STATE state) {
+    public ObjectHistory(@Nonnull final Duration start, @Nonnull final STATE state) {
         Objects.requireNonNull(state, "state");
-        this.object = Objects.requireNonNull(object, "object");
         this.start = Objects.requireNonNull(start, "start");
         this.stateHistory = new ModifiableValueHistory<>();
         this.stateHistory.appendTransition(start, state);
@@ -102,62 +83,20 @@ public final class ObjectHistory<STATE> {
 
     /**
      * <p>
-     * Whether this object is <dfn>equivalent</dfn> to a given object.
-     * </p>
-     * <p>
-     * The {ObjectHistory class has <i>value semantics</i>.
-     * </p>
-     */
-    @Override
-    public boolean equals(final Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (!(obj instanceof ObjectHistory)) {
-            return false;
-        }
-        final ObjectHistory<?> other = (ObjectHistory<?>) obj;
-        if (!object.equals(other.object) || !start.equals(other.start)) {
-            return false;
-        }
-        if (lockBefore(other)) {
-            return equalsGuarded(other);
-        } else {
-            return other.equalsGuarded(this);
-        }
-    }
-
-    private boolean equalsGuarded(@Nonnull final ObjectHistory<?> that) {
-        // hard to test the thread safety
-        synchronized (lock) {
-            synchronized (that.lock) {
-                return stateHistory.equals(that.stateHistory);
-            }
-        }
-    }
-
-    /**
-     * <p>
      * Get a snapshot of the sequence of events that have
-     * {@linkplain Event#getAffectedObject() affected} the {@linkplain #getObject()
-     * simulated object}.
+     * {@linkplain Event#getAffectedObject() affected} the simulated object.
      * </p>
      * <ul>
      * <li>The events sequence may be {@linkplain SortedSet#isEmpty() empty}.</li>
-     * <li>All events {@linkplain Event#getAffectedObject() affect} the
-     * {@linkplain #getObject() simulated object} of this history.</li>
-     * <li>All events {@linkplain Event#getWhenOccurred() occurred}
+     * <li>All events {@linkplain Event#getAffectedObject() affect} this object.</li>
+     * <li>All events {@linkplain Event#getWhen() occurred}
      * {@linkplain Duration#compareTo(Duration) after} the {@linkplain #getStart()
      * start} time of this history.</li>
      * <li>The returned event sequence is a snapshot: a copy of data, it is not
      * updated if this object history is subsequently changed.</li>
      * <li>Note that events may be <i>measured as simultaneous</i>: events can have
      * {@linkplain Duration#equals(Object) equivalent}
-     * {@linkplain Event#getWhenOccurred() times of occurrence}. Note however, that
-     * the collection of events is {@linkplain Event#compareTo(Event) ordered by}
-     * the {@linkplain Event#getId() event IDs}, so the
-     * {@linkplain Event#getCausingSignal() ID of the causing signal} is used as a
-     * tie-breaker to produce a strict ordering. In that case, however, the state
+     * {@linkplain Event#getWhen() times of occurrence}. However, the state
      * transition(s) due to some <i>measured as simultaneous</i> events will not be
      * apparent in the {@linkplain #getStateHistory() state history}; only the
      * <i>measured as simultaneous</i> event with the largest ID of its causing
@@ -176,8 +115,7 @@ public final class ObjectHistory<STATE> {
     /**
      * <p>
      * The last of the {@linkplain #getEvents() sequence of events} that have
-     * {@linkplain Event#getAffectedObject() affected} the {@linkplain #getObject()
-     * simulated object}.
+     * {@linkplain Event#getAffectedObject() affected} this simulated object.
      * </p>
      * <ul>
      * <li>The last event is null if, and only if, the sequence of events is
@@ -201,19 +139,6 @@ public final class ObjectHistory<STATE> {
 
     /**
      * <p>
-     * The unique ID of the object for which this is the history.
-     * </p>
-     * <ul>
-     * <li>Constant: the history always returns the same object ID.</li>
-     * </ul>
-     */
-    @Nonnull
-    public UUID getObject() {
-        return object;
-    }
-
-    /**
-     * <p>
      * The point in time that this history starts.
      * </p>
      * <p>
@@ -232,8 +157,8 @@ public final class ObjectHistory<STATE> {
 
     /**
      * <p>
-     * Get a snapshot of the history of states that the {@linkplain #getObject()
-     * simulated object} has passed through.
+     * Get a snapshot of the history of states that the
+     * simulated object has passed through.
      * </p>
      * <ul>
      * <li>The state history is never {@linkplain ValueHistory#isEmpty()
@@ -246,7 +171,7 @@ public final class ObjectHistory<STATE> {
      * <li>The {@linkplain Event#getState() state} resulting from an
      * {@linkplain #getEvents() event} is {@linkplain #equals(Object) equivalent to}
      * the {@linkplain ValueHistory#get(Duration) value} of the state history at the
-     * {@linkplain Event#getWhenOccurred() time of occurrence} of the event.</li>
+     * {@linkplain Event#getWhen() time of occurrence} of the event.</li>
      * <li>The returned state history is a snapshot: a copy of data, it is not
      * updated if this object history is subsequently changed.</li>
      * </ul>
@@ -276,25 +201,9 @@ public final class ObjectHistory<STATE> {
     }
 
     @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        synchronized (lock) {// hard to test thread safety
-            result = prime * result + object.hashCode();
-            result = prime * result + stateHistory.hashCode();
-        }
-        return result;
-    }
-
-    private boolean lockBefore(@Nonnull final ObjectHistory<?> that) {
-        assert !lock.equals(that.lock);
-        return lock.compareTo(that.lock) < 0;
-    }
-
-    @Override
     public String toString() {
         synchronized (lock) {
-            return "ObjectHistory[" + object + " from " + start + ", stateHistory=" + stateHistory + "]";
+            return super.toString() + "[from " + start + ", stateHistory=" + stateHistory + "]";
         }
     }
 

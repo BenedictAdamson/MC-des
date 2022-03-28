@@ -21,13 +21,10 @@ package uk.badamson.mc.simulation.actor;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import uk.badamson.dbc.assertions.EqualsSemanticsVerifier;
 import uk.badamson.dbc.assertions.ObjectVerifier;
 import uk.badamson.mc.history.ConstantValueHistory;
 import uk.badamson.mc.history.ModifiableValueHistory;
 import uk.badamson.mc.history.ValueHistory;
-import uk.badamson.mc.simulation.TimestampedId;
-import uk.badamson.mc.simulation.TimestampedIdTest;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
@@ -35,7 +32,6 @@ import javax.annotation.Nullable;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -44,36 +40,25 @@ import static org.junit.jupiter.api.Assertions.*;
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
 public class SignalTest {
 
-    static final UUID ID_A = UUID.randomUUID();
-    static final UUID ID_B = UUID.randomUUID();
-    private static final UUID OBJECT_A = UUID.randomUUID();
-    private static final UUID OBJECT_B = UUID.randomUUID();
     private static final Duration WHEN_A = Duration.ofMillis(0);
     private static final Duration WHEN_B = Duration.ofMillis(5000);
-    private static final TimestampedId OBJECT_STATE_ID_A = new TimestampedId(OBJECT_A, WHEN_A);
-    private static final TimestampedId OBJECT_STATE_ID_B = new TimestampedId(OBJECT_B, WHEN_B);
+    private static final ObjectHistory<Integer> OBJECT_HISTORY_A = new ObjectHistory<>(WHEN_A, 0);
+    private static final ObjectHistory<Integer> OBJECT_HISTORY_B = new ObjectHistory<>(WHEN_B, 1);
 
     public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal) {
         ObjectVerifier.assertInvariants(signal);// inherited
 
-        final var id = signal.getId();
         final var receiver = signal.getReceiver();
         final var sender = signal.getSender();
-        final var sentFrom = signal.getSentFrom();
         final var whenSent = signal.getWhenSent();
-        assertAll("Not null", () -> assertNotNull(id, "id"), () -> assertNotNull(receiver, "receiver"),
-                () -> assertNotNull(sender, "sender"), () -> assertNotNull(sentFrom, "sentFrom"), // guard
+        assertAll("Not null", () -> assertNotNull(receiver, "receiver"),
+                () -> assertNotNull(sender, "sender"),
                 () -> assertNotNull(whenSent, "whenSent"));
-        TimestampedIdTest.assertInvariants(sentFrom);
-        assertAll("consistent attributes", () -> assertSame(sender, sentFrom.getObject(), "sender with SentFrom"),
-                () -> assertSame(whenSent, sentFrom.getWhen(), "whenSent with SentFrom"));
     }
 
     public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal1,
                                                 @Nonnull final Signal<STATE> signal2) {
         ObjectVerifier.assertInvariants(signal1, signal2);// inherited
-
-        EqualsSemanticsVerifier.assertEntitySemantics(signal1, signal2, Signal::getId);
     }
 
     public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal,
@@ -101,14 +86,15 @@ public class SignalTest {
         }
     }
 
-    private static Signal<Integer> constructor(@Nonnull final UUID id, @Nonnull final TimestampedId sentFrom,
-                                               @Nonnull final UUID receiver) {
-        final Signal<Integer> signal = new TestSignal(id, sentFrom, receiver);
+    private static Signal<Integer> constructor(@Nonnull final ObjectHistory<Integer> sender, @Nonnull final Duration whenSent, @Nonnull final ObjectHistory<Integer> receiver) {
+        final Signal<Integer> signal = new TestSignal(sender, whenSent, receiver);
 
         assertInvariants(signal);
-        assertAll("Attributes", () -> assertSame(id, signal.getId(), "id"),
-                () -> assertSame(sentFrom, signal.getSentFrom(), "sentFrom"),
-                () -> assertSame(receiver, signal.getReceiver(), "receiver"));
+        assertAll("Attributes",
+                () -> assertSame(sender, signal.getSender(), "sender"),
+                () -> assertSame(whenSent, signal.getWhenSent(), "whenSent"),
+        () -> assertSame(receiver, signal.getReceiver(), "receiver")
+        );
         return signal;
     }
 
@@ -143,8 +129,8 @@ public class SignalTest {
         assertNotNull(effect, "Not null, effect");// guard
         assertInvariants(signal);
         EventTest.assertInvariants(effect);
-        final var whenOccurred = effect.getWhenOccurred();
-        assertAll("event", () -> assertSame(signal.getId(), effect.getCausingSignal(), "causingSignal"),
+        final var whenOccurred = effect.getWhen();
+        assertAll("event", () -> assertSame(signal, effect.getCausingSignal(), "causingSignal"),
                 () -> assertEquals(signal.getReceiver(), effect.getAffectedObject(), "affectedObject"),
                 () -> assertThat("whenOccurred is before the maximum possible Duration value", whenOccurred,
                         lessThan(Signal.NEVER_RECEIVED)),
@@ -188,17 +174,13 @@ public class SignalTest {
 
         private final boolean strobe;
 
-        TestSignal(@Nonnull final UUID id,
-                   @Nonnull final TimestampedId sentFrom,
-                   @Nonnull final UUID receiver) {
-            super(id, sentFrom, receiver);
-            strobe = false;
+        TestSignal(@Nonnull final ObjectHistory<Integer> sender, @Nonnull final Duration whenSent, @Nonnull final ObjectHistory<Integer> receiver, final boolean strobe) {
+            super(sender, whenSent, receiver);
+            this.strobe = strobe;
         }
 
-        TestSignal(@Nonnull final UUID id, @Nonnull final TimestampedId sentFrom, @Nonnull final UUID receiver,
-                   final boolean strobe) {
-            super(id, sentFrom, receiver);
-            this.strobe = strobe;
+        TestSignal(@Nonnull final ObjectHistory<Integer> sender, @Nonnull final Duration whenSent, @Nonnull final ObjectHistory<Integer> receiver) {
+            this(sender, whenSent, receiver, false);
         }
 
         @Override
@@ -219,19 +201,16 @@ public class SignalTest {
             if (when.compareTo(getWhenSent()) <= 0) {
                 throw new IllegalArgumentException("when not after whenSent");
             }
-            final Integer newState = receiverState + 1;
-            final Set<Signal<Integer>> signalsEmitted;
-            final var eventId = new TimestampedId(getId(), when);
             final var receiver = getReceiver();
+            final Set<Signal<Integer>> signalsEmitted;
             if (strobe) {
-                final UUID emittedSignalId = UUID.randomUUID();
-                final TimestampedId sentFrom = new TimestampedId(receiver, when);
-                final Signal<Integer> signalEmitted = new TestSignal(emittedSignalId, sentFrom, receiver, true);
+                final Signal<Integer> signalEmitted = new TestSignal(receiver, when, receiver);
                 signalsEmitted = Set.of(signalEmitted);
             } else {
                 signalsEmitted = Set.of();
             }
-            return new Event<>(eventId, receiver, newState, signalsEmitted);
+            final Integer newState = receiverState + 1;
+            return new Event<>(this, when, receiver, newState, signalsEmitted);
         }
 
     }// class
@@ -241,7 +220,7 @@ public class SignalTest {
 
         @Test
         public void a() {
-            final var signal = constructor(ID_A, OBJECT_STATE_ID_A, OBJECT_B);
+            final var signal = constructor(OBJECT_HISTORY_A, WHEN_A, OBJECT_HISTORY_B);
 
             assertInvariants(signal, 0);
             assertInvariants(signal, Integer.MAX_VALUE);
@@ -250,13 +229,12 @@ public class SignalTest {
 
         @Test
         public void b() {
-            constructor(ID_B, OBJECT_STATE_ID_B, OBJECT_A);
+            constructor(OBJECT_HISTORY_B, WHEN_B, OBJECT_HISTORY_A);
         }
 
         @Test
         public void endOfTime() {
-            final var sentFrom = new TimestampedId(OBJECT_A, Signal.NEVER_RECEIVED);
-            final var signal = constructor(ID_A, sentFrom, OBJECT_B);
+            final var signal = constructor(OBJECT_HISTORY_A, Signal.NEVER_RECEIVED, OBJECT_HISTORY_B);
 
             assertInvariants(signal, 0);
             assertInvariants(signal, Integer.MAX_VALUE);
@@ -264,33 +242,18 @@ public class SignalTest {
 
         @Test
         public void reflexive() {
-            constructor(ID_A, OBJECT_STATE_ID_A, OBJECT_A);
+            final ObjectHistory<Integer> objectHistory = OBJECT_HISTORY_A;
+            constructor(objectHistory, WHEN_A, objectHistory);
         }
 
-        @Nested
-        public class Two {
+        @Test
+        public void two() {
+            final Signal<Integer> signalA = new TestSignal(OBJECT_HISTORY_A, WHEN_A, OBJECT_HISTORY_B);
+            final Signal<Integer> signalB = new TestSignal(OBJECT_HISTORY_B, WHEN_B, OBJECT_HISTORY_A);
 
-            @Test
-            public void different() {
-                // Tough test: non ID attributes are the same
-                final Signal<Integer> signalA = new TestSignal(ID_A, OBJECT_STATE_ID_A, OBJECT_A);
-                final Signal<Integer> signalB = new TestSignal(ID_B, OBJECT_STATE_ID_A, OBJECT_A);
-
-                assertInvariants(signalA, signalB);
-                assertNotEquals(signalA, signalB);
-            }
-
-            @Test
-            public void equivalent() {
-                // Tough test: non ID attributes are the different
-                final Signal<Integer> signalA = new TestSignal(ID_A, OBJECT_STATE_ID_A, OBJECT_A);
-                final Signal<Integer> signalB = new TestSignal(ID_A, OBJECT_STATE_ID_B, OBJECT_B);
-
-                assertInvariants(signalA, signalB);
-                assertEquals(signalA, signalB);
-            }
-
-        }// class
+            assertInvariants(signalA, signalB);
+            assertNotEquals(signalA, signalB);
+        }
 
     }// class
 
@@ -299,29 +262,27 @@ public class SignalTest {
 
         @Test
         public void a() {
-            test(ID_A, OBJECT_STATE_ID_A, OBJECT_B, 0, false);
+            test(OBJECT_HISTORY_A, WHEN_A, OBJECT_HISTORY_B, 0, false);
         }
 
         @Test
         public void atEndOfTime() {
-            final var whenSent = Signal.NEVER_RECEIVED;// critical
-            final var sentFrom = new TimestampedId(OBJECT_A, whenSent);
-
-            test(ID_A, sentFrom, OBJECT_A, Integer.MAX_VALUE, true);
+            test(OBJECT_HISTORY_A, Signal.NEVER_RECEIVED, OBJECT_HISTORY_B, Integer.MAX_VALUE, true);
         }
 
         @Test
         public void b() {
-            test(ID_B, OBJECT_STATE_ID_B, OBJECT_A, 1, false);
+            test(OBJECT_HISTORY_B, WHEN_B, OBJECT_HISTORY_A, 1, false);
         }
 
-        private void test(@Nonnull final UUID id, @Nonnull final TimestampedId sentFrom, @Nonnull final UUID receiver,
+        private void test(@Nonnull final ObjectHistory<Integer> sender, @Nonnull final Duration whenSent, @Nonnull final ObjectHistory<Integer> receiver,
                           @Nonnull final Integer receiverState, final boolean expectUnreceivableSignalException) {
-            final var signal = new TestSignal(id, sentFrom, receiver);
+            final var signal = new TestSignal(sender, whenSent, receiver);
 
             try {
                 receive(signal, receiverState);
             } catch (final Signal.UnreceivableSignalException e) {
+                // TODO: use assertThrows instead
                 if (!expectUnreceivableSignalException) {
                     throw new AssertionError("Throws UnreceivableSignalException only as specified", e);
                 }
@@ -355,7 +316,7 @@ public class SignalTest {
                 }
 
                 private void test(@Nonnull final Duration whenSet, @Nullable final Integer receiverState) {
-                    final var signal = new TestSignal(ID_A, new TimestampedId(OBJECT_A, whenSet), OBJECT_B);
+                    final var signal = new TestSignal(OBJECT_HISTORY_A, whenSet, OBJECT_HISTORY_B);
                     final ValueHistory<Integer> receiverStateHistory = new ConstantValueHistory<>(receiverState);
 
                     final var whenReceived = getWhenReceived(signal, receiverStateHistory);
@@ -411,7 +372,7 @@ public class SignalTest {
                 private void test(@Nonnull final Duration whenSet, @Nonnull final Duration transitionTime,
                                   @Nonnull final Integer receiverState0, @Nonnull final Integer receiverState1) {
                     assert whenSet.compareTo(transitionTime) < 0;
-                    final var signal = new TestSignal(ID_A, new TimestampedId(OBJECT_A, whenSet), OBJECT_B);
+                    final var signal = new TestSignal(OBJECT_HISTORY_A, whenSet, OBJECT_HISTORY_B);
                     final ModifiableValueHistory<Integer> receiverStateHistory = new ModifiableValueHistory<>(
                             receiverState0);
                     receiverStateHistory.appendTransition(transitionTime, receiverState1);

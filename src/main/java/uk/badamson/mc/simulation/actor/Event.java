@@ -27,7 +27,6 @@ import javax.annotation.concurrent.Immutable;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * <p>
@@ -39,17 +38,20 @@ import java.util.UUID;
  * also the only means by which simulated objects can emit signals.
  * </p>
  *
+ * Note: this class has a natural ordering that is inconsistent with equals.
  * @param <STATE> The class of states of a receiver. This must be {@link Immutable
  *                immutable}. It ought to have value semantics, but that is not
  *                required.
  */
 @Immutable
-public final class Event<STATE> implements Comparable<Event<STATE>> {
+public final class Event<STATE> {
 
     @Nonnull
-    private final TimestampedId id;
+    private final Signal<STATE> causingSignal;
     @Nonnull
-    private final UUID affectedObject;
+    private final Duration when;
+    @Nonnull
+    private final ObjectHistory<STATE> affectedObject;
     @Nullable
     private final STATE state;
     @Nonnull
@@ -75,9 +77,10 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
      *                                  {@code id}.</li>
      *                                  </ul>
      */
-    public Event(@Nonnull final TimestampedId id, @Nonnull final UUID affectedObject, @Nullable final STATE state,
+    public Event(@Nonnull final Signal<STATE> causingSignal, @Nonnull final Duration when, @Nonnull final ObjectHistory<STATE> affectedObject, @Nullable final STATE state,
                  @Nonnull final Set<Signal<STATE>> signalsEmitted) {
-        this.id = Objects.requireNonNull(id, "id");
+        this.causingSignal = Objects.requireNonNull(causingSignal, "causingSignal");
+        this.when = Objects.requireNonNull(when, "when");
         this.affectedObject = Objects.requireNonNull(affectedObject, "affectedObject");
         this.state = state;
         this.signalsEmitted = Set.copyOf(signalsEmitted);
@@ -86,48 +89,10 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
             if (affectedObject != signal.getSender()) {
                 throw new IllegalArgumentException("signalEmitted not sent from sender.");
             }
-            if (id.getWhen() != signal.getWhenSent()) {
+            if (when != signal.getWhenSent()) {
                 throw new IllegalArgumentException("signalEmitted not sent at event time.");
             }
         });
-    }
-
-    /**
-     * <p>
-     * The <i>natural ordering</i> of {@link Event} objects.
-     * </p>
-     * <p>
-     * The <i>natural ordering</i> is equivalent to the
-     * {@linkplain TimestampedId#compareTo(TimestampedId) natural ordering} of the
-     * {@linkplain #getId() IDs}. Hence it is <i>consistent with equals</i> and in
-     * {@linkplain Duration#compareTo(Duration) ascending order} of
-     * {@linkplain #getWhenOccurred() when they occurred}.
-     * </p>
-     */
-    @Override
-    public int compareTo(@Nonnull final Event<STATE> that) {
-        Objects.requireNonNull(that, "that");
-        return id.compareTo(that.id);
-    }
-
-    /**
-     * <p>
-     * Whether this object is <dfn>equivalent</dfn> to a given object.
-     * </p>
-     * The {@link Event} class has <i>entity semantics</i> with the
-     * {@linkplain #getId() event ID} serving as the unique ID.
-     * </p>
-     */
-    @Override
-    public boolean equals(final Object that) {
-        if (this == that) {
-            return true;
-        }
-        if (!(that instanceof Event)) {
-            return false;
-        }
-        final Event<?> other = (Event<?>) that;
-        return id.equals(other.id);
     }
 
     /**
@@ -136,45 +101,18 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
      * </p>
      */
     @Nonnull
-    public UUID getAffectedObject() {
+    public ObjectHistory<STATE> getAffectedObject() {
         return affectedObject;
     }
 
     /**
      * <p>
-     * The {@linkplain Signal#getId() unique ID} of the signal that caused this
-     * event.
+     * The signal that caused this event.
      * </p>
      */
     @Nonnull
-    public UUID getCausingSignal() {
-        return id.getObject();
-    }
-
-    /**
-     * <p>
-     * The unique ID for this event.
-     * </p>
-     * <p>
-     * The ID combines the ID of the signal that caused this event, and the point in
-     * time that the change occurred
-     * </p>
-     * <ul>
-     * <li>The {@linkplain TimestampedId#getObject() object} of the ID is the same
-     * as the {@linkplain #getCausingSignal() causing signal} of this event.</li>
-     * <li>The {@linkplain TimestampedId#getWhen() time-stamp} of the ID is the same
-     * as the {@linkplain #getWhenOccurred() time of occurrence} of this event.</li>
-     * </ul>
-     * <p>
-     * Note that, as signal IDs should be unique, inclusion of the time-stamp is
-     * redundant, but enables the {@linkplain #compareTo(Event) natural ordering} to
-     * be consistent with {@linkplain #equals(Object) equals} while providing entity
-     * semantics.
-     * </p>
-     */
-    @Nonnull
-    public TimestampedId getId() {
-        return id;
+    public Signal<STATE> getCausingSignal() {
+        return causingSignal;
     }
 
     /**
@@ -186,9 +124,6 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
      * returns a reference to the same object).</li>
      * <li>The returned set of signals emitted is unmodifiable.</li>
      * <li>The set of signals emitted does not contain a null signal.</li>
-     * <li>The signals emitted are all identified as
-     * {@linkplain Signal#getSentFrom() sent from} the {@linkplain #getId() ID} of
-     * this event.</li>
      * <li>The returned set of signals emitted may be {@linkplain Set#isEmpty()
      * empty}.</li>
      * </ul>
@@ -218,18 +153,13 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
      * </p>
      */
     @Nonnull
-    public Duration getWhenOccurred() {
-        return id.getWhen();
-    }
-
-    @Override
-    public int hashCode() {
-        return id.hashCode();
+    public Duration getWhen() {
+        return when;
     }
 
     @Override
     public String toString() {
-        return "Event [" + id + ", " + affectedObject + "→" + state + ", ⇝" + signalsEmitted + "]";
+        return "Event [@" + when + ", " + affectedObject + "→" + state + ", ⇝" + signalsEmitted + "]";
     }
 
 }
