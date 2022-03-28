@@ -32,11 +32,7 @@ import java.util.stream.Stream;
  * in time.
  * </p>
  *
- * <dl>
- * <dt>VALUE</dt>
- * <dd>The class of values of this value history. This must be {@link Immutable
- * immutable}, or have reference semantics.</dd>
- * </dl>
+ * @param <VALUE> The class of values of this value history. This must be {@link Immutable immutable}, or have reference semantics.
  */
 @NotThreadSafe
 public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VALUE> {
@@ -150,15 +146,13 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      *              duration since an (implied) epoch.
      * @param value The value at and after the transition.
      * @throws NullPointerException  If {@code when} is null.
-     * @throws IllegalStateException <ul>
-     *                                                                                                                                                                   <li>If {@code when} is not
-     *                                                                                                                                                                   {@linkplain Duration#compareTo(Duration) after} the
-     *                                                                                                                                                                   {@linkplain #getLastTransitionTime() last transition time}.</li>
-     *                                                                                                                                                                   <li>If {@code value} is
-     *                                                                                                                                                                   {@linkplain Objects#equals(Object, Object) equal to (or equally
-     *                                                                                                                                                                   null as)} the {@linkplain #getLastValue() last value}.</li>
-     *                                                                                                                                                                   </ul>
-     *                                                                                                                                                                   This history is unchanged if the method throws
+     * @throws IllegalStateException
+     *     If
+     *     <ul>
+     *         <li>{@code when} is at or before the {@linkplain #getLastTransitionTime() last transition time}.</li>
+     *         <li>{@code when} is {@linkplain Objects#equals(Object, Object) equivalent to} the {@linkplain #getLastValue() last value}.</li>
+     *     </ul>
+     *     This history is unchanged if the method throws IllegalStateException.
      *                                                                                                                                                                   {@link IllegalStateException}.
      * @see #setValueFrom(Duration, Object)
      */
@@ -202,9 +196,6 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
         }
     }
 
-    /**
-     * @throws NullPointerException {@inheritDoc}
-     */
     @Override
     public @Nullable
     VALUE get(@Nonnull final Duration when) {
@@ -233,94 +224,24 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
         return new TimestampedValue<>(start, end, value);
     }
 
-    /**
-     * <p>
-     * The first point in time when the value of this history changes.
-     * </p>
-     * <ul>
-     * <li>A null first transition time indicates that this history has no
-     * transitions. That is, the value is constant for all time.</li>
-     * <li>The point in time is represented as the duration since an (implied)
-     * epoch.</li>
-     * <li>The {@linkplain SortedSet#first() first} value of the
-     * {@linkplain #getTransitionTimes() set of transition times} (if it is not
-     * empty) is the same as the first transition time.</li>
-     * <li>This method is more efficient than using the
-     * {@link #getTransitionTimes()} method.</li>
-     * </ul>
-     *
-     * @return the first transition time.
-     */
     @Override
     public @Nullable
     Duration getFirstTransitionTime() {
         return transitions.isEmpty() ? null : transitions.firstKey();
     }
 
-    /**
-     * <p>
-     * The {@linkplain #get(Duration) value} of this history at the
-     * {@linkplain #START_OF_TIME start of time}.
-     * </p>
-     * <ul>
-     * <li>The first value is the same as the {@linkplain #get(Duration) value at}
-     * the {@linkplain #START_OF_TIME start of time}.</li>
-     * <li>This method is more efficient than using the {@link #get(Duration)}
-     * method.</li>
-     * </ul>
-     *
-     * @return the first value.
-     */
     @Override
     public @Nullable
     VALUE getFirstValue() {
         return firstValue;
     }
 
-    /**
-     * <p>
-     * The last point in time when the value of this history changes.
-     * </p>
-     * <ul>
-     * <li>A null last transition time indicates that this history has no
-     * transitions. That is, the value is constant for all time.</li>
-     * <li>The point in time is represented as the duration since an (implied)
-     * epoch.</li>
-     * <li>The {@linkplain SortedSet#last() last} value of the
-     * {@linkplain #getTransitionTimes() set of transition times} (if it is not
-     * empty) is the same as the last transition time.</li>
-     * <li>This method is more efficient than using the
-     * {@link #getTransitionTimes()} method.</li>
-     * </ul>
-     *
-     * @return the last transition time.
-     */
     @Override
     public @Nullable
     Duration getLastTransitionTime() {
         return transitions.isEmpty() ? null : transitions.lastKey();
     }
 
-    /**
-     * <p>
-     * The {@linkplain #get(Duration) value} of this history at the
-     * {@linkplain #END_OF_TIME end of time}.
-     * </p>
-     * <ul>
-     * <li>The last value is the same as the {@linkplain #get(Duration) value at}
-     * the {@linkplain #END_OF_TIME end of time}.</li>
-     * <li>If this history has no {@linkplain #getTransitionTimes() transitions},
-     * the last value is the same as the {@linkplain #getFirstValue() first
-     * value}.</li>
-     * <li>If this history has {@linkplain #getTransitionTimes() transitions}, the
-     * last value is the same as the value at the
-     * {@linkplain #getLastTransitionTime() last transition}.</li>
-     * <li>This method is more efficient than using the
-     * {@link #getTransitionTimes()} and {@link #get(Duration)} methods.</li>
-     * </ul>
-     *
-     * @return the last value.
-     */
     @Override
     public @Nullable
     VALUE getLastValue() {
@@ -351,29 +272,16 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
     }
 
     /**
+     * {@inheritDoc}
      * <p>
-     * The points in time when the value of this history changes.
+     * Furthermore, for the ModifiableValueHistory.
      * </p>
      * <ul>
-     * <li>Always have a (non null) set of transition times.</li>
-     * <li>The transition times are represented as the duration since an (implied)
-     * epoch.</li>
-     * <li>There is not a transition at the
-     * {@linkplain ModifiableValueHistory#START_OF_TIME start of time}.</li>
-     * <li>For all points in time in the set of transition times, the
-     * {@linkplain #get(Duration) value} just before the transition is not equal to
-     * the value at the transition.</li>
-     * <li>For all points in time not in the set of transition times (except the
-     * {@linkplain ModifiableValueHistory#START_OF_TIME start of time}), the
-     * {@linkplain #get(Duration) value} just before the point in time is equal to
-     * the value at the point in time.</li>
      * <li>The returned set is an
      * {@linkplain Collections#unmodifiableSortedSet(SortedSet) unmodifiable} view
      * of the transition times, which will incorporate any subsequent changes to
      * this history.</li>
      * </ul>
-     *
-     * @return the transition times
      */
     @Override
     public @Nonnull
@@ -386,18 +294,6 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
         return (firstValue == null ? 0 : firstValue.hashCode()) + transitions.hashCode();
     }
 
-    /**
-     * <p>
-     * Whether this history is empty.
-     * </p>
-     * <ul>
-     * <li>A value history is empty if, and only if, it
-     * {@linkplain SortedSet#isEmpty() has no} {@linkplain #getTransitionTimes()
-     * transitions}.</li>
-     * <li>This method is more efficient than using the
-     * {@link #getTransitionTimes()} method.</li>
-     * </ul>
-     */
     @Override
     public boolean isEmpty() {
         return transitions.isEmpty();

@@ -246,6 +246,8 @@ public interface ValueHistory<VALUE> {
      * {@linkplain Objects#equals(Object, Object) equal to (or equally null as)} the
      * {@linkplain #get(Duration) value} of this history at the time of their
      * corresponding key.</li>
+     * <li>There is not a transition at the
+     * {@linkplain #START_OF_TIME start of time}.</li>
      * <li>The transitions map may be
      * {@linkplain Collections#unmodifiableSortedMap(SortedMap) unmodifiable}.</li>
      * <li>If the transitions map is

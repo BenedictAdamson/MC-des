@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation.actor;
 /*
- * © Copyright Benedict Adamson 2021.
+ * © Copyright Benedict Adamson 2021-22.
  *
  * This file is part of MC-des.
  *
@@ -38,7 +38,6 @@ import java.util.Set;
  * also the only means by which simulated objects can emit signals.
  * </p>
  *
- * Note: this class has a natural ordering that is inconsistent with equals.
  * @param <STATE> The class of states of a receiver. This must be {@link Immutable
  *                immutable}. It ought to have value semantics, but that is not
  *                required.
@@ -117,7 +116,7 @@ public final class Event<STATE> {
 
     /**
      * <p>
-     * Signals emitted from the affected simulated object as part of this event.
+     * Signals emitted from the {@linkplain #getAffectedObject() affected object} as part of this event.
      * </p>
      * <ul>
      * <li>The returned set of signals emitted is a constant (the method always
@@ -136,10 +135,10 @@ public final class Event<STATE> {
 
     /**
      * <p>
-     * The state that the simulated object has as a result of this event.
+     * The state that the {@linkplain #getAffectedObject() affected object} has as a result of this event.
      * </p>
      * <p>
-     * A null state indicates that the simulated object is destroyed or removed.
+     * A null state indicates that the affected object is destroyed or removed.
      * </p>
      */
     @Nullable

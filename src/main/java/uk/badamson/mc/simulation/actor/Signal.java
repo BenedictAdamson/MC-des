@@ -31,7 +31,7 @@ import java.util.UUID;
 
 /**
  * <p>
- * A signal (or message) sent from one simulated object to another.
+ * A signal (or message) sent from one {@linkplain Actor simulated object} to another.
  * </p>
  *
  * @param <STATE> The class of states of a receiver. This must be {@link Immutable
@@ -120,8 +120,8 @@ public abstract class Signal<STATE> {
      * </p>
      * <p>
      * An object may send signals to itself. That is; the sender and
-     * {@linkplain #getReceiver() receiver} may be {@linkplain UUID#equals(Object)
-     * equivalent}. That can be done to implement internal events, such as timers.
+     * {@linkplain #getReceiver() receiver} may be the same.
+     * That can be done to implement internal events, such as timers.
      * </p>
      *
      * @see #getReceiver()
@@ -150,9 +150,9 @@ public abstract class Signal<STATE> {
      * {@link #getPropagationDelay(Object)} <i>primitive operation</i>.
      * </p>
      * <ul>
-     * <li>If the simulated object is destroyed or removed ({@code receiverState} is
-     * null), the method returns {@link #NEVER_RECEIVED}: destroyed objects can not
-     * receive signals.</li>
+     * <li>Destroyed objects can not receive signals:
+     * If the simulated object is destroyed or removed ({@code receiverState} is
+     * null), the method returns {@link #NEVER_RECEIVED}.</li>
      * <li>The reception time is {@linkplain Duration#compareTo(Duration) after} the
      * {@linkplain #getWhenSent() sending time}, unless the sending time is the
      * maximum possible {@link Duration} value.</li>
@@ -274,8 +274,7 @@ public abstract class Signal<STATE> {
     /**
      * <p>
      * The effect that his signal has if received by the {@linkplain #getReceiver()
-     * receiver} at a given point in time, with the reception having a given event
-     * ID.
+     * receiver} at a given point in time, with the receiver having a given state.
      * </p>
      * <ul>
      * <li>The {@linkplain Event#getCausingSignal() signal causing} the
@@ -291,6 +290,8 @@ public abstract class Signal<STATE> {
      * </ul>
      *
      * @param when The point in time that reception of the signal occurred
+     * @param receiverState The state of the receiver when the signal arrived
+     * @return The effect of this signal.
      * @throws NullPointerException        If a {@link Nonnull} argument is null.
      * @throws IllegalArgumentException    If {@code when} is not {@linkplain Duration#compareTo(Duration)
      *                                     after} {@linkplain #getWhenSent() when this signal was sent}.

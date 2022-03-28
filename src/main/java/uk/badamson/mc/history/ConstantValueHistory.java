@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018,2021.
+ * © Copyright Benedict Adamson 2018,2021-22.
  *
  * This file is part of MC-des.
  *
@@ -23,7 +23,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import java.time.Duration;
 import java.util.Collections;
-import java.util.Map.Entry;
+import java.util.Map;
 import java.util.Objects;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -35,11 +35,8 @@ import java.util.stream.Stream;
  * through time.
  * </p>
  *
- * <dl>
- * <dt>VALUE</dt>
- * <dd>The class of values of this value history. This must be {@link Immutable
- * immutable}, or have reference semantics.</dd>
- * </dl>
+ * @param <VALUE> The class of values of this value history. This must be {@link Immutable
+ *                immutable}, or have reference semantics.
  */
 @Immutable
 public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALUE> {
@@ -77,14 +74,9 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
         return Objects.equals(value, other.value);
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * @throws NullPointerException {@inheritDoc}
-     */
     @Override
-    public VALUE get(@Nonnull final Duration t) {
-        Objects.requireNonNull(t, "t");
+    public VALUE get(@Nonnull final Duration when) {
+        Objects.requireNonNull(when, "when");
         return value;
     }
 
@@ -100,7 +92,7 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * The first point in time when the value of this history changes.
      * </p>
      * <ul>
-     * <li>The first transition time is null, to indicate that this history has no
+     * <li>The first transition time is always null, to indicate that this history has no
      * transitions. That is, the value is constant for all time.</li>
      * <li>This method is more efficient than using the
      * {@link #getTransitionTimes()} method.</li>
@@ -125,7 +117,7 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * The last point in time when the value of this history changes.
      * </p>
      * <ul>
-     * <li>The last transition time is null, to indicate that this history has no
+     * <li>The last transition time is always  null, to indicate that this history has no
      * transitions. That is, the value is constant for all time.</li>
      * <li>This method is more efficient than using the
      * {@link #getTransitionTimes()} method.</li>
@@ -151,7 +143,7 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * a given point in time.
      * </p>
      * <ul>
-     * <li>The transition time at or after all given times is null, to indicate that
+     * <li>This value is always null, to indicate that
      * this history has no transitions.</li>
      * <li>This method is more efficient than using the
      * {@link #getTransitionTimes()} method.</li>
@@ -198,9 +190,6 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * epoch.</li>
      * <li>The set of transition times {@linkplain SortedSet#isEmpty() is
      * empty}.</li>
-     * <li>For all points in time (except the {@linkplain ValueHistory#START_OF_TIME
-     * start of time}), the {@linkplain #get(Duration) value} just before the point
-     * in time is equal to the value at the point in time.</li>
      * <li>The returned set is
      * {@linkplain Collections#unmodifiableSortedSet(SortedSet) unmodifiable}.</li>
      * </ul>
@@ -223,7 +212,7 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * Whether this history is empty.
      * </p>
      * <ul>
-     * <li>A {@link ConstantValueHistory} is always empty.</li>
+     * <li>Always returns true.</li>
      * <li>This method is more efficient than using the
      * {@link #getTransitionTimes()} method.</li>
      * </ul>
@@ -250,7 +239,7 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      */
     @Nonnull
     @Override
-    public Stream<Entry<Duration, VALUE>> streamOfTransitions() {
+    public Stream<Map.Entry<Duration, VALUE>> streamOfTransitions() {
         return Stream.empty();
     }
 

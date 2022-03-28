@@ -31,11 +31,8 @@ import java.util.Set;
  * discrete points in time.
  * </p>
  *
- * <dl>
- * <dt>VALUE</dt>
- * <dd>The class of values of this set history. This must be {@link Immutable
- * immutable}, or have reference semantics.</dd>
- * </dl>
+ * @param <VALUE> The class of values of this set history. This must be {@link Immutable
+ * immutable}, or have reference semantics.
  */
 @NotThreadSafe
 public interface SetHistory<VALUE> extends ValueHistory<Set<VALUE>> {

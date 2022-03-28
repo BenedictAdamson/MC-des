@@ -46,10 +46,8 @@ import java.util.concurrent.Executor;
 public final class Universe<STATE> {
 
     private final Collection<Actor<STATE>> actors = new CopyOnWriteArrayList<>();
-    /*
-     * Adding entries to the actors Map is guarded by this lock.
-     */
-    private final Object objectCreationLock = new Object();
+
+    private final Object lock = new Object();
 
     /**
      * <p>
@@ -102,7 +100,7 @@ public final class Universe<STATE> {
      */
     @Nonnull
     public Collection<Actor<STATE>> getActors() {
-        synchronized (objectCreationLock) {// hard to test
+        synchronized (lock) {// hard to test
             return List.copyOf(actors);
         }
     }

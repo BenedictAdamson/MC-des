@@ -29,15 +29,11 @@ import java.util.stream.Stream;
 
 /**
  * <p>
- * The modifiable time-wise variation of a set of value that changes at discrete
+ * The modifiable time-wise variation of a set of values that changes at discrete
  * points in time.
  * </p>
  *
- * <dl>
- * <dt>VALUE</dt>
- * <dd>The class of values of this set history. This must be {@link Immutable
- * immutable}, or have reference semantics.</dd>
- * </dl>
+ * @param <VALUE> The class of values of this set history. This must be {@link Immutable immutable}, or have reference semantics.
  *
  * @see ModifiableValueHistory
  */
@@ -164,18 +160,12 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
         }
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * @throws NullPointerException {@inheritDoc}
-     */
     @Override
     public @Nonnull
     Set<VALUE> get(@Nonnull final Duration when) {
         Objects.requireNonNull(when, "when");
-        final Set<VALUE> result = containsMap.entrySet().stream().filter(e -> e.getValue().get(when))
+        return containsMap.entrySet().stream().filter(e -> e.getValue().get(when))
                 .map(Map.Entry::getKey).collect(Collectors.toSet());
-        return result;
     }
 
     @Nonnull

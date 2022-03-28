@@ -49,15 +49,12 @@ public final class Actor<STATE> {
     @GuardedBy("lock")
     private final ModifiableValueHistory<STATE> stateHistory = new ModifiableValueHistory<>();
 
-    /**
-     * In order of occurrence
-     */
     @GuardedBy("lock")
     private final List<Event<STATE>> events = new ArrayList<>();
 
     /**
      * <p>
-     * Construct an actor with a given start information and no events.
+     * Construct an actor with given start information and no events.
      * </p>
      * <ul>
      * <li>The {@linkplain #getEvents() events} sequence
@@ -65,7 +62,7 @@ public final class Actor<STATE> {
      * </ul>
      *
      * @param start  The first point in time for which the actor has a known state.
-     * @param state  The first (known) state transition of the actor.
+     * @param state  The first (known) state of the actor.
      * @throws NullPointerException If any argument is null
      */
     public Actor(@Nonnull final Duration start, @Nonnull final STATE state) {
@@ -186,10 +183,6 @@ public final class Actor<STATE> {
     @Nonnull
     public SortedMap<Duration, STATE> getStateTransitions() {
         synchronized (lock) {// hard to test
-            /*
-             * No need to make a defensive copy: ModifiableValueHistory.getTransitions()
-             * does that for us.
-             */
             return stateHistory.getTransitions();
         }
     }
