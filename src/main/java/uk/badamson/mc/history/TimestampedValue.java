@@ -64,7 +64,7 @@ public final class TimestampedValue<VALUE> {
      * Whether this object is <dfn>equivalent</dfn> to a given other object.
      * </p>
      * <p>
-     * The {@link TimestampedValue} class has <i>value semantics</i>.
+     * The TimestampedValue class has <i>value semantics</i>.
      * </p>
      */
     @Override
