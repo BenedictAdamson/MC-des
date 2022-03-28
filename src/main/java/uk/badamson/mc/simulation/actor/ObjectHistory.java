@@ -20,7 +20,6 @@ package uk.badamson.mc.simulation.actor;
 
 import uk.badamson.mc.history.ModifiableValueHistory;
 import uk.badamson.mc.history.ValueHistory;
-import uk.badamson.mc.simulation.TimestampedId;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -44,20 +43,17 @@ public final class ObjectHistory<STATE> {
 
     @Nonnull
     private final Duration start;
-    /*
-     * Use a UUID object as the lock so all ObjectHistory objects can have a
-     * predictable lock ordering when locking two instances.
-     */
-    private final UUID lock = UUID.randomUUID();
-    @Nonnull
+
+    private final Object lock = new Object();
+
     @GuardedBy("lock")
-    private final ModifiableValueHistory<STATE> stateHistory;
-    /*
-     * Maps event ID to event.
+    private final ModifiableValueHistory<STATE> stateHistory = new ModifiableValueHistory<>();
+
+    /**
+     * In order of occurrence
      */
-    @Nonnull
     @GuardedBy("lock")
-    private final NavigableMap<TimestampedId, Event<STATE>> events;
+    private final List<Event<STATE>> events = new ArrayList<>();
 
     /**
      * <p>
@@ -76,9 +72,7 @@ public final class ObjectHistory<STATE> {
     public ObjectHistory(@Nonnull final Duration start, @Nonnull final STATE state) {
         Objects.requireNonNull(state, "state");
         this.start = Objects.requireNonNull(start, "start");
-        this.stateHistory = new ModifiableValueHistory<>();
         this.stateHistory.appendTransition(start, state);
-        this.events = new TreeMap<>();
     }
 
     /**
@@ -87,7 +81,7 @@ public final class ObjectHistory<STATE> {
      * {@linkplain Event#getAffectedObject() affected} the simulated object.
      * </p>
      * <ul>
-     * <li>The events sequence may be {@linkplain SortedSet#isEmpty() empty}.</li>
+     * <li>The events sequence may be {@linkplain List#isEmpty() empty}.</li>
      * <li>All events {@linkplain Event#getAffectedObject() affect} this object.</li>
      * <li>All events {@linkplain Event#getWhen() occurred}
      * {@linkplain Duration#compareTo(Duration) after} the {@linkplain #getStart()
@@ -100,15 +94,16 @@ public final class ObjectHistory<STATE> {
      * transition(s) due to some <i>measured as simultaneous</i> events will not be
      * apparent in the {@linkplain #getStateHistory() state history}; only the
      * <i>measured as simultaneous</i> event with the largest ID of its causing
-     * signal will have its state recorded in the state history.
+     * signal will have its state recorded in the state history.</li>
+     * <li>The events in the list are in order of occurrence</li>
      * </ul>
      *
      * @see #getStateHistory()
      */
     @Nonnull
-    public SortedSet<Event<STATE>> getEvents() {
+    public List<Event<STATE>> getEvents() {
         synchronized (lock) {// hard to test
-            return new TreeSet<>(events.values());
+            return List.copyOf(events);
         }
     }
 
@@ -120,8 +115,6 @@ public final class ObjectHistory<STATE> {
      * <ul>
      * <li>The last event is null if, and only if, the sequence of events is
      * empty.</li>
-     * <li>The last event is either null or is the {@linkplain SortedSet#last()
-     * last} of the sequence of events.</li>
      * <li>This method is likely to be more efficient than using
      * {@link #getEvents()} and then extracting the last event from the
      * sequence.</li>
@@ -132,8 +125,12 @@ public final class ObjectHistory<STATE> {
     @Nullable
     public Event<STATE> getLastEvent() {
         synchronized (lock) {// hard to test
-            final var lastEntry = events.lastEntry();
-            return lastEntry == null ? null : lastEntry.getValue();
+            final int size = events.size();
+            if (0 < size) {
+                return events.get(size - 1);
+            } else {
+                return null;
+            }
         }
     }
 
