@@ -262,32 +262,29 @@ public class SignalTest {
 
         @Test
         public void a() {
-            test(OBJECT_HISTORY_A, WHEN_A, OBJECT_HISTORY_B, 0, false);
+            test(OBJECT_HISTORY_A, WHEN_A, OBJECT_HISTORY_B, 0);
         }
 
         @Test
         public void atEndOfTime() {
-            test(OBJECT_HISTORY_A, Signal.NEVER_RECEIVED, OBJECT_HISTORY_B, Integer.MAX_VALUE, true);
+            assertThrows(Signal.UnreceivableSignalException.class,
+                    () -> test(OBJECT_HISTORY_A, Signal.NEVER_RECEIVED, OBJECT_HISTORY_B, Integer.MAX_VALUE)
+            );
         }
 
         @Test
         public void b() {
-            test(OBJECT_HISTORY_B, WHEN_B, OBJECT_HISTORY_A, 1, false);
+            test(OBJECT_HISTORY_B, WHEN_B, OBJECT_HISTORY_A, 1);
         }
 
-        private void test(@Nonnull final ObjectHistory<Integer> sender, @Nonnull final Duration whenSent, @Nonnull final ObjectHistory<Integer> receiver,
-                          @Nonnull final Integer receiverState, final boolean expectUnreceivableSignalException) {
+        private void test(
+                @Nonnull final ObjectHistory<Integer> sender,
+                @Nonnull final Duration whenSent,
+                @Nonnull final ObjectHistory<Integer> receiver,
+                @Nonnull final Integer receiverState)
+                throws Signal.UnreceivableSignalException {
             final var signal = new TestSignal(sender, whenSent, receiver);
-
-            try {
-                receive(signal, receiverState);
-            } catch (final Signal.UnreceivableSignalException e) {
-                // TODO: use assertThrows instead
-                if (!expectUnreceivableSignalException) {
-                    throw new AssertionError("Throws UnreceivableSignalException only as specified", e);
-                }
-                // else OK
-            }
+            receive(signal, receiverState);
         }
 
     }// class

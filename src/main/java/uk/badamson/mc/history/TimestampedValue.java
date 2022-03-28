@@ -76,7 +76,7 @@ public final class TimestampedValue<VALUE> {
             return false;
         }
         final TimestampedValue<?> other = (TimestampedValue<?>) that;
-        return start.equals(other.start) && end.equals(other.end) && Objects.equals(value, other.value);// FIXME
+        return start.equals(other.start) && end.equals(other.end) && Objects.equals(value, other.value);
     }
 
     /**
