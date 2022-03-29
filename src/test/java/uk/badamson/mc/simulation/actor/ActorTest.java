@@ -28,12 +28,10 @@ import uk.badamson.mc.history.ValueHistoryTest;
 import javax.annotation.Nonnull;
 import java.time.Duration;
 import java.util.Map;
-import java.util.SortedSet;
 import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
@@ -41,15 +39,16 @@ public class ActorTest {
 
     static final Duration WHEN_A = Duration.ofMillis(0);
     static final Duration WHEN_B = Duration.ofMillis(5000);
+    static final Duration WHEN_C = Duration.ofMillis(7000);
 
-    public static <STATE> void assertInvariants(@Nonnull final Actor<STATE> history) {
-        ObjectVerifier.assertInvariants(history);// inherited
+    public static <STATE> void assertInvariants(@Nonnull final Actor<STATE> actor) {
+        ObjectVerifier.assertInvariants(actor);// inherited
 
-        final var events = history.getEvents();
-        final var lastEvent = history.getLastEvent();
-        final var start = history.getStart();
-        final var stateHistory = history.getStateHistory();
-        final var stateTransitions = history.getStateTransitions();
+        final var events = actor.getEvents();
+        final var lastEvent = actor.getLastEvent();
+        final var start = actor.getStart();
+        final var stateHistory = actor.getStateHistory();
+        final var stateTransitions = actor.getStateTransitions();
 
         assertAll("Not null", () -> assertNotNull(events, "events"), // guard
                 () -> assertNotNull(start, "start"), // guard
@@ -58,7 +57,7 @@ public class ActorTest {
         );
         ValueHistoryTest.assertInvariants(stateHistory);
 
-        assertAll(() -> assertAll("events", createEventsAssertions(events, start)),
+        assertAll(() -> assertAll("events", createEventsAssertions(actor)),
                 () -> assertAll("lastEvent",
                         () -> assertThat("is null if, and only if, the sequence of events is empty.",
                                 lastEvent == null == events.isEmpty()),
@@ -73,9 +72,9 @@ public class ActorTest {
                 () -> assertEquals(stateTransitions, stateHistory.getTransitions(), "stateTransitions"));
     }
 
-    public static <STATE> void assertInvariants(@Nonnull final Actor<STATE> history1,
-                                                @Nonnull final Actor<STATE> history2) {
-        ObjectVerifier.assertInvariants(history1, history2);// inherited
+    public static <STATE> void assertInvariants(@Nonnull final Actor<STATE> actor1,
+                                                @Nonnull final Actor<STATE> actor2) {
+        ObjectVerifier.assertInvariants(actor1, actor2);// inherited
     }
 
     private static <STATE> void constructor(@Nonnull final Duration start,
@@ -92,14 +91,25 @@ public class ActorTest {
 
     }
 
-    private static <STATE> Stream<Executable> createEventsAssertions(@Nonnull final SortedSet<Event<STATE>> events,
-                                                                     @Nonnull final Duration start) {
-        return events.stream().map(event -> () -> {
+    private static <STATE> Stream<Executable> createEventsAssertions(@Nonnull final Actor<STATE> actor) {
+        return actor.getEvents().stream().map(event -> () -> {
             assertNotNull(event, "event");// guard
-            final Duration whenOccurred = event.getWhen();
-            EventTest.assertInvariants(event);
-            assertThat("event [" + event + "].whenOccurred", whenOccurred, greaterThan(start));
+            assertAll("event " + event,
+                    () -> EventTest.assertInvariants(event),
+                    () -> assertThat("whenOccurred", event.getWhen(), greaterThan(actor.getStart())),
+                    () -> assertThat("affectedObject", event.getAffectedObject(), sameInstance(actor)),
+                    () -> assertThat("state is in stateHistory", event.getState(), is(actor.getStateHistory().get(event.getWhen())))
+            );
         });
+    }
+
+    private static <STATE> void addAffectingSignal(@Nonnull final Actor<STATE> actor, @Nonnull final Signal<STATE> signal) {
+        actor.addAffectingSignal(signal);
+
+        assertInvariants(actor);
+        SignalTest.assertInvariants(signal);
+        final var receptionEventOptional = actor.getEvents().stream().filter(event -> event.getCausingSignal() == signal).findAny();
+        assertFalse(receptionEventOptional.isEmpty(), "has a reception event");
     }
 
     @Nested
@@ -120,6 +130,71 @@ public class ActorTest {
 
         }// class
 
+    }// class
+
+    @Nested
+    public class AddAffectingSignal {
+
+        @Nested
+        public class First {
+
+            @Test
+            public void a() {
+                test(WHEN_A, WHEN_B, 0);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_B, WHEN_C, 1);
+            }
+
+            private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent, @Nonnull final Integer state0) {
+                final var sender = new Actor<>(start, 0);
+                final var receiver = new Actor<>(start, state0);
+                final Signal<Integer> signal = new SignalTest.TestSignal(sender, whenSent, receiver);
+
+                addAffectingSignal(receiver, signal);
+
+                final var events = receiver.getEvents();
+                assertThat("events", events, hasSize(1));// guard
+                final var event = events.first();
+                assertThat("event resulted from receiving the signal", event, is(signal.receive(state0)));
+            }
+        }
+
+        @Nested
+        public class Invalidating {
+
+            @Test
+            public void a() {
+                test(WHEN_A, WHEN_B, 0);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_B, WHEN_C, 1);
+            }
+
+            private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent1, @Nonnull final Integer state0) {
+                final var sender = new Actor<>(start, 0);
+                final var receiver = new Actor<>(start, state0);
+                final Signal<Integer> signal1 = new SignalTest.TestSignal(sender, whenSent1, receiver);
+                final Duration whenSent2 = signal1.getWhenReceived(state0);
+                final Signal<Integer> signal2 = new SignalTest.TestSignal(sender, whenSent2, receiver);
+                receiver.addAffectingSignal(signal2);
+
+                addAffectingSignal(receiver, signal1);
+
+                final var events = receiver.getEvents();
+                assertThat("events", events, hasSize(2));// guard
+                final var event1 = events.first();
+                final var event2 = events.last();
+                assertThat("event 1 resulted from receiving signal 1", event1, is(signal1.receive(state0)));
+                final Integer state1 = event1.getState();
+                assertThat("event 1 result state", state1, notNullValue());// guard
+                assertThat("event 2 resulted from receiving signal 2", event2, is(signal2.receive(state1)));
+            }
+        }
     }// class
 
 }// class

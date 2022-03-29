@@ -185,6 +185,72 @@ public final class Actor<STATE> {
         }
     }
 
+    /**
+     * <p>
+     * Alter the {@linkplain  #getEvents() events} of this actor
+     * to {@linkplain  SortedSet#contains(Object) contain} an event
+     * that is the {@linkplain Signal#receiveForStateHistory(ValueHistory) reception} of a given signal
+     * </p>
+     * @throws NullPointerException
+     * If {@code signal} is null
+     * @throws IllegalArgumentException
+     * <ul>
+     *     <li>If the {@linkplain Signal#getReceiver() receiver} of the {@code signal} is not this actor.</li>
+     *     <li>If the {@linkplain Signal#getWhenSent()} sending time of the {@code signal} is {@linkplain Duration#compareTo(Duration) before} the {@linkplain #getStart() start time} of this actor.</li>
+     * </ul>
+     */
+    public void addAffectingSignal(@Nonnull final Signal<STATE> signal) {
+        Objects.requireNonNull(signal, "signal");
+        if (signal.getReceiver() != this) {
+            throw new IllegalArgumentException("this actor is not the receiver of the signal");
+        }
+        if (signal.getWhenSent().compareTo(start) < 0) {
+            throw new IllegalArgumentException("signal sent before the start time of this actor");
+        }
+        final Set<Signal<STATE>> signalsToReceive = new HashSet<>();
+        signalsToReceive.add(signal);
+        while(!signalsToReceive.isEmpty()) {
+            synchronized (lock) {
+                addNextAffectingSignal(signalsToReceive);
+            }
+        }
+    }
+
+    @GuardedBy("lock")
+    private void addNextAffectingSignal(final Set<Signal<STATE>> signalsToReceive) {
+        final var event = popNextEvent(signalsToReceive);
+        final var invalidatedEvents = List.copyOf(events.tailSet(event));
+        //TODO optimise if already present
+        for (final var invalidatedEvent: invalidatedEvents) {
+            signalsToReceive.add(invalidatedEvent.getCausingSignal());
+            events.remove(invalidatedEvent);
+            // TODO invalidate emitted signal
+        }
+        events.add(event);
+        stateHistory.setValueFrom(event.getWhen(), event.getState());
+        // TODO send emitted signals
+    }
+
+    @GuardedBy("lock")
+    private Event<STATE> popNextEvent(final Set<Signal<STATE>> signals) {
+        Signal<STATE> next = null;
+        Duration whenNext = null;
+        for (final var signal: signals) {
+            final var whenS = signal.getWhenReceived(stateHistory);
+            final int compareWhen = next == null? -1: whenS.compareTo(whenNext);
+            final int compare = compareWhen == 0? signal.compareTo(next): compareWhen;
+            if (compare < 0) {
+                next = signal;
+                whenNext = whenS;
+            }
+        }
+        assert next != null;
+        signals.remove(next);
+        final STATE state = stateHistory.get(whenNext);
+        assert state != null;
+        return next.receive(whenNext, state);
+    }
+
     @Override
     public String toString() {
         synchronized (lock) {
