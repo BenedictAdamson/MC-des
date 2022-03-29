@@ -42,7 +42,7 @@ import java.util.Set;
  *                required.
  */
 @Immutable
-public final class Event<STATE> {
+public final class Event<STATE> implements Comparable<Event<STATE>>{
 
     @Nonnull
     private final Signal<STATE> causingSignal;
@@ -159,4 +159,39 @@ public final class Event<STATE> {
         return "Event [@" + when + ", " + affectedObject + "→" + state + ", ⇝" + signalsEmitted + "]";
     }
 
+    @Override
+    public boolean equals(final Object that) {
+        if (this == that) return true;
+        if (that == null || getClass() != that.getClass()) return false;
+
+        final Event<?> event = (Event<?>) that;
+
+        return when.equals(event.when) && causingSignal.equals(event.causingSignal);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = when.hashCode();
+        result = 31 * result + causingSignal.hashCode();
+        return result;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>
+     *     The natural ordering of Event objects is by their
+     *     {@linkplain  #getWhen() time of occurrence},
+     *     then by their {@linkplain  #getCausingSignal() causing signal}.
+     *     The natural ordering is consistent with {@link #equals(Object)}
+     * </p>
+     */
+    @Override
+    public int compareTo(@Nonnull final Event<STATE> that) {
+        int c = when.compareTo(that.when);
+        if (c == 0) {
+            c = causingSignal.compareTo(that.causingSignal);
+        }
+        return c;
+    }
 }

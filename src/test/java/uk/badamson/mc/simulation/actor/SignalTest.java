@@ -63,6 +63,7 @@ public class SignalTest {
                                                 @Nonnull final Signal<STATE> signal2) {
         ObjectVerifier.assertInvariants(signal1, signal2);// inherited
         ComparableVerifier.assertInvariants(signal1, signal2);// inherited
+        ComparableVerifier.assertNaturalOrderingIsConsistentWithEquals(signal1, signal2);
     }
 
     public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal,
@@ -235,7 +236,7 @@ public class SignalTest {
         }
 
         @Override
-        public int compareTo(@Nonnull Signal<Integer> that) {
+        public int compareTo(@Nonnull final Signal<Integer> that) {
             return id.compareTo(((TestSignal)that).id);
         }
     }// class

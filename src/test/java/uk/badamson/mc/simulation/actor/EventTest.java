@@ -19,8 +19,10 @@ package uk.badamson.mc.simulation.actor;
  */
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
+import uk.badamson.dbc.assertions.ComparableVerifier;
 import uk.badamson.dbc.assertions.ObjectVerifier;
 
 import javax.annotation.Nonnull;
@@ -43,6 +45,7 @@ public class EventTest {
 
     public static <STATE> void assertInvariants(@Nonnull final Event<STATE> event) {
         ObjectVerifier.assertInvariants(event);// inherited
+        ComparableVerifier.assertInvariants(event);// inherited
 
         final var affectedObject = event.getAffectedObject();
         final var causingSignal = event.getCausingSignal();
@@ -61,6 +64,13 @@ public class EventTest {
     public static <STATE> void assertInvariants(@Nonnull final Event<STATE> event1,
                                                 @Nonnull final Event<STATE> event2) {
         ObjectVerifier.assertInvariants(event1, event2);// inherited
+        ComparableVerifier.assertInvariants(event1, event2);// inherited
+        ComparableVerifier.assertNaturalOrderingIsConsistentWithEquals(event1, event2);// inherited
+
+        final int compareTo = event1.compareTo(event2);
+        final int compareToWhen = event1.getWhen().compareTo(event2.getWhen());
+        assertFalse(compareToWhen < 0 && 0 <= compareTo, "natural ordering first sorts by when (<)");
+        assertFalse(compareToWhen > 0 && 0 >= compareTo, "natural ordering first sorts by when (>)");
     }
 
     private static <STATE> void constructor(
@@ -113,5 +123,31 @@ public class EventTest {
         final Set<Signal<Integer>> signalsEmitted = Set.of(new SignalTest.TestSignal(receiver, when, ACTOR_B));
         constructor(SIGNAL_A, when, receiver, 0, signalsEmitted);
     }
+
+    @Nested
+    public class Two {
+
+        @Test
+        public void differentWhen() {
+            final var event1 = new Event<>(SIGNAL_A, WHEN_A, ACTOR_A, 0, Set.of());
+            final var event2 = new Event<>(SIGNAL_A, WHEN_B, ACTOR_A, 0, Set.of());
+            assertInvariants(event1, event2);
+        }
+
+        @Test
+        public void differentCausingSignal() {
+            final var event1 = new Event<>(SIGNAL_A, WHEN_A, ACTOR_A, 0, Set.of());
+            final var event2 = new Event<>(SIGNAL_B, WHEN_A, ACTOR_A, 0, Set.of());
+            assertInvariants(event1, event2);
+        }
+
+        @Test
+        public void equivalent() {
+            final var event1 = new Event<>(SIGNAL_A, WHEN_A, ACTOR_A, 0, Set.of());
+            final var event2 = new Event<>(SIGNAL_A, WHEN_A, ACTOR_A, 0, Set.of());
+            assertInvariants(event1, event2);
+        }
+
+    }// class
 
 }// class
