@@ -50,7 +50,7 @@ public final class Actor<STATE> {
     private final ModifiableValueHistory<STATE> stateHistory = new ModifiableValueHistory<>();
 
     @GuardedBy("lock")
-    private final List<Event<STATE>> events = new ArrayList<>();
+    private final SortedSet<Event<STATE>> events = new TreeSet<>();
 
     /**
      * <p>
@@ -91,15 +91,14 @@ public final class Actor<STATE> {
      * apparent in the {@linkplain #getStateHistory() state history}; only the
      * <i>measured as simultaneous</i> event with the largest ID of its causing
      * signal will have its state recorded in the state history.</li>
-     * <li>The events in the list are in order of occurrence</li>
      * </ul>
      *
      * @see #getStateHistory()
      */
     @Nonnull
-    public List<Event<STATE>> getEvents() {
+    public SortedSet<Event<STATE>> getEvents() {
         synchronized (lock) {// hard to test
-            return List.copyOf(events);
+            return new TreeSet<>(events);
         }
     }
 
@@ -120,11 +119,10 @@ public final class Actor<STATE> {
     @Nullable
     public Event<STATE> getLastEvent() {
         synchronized (lock) {// hard to test
-            final int size = events.size();
-            if (0 < size) {
-                return events.get(size - 1);
-            } else {
+            if (events.isEmpty()) {
                 return null;
+            } else {
+                return events.last();
             }
         }
     }

@@ -27,8 +27,8 @@ import uk.badamson.mc.history.ValueHistoryTest;
 
 import javax.annotation.Nonnull;
 import java.time.Duration;
-import java.util.List;
 import java.util.Map;
+import java.util.SortedSet;
 import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -63,7 +63,7 @@ public class ActorTest {
                         () -> assertThat("is null if, and only if, the sequence of events is empty.",
                                 lastEvent == null == events.isEmpty()),
                         () -> assertThat("is either null or is the  last of the sequence of events.",
-                                lastEvent == null || lastEvent == events.get(events.size() - 1))),
+                                lastEvent == null || lastEvent == events.last())),
                 () -> assertAll("stateHistory", () -> assertSame(start, stateHistory.getFirstTransitionTime(),
 
                         "The first transition time of the state history is the same as the start time of this history."),
@@ -92,7 +92,7 @@ public class ActorTest {
 
     }
 
-    private static <STATE> Stream<Executable> createEventsAssertions(@Nonnull final List<Event<STATE>> events,
+    private static <STATE> Stream<Executable> createEventsAssertions(@Nonnull final SortedSet<Event<STATE>> events,
                                                                      @Nonnull final Duration start) {
         return events.stream().map(event -> () -> {
             assertNotNull(event, "event");// guard
