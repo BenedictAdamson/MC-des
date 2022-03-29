@@ -44,6 +44,7 @@ public class SignalTest {
 
     private static final Duration WHEN_A = Duration.ofMillis(0);
     private static final Duration WHEN_B = Duration.ofMillis(5000);
+    private static final Duration WHEN_C = Duration.ofMillis(7000);
     private static final Actor<Integer> ACTOR_A = new Actor<>(WHEN_A, 0);
     private static final Actor<Integer> ACTOR_B = new Actor<>(WHEN_B, 1);
 
@@ -140,6 +141,29 @@ public class SignalTest {
                 () -> assertThat("whenOccurred is before the maximum possible Duration value", whenOccurred,
                         lessThan(Signal.NEVER_RECEIVED)),
                 () -> assertEquals(signal.getWhenReceived(receiverState), whenOccurred, "whenOccurred = whenReceived"));
+
+        return effect;
+    }
+
+    public static <STATE> Event<STATE> receiveForStateHistory(@Nonnull final Signal<STATE> signal, @Nonnull final ValueHistory<STATE> receiverStateHistory)
+            throws Signal.UnreceivableSignalException {
+        final Event<STATE> effect;
+        try {
+            effect = signal.receiveForStateHistory(receiverStateHistory);
+        } catch (final Signal.UnreceivableSignalException e) {
+            assertInvariants(signal);
+            throw e;
+        }
+
+        assertNotNull(effect, "Not null, effect");// guard
+        assertInvariants(signal);
+        EventTest.assertInvariants(effect);
+        final var whenOccurred = effect.getWhen();
+        assertAll("event", () -> assertSame(signal, effect.getCausingSignal(), "causingSignal"),
+                () -> assertEquals(signal.getReceiver(), effect.getAffectedObject(), "affectedObject"),
+                () -> assertThat("whenOccurred is before the maximum possible Duration value", whenOccurred,
+                        lessThan(Signal.NEVER_RECEIVED)),
+                () -> assertEquals(signal.getWhenReceived(receiverStateHistory), whenOccurred, "whenOccurred = whenReceived"));
 
         return effect;
     }
@@ -313,6 +337,32 @@ public class SignalTest {
             receive(signal, receiverState);
         }
 
+    }// class
+
+    @Nested
+    public class ReceiveForStateHistory {
+
+        @Test
+        public void sentAtStart() {
+            test(WHEN_A, WHEN_A, 0);
+        }
+
+        @Test
+        public void sentAfterStart() {
+            test(WHEN_B, WHEN_C, 1);
+        }
+
+        private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent, @Nonnull final Integer state0) {
+            final var sender = new Actor<>(start, state0);
+            final var receiver = new Actor<>(start, state0);
+            final var signal = new TestSignal(sender, whenSent, receiver);
+            final ValueHistory<Integer> receiverStateHistory = new ConstantValueHistory<>(state0);
+
+            final var event = receiveForStateHistory(signal, receiverStateHistory);
+
+            assertThat("event.when", event.getWhen(), is(signal.getWhenReceived(state0)));
+            assertThat("event", event, is(signal.receive(event.getWhen(), state0)));
+        }
     }// class
 
     @Nested

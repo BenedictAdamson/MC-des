@@ -356,6 +356,52 @@ public abstract class Signal<STATE> implements Comparable<Signal<STATE>> {
     }
 
     /**
+     * <p>
+     * The effect that his signal has if received by the {@linkplain #getReceiver()
+     * receiver} if the receiver has a given state history.
+     * </p>
+     * <p>
+     * This is a <i>template method</i> that delegates to the
+     * {@link #getPropagationDelay(Object)} and {@link #receive(Duration, Object)}
+     * <i>primitive operations</i>.
+     * </p>
+     * <ul>
+     * <li>The {@linkplain Event#getCausingSignal() signal causing} the returned event is this signal.</li>
+     * <li>The {@linkplain Event#getAffectedObject() affected object} of the
+     * returned event is the {@linkplain #getReceiver() receiver} of this signal.</li>
+     * <li>The {@linkplain Event#getWhen() occurrence time} of the returned
+     * event is {@linkplain Duration#compareTo(Duration) before} the maximum
+     * possible {@link Duration} value.</li>
+     * <li>The {@linkplain Event#getWhen() time of occurrence} of the
+     * returned event is {@linkplain Duration#equals(Object) equal to} the
+     * {@linkplain #getWhenReceived(Object) reception time} of this signal, for the
+     * receiver in the given {@code receiverState}.</li>
+     * </ul>
+     *
+     * @param receiverStateHistory The time-wise variation of the state of the receiver. A null
+     *                             {@linkplain ValueHistory#get(Duration) value at a point in time}
+     *                             indicates that the simulated object was destroyed or removed at or
+     *                             before that point in time.
+     * @throws NullPointerException        If {@code receiverStateHistory} is null.
+     * @throws UnreceivableSignalException If it is impossible for the receiver to receive this. This is a non-fatal error: if
+     *                                     this exception is thrown, all invariants have been maintained.
+     * @throws IllegalStateException       If this signal is inconsistent with {@code receiverStateHistory} in some
+     *                                     way.
+     */
+    @Nonnull
+    public final Event<STATE> receiveForStateHistory(@Nonnull final ValueHistory<STATE> receiverStateHistory) throws UnreceivableSignalException {
+        Objects.requireNonNull(receiverStateHistory, "receiverStateHistory");
+        final var whenReceived = getWhenReceived(receiverStateHistory);
+        if (whenReceived.compareTo(NEVER_RECEIVED) < 0) {
+            final STATE receiverState = receiverStateHistory.get(whenReceived);
+            assert receiverState != null;
+            return receive(whenReceived, receiverState);
+        } else {
+            throw new UnreceivableSignalException();
+        }
+    }
+
+    /**
      * {@inheritDoc}
      *
      * <p>However, for the Signal class it <em>is</em> required that
