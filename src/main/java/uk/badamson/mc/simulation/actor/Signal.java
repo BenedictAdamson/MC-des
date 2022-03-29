@@ -39,7 +39,7 @@ import java.util.UUID;
  *                required.
  */
 @Immutable
-public abstract class Signal<STATE> {
+public abstract class Signal<STATE> implements Comparable<Signal<STATE>> {
 
     /**
      * <p>
@@ -354,6 +354,17 @@ public abstract class Signal<STATE> {
             throw new UnreceivableSignalException();
         }
     }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>However, for the Signal class it <em>is</em> required that
+     * {@code (x.compareTo(y)==0) == (x.equals(y))}:
+     * Signal has a natural ordering that is
+     * inconsistent with equals.
+     */
+    @Override
+    public abstract int compareTo(@Nonnull Signal<STATE> that);
 
     /**
      * <p>

@@ -21,6 +21,7 @@ package uk.badamson.mc.simulation.actor;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import uk.badamson.dbc.assertions.ComparableVerifier;
 import uk.badamson.dbc.assertions.ObjectVerifier;
 import uk.badamson.mc.history.ConstantValueHistory;
 import uk.badamson.mc.history.ModifiableValueHistory;
@@ -32,6 +33,7 @@ import javax.annotation.Nullable;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -47,6 +49,7 @@ public class SignalTest {
 
     public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal) {
         ObjectVerifier.assertInvariants(signal);// inherited
+        ComparableVerifier.assertInvariants(signal);// inherited
 
         final var receiver = signal.getReceiver();
         final var sender = signal.getSender();
@@ -59,6 +62,7 @@ public class SignalTest {
     public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal1,
                                                 @Nonnull final Signal<STATE> signal2) {
         ObjectVerifier.assertInvariants(signal1, signal2);// inherited
+        ComparableVerifier.assertInvariants(signal1, signal2);// inherited
     }
 
     public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal,
@@ -172,6 +176,8 @@ public class SignalTest {
 
     static class TestSignal extends Signal<Integer> {
 
+        private final UUID id = UUID.randomUUID();
+
         private final boolean strobe;
 
         TestSignal(@Nonnull final Actor<Integer> sender, @Nonnull final Duration whenSent, @Nonnull final Actor<Integer> receiver, final boolean strobe) {
@@ -213,6 +219,25 @@ public class SignalTest {
             return new Event<>(this, when, receiver, newState, signalsEmitted);
         }
 
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            final TestSignal that = (TestSignal) o;
+
+            return id.equals(that.id);
+        }
+
+        @Override
+        public int hashCode() {
+            return id.hashCode();
+        }
+
+        @Override
+        public int compareTo(@Nonnull Signal<Integer> that) {
+            return id.compareTo(((TestSignal)that).id);
+        }
     }// class
 
     @Nested
