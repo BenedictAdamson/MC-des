@@ -151,7 +151,7 @@ public class ActorTest {
             private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent, @Nonnull final Integer state0) {
                 final var sender = new Actor<>(start, 0);
                 final var receiver = new Actor<>(start, state0);
-                final Signal<Integer> signal = new SignalTest.TestSignal(sender, whenSent, receiver);
+                final Signal<Integer> signal = new SignalTest.SimpleTestSignal(sender, whenSent, receiver);
 
                 addAffectingSignal(receiver, signal);
 
@@ -178,9 +178,9 @@ public class ActorTest {
             private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent1, @Nonnull final Integer state0) {
                 final var sender = new Actor<>(start, 0);
                 final var receiver = new Actor<>(start, state0);
-                final Signal<Integer> signal1 = new SignalTest.TestSignal(sender, whenSent1, receiver);
+                final Signal<Integer> signal1 = new SignalTest.SimpleTestSignal(sender, whenSent1, receiver);
                 final Duration whenSent2 = signal1.getWhenReceived(state0);
-                final Signal<Integer> signal2 = new SignalTest.TestSignal(sender, whenSent2, receiver);
+                final Signal<Integer> signal2 = new SignalTest.SimpleTestSignal(sender, whenSent2, receiver);
                 receiver.addAffectingSignal(signal2);
 
                 addAffectingSignal(receiver, signal1);

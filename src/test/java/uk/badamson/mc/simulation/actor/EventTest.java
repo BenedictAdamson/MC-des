@@ -40,8 +40,8 @@ public class EventTest {
     private static final Duration WHEN_B = Duration.ofMillis(5000);
     private static final Actor<Integer> ACTOR_A = new Actor<>(WHEN_A, 0);
     private static final Actor<Integer> ACTOR_B = new Actor<>(WHEN_B, 1);
-    private static final Signal<Integer> SIGNAL_A = new SignalTest.TestSignal(ACTOR_A, WHEN_A, ACTOR_B);
-    private static final Signal<Integer> SIGNAL_B = new SignalTest.TestSignal(ACTOR_B, WHEN_B, ACTOR_A);
+    private static final Signal<Integer> SIGNAL_A = new SignalTest.SimpleTestSignal(ACTOR_A, WHEN_A, ACTOR_B);
+    private static final Signal<Integer> SIGNAL_B = new SignalTest.SimpleTestSignal(ACTOR_B, WHEN_B, ACTOR_A);
 
     public static <STATE> void assertInvariants(@Nonnull final Event<STATE> event) {
         ObjectVerifier.assertInvariants(event);// inherited
@@ -120,7 +120,7 @@ public class EventTest {
     public void signalEmitted() {
         final var when = WHEN_A;
         final var receiver = ACTOR_A;
-        final Set<Signal<Integer>> signalsEmitted = Set.of(new SignalTest.TestSignal(receiver, when, ACTOR_B));
+        final Set<Signal<Integer>> signalsEmitted = Set.of(new SignalTest.SimpleTestSignal(receiver, when, ACTOR_B));
         constructor(SIGNAL_A, when, receiver, 0, signalsEmitted);
     }
 
