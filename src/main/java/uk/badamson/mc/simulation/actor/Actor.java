@@ -190,9 +190,27 @@ public final class Actor<STATE> {
 
     /**
      * <p>
-     * Alter the {@linkplain  #getEvents() events} of this actor
-     * to {@linkplain  SortedSet#contains(Object) contain} an event
-     * that is the {@linkplain Signal#receiveForStateHistory(ValueHistory) reception} of a given signal
+     * The signals that, when received, will add to the {@linkplain #getEvents() sequence of events}
+     * of this actor, but which have not yet been {@linkplain  #receiveSignal() received}.
+     * </p>
+     * <ul>
+     *     <li>Does not contain a null element.</li>
+     *     <li>A snapshot: not updated when signals are subsequently {@linkplain  #addSignalToReceive(Signal) added} or {@linkplain #receiveSignal() received}.</li>
+     *     <li>The set may be unmodifiable.</li>
+     *     <li>The {@linkplain Signal#getReceiver() receiver} of every signal in the set is this actor.</li>
+     *     <li>The {@linkplain Signal#getWhenSent()} sending time} of every signal in the set is {@linkplain Duration#compareTo(Duration) before} the {@linkplain #getStart() start time} of this actor.</li>
+     * </ul>
+     */
+    @Nonnull
+    public Set<Signal<STATE>> getSignalsToReceive() {
+        synchronized (lock) {
+            return Set.copyOf(signalsToReceive);
+        }
+    }
+
+    /**
+     * <p>
+     * Add a signal to the {@linkplain #getSignalsToReceive() set of signals to receive}.
      * </p>
      * @throws NullPointerException
      * If {@code signal} is null
@@ -202,7 +220,7 @@ public final class Actor<STATE> {
      *     <li>If the {@linkplain Signal#getWhenSent()} sending time of the {@code signal} is {@linkplain Duration#compareTo(Duration) before} the {@linkplain #getStart() start time} of this actor.</li>
      * </ul>
      */
-    public void addAffectingSignal(@Nonnull final Signal<STATE> signal) {
+    public void addSignalToReceive(@Nonnull final Signal<STATE> signal) {
         Objects.requireNonNull(signal, "signal");
         if (signal.getReceiver() != this) {
             throw new IllegalArgumentException("this actor is not the receiver of the signal");
@@ -212,15 +230,30 @@ public final class Actor<STATE> {
         }
         synchronized (lock) {
             signalsToReceive.add(signal);
-            while (!signalsToReceive.isEmpty()) {
-                addNextAffectingSignal(signalsToReceive);
+        }
+    }
+
+    /**
+     * <p>
+     * If this actor has {@linkplain #getSignalsToReceive() signals to receive},
+     * receive the first such signal.
+     * </p>
+     * <p>
+     * Although this method removes a signal from the set of signals to receive,
+     * it may also add signals for events that have been invalidated by the signal received,
+     * </p>
+     */
+    public void receiveSignal() {
+        synchronized (lock) {
+            final Event<STATE> event = popNextEvent();
+            if (event != null) {
+                addNextEvent(event);
             }
         }
     }
 
     @GuardedBy("lock")
-    private void addNextAffectingSignal(final Set<Signal<STATE>> signalsToReceive) {
-        final var event = popNextEvent(signalsToReceive);
+    private void addNextEvent(final Event<STATE> event) {
         final var invalidatedEvents = List.copyOf(events.tailSet(event));
         //TODO optimise if already present
         for (final var invalidatedEvent: invalidatedEvents) {
@@ -234,10 +267,10 @@ public final class Actor<STATE> {
     }
 
     @GuardedBy("lock")
-    private Event<STATE> popNextEvent(final Set<Signal<STATE>> signals) {
+    private Event<STATE> popNextEvent() {
         Signal<STATE> next = null;
         Duration whenNext = null;
-        for (final var signal: signals) {
+        for (final var signal: signalsToReceive) {
             final var whenS = signal.getWhenReceived(stateHistory);
             final int compareWhen = next == null? -1: whenS.compareTo(whenNext);
             final int compare = compareWhen == 0? signal.compareTo(next): compareWhen;
@@ -246,11 +279,14 @@ public final class Actor<STATE> {
                 whenNext = whenS;
             }
         }
-        assert next != null;
-        signals.remove(next);
-        final STATE state = stateHistory.get(whenNext);
-        assert state != null;
-        return next.receive(whenNext, state);
+        if (next == null) {
+            return null;
+        } else {
+            signalsToReceive.remove(next);
+            final STATE state = stateHistory.get(whenNext);
+            assert state != null;
+            return next.receive(whenNext, state);
+        }
     }
 
     @Override

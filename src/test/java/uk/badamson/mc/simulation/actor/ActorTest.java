@@ -49,15 +49,18 @@ public class ActorTest {
         final var start = actor.getStart();
         final var stateHistory = actor.getStateHistory();
         final var stateTransitions = actor.getStateTransitions();
+        final var signalsToReceive = actor.getSignalsToReceive();
 
         assertAll("Not null", () -> assertNotNull(events, "events"), // guard
                 () -> assertNotNull(start, "start"), // guard
                 () -> assertNotNull(stateHistory, "stateHistory"), // guard
-                () -> assertNotNull(stateTransitions, "stateTransitions") // guard
+                () -> assertNotNull(stateTransitions, "stateTransitions"), // guard
+                () -> assertNotNull(signalsToReceive, "signalsToReceive") // guard
         );
         ValueHistoryTest.assertInvariants(stateHistory);
 
         assertAll(() -> assertAll("events", createEventsAssertions(actor)),
+                () -> assertAll("signalsToReceive", createSignalsToReceiveAssertions(actor)),
                 () -> assertAll("lastEvent",
                         () -> assertThat("is null if, and only if, the sequence of events is empty.",
                                 lastEvent == null == events.isEmpty()),
@@ -96,20 +99,37 @@ public class ActorTest {
             assertNotNull(event, "event");// guard
             assertAll("event " + event,
                     () -> EventTest.assertInvariants(event),
-                    () -> assertThat("whenOccurred", event.getWhen(), greaterThan(actor.getStart())),
+                    () -> assertThat("when", event.getWhen(), greaterThan(actor.getStart())),
                     () -> assertThat("affectedObject", event.getAffectedObject(), sameInstance(actor)),
                     () -> assertThat("state is in stateHistory", event.getState(), is(actor.getStateHistory().get(event.getWhen())))
             );
         });
     }
 
-    private static <STATE> void addAffectingSignal(@Nonnull final Actor<STATE> actor, @Nonnull final Signal<STATE> signal) {
-        actor.addAffectingSignal(signal);
+    private static <STATE> Stream<Executable> createSignalsToReceiveAssertions(@Nonnull final Actor<STATE> actor) {
+        return actor.getSignalsToReceive().stream().map(signal -> () -> {
+            assertNotNull(signal, "event");// guard
+            assertAll("event " + signal,
+                    () -> SignalTest.assertInvariants(signal),
+                    () -> assertThat("whenSent", signal.getWhenSent(), greaterThan(actor.getStart())),
+                    () -> assertThat("receiver", signal.getReceiver(), sameInstance(actor))
+            );
+        });
+    }
+
+    private static <STATE> void addSignalToReceive(@Nonnull final Actor<STATE> actor, @Nonnull final Signal<STATE> signal) {
+        actor.addSignalToReceive(signal);
 
         assertInvariants(actor);
         SignalTest.assertInvariants(signal);
-        final var receptionEventOptional = actor.getEvents().stream().filter(event -> event.getCausingSignal() == signal).findAny();
-        assertFalse(receptionEventOptional.isEmpty(), "has a reception event");
+        final var signalsToReceive = actor.getSignalsToReceive();
+        assertThat("added signal", signalsToReceive, hasItem(signal));
+    }
+
+    private static <STATE> void receiveSignal(@Nonnull final Actor<STATE> actor) {
+        actor.receiveSignal();
+
+        assertInvariants(actor);
     }
 
     @Nested
@@ -133,7 +153,30 @@ public class ActorTest {
     }// class
 
     @Nested
-    public class AddAffectingSignal {
+    public class AddSignalToReceive {
+
+
+            @Test
+            public void a() {
+                test(WHEN_A, WHEN_B, 0);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_B, WHEN_C, 1);
+            }
+
+            private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent, @Nonnull final Integer state0) {
+                final var sender = new Actor<>(start, 0);
+                final var receiver = new Actor<>(start, state0);
+                final Signal<Integer> signal = new SignalTest.SimpleTestSignal(sender, whenSent, receiver);
+
+                addSignalToReceive(receiver, signal);
+            }
+    }// class
+
+    @Nested
+    public class ReceiveSignal {
 
         @Nested
         public class First {
@@ -152,8 +195,9 @@ public class ActorTest {
                 final var sender = new Actor<>(start, 0);
                 final var receiver = new Actor<>(start, state0);
                 final Signal<Integer> signal = new SignalTest.SimpleTestSignal(sender, whenSent, receiver);
+                receiver.addSignalToReceive(signal);
 
-                addAffectingSignal(receiver, signal);
+                receiveSignal(receiver);
 
                 final var events = receiver.getEvents();
                 assertThat("events", events, hasSize(1));// guard
@@ -181,9 +225,12 @@ public class ActorTest {
                 final Signal<Integer> signal1 = new SignalTest.SimpleTestSignal(sender, whenSent1, receiver);
                 final Duration whenSent2 = signal1.getWhenReceived(state0);
                 final Signal<Integer> signal2 = new SignalTest.SimpleTestSignal(sender, whenSent2, receiver);
-                receiver.addAffectingSignal(signal2);
+                receiver.addSignalToReceive(signal2);
+                receiver.receiveSignal();
+                receiver.addSignalToReceive(signal1);
+                receiver.receiveSignal();
 
-                addAffectingSignal(receiver, signal1);
+                receiveSignal(receiver);
 
                 final var events = receiver.getEvents();
                 assertThat("events", events, hasSize(2));// guard
