@@ -52,6 +52,9 @@ public final class Actor<STATE> {
     @GuardedBy("lock")
     private final SortedSet<Event<STATE>> events = new TreeSet<>();
 
+    @GuardedBy("lock")
+    final Set<Signal<STATE>> signalsToReceive = new HashSet<>();
+
     /**
      * <p>
      * Construct an actor with given start information and no events.
@@ -207,10 +210,9 @@ public final class Actor<STATE> {
         if (signal.getWhenSent().compareTo(start) < 0) {
             throw new IllegalArgumentException("signal sent before the start time of this actor");
         }
-        final Set<Signal<STATE>> signalsToReceive = new HashSet<>();
-        signalsToReceive.add(signal);
-        while(!signalsToReceive.isEmpty()) {
-            synchronized (lock) {
+        synchronized (lock) {
+            signalsToReceive.add(signal);
+            while (!signalsToReceive.isEmpty()) {
                 addNextAffectingSignal(signalsToReceive);
             }
         }
