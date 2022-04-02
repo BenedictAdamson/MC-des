@@ -67,6 +67,18 @@ public final class Actor<STATE> {
 
     /**
      * <p>
+     *     Indicates that a method of the {@link Signal} class threw a {@link RuntimeException},
+     *     which is likely to be due to a bug in an implementation of that class.
+     * </p>
+     */
+    public static final class SignalException extends RuntimeException {
+        <STATE> SignalException(@Nonnull final Signal<STATE> signal, @Nonnull final RuntimeException cause) {
+            super("Signal "+signal+" threw exception " + cause, cause);
+        }
+    }
+
+    /**
+     * <p>
      * Construct an actor with given start information and no events.
      * </p>
      * <ul>
@@ -229,6 +241,8 @@ public final class Actor<STATE> {
      *     <li>If the {@linkplain Signal#getReceiver() receiver} of the {@code signal} is not this actor.</li>
      *     <li>If the {@linkplain Signal#getWhenSent()} sending time of the {@code signal} is {@linkplain Duration#compareTo(Duration) before} the {@linkplain #getStart() start time} of this actor.</li>
      * </ul>
+     * @throws SignalException
+     * If a {@link Signal} object (not necessarily the given {@code signal}) throws a {@link RuntimeException}.
      */
     public void addSignalToReceive(@Nonnull final Signal<STATE> signal) {
         Objects.requireNonNull(signal, "signal");
@@ -259,6 +273,8 @@ public final class Actor<STATE> {
      * Although this method removes a signal from the set of signals to receive,
      * it may also add signals for events that have been invalidated by the signal received,
      * </p>
+     * @throws SignalException
+     * If a {@link Signal} object throws a {@link RuntimeException}.
      */
     public void receiveSignal() {
         final Signal<STATE> signal;
@@ -291,12 +307,16 @@ public final class Actor<STATE> {
     }
 
     @GuardedBy("lock")
-    private Event<STATE> createNextEvent() {
+    private Event<STATE> createNextEvent() throws SignalException {
         assert nextSignalToReceive != null;
         assert whenReceiveNextSignal != null;
         final STATE state = stateHistory.get(whenReceiveNextSignal);
         assert state != null;
-        return nextSignalToReceive.receive(whenReceiveNextSignal, state);
+        try {
+            return nextSignalToReceive.receive(whenReceiveNextSignal, state);
+        } catch (final RuntimeException e) {
+            throw new SignalException(nextSignalToReceive, e);
+        }
     }
 
     private void appendEvent(final long previousVersion, final Event<STATE> event) {
@@ -317,26 +337,34 @@ public final class Actor<STATE> {
     }
 
     @GuardedBy("lock")
-    private void recomputeNextSignalToReceive() {
-        assert whenReceiveNextSignal == null;
+    private void recomputeNextSignalToReceive() throws SignalException {
         nextSignalToReceive = null;
         whenReceiveNextSignal = Signal.NEVER_RECEIVED;
         try {
             for (final var signal : signalsToReceive) {
                 updateNextSignalToReceiveFor(signal);
             }
-        } catch (final Exception e) {
-            nextSignalToReceive = null;
-            whenReceiveNextSignal = null;
+        } catch (final SignalException e) {
+            invalidateNextSignalToReceive();
             throw e;
         }
     }
 
     @GuardedBy("lock")
-    private void updateNextSignalToReceiveFor(@Nonnull final Signal<STATE> signal) {
-        final var whenReceived = signal.getWhenReceived(stateHistory);
+    private void updateNextSignalToReceiveFor(@Nonnull final Signal<STATE> signal) throws SignalException {
+        final Duration whenReceived;
+        try {
+            whenReceived = signal.getWhenReceived(stateHistory);
+        } catch (final RuntimeException e) {
+            throw new SignalException(signal, e);
+        }
         final int compareWhen = whenReceived.compareTo(whenReceiveNextSignal);
-        final int compare = compareWhen == 0 ? signal.compareTo(nextSignalToReceive) : compareWhen;
+        final int compare;
+        try {
+            compare = compareWhen == 0 ? signal.compareTo(nextSignalToReceive) : compareWhen;
+        } catch (final RuntimeException e) {
+            throw new SignalException(signal, e);
+        }
         if (compare < 0) {
             nextSignalToReceive = signal;
             whenReceiveNextSignal = whenReceived;
