@@ -58,8 +58,9 @@ public final class Actor<STATE> {
     @GuardedBy("lock")
     private Signal<STATE> nextSignalToReceive;
 
+    // null indicates unknown
     @GuardedBy("lock")
-    private Duration whenReceiveNextSignal = Signal.NEVER_RECEIVED;
+    private Duration whenReceiveNextSignal;
 
     @GuardedBy("lock")
     private long version;
@@ -238,8 +239,14 @@ public final class Actor<STATE> {
             throw new IllegalArgumentException("signal sent before the start time of this actor");
         }
         synchronized (lock) {
-            updateNextSignalToReceiveFor(signal);
-            signalsToReceive.add(signal);
+            if (whenReceiveNextSignal == null) {
+                signalsToReceive.add(signal);
+                recomputeNextSignalToReceive();
+            } else {
+                updateNextSignalToReceiveFor(signal);
+                signalsToReceive.add(signal);
+            }
+            version++;
         }
     }
 
@@ -254,36 +261,53 @@ public final class Actor<STATE> {
      * </p>
      */
     public void receiveSignal() {
-        final Event<STATE> event;
+        final Signal<STATE> signal;
         final long previousVersion;
         synchronized (lock) {
-            event = createNextEvent();
+            if (whenReceiveNextSignal == null) {
+                recomputeNextSignalToReceive();
+            }
+            signal = nextSignalToReceive;
             previousVersion = version;
         }
-        if (event != null) {
+        if (signal != null) {
+            final Event<STATE> event;
             synchronized (lock) {
-                if (version != previousVersion || nextSignalToReceive != event.getCausingSignal()) {
-                    /* Another thread got here first.
-                     * This assumes we will never have more than Long.MAX_VALUE threads,
-                     * which is safe enough
-                     */
+                if (!isCurrent(previousVersion, signal)) {
+                    return;
+                }
+                event = createNextEvent();
+            }
+            synchronized (lock) {
+                if (!isCurrent(previousVersion, signal)) {
                     return;
                 }
                 appendEvent(event);
-                recomputeNextSignalToReceive();
+            }
+            synchronized (lock) {
+                if (whenReceiveNextSignal == null) {
+                    recomputeNextSignalToReceive();
+                }
+                // else another thread got here first
             }
         }
     }
 
     @GuardedBy("lock")
+    private boolean isCurrent(final long expectedVersion, final Signal<STATE> expectedNextSignalToReceive) {
+        /* This assumes we will never have more than Long.MAX_VALUE threads,
+         * which is safe enough
+         */
+        return expectedVersion == version && expectedNextSignalToReceive == nextSignalToReceive;
+    }
+
+    @GuardedBy("lock")
     private Event<STATE> createNextEvent() {
-        if (nextSignalToReceive == null) {
-            return null;
-        } else {
-            final STATE state = stateHistory.get(whenReceiveNextSignal);
-            assert state != null;
-            return nextSignalToReceive.receive(whenReceiveNextSignal, state);
-        }
+        assert nextSignalToReceive != null;
+        assert whenReceiveNextSignal != null;
+        final STATE state = stateHistory.get(whenReceiveNextSignal);
+        assert state != null;
+        return nextSignalToReceive.receive(whenReceiveNextSignal, state);
     }
 
     @GuardedBy("lock")
@@ -299,15 +323,24 @@ public final class Actor<STATE> {
         }
         events.add(event);
         stateHistory.setValueFrom(event.getWhen(), event.getState());
+        // TODO send emitted signals
+        nextSignalToReceive = null;
+        whenReceiveNextSignal = null;
     }
 
     @GuardedBy("lock")
     private void recomputeNextSignalToReceive() {
-        // TODO send emitted signals
+        assert whenReceiveNextSignal == null;
         nextSignalToReceive = null;
         whenReceiveNextSignal = Signal.NEVER_RECEIVED;
-        for (final var signal : signalsToReceive) {
-            updateNextSignalToReceiveFor(signal);
+        try {
+            for (final var signal : signalsToReceive) {
+                updateNextSignalToReceiveFor(signal);
+            }
+        } catch (Exception e) {
+            nextSignalToReceive = null;
+            whenReceiveNextSignal = null;
+            throw e;
         }
     }
 
