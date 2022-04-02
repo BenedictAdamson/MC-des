@@ -235,6 +235,7 @@ public final class Actor<STATE> {
             throw new IllegalArgumentException("signal sent before the start time of this actor");
         }
         synchronized (lock) {
+            updateNextSignalToReceiveFor(signal);
             signalsToReceive.add(signal);
         }
     }
@@ -254,8 +255,25 @@ public final class Actor<STATE> {
             final Event<STATE> event = popNextEvent();
             if (event != null) {
                 addNextEvent(event);
+                nextSignalToReceive = null;
+                whenReceiveNextSignal = Signal.NEVER_RECEIVED;
+                for(final var signal: signalsToReceive) {
+                    updateNextSignalToReceiveFor(signal);
+                }
             }
         }
+    }
+
+    @GuardedBy("lock")
+    private void updateNextSignalToReceiveFor(@Nonnull final Signal<STATE> signal) {
+        final var whenReceived = signal.getWhenReceived(stateHistory);
+        final int compareWhen = whenReceived.compareTo(whenReceiveNextSignal);
+        final int compare = compareWhen == 0 ? signal.compareTo(nextSignalToReceive) : compareWhen;
+        if (compare < 0) {
+            nextSignalToReceive = signal;
+            whenReceiveNextSignal = whenReceived;
+        }
+        assert nextSignalToReceive != null;
     }
 
     @GuardedBy("lock")
@@ -274,24 +292,14 @@ public final class Actor<STATE> {
 
     @GuardedBy("lock")
     private Event<STATE> popNextEvent() {
-        nextSignalToReceive = null;
-        whenReceiveNextSignal = null;
-        for (final var signal: signalsToReceive) {
-            final var whenS = signal.getWhenReceived(stateHistory);
-            final int compareWhen = nextSignalToReceive == null? -1: whenS.compareTo(whenReceiveNextSignal);
-            final int compare = compareWhen == 0? signal.compareTo(nextSignalToReceive): compareWhen;
-            if (compare < 0) {
-                nextSignalToReceive = signal;
-                whenReceiveNextSignal = whenS;
-            }
-        }
         if (nextSignalToReceive == null) {
             return null;
         } else {
-            signalsToReceive.remove(nextSignalToReceive);
             final STATE state = stateHistory.get(whenReceiveNextSignal);
             assert state != null;
-            return nextSignalToReceive.receive(whenReceiveNextSignal, state);
+            final Event<STATE> event = nextSignalToReceive.receive(whenReceiveNextSignal, state);
+            signalsToReceive.remove(nextSignalToReceive);
+            return event;
         }
     }
 
