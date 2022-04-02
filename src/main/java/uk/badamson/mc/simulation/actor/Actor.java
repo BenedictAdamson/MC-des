@@ -53,7 +53,13 @@ public final class Actor<STATE> {
     private final SortedSet<Event<STATE>> events = new TreeSet<>();
 
     @GuardedBy("lock")
-    final Set<Signal<STATE>> signalsToReceive = new HashSet<>();
+    private final Set<Signal<STATE>> signalsToReceive = new HashSet<>();
+
+    @GuardedBy("lock")
+    private Signal<STATE> nextSignalToReceive;
+
+    @GuardedBy("lock")
+    private Duration whenReceiveNextSignal = Signal.NEVER_RECEIVED;
 
     /**
      * <p>
@@ -268,24 +274,24 @@ public final class Actor<STATE> {
 
     @GuardedBy("lock")
     private Event<STATE> popNextEvent() {
-        Signal<STATE> next = null;
-        Duration whenNext = null;
+        nextSignalToReceive = null;
+        whenReceiveNextSignal = null;
         for (final var signal: signalsToReceive) {
             final var whenS = signal.getWhenReceived(stateHistory);
-            final int compareWhen = next == null? -1: whenS.compareTo(whenNext);
-            final int compare = compareWhen == 0? signal.compareTo(next): compareWhen;
+            final int compareWhen = nextSignalToReceive == null? -1: whenS.compareTo(whenReceiveNextSignal);
+            final int compare = compareWhen == 0? signal.compareTo(nextSignalToReceive): compareWhen;
             if (compare < 0) {
-                next = signal;
-                whenNext = whenS;
+                nextSignalToReceive = signal;
+                whenReceiveNextSignal = whenS;
             }
         }
-        if (next == null) {
+        if (nextSignalToReceive == null) {
             return null;
         } else {
-            signalsToReceive.remove(next);
-            final STATE state = stateHistory.get(whenNext);
+            signalsToReceive.remove(nextSignalToReceive);
+            final STATE state = stateHistory.get(whenReceiveNextSignal);
             assert state != null;
-            return next.receive(whenNext, state);
+            return nextSignalToReceive.receive(whenReceiveNextSignal, state);
         }
     }
 
