@@ -23,11 +23,16 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import uk.badamson.dbc.assertions.ObjectVerifier;
+import uk.badamson.dbc.assertions.ThreadSafetyTest;
 import uk.badamson.mc.history.ValueHistoryTest;
 
 import javax.annotation.Nonnull;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
 import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -265,7 +270,7 @@ public class ActorTest {
         }
 
         @Nested
-        public class EchoingSignalToSelf {
+        public class EchoingSignal {
 
             @Test
             public void a() {
@@ -287,6 +292,37 @@ public class ActorTest {
 
                 assertThat("Original sender has another signal to receive", actorA.getSignalsToReceive(), hasSize(1));
                 assertThat("Original receiver does not have another signal to receive", actorB.getSignalsToReceive(), empty());
+            }
+        }
+
+        @Test
+        public void concurrent() {
+            final int nActors = 16;
+            final Actor[] actors = new Actor[nActors];
+            for (int a = 0; a < nActors; a++) {
+                actors[a] = new Actor<>(WHEN_A, a);
+            }
+            for (int s = 0; s < nActors; s++) {
+                final Actor sender = actors[s];
+                for (int r = 0; r < nActors; r++) {
+                    if (s == r) continue;
+                    final Actor receiver = actors[r];
+                    final Signal<Integer> signal = new SignalTest.EchoingTestSignal(sender, WHEN_B, receiver);
+                    receiver.addSignalToReceive(signal);
+                }
+            }
+            final CountDownLatch ready = new CountDownLatch(1);
+            final List<Future<Void>> futures = new ArrayList<>(nActors);
+            for (int a = 0; a < nActors; a++) {
+                final Actor actor = actors[a];
+                futures.add(ThreadSafetyTest.runInOtherThread(ready, () -> actor.receiveSignal()));
+            }
+
+            ready.countDown();
+            ThreadSafetyTest.get(futures);
+
+            for (int a = 0; a < nActors; a++) {
+                assertInvariants(actors[a]);
             }
         }
     }// class

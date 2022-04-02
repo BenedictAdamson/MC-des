@@ -44,7 +44,10 @@ public final class Actor<STATE> {
     @Nonnull
     private final Duration start;
 
-    private final Object lock = new Object();
+    /**
+     * Comparable so can predictably order locks to avoid deadlock.
+     */
+    private final UUID lock = UUID.randomUUID();
 
     @GuardedBy("lock")
     private final ModifiableValueHistory<STATE> stateHistory = new ModifiableValueHistory<>();
@@ -237,6 +240,7 @@ public final class Actor<STATE> {
 
     @GuardedBy("lock")
     private void addSignalToReceiveWhileLocked(@Nonnull final Signal<STATE> signal) {
+        assert Thread.holdsLock(lock);
         signalsToReceive.add(signal);
         version++;
     }
@@ -333,14 +337,35 @@ public final class Actor<STATE> {
         }
     }
 
-    private void appendEvent(final long previousVersion, @Nonnull final Event<STATE> event) throws SignalException {
-        synchronized (lock) {
-            appendEventWhileLocked(previousVersion, event);
+    private void appendEvent(final long previousVersion, @Nonnull final Event<STATE> event) {
+        assert event.getAffectedObject() == this;
+        //noinspection FieldAccessNotGuarded
+        forAllLocks(getLocksFor(event), () -> appendEventWhileLocked(previousVersion, event));
+    }
+
+    @Nonnull
+    private static <STATE> NavigableSet<UUID> getLocksFor(@Nonnull final Event<STATE> event) {
+        final NavigableSet<UUID> locks = new TreeSet<>();
+        locks.add(event.getAffectedObject().lock);
+        event.getSignalsEmitted().stream().sequential().map(signal -> signal.getReceiver().lock).forEach(locks::add);
+        return locks;
+    }
+
+    private static void forAllLocks(@Nonnull final NavigableSet<UUID> locks, @Nonnull final Runnable operation) {
+        if (locks.isEmpty()) {
+            operation.run();
+        } else {
+            final UUID firstLock = locks.first();
+            //noinspection SynchronizationOnLocalVariableOrMethodParameter
+            synchronized (firstLock) {
+                forAllLocks(locks.tailSet(firstLock, false), operation);
+            }
         }
     }
 
     @GuardedBy("lock")
     private void appendEventWhileLocked(final long previousVersion, @Nonnull final Event<STATE> event) {
+        assert Thread.holdsLock(lock);
         if (isOutOfDate(previousVersion)) {
             return;
         }
