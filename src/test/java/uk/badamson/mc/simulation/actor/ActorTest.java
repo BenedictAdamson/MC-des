@@ -263,6 +263,32 @@ public class ActorTest {
                 assertThat("Has another signal to receive", actor.getSignalsToReceive(), hasSize(1));
             }
         }
+
+        @Nested
+        public class EchoingSignalToSelf {
+
+            @Test
+            public void a() {
+                test(WHEN_A, WHEN_B, 0);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_B, WHEN_C, 1);
+            }
+
+            private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent1, @Nonnull final Integer state0) {
+                final var actorA = new Actor<>(start, state0);
+                final var actorB = new Actor<>(start, state0);
+                final Signal<Integer> signal1 = new SignalTest.EchoingTestSignal(actorA, whenSent1, actorB);
+                actorB.addSignalToReceive(signal1);
+
+                receiveSignal(actorB);
+
+                assertThat("Original sender has another signal to receive", actorA.getSignalsToReceive(), hasSize(1));
+                assertThat("Original receiver does not have another signal to receive", actorB.getSignalsToReceive(), empty());
+            }
+        }
     }// class
 
 }// class

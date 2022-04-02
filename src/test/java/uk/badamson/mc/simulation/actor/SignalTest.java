@@ -279,6 +279,19 @@ public class SignalTest {
 
     }
 
+    static class EchoingTestSignal extends AbstractTestSignal {
+
+        EchoingTestSignal(@Nonnull final Actor<Integer> sender, @Nonnull final Duration whenSent, @Nonnull final Actor<Integer> receiver) {
+            super(sender, whenSent, receiver);
+        }
+
+        @Override
+        protected Set<Signal<Integer>> signalsEmitted(@Nonnull final Duration when) {
+            return Set.of(new EchoingTestSignal(getReceiver(), when, getSender()));
+        }
+
+    }
+
     @Nested
     public class Constructor {
 
