@@ -56,13 +56,6 @@ public final class Actor<STATE> {
     private final Set<Signal<STATE>> signalsToReceive = new HashSet<>();
 
     @GuardedBy("lock")
-    private Signal<STATE> nextSignalToReceive;
-
-    // null indicates unknown
-    @GuardedBy("lock")
-    private Duration whenReceiveNextSignal;
-
-    @GuardedBy("lock")
     private long version;
 
     /**
@@ -259,13 +252,7 @@ public final class Actor<STATE> {
 
     @GuardedBy("lock")
     private void addSignalToReceiveWhileLocked(@Nonnull final Signal<STATE> signal) throws SignalException {
-        if (whenReceiveNextSignal == null) {
-            signalsToReceive.add(signal);
-            recomputeNextSignalToReceive();
-        } else {
-            updateNextSignalToReceiveFor(signal);
-            signalsToReceive.add(signal);
-        }
+        signalsToReceive.add(signal);
         version++;
     }
 
@@ -282,45 +269,65 @@ public final class Actor<STATE> {
      * If a {@link Signal} object throws a {@link RuntimeException}.
      */
     public void receiveSignal() {
-        final Signal<STATE> signal;
+        Signal<STATE> nextSignalToReceive = null;
+        Duration whenReceiveNextSignal = Signal.NEVER_RECEIVED;
         final long previousVersion;
         synchronized (lock) {
-            if (whenReceiveNextSignal == null) {
-                recomputeNextSignalToReceive();
+            for (final var signal : signalsToReceive) {
+                final Duration whenReceived;
+                try {
+                    whenReceived = signal.getWhenReceived(stateHistory);
+                } catch (final RuntimeException e) {
+                    throw new SignalException(signal, e);
+                }
+                int compare;
+                if (nextSignalToReceive == null) {
+                    compare = -1;
+                } else {
+                    compare = whenReceived.compareTo(whenReceiveNextSignal);
+                    if (compare == 0) {
+                        try {
+                            compare = signal.compareTo(nextSignalToReceive);
+                        } catch (final RuntimeException e) {
+                            throw new SignalException(signal, e);
+                        }
+                    }
+                }
+                if (compare < 0) {
+                    nextSignalToReceive = signal;
+                    whenReceiveNextSignal = whenReceived;
+                }
             }
-            signal = nextSignalToReceive;
             previousVersion = version;
         }
-        if (signal != null) {
+        if (nextSignalToReceive != null) {
             final Event<STATE> event;
             synchronized (lock) {
-                if (isOutOfDate(previousVersion, signal)) {
+                if (isOutOfDate(previousVersion)) {
                     return;
                 }
-                event = createNextEvent();
+                event = createNextEvent(nextSignalToReceive, whenReceiveNextSignal);
             }
             appendEvent(previousVersion, event);
         }
     }
 
     @GuardedBy("lock")
-    private boolean isOutOfDate(final long expectedVersion, final Signal<STATE> expectedNextSignalToReceive) {
+    private boolean isOutOfDate(final long expectedVersion) {
         /* This assumes we will never have more than Long.MAX_VALUE threads,
          * which is safe enough
          */
-        return expectedVersion != version || expectedNextSignalToReceive != nextSignalToReceive;
+        return expectedVersion != version;
     }
 
     @GuardedBy("lock")
-    private Event<STATE> createNextEvent() throws SignalException {
-        assert nextSignalToReceive != null;
-        assert whenReceiveNextSignal != null;
-        final STATE state = stateHistory.get(whenReceiveNextSignal);
+    private Event<STATE> createNextEvent(@Nonnull final Signal<STATE> signal, @Nonnull final Duration when) throws SignalException {
+        final STATE state = stateHistory.get(when);
         assert state != null;
         try {
-            return nextSignalToReceive.receive(whenReceiveNextSignal, state);
+            return signal.receive(when, state);
         } catch (final RuntimeException e) {
-            throw new SignalException(nextSignalToReceive, e);
+            throw new SignalException(signal, e);
         }
     }
 
@@ -332,7 +339,7 @@ public final class Actor<STATE> {
 
     @GuardedBy("lock")
     private void appendEventWhileLocked(final long previousVersion, @Nonnull final Event<STATE> event) {
-        if (isOutOfDate(previousVersion, event.getCausingSignal())) {
+        if (isOutOfDate(previousVersion)) {
             return;
         }
         //TODO optimise if already present
@@ -344,43 +351,6 @@ public final class Actor<STATE> {
         for (final var emittedSignal: event.getSignalsEmitted()) {
             emittedSignal.getReceiver().addSignalToReceiveWhileLocked(emittedSignal);
         }
-        invalidateNextSignalToReceive();
-    }
-
-    @GuardedBy("lock")
-    private void recomputeNextSignalToReceive() throws SignalException {
-        nextSignalToReceive = null;
-        whenReceiveNextSignal = Signal.NEVER_RECEIVED;
-        try {
-            for (final var signal : signalsToReceive) {
-                updateNextSignalToReceiveFor(signal);
-            }
-        } catch (final SignalException e) {
-            invalidateNextSignalToReceive();
-            throw e;
-        }
-    }
-
-    @GuardedBy("lock")
-    private void updateNextSignalToReceiveFor(@Nonnull final Signal<STATE> signal) throws SignalException {
-        final Duration whenReceived;
-        try {
-            whenReceived = signal.getWhenReceived(stateHistory);
-        } catch (final RuntimeException e) {
-            throw new SignalException(signal, e);
-        }
-        final int compareWhen = whenReceived.compareTo(whenReceiveNextSignal);
-        final int compare;
-        try {
-            compare = compareWhen == 0 ? signal.compareTo(nextSignalToReceive) : compareWhen;
-        } catch (final RuntimeException e) {
-            throw new SignalException(signal, e);
-        }
-        if (compare < 0) {
-            nextSignalToReceive = signal;
-            whenReceiveNextSignal = whenReceived;
-        }
-        assert nextSignalToReceive != null;
     }
 
     @GuardedBy("lock")
@@ -390,12 +360,6 @@ public final class Actor<STATE> {
             events.remove(invalidatedEvent);
             // TODO invalidate emitted signal
         }
-    }
-
-    @GuardedBy("lock")
-    private void invalidateNextSignalToReceive() {
-        nextSignalToReceive = null;
-        whenReceiveNextSignal = null;
     }
 
     @Override
