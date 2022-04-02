@@ -284,12 +284,6 @@ public final class Actor<STATE> {
                 }
                 appendEvent(event);
             }
-            synchronized (lock) {
-                if (whenReceiveNextSignal == null) {
-                    recomputeNextSignalToReceive();
-                }
-                // else another thread got here first
-            }
         }
     }
 
