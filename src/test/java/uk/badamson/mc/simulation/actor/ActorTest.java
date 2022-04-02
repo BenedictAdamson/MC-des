@@ -298,31 +298,30 @@ public class ActorTest {
         @Test
         public void concurrent() {
             final int nActors = 16;
-            final Actor[] actors = new Actor[nActors];
+            final List<Actor<Integer>> actors = new ArrayList<>(nActors);
             for (int a = 0; a < nActors; a++) {
-                actors[a] = new Actor<>(WHEN_A, a);
+                actors.add(new Actor<>(WHEN_A, a));
             }
             for (int s = 0; s < nActors; s++) {
-                final Actor sender = actors[s];
+                final var sender = actors.get(s);
                 for (int r = 0; r < nActors; r++) {
                     if (s == r) continue;
-                    final Actor receiver = actors[r];
-                    final Signal<Integer> signal = new SignalTest.EchoingTestSignal(sender, WHEN_B, receiver);
+                    final var receiver = actors.get(r);
+                    final var signal = new SignalTest.EchoingTestSignal(sender, WHEN_B, receiver);
                     receiver.addSignalToReceive(signal);
                 }
             }
             final CountDownLatch ready = new CountDownLatch(1);
             final List<Future<Void>> futures = new ArrayList<>(nActors);
-            for (int a = 0; a < nActors; a++) {
-                final Actor actor = actors[a];
-                futures.add(ThreadSafetyTest.runInOtherThread(ready, () -> actor.receiveSignal()));
+            for (final var actor: actors) {
+                futures.add(ThreadSafetyTest.runInOtherThread(ready, actor::receiveSignal));
             }
 
             ready.countDown();
             ThreadSafetyTest.get(futures);
 
-            for (int a = 0; a < nActors; a++) {
-                assertInvariants(actors[a]);
+            for (final var actor: actors) {
+                assertInvariants(actor);
             }
         }
     }// class
