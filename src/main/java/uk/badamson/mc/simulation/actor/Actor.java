@@ -345,7 +345,7 @@ public final class Actor<STATE> {
     }
 
     @GuardedBy("lock")
-    private void invalidateEvents(List<Event<STATE>> invalidatedEvents) {
+    private void invalidateEvents(final List<Event<STATE>> invalidatedEvents) {
         for (final var invalidatedEvent: invalidatedEvents) {
             signalsToReceive.add(invalidatedEvent.getCausingSignal());
             events.remove(invalidatedEvent);
@@ -353,6 +353,7 @@ public final class Actor<STATE> {
         }
     }
 
+    @GuardedBy("lock")
     private void invalidateNextSignalToReceive() {
         nextSignalToReceive = null;
         whenReceiveNextSignal = null;
