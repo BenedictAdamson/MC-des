@@ -273,13 +273,13 @@ public final class Actor<STATE> {
         if (signal != null) {
             final Event<STATE> event;
             synchronized (lock) {
-                if (!isCurrent(previousVersion, signal)) {
+                if (isOutOfDate(previousVersion, signal)) {
                     return;
                 }
                 event = createNextEvent();
             }
             synchronized (lock) {
-                if (!isCurrent(previousVersion, signal)) {
+                if (isOutOfDate(previousVersion, signal)) {
                     return;
                 }
                 appendEvent(event);
@@ -294,11 +294,11 @@ public final class Actor<STATE> {
     }
 
     @GuardedBy("lock")
-    private boolean isCurrent(final long expectedVersion, final Signal<STATE> expectedNextSignalToReceive) {
+    private boolean isOutOfDate(final long expectedVersion, final Signal<STATE> expectedNextSignalToReceive) {
         /* This assumes we will never have more than Long.MAX_VALUE threads,
          * which is safe enough
          */
-        return expectedVersion == version && expectedNextSignalToReceive == nextSignalToReceive;
+        return expectedVersion != version || expectedNextSignalToReceive != nextSignalToReceive;
     }
 
     @GuardedBy("lock")
@@ -311,7 +311,7 @@ public final class Actor<STATE> {
     }
 
     @GuardedBy("lock")
-    private void appendEvent(Event<STATE> event) {
+    private void appendEvent(final Event<STATE> event) {
         signalsToReceive.remove(event.getCausingSignal());
         version++;
         final var invalidatedEvents = List.copyOf(events.tailSet(event));
@@ -337,7 +337,7 @@ public final class Actor<STATE> {
             for (final var signal : signalsToReceive) {
                 updateNextSignalToReceiveFor(signal);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             nextSignalToReceive = null;
             whenReceiveNextSignal = null;
             throw e;
