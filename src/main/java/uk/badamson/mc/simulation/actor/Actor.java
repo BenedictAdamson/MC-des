@@ -234,8 +234,6 @@ public final class Actor<STATE> {
      *     <li>If the {@linkplain Signal#getReceiver() receiver} of the {@code signal} is not this actor.</li>
      *     <li>If the {@linkplain Signal#getWhenSent()} sending time of the {@code signal} is {@linkplain Duration#compareTo(Duration) before} the {@linkplain #getStart() start time} of this actor.</li>
      * </ul>
-     * @throws SignalException
-     * If a {@link Signal} object (not necessarily the given {@code signal}) throws a {@link RuntimeException}.
      */
     public void addSignalToReceive(@Nonnull final Signal<STATE> signal) {
         Objects.requireNonNull(signal, "signal");
@@ -251,7 +249,7 @@ public final class Actor<STATE> {
     }
 
     @GuardedBy("lock")
-    private void addSignalToReceiveWhileLocked(@Nonnull final Signal<STATE> signal) throws SignalException {
+    private void addSignalToReceiveWhileLocked(@Nonnull final Signal<STATE> signal) {
         signalsToReceive.add(signal);
         version++;
     }
@@ -267,6 +265,7 @@ public final class Actor<STATE> {
      * </p>
      * @throws SignalException
      * If a {@link Signal} object throws a {@link RuntimeException}.
+     * The method is safe if this exception is thrown: its state will have not changed.
      */
     public void receiveSignal() {
         Signal<STATE> nextSignalToReceive = null;
@@ -274,26 +273,8 @@ public final class Actor<STATE> {
         final long previousVersion;
         synchronized (lock) {
             for (final var signal : signalsToReceive) {
-                final Duration whenReceived;
-                try {
-                    whenReceived = signal.getWhenReceived(stateHistory);
-                } catch (final RuntimeException e) {
-                    throw new SignalException(signal, e);
-                }
-                int compare;
-                if (nextSignalToReceive == null) {
-                    compare = -1;
-                } else {
-                    compare = whenReceived.compareTo(whenReceiveNextSignal);
-                    if (compare == 0) {
-                        try {
-                            compare = signal.compareTo(nextSignalToReceive);
-                        } catch (final RuntimeException e) {
-                            throw new SignalException(signal, e);
-                        }
-                    }
-                }
-                if (compare < 0) {
+                final Duration whenReceived = computeWhenReceived(signal);
+                if (compareTo(signal, whenReceived, nextSignalToReceive, whenReceiveNextSignal) < 0) {
                     nextSignalToReceive = signal;
                     whenReceiveNextSignal = whenReceived;
                 }
@@ -310,6 +291,40 @@ public final class Actor<STATE> {
             }
             appendEvent(previousVersion, event);
         }
+    }
+
+    @Nonnull
+    @GuardedBy("lock")
+    private Duration computeWhenReceived(@Nonnull final Signal<STATE> signal) throws SignalException {
+        final Duration whenReceived;
+        try {
+            whenReceived = signal.getWhenReceived(stateHistory);
+        } catch (final RuntimeException e) {
+            throw new SignalException(signal, e);
+        }
+        return whenReceived;
+    }
+
+    private static <STATE> int compareTo(
+            @Nonnull final Signal<STATE> signal1,
+            @Nonnull final Duration whenReceived1,
+            @Nullable final Signal<STATE> signal2,
+            @Nonnull final Duration whenReceived2
+            ) throws SignalException {
+        int compare;
+        if (signal2 == null) {
+            compare = -1;
+        } else {
+            compare = whenReceived1.compareTo(whenReceived2);
+            if (compare == 0) {
+                try {
+                    compare = signal1.compareTo(signal2);
+                } catch (final RuntimeException e) {
+                    throw new SignalException(signal1, e);
+                }
+            }
+        }
+        return compare;
     }
 
     @GuardedBy("lock")
