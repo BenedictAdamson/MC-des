@@ -48,13 +48,11 @@ public class ActorTest {
         final var lastEvent = actor.getLastEvent();
         final var start = actor.getStart();
         final var stateHistory = actor.getStateHistory();
-        final var stateTransitions = actor.getStateTransitions();
         final var signalsToReceive = actor.getSignalsToReceive();
 
         assertAll("Not null", () -> assertNotNull(events, "events"), // guard
                 () -> assertNotNull(start, "start"), // guard
                 () -> assertNotNull(stateHistory, "stateHistory"), // guard
-                () -> assertNotNull(stateTransitions, "stateTransitions"), // guard
                 () -> assertNotNull(signalsToReceive, "signalsToReceive") // guard
         );
         ValueHistoryTest.assertInvariants(stateHistory);
@@ -71,8 +69,7 @@ public class ActorTest {
                         "The first transition time of the state history is the same as the start time of this history."),
                         () -> assertNull(stateHistory.getFirstValue(),
                                 "The state at the start of time of the state history is null."),
-                        () -> assertFalse(stateHistory.isEmpty(), "The state history is never empty.")),
-                () -> assertEquals(stateTransitions, stateHistory.getTransitions(), "stateTransitions"));
+                        () -> assertFalse(stateHistory.isEmpty(), "The state history is never empty.")));
     }
 
     public static <STATE> void assertInvariants(@Nonnull final Actor<STATE> actor1,
@@ -85,7 +82,7 @@ public class ActorTest {
         final var actor = new Actor<>(start, state);
 
         assertInvariants(actor);
-        final var stateTransitions = actor.getStateTransitions();
+        final var stateTransitions = actor.getStateHistory().getTransitions();
         assertAll(
                 () -> assertSame(start, actor.getStart(), "start"),
                 () -> assertSame(stateTransitions.firstKey(), actor.getStart(), "start"),

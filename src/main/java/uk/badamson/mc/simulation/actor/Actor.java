@@ -192,19 +192,6 @@ public final class Actor<STATE> {
 
     /**
      * <p>
-     * The {@linkplain ValueHistory#getTransitions() transitions} in the
-     * {@linkplain #getStateHistory() state history} of this actor.
-     * </p>
-     */
-    @Nonnull
-    public SortedMap<Duration, STATE> getStateTransitions() {
-        synchronized (lock) {// hard to test
-            return stateHistory.getTransitions();
-        }
-    }
-
-    /**
-     * <p>
      * The signals that, when received, will add to the {@linkplain #getEvents() sequence of events}
      * of this actor, but which have not yet been {@linkplain  #receiveSignal() received}.
      * </p>
@@ -265,7 +252,7 @@ public final class Actor<STATE> {
      * </p>
      * @throws SignalException
      * If a {@link Signal} object throws a {@link RuntimeException}.
-     * The method is safe if this exception is thrown: its state will have not changed.
+     * The method is safe if this exception is thrown: the state of this Actor will not have changed.
      */
     public void receiveSignal() {
         Signal<STATE> nextSignalToReceive = null;
