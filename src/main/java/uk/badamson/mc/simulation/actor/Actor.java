@@ -278,12 +278,7 @@ public final class Actor<STATE> {
                 }
                 event = createNextEvent();
             }
-            synchronized (lock) {
-                if (isOutOfDate(previousVersion, signal)) {
-                    return;
-                }
-                appendEvent(event);
-            }
+            appendEvent(previousVersion, event);
         }
     }
 
@@ -304,22 +299,21 @@ public final class Actor<STATE> {
         return nextSignalToReceive.receive(whenReceiveNextSignal, state);
     }
 
-    @GuardedBy("lock")
-    private void appendEvent(final Event<STATE> event) {
-        signalsToReceive.remove(event.getCausingSignal());
-        version++;
-        final var invalidatedEvents = List.copyOf(events.tailSet(event));
-        //TODO optimise if already present
-        for (final var invalidatedEvent: invalidatedEvents) {
-            signalsToReceive.add(invalidatedEvent.getCausingSignal());
-            events.remove(invalidatedEvent);
-            // TODO invalidate emitted signal
+    private void appendEvent(final long previousVersion, final Event<STATE> event) {
+        final Signal<STATE> causingSignal = event.getCausingSignal();
+        synchronized (lock) {
+            if (isOutOfDate(previousVersion, causingSignal)) {
+                return;
+            }
+            //TODO optimise if already present
+            invalidateEvents(List.copyOf(events.tailSet(event)));
+            version++;
+            events.add(event);
+            stateHistory.setValueFrom(event.getWhen(), event.getState());
+            signalsToReceive.remove(causingSignal);
+            // TODO send emitted signals
+            invalidateNextSignalToReceive();
         }
-        events.add(event);
-        stateHistory.setValueFrom(event.getWhen(), event.getState());
-        // TODO send emitted signals
-        nextSignalToReceive = null;
-        whenReceiveNextSignal = null;
     }
 
     @GuardedBy("lock")
@@ -348,6 +342,20 @@ public final class Actor<STATE> {
             whenReceiveNextSignal = whenReceived;
         }
         assert nextSignalToReceive != null;
+    }
+
+    @GuardedBy("lock")
+    private void invalidateEvents(List<Event<STATE>> invalidatedEvents) {
+        for (final var invalidatedEvent: invalidatedEvents) {
+            signalsToReceive.add(invalidatedEvent.getCausingSignal());
+            events.remove(invalidatedEvent);
+            // TODO invalidate emitted signal
+        }
+    }
+
+    private void invalidateNextSignalToReceive() {
+        nextSignalToReceive = null;
+        whenReceiveNextSignal = null;
     }
 
     @Override
