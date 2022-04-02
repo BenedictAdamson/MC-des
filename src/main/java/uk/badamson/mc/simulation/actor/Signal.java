@@ -148,6 +148,7 @@ public abstract class Signal<STATE> implements Comparable<Signal<STATE>> {
      * <p>
      * This is a <i>template method</i> that delegates to the
      * {@link #getPropagationDelay(Object)} <i>primitive operation</i>.
+     * It may ne called while a lock is held. It should be quick.
      * </p>
      * <ul>
      * <li>Destroyed objects can not receive signals:
@@ -286,7 +287,9 @@ public abstract class Signal<STATE> implements Comparable<Signal<STATE>> {
      * returned event is the same as {@code when}.</li>
      * <li>The implementation must be deterministic: the returned value may depend
      * only on the ({@linkplain Immutable immutable}) state of this signal and the
-     * (also immutable) arguments of the method.</li>
+     * (also immutable) arguments of the method.
+     * This method may be called while a lock is held; it must therefore not acquire any locks.
+     * As it uses only immutable objects, it has no reason to acquire locks.</li>
      * </ul>
      *
      * @param when The point in time that reception of the signal occurred
@@ -320,6 +323,7 @@ public abstract class Signal<STATE> implements Comparable<Signal<STATE>> {
      * This is a <i>template method</i> that delegates to the
      * {@link #getPropagationDelay(Object)} and {@link #receive(Duration, Object)}
      * <i>primitive operations</i>.
+     * It does not acquire any locks, and therefore may be called while a lock is held.
      * </p>
      * <ul>
      * <li>The {@linkplain Event#getCausingSignal() signal causing} the returned event is this signal.</li>
@@ -364,6 +368,7 @@ public abstract class Signal<STATE> implements Comparable<Signal<STATE>> {
      * This is a <i>template method</i> that delegates to the
      * {@link #getPropagationDelay(Object)} and {@link #receive(Duration, Object)}
      * <i>primitive operations</i>.
+     * It does not acquire any locks, and therefore may be called while a lock is held.
      * </p>
      * <ul>
      * <li>The {@linkplain Event#getCausingSignal() signal causing} the returned event is this signal.</li>
