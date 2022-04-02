@@ -61,6 +61,9 @@ public final class Actor<STATE> {
     @GuardedBy("lock")
     private Duration whenReceiveNextSignal = Signal.NEVER_RECEIVED;
 
+    @GuardedBy("lock")
+    private long version;
+
     /**
      * <p>
      * Construct an actor with given start information and no events.
@@ -251,16 +254,60 @@ public final class Actor<STATE> {
      * </p>
      */
     public void receiveSignal() {
+        final Event<STATE> event;
+        final long previousVersion;
         synchronized (lock) {
-            final Event<STATE> event = popNextEvent();
-            if (event != null) {
-                addNextEvent(event);
-                nextSignalToReceive = null;
-                whenReceiveNextSignal = Signal.NEVER_RECEIVED;
-                for(final var signal: signalsToReceive) {
-                    updateNextSignalToReceiveFor(signal);
+            event = createNextEvent();
+            previousVersion = version;
+        }
+        if (event != null) {
+            synchronized (lock) {
+                if (version != previousVersion || nextSignalToReceive != event.getCausingSignal()) {
+                    /* Another thread got here first.
+                     * This assumes we will never have more than Long.MAX_VALUE threads,
+                     * which is safe enough
+                     */
+                    return;
                 }
+                appendEvent(event);
+                recomputeNextSignalToReceive();
             }
+        }
+    }
+
+    @GuardedBy("lock")
+    private Event<STATE> createNextEvent() {
+        if (nextSignalToReceive == null) {
+            return null;
+        } else {
+            final STATE state = stateHistory.get(whenReceiveNextSignal);
+            assert state != null;
+            return nextSignalToReceive.receive(whenReceiveNextSignal, state);
+        }
+    }
+
+    @GuardedBy("lock")
+    private void appendEvent(Event<STATE> event) {
+        signalsToReceive.remove(event.getCausingSignal());
+        version++;
+        final var invalidatedEvents = List.copyOf(events.tailSet(event));
+        //TODO optimise if already present
+        for (final var invalidatedEvent: invalidatedEvents) {
+            signalsToReceive.add(invalidatedEvent.getCausingSignal());
+            events.remove(invalidatedEvent);
+            // TODO invalidate emitted signal
+        }
+        events.add(event);
+        stateHistory.setValueFrom(event.getWhen(), event.getState());
+    }
+
+    @GuardedBy("lock")
+    private void recomputeNextSignalToReceive() {
+        // TODO send emitted signals
+        nextSignalToReceive = null;
+        whenReceiveNextSignal = Signal.NEVER_RECEIVED;
+        for (final var signal : signalsToReceive) {
+            updateNextSignalToReceiveFor(signal);
         }
     }
 
@@ -274,33 +321,6 @@ public final class Actor<STATE> {
             whenReceiveNextSignal = whenReceived;
         }
         assert nextSignalToReceive != null;
-    }
-
-    @GuardedBy("lock")
-    private void addNextEvent(final Event<STATE> event) {
-        final var invalidatedEvents = List.copyOf(events.tailSet(event));
-        //TODO optimise if already present
-        for (final var invalidatedEvent: invalidatedEvents) {
-            signalsToReceive.add(invalidatedEvent.getCausingSignal());
-            events.remove(invalidatedEvent);
-            // TODO invalidate emitted signal
-        }
-        events.add(event);
-        stateHistory.setValueFrom(event.getWhen(), event.getState());
-        // TODO send emitted signals
-    }
-
-    @GuardedBy("lock")
-    private Event<STATE> popNextEvent() {
-        if (nextSignalToReceive == null) {
-            return null;
-        } else {
-            final STATE state = stateHistory.get(whenReceiveNextSignal);
-            assert state != null;
-            final Event<STATE> event = nextSignalToReceive.receive(whenReceiveNextSignal, state);
-            signalsToReceive.remove(nextSignalToReceive);
-            return event;
-        }
     }
 
     @Override
