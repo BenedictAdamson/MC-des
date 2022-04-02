@@ -253,15 +253,20 @@ public final class Actor<STATE> {
             throw new IllegalArgumentException("signal sent before the start time of this actor");
         }
         synchronized (lock) {
-            if (whenReceiveNextSignal == null) {
-                signalsToReceive.add(signal);
-                recomputeNextSignalToReceive();
-            } else {
-                updateNextSignalToReceiveFor(signal);
-                signalsToReceive.add(signal);
-            }
-            version++;
+            addSignalToReceiveWhileLocked(signal);
         }
+    }
+
+    @GuardedBy("lock")
+    private void addSignalToReceiveWhileLocked(@Nonnull final Signal<STATE> signal) throws SignalException {
+        if (whenReceiveNextSignal == null) {
+            signalsToReceive.add(signal);
+            recomputeNextSignalToReceive();
+        } else {
+            updateNextSignalToReceiveFor(signal);
+            signalsToReceive.add(signal);
+        }
+        version++;
     }
 
     /**
@@ -319,21 +324,27 @@ public final class Actor<STATE> {
         }
     }
 
-    private void appendEvent(final long previousVersion, final Event<STATE> event) {
-        final Signal<STATE> causingSignal = event.getCausingSignal();
+    private void appendEvent(final long previousVersion, @Nonnull final Event<STATE> event) throws SignalException {
         synchronized (lock) {
-            if (isOutOfDate(previousVersion, causingSignal)) {
-                return;
-            }
-            //TODO optimise if already present
-            invalidateEvents(List.copyOf(events.tailSet(event)));
-            version++;
-            events.add(event);
-            stateHistory.setValueFrom(event.getWhen(), event.getState());
-            signalsToReceive.remove(causingSignal);
-            // TODO send emitted signals
-            invalidateNextSignalToReceive();
+            appendEventWhileLocked(previousVersion, event);
         }
+    }
+
+    @GuardedBy("lock")
+    private void appendEventWhileLocked(final long previousVersion, @Nonnull final Event<STATE> event) {
+        if (isOutOfDate(previousVersion, event.getCausingSignal())) {
+            return;
+        }
+        //TODO optimise if already present
+        invalidateEvents(List.copyOf(events.tailSet(event)));
+        version++;
+        events.add(event);
+        stateHistory.setValueFrom(event.getWhen(), event.getState());
+        signalsToReceive.remove(event.getCausingSignal());
+        for (final var emittedSignal: event.getSignalsEmitted()) {
+            emittedSignal.getReceiver().addSignalToReceiveWhileLocked(emittedSignal);
+        }
+        invalidateNextSignalToReceive();
     }
 
     @GuardedBy("lock")

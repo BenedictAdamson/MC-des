@@ -242,6 +242,30 @@ public class ActorTest {
                 assertThat("event 2 resulted from receiving signal 2", event2, is(signal2.receive(state1)));
             }
         }
+
+        @Nested
+        public class EmittingSignalToSelf {
+
+            @Test
+            public void a() {
+                test(WHEN_A, WHEN_B, 0);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_B, WHEN_C, 1);
+            }
+
+            private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent1, @Nonnull final Integer state0) {
+                final var actor = new Actor<>(start, state0);
+                final Signal<Integer> signal1 = new SignalTest.StrobingTestSignal(actor, whenSent1, actor);
+                actor.addSignalToReceive(signal1);
+
+                receiveSignal(actor);
+
+                assertThat("Has another signal to receive", actor.getSignalsToReceive(), hasSize(1));
+            }
+        }
     }// class
 
 }// class
