@@ -61,6 +61,12 @@ public final class Actor<STATE> {
     @GuardedBy("lock")
     private long version;
 
+    @GuardedBy("lock")
+    Signal<STATE> nextSignalToReceive = null;
+
+    @GuardedBy("lock")
+    Duration whenReceiveNextSignal = Signal.NEVER_RECEIVED;
+
     /**
      * <p>
      *     Indicates that a method of the {@link Signal} class threw a {@link RuntimeException},
@@ -259,10 +265,10 @@ public final class Actor<STATE> {
      * The method is safe if this exception is thrown: the state of this Actor will not have changed.
      */
     public void receiveSignal() {
-        Signal<STATE> nextSignalToReceive = null;
-        Duration whenReceiveNextSignal = Signal.NEVER_RECEIVED;
         final long previousVersion;
         synchronized (lock) {
+            nextSignalToReceive = null;
+            whenReceiveNextSignal = Signal.NEVER_RECEIVED;
             for (final var signal : signalsToReceive) {
                 final Duration whenReceived = computeWhenReceived(signal);
                 if (compareTo(signal, whenReceived, nextSignalToReceive, whenReceiveNextSignal) < 0) {
@@ -272,16 +278,14 @@ public final class Actor<STATE> {
             }
             previousVersion = version;
         }
-        if (nextSignalToReceive != null) {
-            final Event<STATE> event;
-            synchronized (lock) {
-                if (isOutOfDate(previousVersion)) {
-                    return;
-                }
-                event = createNextEvent(nextSignalToReceive, whenReceiveNextSignal);
+        final Event<STATE> event;
+        synchronized (lock) {
+            if (nextSignalToReceive == null || isOutOfDate(previousVersion)) {
+                return;
             }
-            appendEvent(previousVersion, event);
+            event = createNextEvent(nextSignalToReceive, whenReceiveNextSignal);
         }
+        appendEvent(previousVersion, event);
     }
 
     @Nonnull
