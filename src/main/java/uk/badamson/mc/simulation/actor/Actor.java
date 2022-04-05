@@ -305,7 +305,7 @@ public final class Actor<STATE> {
     }
 
     @GuardedBy("lock")
-    private Duration computeNextSignalToReceive() {
+    private Duration computeNextSignalToReceive() throws SignalException {
         if (whenReceiveNextSignal == null) {
             nextSignalToReceive = null;
             whenReceiveNextSignal = Signal.NEVER_RECEIVED;
@@ -421,7 +421,8 @@ public final class Actor<STATE> {
     }
 
     @GuardedBy("lock")
-    private void appendEventWhileLocked(final long previousVersion, @Nonnull final Event<STATE> event) {
+    private void appendEventWhileLocked(final long previousVersion, @Nonnull final Event<STATE> event)
+            throws SignalException {
         assert Thread.holdsLock(lock);
         if (isOutOfDate(previousVersion)) {
             return;
