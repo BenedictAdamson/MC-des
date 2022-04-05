@@ -54,11 +54,13 @@ public class ActorTest {
         final var start = actor.getStart();
         final var stateHistory = actor.getStateHistory();
         final var signalsToReceive = actor.getSignalsToReceive();
+        final var whenReceiveNextSignal  =actor.getWhenReceiveNextSignal();
 
         assertAll("Not null", () -> assertNotNull(events, "events"), // guard
                 () -> assertNotNull(start, "start"), // guard
                 () -> assertNotNull(stateHistory, "stateHistory"), // guard
-                () -> assertNotNull(signalsToReceive, "signalsToReceive") // guard
+                () -> assertNotNull(signalsToReceive, "signalsToReceive"), // guard
+                () -> assertNotNull(whenReceiveNextSignal, "whenReceiveNextSignal")
         );
         ValueHistoryTest.assertInvariants(stateHistory);
 
@@ -74,7 +76,9 @@ public class ActorTest {
                         "The first transition time of the state history is the same as the start time of this history."),
                         () -> assertNull(stateHistory.getFirstValue(),
                                 "The state at the start of time of the state history is null."),
-                        () -> assertFalse(stateHistory.isEmpty(), "The state history is never empty.")));
+                        () -> assertFalse(stateHistory.isEmpty(), "The state history is never empty.")),
+                () -> assertThat("whenReceiveNextSignal after start", whenReceiveNextSignal, greaterThan(start))
+        );
     }
 
     public static <STATE> void assertInvariants(@Nonnull final Actor<STATE> actor1,

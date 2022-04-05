@@ -56,6 +56,9 @@ public final class Actor<STATE> {
     private final SortedSet<Event<STATE>> events = new TreeSet<>();
 
     @GuardedBy("lock")
+    private final Set<Signal<STATE>> unscheduledSignalsToReceive = new HashSet<>();
+
+    @GuardedBy("lock")
     private final Set<Signal<STATE>> signalsToReceive = new HashSet<>();
 
     @GuardedBy("lock")
@@ -215,7 +218,32 @@ public final class Actor<STATE> {
     @Nonnull
     public Set<Signal<STATE>> getSignalsToReceive() {
         synchronized (lock) {
-            return Set.copyOf(signalsToReceive);
+            if (unscheduledSignalsToReceive.isEmpty()) {
+                return Set.copyOf(signalsToReceive);
+            } else {
+                final Set<Signal<STATE>> result = new HashSet<>((signalsToReceive));
+                result.addAll(unscheduledSignalsToReceive);
+                return result;
+            }
+        }
+    }
+
+    /**
+     * When this actor will next receive a signal,
+     * and thus change its {@linkplain #getStateHistory() state}.
+     *
+     * <ul>
+     *     <li>After the {@linkplain #getStart() start} time.</li>
+     * </ul>
+     *
+     * @throws SignalException
+     * If a {@link Signal} object throws a {@link RuntimeException}.
+     * The method is safe if this exception is thrown: the state of this Actor will not have changed.
+     */
+    @Nonnull
+    public Duration getWhenReceiveNextSignal() {
+        synchronized (lock) {
+            return computeNextSignalToReceive();
         }
     }
 
@@ -240,16 +268,15 @@ public final class Actor<STATE> {
             throw new IllegalArgumentException("signal sent before the start time of this actor");
         }
         synchronized (lock) {
-            addSignalToReceiveWhileLocked(signal);
+            addUnscheduledSignalToReceive(signal);
         }
     }
 
     @GuardedBy("lock")
-    private void addSignalToReceiveWhileLocked(@Nonnull final Signal<STATE> signal) {
+    private void addUnscheduledSignalToReceive(@Nonnull final Signal<STATE> signal) {
         assert Thread.holdsLock(lock);
-        signalsToReceive.add(signal);
+        unscheduledSignalsToReceive.add(signal);
         version++;
-        invalidateNextSignalToReceive();
     }
 
     /**
@@ -266,33 +293,50 @@ public final class Actor<STATE> {
      * The method is safe if this exception is thrown: the state of this Actor will not have changed.
      */
     public void receiveSignal() {
-        final long previousVersion = computeNextSignalToReceive();
+        final long previousVersion;
+        synchronized (lock) {
+            computeNextSignalToReceive();
+            previousVersion = version;
+        }
         final Event<STATE> event = createNextEvent(previousVersion);
         if (event != null) {
             appendEvent(previousVersion, event);
         }
     }
 
-    private long computeNextSignalToReceive() {
-        synchronized (lock) {
-            if (whenReceiveNextSignal == null) {
-                nextSignalToReceive = null;
-                whenReceiveNextSignal = Signal.NEVER_RECEIVED;
-                for (final var signal : signalsToReceive) {
+    @GuardedBy("lock")
+    private Duration computeNextSignalToReceive() {
+        if (whenReceiveNextSignal == null) {
+            nextSignalToReceive = null;
+            whenReceiveNextSignal = Signal.NEVER_RECEIVED;
+            signalsToReceive.addAll(unscheduledSignalsToReceive);
+            unscheduledSignalsToReceive.clear();
+            for (final var signal : signalsToReceive) {
+                try {
                     considerAsNextSignalToReceive(signal);
+                } catch (final SignalException e) {
+                    invalidateNextSignalToReceive();
+                    throw e;
                 }
             }
-            return version;
+        } else {
+            for (final var signal : List.copyOf(unscheduledSignalsToReceive)) {
+                considerAsNextSignalToReceive(signal);
+            }
         }
+        assert unscheduledSignalsToReceive.isEmpty();
+        return whenReceiveNextSignal;
     }
 
     @GuardedBy("lock")
-    private void considerAsNextSignalToReceive(final Signal<STATE> signal) {
+    private void considerAsNextSignalToReceive(final Signal<STATE> signal) throws SignalException {
         final Duration whenReceived = computeWhenReceived(signal);
         if (compareTo(signal, whenReceived, nextSignalToReceive, whenReceiveNextSignal) < 0) {
             nextSignalToReceive = signal;
             whenReceiveNextSignal = whenReceived;
         }
+        signalsToReceive.add(signal);
+        unscheduledSignalsToReceive.remove(signal);
     }
 
     @Nonnull
@@ -389,7 +433,7 @@ public final class Actor<STATE> {
         stateHistory.setValueFrom(event.getWhen(), event.getState());
         signalsToReceive.remove(event.getCausingSignal());
         for (final var emittedSignal: event.getSignalsEmitted()) {
-            emittedSignal.getReceiver().addSignalToReceiveWhileLocked(emittedSignal);
+            emittedSignal.getReceiver().addUnscheduledSignalToReceive(emittedSignal);
         }
         invalidateNextSignalToReceive();
     }
