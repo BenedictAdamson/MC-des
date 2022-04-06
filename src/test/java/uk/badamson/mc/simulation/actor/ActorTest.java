@@ -31,6 +31,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
@@ -137,10 +138,15 @@ public class ActorTest {
         assertThat("added signal", signalsToReceive, hasItem(signal));
     }
 
-    private static <STATE> void receiveSignal(@Nonnull final Actor<STATE> actor) {
-        actor.receiveSignal();
+    private static <STATE> Set<Actor<STATE>> receiveSignal(@Nonnull final Actor<STATE> actor) {
+        final Set<Actor<STATE>> affectedObjects =  actor.receiveSignal();
 
         assertInvariants(actor);
+
+        assertThat("affected objects", affectedObjects, notNullValue());
+        assertTrue(affectedObjects.isEmpty() || affectedObjects.contains(actor),
+                "affected objects includes this actor if there are affected objects");
+        return affectedObjects;
     }
 
     @Nested
@@ -208,12 +214,13 @@ public class ActorTest {
                 final Signal<Integer> signal = new SignalTest.SimpleTestSignal(sender, whenSent, receiver);
                 receiver.addSignalToReceive(signal);
 
-                receiveSignal(receiver);
+                final Set<Actor<Integer>> affectedObjects = receiveSignal(receiver);
 
                 final var events = receiver.getEvents();
                 assertThat("events", events, hasSize(1));// guard
                 final var event = events.first();
                 assertThat("event resulted from receiving the signal", event, is(signal.receive(state0)));
+                assertThat("affectedObjects", affectedObjects, is(Set.of(receiver)));
             }
         }
 
@@ -241,7 +248,7 @@ public class ActorTest {
                 receiver.addSignalToReceive(signal1);
                 receiver.receiveSignal();
 
-                receiveSignal(receiver);
+                final Set<Actor<Integer>> affectedObjects = receiveSignal(receiver);
 
                 final var events = receiver.getEvents();
                 assertThat("events", events, hasSize(2));// guard
@@ -251,6 +258,7 @@ public class ActorTest {
                 final Integer state1 = event1.getState();
                 assertThat("event 1 result state", state1, notNullValue());// guard
                 assertThat("event 2 resulted from receiving signal 2", event2, is(signal2.receive(state1)));
+                assertThat("affectedObjects", affectedObjects, is(Set.of(receiver)));
             }
         }
 
@@ -273,11 +281,12 @@ public class ActorTest {
                 actor.addSignalToReceive(signal);
                 final var whenReceiveNextSignal0 = actor.getWhenReceiveNextSignal();
 
-                receiveSignal(actor);
+                final Set<Actor<Integer>> affectedObjects = receiveSignal(actor);
 
                 assertThat("Has another signal to receive", actor.getSignalsToReceive(), hasSize(1));
                 assertThat("State transition is when the signal was received",
                         actor.getStateHistory().getLastTransitionTime(), is(whenReceiveNextSignal0));
+                assertThat("affectedObjects", affectedObjects, is(Set.of(actor)));
             }
         }
 
@@ -300,12 +309,24 @@ public class ActorTest {
                 final Signal<Integer> signal1 = new SignalTest.EchoingTestSignal(actorA, whenSent1, actorB);
                 actorB.addSignalToReceive(signal1);
 
-                receiveSignal(actorB);
+                final Set<Actor<Integer>> affectedObjects = receiveSignal(actorB);
 
                 assertInvariants(actorA);
                 assertThat("Original sender has another signal to receive", actorA.getSignalsToReceive(), hasSize(1));
                 assertThat("Original receiver does not have another signal to receive", actorB.getSignalsToReceive(), empty());
+                assertThat("affectedObjects", affectedObjects, containsInAnyOrder(actorA, actorB));
             }
+        }
+
+        @Test
+        public void none() {
+            final var receiver = new Actor<>(WHEN_A, 0);
+
+            final Set<Actor<Integer>> affectedObjects = receiveSignal(receiver);
+
+            final var events = receiver.getEvents();
+            assertThat("events", events, empty());// guard
+            assertThat("affectedObjects", affectedObjects, empty());
         }
 
         @Test
