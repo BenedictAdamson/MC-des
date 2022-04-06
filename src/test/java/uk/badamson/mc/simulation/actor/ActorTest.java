@@ -70,14 +70,19 @@ public class ActorTest {
                         () -> assertThat("is null if, and only if, the sequence of events is empty.",
                                 lastEvent == null == events.isEmpty()),
                         () -> assertThat("is either null or is the  last of the sequence of events.",
-                                lastEvent == null || lastEvent == events.last())),
+                                lastEvent == null || lastEvent == events.last())
+                ),
                 () -> assertAll("stateHistory", () -> assertSame(start, stateHistory.getFirstTransitionTime(),
-
                         "The first transition time of the state history is the same as the start time of this history."),
                         () -> assertNull(stateHistory.getFirstValue(),
                                 "The state at the start of time of the state history is null."),
-                        () -> assertFalse(stateHistory.isEmpty(), "The state history is never empty.")),
-                () -> assertThat("whenReceiveNextSignal after start", whenReceiveNextSignal, greaterThan(start))
+                        () -> assertFalse(stateHistory.isEmpty(), "The state history is never empty.")
+                ),
+                () -> assertAll("whenReceiveNextSignal",
+                    () -> assertThat("after start", whenReceiveNextSignal, greaterThan(start)),
+                    () -> assertFalse(signalsToReceive.isEmpty() &&
+                        !Signal.NEVER_RECEIVED.equals(whenReceiveNextSignal), "NEVER_RECEIVED if no signals to receive")
+                )
         );
     }
 
@@ -264,12 +269,15 @@ public class ActorTest {
 
             private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent1, @Nonnull final Integer state0) {
                 final var actor = new Actor<>(start, state0);
-                final Signal<Integer> signal1 = new SignalTest.StrobingTestSignal(actor, whenSent1, actor);
-                actor.addSignalToReceive(signal1);
+                final Signal<Integer> signal = new SignalTest.StrobingTestSignal(actor, whenSent1, actor);
+                actor.addSignalToReceive(signal);
+                final var whenReceiveNextSignal0 = actor.getWhenReceiveNextSignal();
 
                 receiveSignal(actor);
 
                 assertThat("Has another signal to receive", actor.getSignalsToReceive(), hasSize(1));
+                assertThat("State transition is when the signal was received",
+                        actor.getStateHistory().getLastTransitionTime(), is(whenReceiveNextSignal0));
             }
         }
 
@@ -294,6 +302,7 @@ public class ActorTest {
 
                 receiveSignal(actorB);
 
+                assertInvariants(actorA);
                 assertThat("Original sender has another signal to receive", actorA.getSignalsToReceive(), hasSize(1));
                 assertThat("Original receiver does not have another signal to receive", actorB.getSignalsToReceive(), empty());
             }

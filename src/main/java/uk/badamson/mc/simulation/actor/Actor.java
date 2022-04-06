@@ -234,6 +234,7 @@ public final class Actor<STATE> {
      *
      * <ul>
      *     <li>After the {@linkplain #getStart() start} time.</li>
+     *     <li>{@linkplain Signal#NEVER_RECEIVED} if {@linkplain Set#isEmpty() no} {@linkplain #getSignalsToReceive() signals to receive}.</li>
      * </ul>
      *
      * @throws SignalException
