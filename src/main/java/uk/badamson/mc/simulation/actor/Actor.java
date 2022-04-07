@@ -28,6 +28,7 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.time.Duration;
 import java.util.*;
+import java.util.function.Supplier;
 
 /**
  * <p>
@@ -297,15 +298,22 @@ public final class Actor<STATE> {
      */
     @Nullable
     public Event<STATE> receiveSignal() {
-        final long previousVersion;
-        synchronized (lock) {
-            computeNextSignalToReceive();
-            previousVersion = version;
-        }
-        final Event<STATE> event = createNextEvent(previousVersion);
-        if (event != null) {
-            appendEvent(previousVersion, event);
-        }
+        Event<STATE> event;
+        boolean done;
+        do {
+            final long previousVersion;
+            synchronized (lock) {
+                computeNextSignalToReceive();
+                previousVersion = version;
+            }
+            event = createNextEvent(previousVersion);
+            if (event == null) {
+                done = true;
+            } else {
+                event = appendEvent(previousVersion, event);
+                done = (event != null);
+            }
+        } while (!done);
         return event;
     }
 
@@ -399,10 +407,10 @@ public final class Actor<STATE> {
         }
     }
 
-    private void appendEvent(final long previousVersion, @Nonnull final Event<STATE> event) {
+    private Event<STATE> appendEvent(final long previousVersion, @Nonnull final Event<STATE> event) {
         assert event.getAffectedObject() == this;
         //noinspection FieldAccessNotGuarded
-        forAllLocks(getLocksFor(event), () -> appendEventWhileLocked(previousVersion, event));
+        return forAllLocks(getLocksFor(event), () -> appendEventWhileLocked(previousVersion, event));
     }
 
     @Nonnull
@@ -413,24 +421,24 @@ public final class Actor<STATE> {
         return locks;
     }
 
-    private static void forAllLocks(@Nonnull final NavigableSet<UUID> locks, @Nonnull final Runnable operation) {
+    private static <STATE> Event<STATE> forAllLocks(@Nonnull final NavigableSet<UUID> locks, @Nonnull final Supplier<Event<STATE>> operation) {
         if (locks.isEmpty()) {
-            operation.run();
+            return operation.get();
         } else {
             final UUID firstLock = locks.first();
             //noinspection SynchronizationOnLocalVariableOrMethodParameter
             synchronized (firstLock) {
-                forAllLocks(locks.tailSet(firstLock, false), operation);
+                return forAllLocks(locks.tailSet(firstLock, false), operation);
             }
         }
     }
 
     @GuardedBy("lock")
-    private void appendEventWhileLocked(final long previousVersion, @Nonnull final Event<STATE> event)
+    private Event<STATE> appendEventWhileLocked(final long previousVersion, @Nonnull final Event<STATE> event)
             throws SignalException {
         assert Thread.holdsLock(lock);
         if (isOutOfDate(previousVersion)) {
-            return;
+            return null;
         }
         //TODO optimise if already present
         invalidateEvents(List.copyOf(events.tailSet(event)));
@@ -442,6 +450,7 @@ public final class Actor<STATE> {
             emittedSignal.getReceiver().addUnscheduledSignalToReceive(emittedSignal);
         }
         invalidateNextSignalToReceive();
+        return event;
     }
 
     @GuardedBy("lock")
