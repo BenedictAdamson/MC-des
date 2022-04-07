@@ -445,10 +445,7 @@ public final class Actor<STATE> {
             return null;
         }
         final Signal<STATE> causingSignal = event.getCausingSignal();
-        final Event<STATE> currentEvent = eventsForSignals.get(causingSignal);
-        if (currentEvent != null) {
-            return currentEvent;
-        }
+        assert !eventsForSignals.containsKey(causingSignal);
         invalidateEvents(List.copyOf(events.tailSet(event)));
         version++;
         events.add(event);
