@@ -28,7 +28,6 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.time.Duration;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -289,30 +288,25 @@ public final class Actor<STATE> {
      * it may also add signals for events that have been invalidated by the signal received.
      * </p>
      * <ul>
-     *     <li>{@linkplain Set#isEmpty() None}, if there is no signal to receive.</li>
-     *     <li>{@code this} plus the {@linkplain Signal#getReceiver() receivers} of the
-     *     {@linkplain Event#getSignalsEmitted() signals emitted} by the {@linkplain Event event} resulting from reception of the signal.
-     *     In this case the final event of the {@linkplain  #getEvents() sequence of events} is the result of receiving that signal.</li>
+     *     <li>If the method returns a (non null) event, the {@linkplain Event#getAffectedObject() affected object} of the event is {@code this}.</li>
      * </ul>
      *
-     * @return the actors affected by the received signal.
-     * Contains no nulls. May be unmodifiable.
+     * @return the event caused by the received signal, or null if no signal is received.
      * @throws SignalException If a {@link Signal} object throws a {@link RuntimeException}.
      *                         The method is safe if this exception is thrown: the state of this Actor will not have changed.
      */
-    @Nonnull
-    public Set<Actor<STATE>> receiveSignal() {
+    @Nullable
+    public Event<STATE> receiveSignal() {
         final long previousVersion;
         synchronized (lock) {
             computeNextSignalToReceive();
             previousVersion = version;
         }
         final Event<STATE> event = createNextEvent(previousVersion);
-        if (event == null) {
-            return Set.of();
-        } else {
-            return appendEvent(previousVersion, event);
+        if (event != null) {
+            appendEvent(previousVersion, event);
         }
+        return event;
     }
 
     @GuardedBy("lock")
@@ -405,22 +399,18 @@ public final class Actor<STATE> {
         }
     }
 
-    private Set<Actor<STATE>> appendEvent(final long previousVersion, @Nonnull final Event<STATE> event) {
+    private void appendEvent(final long previousVersion, @Nonnull final Event<STATE> event) {
         assert event.getAffectedObject() == this;
-        final var affectedObjects = getAffectedObjects(event);
-        final NavigableSet<UUID> locks = affectedObjects.stream()
-                .map(actor -> actor.lock).collect(Collectors.toCollection(TreeSet::new));
         //noinspection FieldAccessNotGuarded
-        forAllLocks(locks, () -> appendEventWhileLocked(previousVersion, event));
-        return affectedObjects;
+        forAllLocks(getLocksFor(event), () -> appendEventWhileLocked(previousVersion, event));
     }
 
     @Nonnull
-    private static <STATE> Set<Actor<STATE>> getAffectedObjects(@Nonnull final Event<STATE> event) {
-        final Set<Actor<STATE>> actors = new HashSet<>();
-        actors.add(event.getAffectedObject());
-        event.getSignalsEmitted().stream().sequential().map(Signal::getReceiver).forEach(actors::add);
-        return actors;
+    private static <STATE> NavigableSet<UUID> getLocksFor(@Nonnull final Event<STATE> event) {
+        final NavigableSet<UUID> locks = new TreeSet<>();
+        locks.add(event.getAffectedObject().lock);
+        event.getSignalsEmitted().stream().sequential().map(signal -> signal.getReceiver().lock).forEach(locks::add);
+        return locks;
     }
 
     private static void forAllLocks(@Nonnull final NavigableSet<UUID> locks, @Nonnull final Runnable operation) {
