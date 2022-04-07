@@ -224,6 +224,36 @@ public class ActorTest {
         }
 
         @Nested
+        public class Redundant {
+
+            @Test
+            public void a() {
+                test(WHEN_A, WHEN_B, 0);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_B, WHEN_C, 1);
+            }
+
+            private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent, @Nonnull final Integer state0) {
+                final var sender = new Actor<>(start, 0);
+                final var receiver = new Actor<>(start, state0);
+                final Signal<Integer> signal = new SignalTest.SimpleTestSignal(sender, whenSent, receiver);
+                receiver.addSignalToReceive(signal);
+                receiver.receiveSignal();
+                receiver.addSignalToReceive(signal);
+
+                final Event<Integer> event = receiveSignal(receiver);
+
+                assertThat("event", event, notNullValue());// guard
+                assertThat("event causing signal", event.getCausingSignal(), sameInstance(signal));
+                assertThat("event state resulted from receiving the signal", event, is(signal.receive(state0)));
+                assertThat("receiver events", receiver.getEvents(), is(Set.of(event)));
+            }
+        }
+
+        @Nested
         public class Invalidating {
 
             @Test

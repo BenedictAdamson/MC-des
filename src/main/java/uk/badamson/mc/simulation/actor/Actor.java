@@ -63,6 +63,9 @@ public final class Actor<STATE> {
     private final Set<Signal<STATE>> signalsToReceive = new HashSet<>();
 
     @GuardedBy("lock")
+    private final Map<Signal<STATE>, Event<STATE>> eventsForSignals = new HashMap<>();
+
+    @GuardedBy("lock")
     private long version;
 
     @GuardedBy("lock")
@@ -440,12 +443,17 @@ public final class Actor<STATE> {
         if (isOutOfDate(previousVersion)) {
             return null;
         }
-        //TODO optimise if already present
+        final Signal<STATE> causingSignal = event.getCausingSignal();
+        final Event<STATE> currentEvent = eventsForSignals.get(causingSignal);
+        if (currentEvent != null) {
+            return currentEvent;
+        }
         invalidateEvents(List.copyOf(events.tailSet(event)));
         version++;
         events.add(event);
+        eventsForSignals.put(causingSignal, event);
         stateHistory.setValueFrom(event.getWhen(), event.getState());
-        signalsToReceive.remove(event.getCausingSignal());
+        signalsToReceive.remove(causingSignal);
         for (final var emittedSignal : event.getSignalsEmitted()) {
             emittedSignal.getReceiver().addUnscheduledSignalToReceive(emittedSignal);
         }
@@ -456,8 +464,10 @@ public final class Actor<STATE> {
     @GuardedBy("lock")
     private void invalidateEvents(final List<Event<STATE>> invalidatedEvents) {
         for (final var invalidatedEvent : invalidatedEvents) {
-            signalsToReceive.add(invalidatedEvent.getCausingSignal());
+            final Signal<STATE> causingSignal = invalidatedEvent.getCausingSignal();
+            signalsToReceive.add(causingSignal);
             events.remove(invalidatedEvent);
+            eventsForSignals.remove(causingSignal);
             // TODO invalidate emitted signal
         }
     }
@@ -469,10 +479,22 @@ public final class Actor<STATE> {
     }
 
     @Override
-    public String toString() {
-        synchronized (lock) {
-            return super.toString() + "[from " + start + ", stateHistory=" + stateHistory + "]";
-        }
+    public boolean equals(final Object that) {
+        if (this == that) return true;
+        if (that == null || getClass() != that.getClass()) return false;
+
+        final Actor<?> actor = (Actor<?>) that;
+
+        return lock.equals(actor.lock);
     }
 
+    @Override
+    public int hashCode() {
+        return lock.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return "Actor@"+ lock;
+    }
 }
