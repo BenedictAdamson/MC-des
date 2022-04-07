@@ -278,8 +278,9 @@ public final class Actor<STATE> {
     @GuardedBy("lock")
     private void addUnscheduledSignalToReceive(@Nonnull final Signal<STATE> signal) {
         assert Thread.holdsLock(lock);
-        unscheduledSignalsToReceive.add(signal);
-        version++;
+        if (!eventsForSignals.containsKey(signal) && unscheduledSignalsToReceive.add(signal)) {
+            version++;
+        }
     }
 
     /**

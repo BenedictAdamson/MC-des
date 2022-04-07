@@ -134,8 +134,6 @@ public class ActorTest {
 
         assertInvariants(actor);
         SignalTest.assertInvariants(signal);
-        final var signalsToReceive = actor.getSignalsToReceive();
-        assertThat("added signal", signalsToReceive, hasItem(signal));
     }
 
     private static <STATE> Event<STATE> receiveSignal(@Nonnull final Actor<STATE> actor) {
@@ -172,6 +170,8 @@ public class ActorTest {
     @Nested
     public class AddSignalToReceive {
 
+        @Nested
+        public class First {
 
             @Test
             public void a() {
@@ -189,7 +189,37 @@ public class ActorTest {
                 final Signal<Integer> signal = new SignalTest.SimpleTestSignal(sender, whenSent, receiver);
 
                 addSignalToReceive(receiver, signal);
+
+                assertThat("added signal", receiver.getSignalsToReceive(), hasItem(signal));
             }
+
+        }
+
+        @Nested
+        public class AlreadyReceived {
+
+            @Test
+            public void a() {
+                test(WHEN_A, WHEN_B, 0);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_B, WHEN_C, 1);
+            }
+
+            private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent, @Nonnull final Integer state0) {
+                final var sender = new Actor<>(start, 0);
+                final var receiver = new Actor<>(start, state0);
+                final Signal<Integer> signal = new SignalTest.SimpleTestSignal(sender, whenSent, receiver);
+                receiver.addSignalToReceive(signal);
+                receiver.receiveSignal();
+
+                addSignalToReceive(receiver, signal);
+
+                assertThat("receiver events", receiver.getEvents(), hasSize(1));
+            }
+        }
     }// class
 
     @Nested
@@ -212,36 +242,6 @@ public class ActorTest {
                 final var sender = new Actor<>(start, 0);
                 final var receiver = new Actor<>(start, state0);
                 final Signal<Integer> signal = new SignalTest.SimpleTestSignal(sender, whenSent, receiver);
-                receiver.addSignalToReceive(signal);
-
-                final Event<Integer> event = receiveSignal(receiver);
-
-                assertThat("event", event, notNullValue());// guard
-                assertThat("event causing signal", event.getCausingSignal(), sameInstance(signal));
-                assertThat("event state resulted from receiving the signal", event, is(signal.receive(state0)));
-                assertThat("receiver events", receiver.getEvents(), is(Set.of(event)));
-            }
-        }
-
-        @Nested
-        public class Redundant {
-
-            @Test
-            public void a() {
-                test(WHEN_A, WHEN_B, 0);
-            }
-
-            @Test
-            public void b() {
-                test(WHEN_B, WHEN_C, 1);
-            }
-
-            private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent, @Nonnull final Integer state0) {
-                final var sender = new Actor<>(start, 0);
-                final var receiver = new Actor<>(start, state0);
-                final Signal<Integer> signal = new SignalTest.SimpleTestSignal(sender, whenSent, receiver);
-                receiver.addSignalToReceive(signal);
-                receiver.receiveSignal();
                 receiver.addSignalToReceive(signal);
 
                 final Event<Integer> event = receiveSignal(receiver);
