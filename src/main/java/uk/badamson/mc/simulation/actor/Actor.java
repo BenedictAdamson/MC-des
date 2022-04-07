@@ -73,13 +73,13 @@ public final class Actor<STATE> {
 
     /**
      * <p>
-     *     Indicates that a method of the {@link Signal} class threw a {@link RuntimeException},
-     *     which is likely to be due to a bug in an implementation of that class.
+     * Indicates that a method of the {@link Signal} class threw a {@link RuntimeException},
+     * which is likely to be due to a bug in an implementation of that class.
      * </p>
      */
     public static final class SignalException extends RuntimeException {
         <STATE> SignalException(@Nonnull final Signal<STATE> signal, @Nonnull final RuntimeException cause) {
-            super("Signal "+signal+" threw exception " + cause, cause);
+            super("Signal " + signal + " threw exception " + cause, cause);
         }
     }
 
@@ -92,8 +92,8 @@ public final class Actor<STATE> {
      * {@linkplain List#isEmpty() is empty}.</li>
      * </ul>
      *
-     * @param start  The first point in time for which the actor has a known state.
-     * @param state  The first (known) state of the actor.
+     * @param start The first point in time for which the actor has a known state.
+     * @param state The first (known) state of the actor.
      * @throws NullPointerException If any argument is null
      */
     public Actor(@Nonnull final Duration start, @Nonnull final STATE state) {
@@ -238,9 +238,8 @@ public final class Actor<STATE> {
      *     <li>{@linkplain Signal#NEVER_RECEIVED} if {@linkplain Set#isEmpty() no} {@linkplain #getSignalsToReceive() signals to receive}.</li>
      * </ul>
      *
-     * @throws SignalException
-     * If a {@link Signal} object throws a {@link RuntimeException}.
-     * The method is safe if this exception is thrown: the state of this Actor will not have changed.
+     * @throws SignalException If a {@link Signal} object throws a {@link RuntimeException}.
+     *                         The method is safe if this exception is thrown: the state of this Actor will not have changed.
      */
     @Nonnull
     public Duration getWhenReceiveNextSignal() {
@@ -253,13 +252,12 @@ public final class Actor<STATE> {
      * <p>
      * Add a signal to the {@linkplain #getSignalsToReceive() set of signals to receive}.
      * </p>
-     * @throws NullPointerException
-     * If {@code signal} is null
-     * @throws IllegalArgumentException
-     * <ul>
-     *     <li>If the {@linkplain Signal#getReceiver() receiver} of the {@code signal} is not this actor.</li>
-     *     <li>If the {@linkplain Signal#getWhenSent()} sending time of the {@code signal} is {@linkplain Duration#compareTo(Duration) before} the {@linkplain #getStart() start time} of this actor.</li>
-     * </ul>
+     *
+     * @throws NullPointerException     If {@code signal} is null
+     * @throws IllegalArgumentException <ul>
+     *                                      <li>If the {@linkplain Signal#getReceiver() receiver} of the {@code signal} is not this actor.</li>
+     *                                      <li>If the {@linkplain Signal#getWhenSent()} sending time of the {@code signal} is {@linkplain Duration#compareTo(Duration) before} the {@linkplain #getStart() start time} of this actor.</li>
+     *                                  </ul>
      */
     public void addSignalToReceive(@Nonnull final Signal<STATE> signal) {
         Objects.requireNonNull(signal, "signal");
@@ -296,11 +294,11 @@ public final class Actor<STATE> {
      *     {@linkplain Event#getSignalsEmitted() signals emitted} by the {@linkplain Event event} resulting from reception of the signal.
      *     In this case the final event of the {@linkplain  #getEvents() sequence of events} is the result of receiving that signal.</li>
      * </ul>
+     *
      * @return the actors affected by the received signal.
      * Contains no nulls. May be unmodifiable.
-     * @throws SignalException
-     * If a {@link Signal} object throws a {@link RuntimeException}.
-     * The method is safe if this exception is thrown: the state of this Actor will not have changed.
+     * @throws SignalException If a {@link Signal} object throws a {@link RuntimeException}.
+     *                         The method is safe if this exception is thrown: the state of this Actor will not have changed.
      */
     @Nonnull
     public Set<Actor<STATE>> receiveSignal() {
@@ -367,7 +365,7 @@ public final class Actor<STATE> {
             @Nonnull final Duration whenReceived1,
             @Nullable final Signal<STATE> signal2,
             @Nonnull final Duration whenReceived2
-            ) throws SignalException {
+    ) throws SignalException {
         int compare;
         if (signal2 == null) {
             compare = -1;
@@ -450,7 +448,7 @@ public final class Actor<STATE> {
         events.add(event);
         stateHistory.setValueFrom(event.getWhen(), event.getState());
         signalsToReceive.remove(event.getCausingSignal());
-        for (final var emittedSignal: event.getSignalsEmitted()) {
+        for (final var emittedSignal : event.getSignalsEmitted()) {
             emittedSignal.getReceiver().addUnscheduledSignalToReceive(emittedSignal);
         }
         invalidateNextSignalToReceive();
@@ -458,7 +456,7 @@ public final class Actor<STATE> {
 
     @GuardedBy("lock")
     private void invalidateEvents(final List<Event<STATE>> invalidatedEvents) {
-        for (final var invalidatedEvent: invalidatedEvents) {
+        for (final var invalidatedEvent : invalidatedEvents) {
             signalsToReceive.add(invalidatedEvent.getCausingSignal());
             events.remove(invalidatedEvent);
             // TODO invalidate emitted signal
