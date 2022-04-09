@@ -66,25 +66,13 @@ public final class Actor<STATE> {
     private final Map<Signal<STATE>, Event<STATE>> eventsForSignals = new HashMap<>();
 
     @GuardedBy("lock")
-    private long version;
-
-    @GuardedBy("lock")
     Signal<STATE> nextSignalToReceive = null;
 
     @GuardedBy("lock")
     Duration whenReceiveNextSignal = Signal.NEVER_RECEIVED;
 
-    /**
-     * <p>
-     * Indicates that a method of the {@link Signal} class threw a {@link RuntimeException},
-     * which is likely to be due to a bug in an implementation of that class.
-     * </p>
-     */
-    public static final class SignalException extends RuntimeException {
-        <STATE> SignalException(@Nonnull final Signal<STATE> signal, @Nonnull final RuntimeException cause) {
-            super("Signal " + signal + " threw exception " + cause, cause);
-        }
-    }
+    @GuardedBy("lock")
+    private long version;
 
     /**
      * <p>
@@ -103,6 +91,48 @@ public final class Actor<STATE> {
         Objects.requireNonNull(state, "state");
         this.start = Objects.requireNonNull(start, "start");
         this.stateHistory.appendTransition(start, state);
+    }
+
+    private static <STATE> int compareTo(
+            @Nonnull final Signal<STATE> signal1,
+            @Nonnull final Duration whenReceived1,
+            @Nullable final Signal<STATE> signal2,
+            @Nonnull final Duration whenReceived2
+    ) throws SignalException {
+        int compare;
+        if (signal2 == null) {
+            compare = -1;
+        } else {
+            compare = whenReceived1.compareTo(whenReceived2);
+            if (compare == 0) {
+                try {
+                    compare = signal1.compareTo(signal2);
+                } catch (final RuntimeException e) {
+                    throw new SignalException(signal1, e);
+                }
+            }
+        }
+        return compare;
+    }
+
+    @Nonnull
+    private static <STATE> NavigableSet<UUID> getLocksFor(@Nonnull final Event<STATE> event) {
+        final NavigableSet<UUID> locks = new TreeSet<>();
+        locks.add(event.getAffectedObject().lock);
+        event.getSignalsEmitted().stream().sequential().map(signal -> signal.getReceiver().lock).forEach(locks::add);
+        return locks;
+    }
+
+    private static <STATE> Event<STATE> forAllLocks(@Nonnull final NavigableSet<UUID> locks, @Nonnull final Supplier<Event<STATE>> operation) {
+        if (locks.isEmpty()) {
+            return operation.get();
+        } else {
+            final UUID firstLock = locks.first();
+            //noinspection SynchronizationOnLocalVariableOrMethodParameter
+            synchronized (firstLock) {
+                return forAllLocks(locks.tailSet(firstLock, false), operation);
+            }
+        }
     }
 
     /**
@@ -258,9 +288,11 @@ public final class Actor<STATE> {
      *
      * @throws NullPointerException     If {@code signal} is null
      * @throws IllegalArgumentException <ul>
-     *                                      <li>If the {@linkplain Signal#getReceiver() receiver} of the {@code signal} is not this actor.</li>
-     *                                      <li>If the {@linkplain Signal#getWhenSent()} sending time of the {@code signal} is {@linkplain Duration#compareTo(Duration) before} the {@linkplain #getStart() start time} of this actor.</li>
+     *                                  <li>If the {@linkplain Signal#getReceiver() receiver} of the {@code signal} is not this actor.</li>
+     *                                  <li>If the {@linkplain Signal#getWhenSent()} sending time of the {@code signal} is {@linkplain Duration#compareTo(Duration) before} the {@linkplain #getStart() start time} of this actor.</li>
      *                                  </ul>
+     * @see #removeSignal(Signal)
+     * @see #receiveSignal()
      */
     public void addSignalToReceive(@Nonnull final Signal<STATE> signal) {
         Objects.requireNonNull(signal, "signal");
@@ -272,6 +304,42 @@ public final class Actor<STATE> {
         }
         synchronized (lock) {
             addUnscheduledSignalToReceive(signal);
+        }
+    }
+
+    /**
+     * <p>
+     * Remove the potential or actual effect of a signal on this actor.
+     * </p>
+     * <p>Post conditions:</p>
+     * <ul>
+     *     <li>The {@code signal} is not {@linkplain Set#contains(Object) one of} of the {@linkplain #getSignalsToReceive() signals to receive}.</li>
+     *     <li>None of the {@linkplain #getEvents() events} have the {@code signal} as their {@linkplain Event#getCausingSignal() causing signal}.</li>
+     * </ul>
+     *
+     * @throws NullPointerException     if {@code signal} is null
+     * @throws IllegalArgumentException if the {@linkplain Signal#getReceiver() receiver} of the {@code signal} is not {@code  this} Actor.
+     */
+    public void removeSignal(@Nonnull final Signal<STATE> signal) {
+        Objects.requireNonNull(signal, "signal");
+        if (signal.getReceiver() != this) {
+            throw new IllegalArgumentException("signal.receiver != this");
+        }
+        synchronized (lock) {
+            if (unscheduledSignalsToReceive.remove(signal)) {
+                return;
+            }
+            if (signalsToReceive.remove(signal)) {
+                if (nextSignalToReceive == signal) {
+                    invalidateNextSignalToReceive();
+                }
+                return;
+            }
+            final var event = eventsForSignals.remove(signal);
+            if (event != null) {
+                events.remove(event);
+                invalidateEvents(List.copyOf(events.tailSet(event)));
+            }
         }
     }
 
@@ -366,28 +434,6 @@ public final class Actor<STATE> {
         }
     }
 
-    private static <STATE> int compareTo(
-            @Nonnull final Signal<STATE> signal1,
-            @Nonnull final Duration whenReceived1,
-            @Nullable final Signal<STATE> signal2,
-            @Nonnull final Duration whenReceived2
-    ) throws SignalException {
-        int compare;
-        if (signal2 == null) {
-            compare = -1;
-        } else {
-            compare = whenReceived1.compareTo(whenReceived2);
-            if (compare == 0) {
-                try {
-                    compare = signal1.compareTo(signal2);
-                } catch (final RuntimeException e) {
-                    throw new SignalException(signal1, e);
-                }
-            }
-        }
-        return compare;
-    }
-
     @GuardedBy("lock")
     private boolean isOutOfDate(final long expectedVersion) {
         /* This assumes we will never have more than Long.MAX_VALUE threads,
@@ -415,26 +461,6 @@ public final class Actor<STATE> {
         assert event.getAffectedObject() == this;
         //noinspection FieldAccessNotGuarded
         return forAllLocks(getLocksFor(event), () -> appendEventWhileLocked(previousVersion, event));
-    }
-
-    @Nonnull
-    private static <STATE> NavigableSet<UUID> getLocksFor(@Nonnull final Event<STATE> event) {
-        final NavigableSet<UUID> locks = new TreeSet<>();
-        locks.add(event.getAffectedObject().lock);
-        event.getSignalsEmitted().stream().sequential().map(signal -> signal.getReceiver().lock).forEach(locks::add);
-        return locks;
-    }
-
-    private static <STATE> Event<STATE> forAllLocks(@Nonnull final NavigableSet<UUID> locks, @Nonnull final Supplier<Event<STATE>> operation) {
-        if (locks.isEmpty()) {
-            return operation.get();
-        } else {
-            final UUID firstLock = locks.first();
-            //noinspection SynchronizationOnLocalVariableOrMethodParameter
-            synchronized (firstLock) {
-                return forAllLocks(locks.tailSet(firstLock, false), operation);
-            }
-        }
     }
 
     @GuardedBy("lock")
@@ -493,6 +519,18 @@ public final class Actor<STATE> {
 
     @Override
     public String toString() {
-        return "Actor@"+ lock;
+        return "Actor@" + lock;
+    }
+
+    /**
+     * <p>
+     * Indicates that a method of the {@link Signal} class threw a {@link RuntimeException},
+     * which is likely to be due to a bug in an implementation of that class.
+     * </p>
+     */
+    public static final class SignalException extends RuntimeException {
+        <STATE> SignalException(@Nonnull final Signal<STATE> signal, @Nonnull final RuntimeException cause) {
+            super("Signal " + signal + " threw exception " + cause, cause);
+        }
     }
 }
