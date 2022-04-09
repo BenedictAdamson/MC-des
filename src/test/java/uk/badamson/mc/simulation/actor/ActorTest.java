@@ -162,6 +162,32 @@ public class ActorTest {
         );
     }
 
+    @Test
+    public void concurrentlyRemoveAndReceiveSignals() {
+        final Actor<Integer> sender = new Actor<>(WHEN_A, 0);
+        final Actor<Integer> receiver = new Actor<>(WHEN_B, 1);
+        final int nSignals = 32;
+        final List<Signal<Integer>> signals = new ArrayList<>(nSignals);
+        for (int s = 0; s < nSignals; s++) {
+            final Signal<Integer> signal = new SignalTest.SimpleTestSignal(sender, WHEN_C.plusSeconds(s), receiver);
+            signals.add(signal);
+        }
+        final CountDownLatch ready = new CountDownLatch(1);
+        final List<Future<Void>> futures = new ArrayList<>(nSignals * 2);
+        for (final var signal : signals) {
+            futures.add(ThreadSafetyTest.runInOtherThread(ready, () -> receiver.removeSignal(signal)));
+            futures.add(ThreadSafetyTest.runInOtherThread(ready, receiver::receiveSignal));
+        }
+
+        ready.countDown();
+        ThreadSafetyTest.get(futures);
+
+        assertInvariants(receiver);
+        for (final var signal : signals) {
+            SignalTest.assertInvariants(signal);
+        }
+    }
+
     @Nested
     public class Constructor {
 

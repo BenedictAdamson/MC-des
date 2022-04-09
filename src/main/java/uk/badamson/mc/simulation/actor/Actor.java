@@ -333,10 +333,12 @@ public final class Actor<STATE> {
                 if (nextSignalToReceive == signal) {
                     invalidateNextSignalToReceive();
                 }
+                version++;// hard to test
                 return;
             }
             final var event = eventsForSignals.remove(signal);
             if (event != null) {
+                version++;// hard to test
                 events.remove(event);
                 invalidateEvents(List.copyOf(events.tailSet(event)));
             }
@@ -489,6 +491,8 @@ public final class Actor<STATE> {
     private void invalidateEvents(final List<Event<STATE>> invalidatedEvents) {
         for (final var invalidatedEvent : invalidatedEvents) {
             final Signal<STATE> causingSignal = invalidatedEvent.getCausingSignal();
+            assert events.contains(invalidatedEvent);
+            assert eventsForSignals.containsKey(causingSignal);
             signalsToReceive.add(causingSignal);
             events.remove(invalidatedEvent);
             eventsForSignals.remove(causingSignal);
