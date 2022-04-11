@@ -197,8 +197,19 @@ public final class Actor<STATE> {
         firstInvalidEventForActors.forEach((actor, firstInvalidEvent) -> {
             assert Thread.holdsLock(actor.lock);
             //noinspection FieldAccessNotGuarded
-            actor.invalidateEvents(List.copyOf(actor.events.tailSet(firstInvalidEvent)), signalsToRemove);
+            actor.invalidateEventsWhileLocked(firstInvalidEvent, signalsToRemove);
         });
+    }
+
+
+    @GuardedBy("lock")
+    private void invalidateEventsWhileLocked
+            (@Nonnull final Event<STATE> firstInvalidEvent,
+             @Nonnull final Set<Signal<STATE>> signalsToRemove) {
+        assert Thread.holdsLock(lock);
+        invalidateEvents(List.copyOf(events.tailSet(firstInvalidEvent)), signalsToRemove);
+        invalidateNextSignalToReceive();
+        // TODO increment version
     }
 
     /**
@@ -544,6 +555,7 @@ public final class Actor<STATE> {
         final Signal<STATE> causingSignal = event.getCausingSignal();
         assert !eventsForSignals.containsKey(causingSignal);
         invalidateEvents(List.copyOf(events.tailSet(event)), Set.of());
+        invalidateNextSignalToReceive();
         version++;
         events.add(event);
         eventsForSignals.put(causingSignal, event);
@@ -552,7 +564,6 @@ public final class Actor<STATE> {
         for (final var emittedSignal : event.getSignalsEmitted()) {
             emittedSignal.getReceiver().addUnscheduledSignalToReceive(emittedSignal);
         }
-        invalidateNextSignalToReceive();
         return event;
     }
 

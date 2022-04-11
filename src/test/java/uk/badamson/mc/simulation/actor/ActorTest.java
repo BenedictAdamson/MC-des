@@ -28,10 +28,7 @@ import uk.badamson.mc.history.ValueHistoryTest;
 
 import javax.annotation.Nonnull;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
@@ -426,6 +423,49 @@ public class ActorTest {
                 assertThat("Original receiver does not have another signal to receive", actorB.getSignalsToReceive(), empty());
             }
         }
+
+
+        @Nested
+        public class AfterRemovingSignal {
+
+            @Test
+            public void a() {
+                test(WHEN_A, WHEN_B, WHEN_C, 0, 1);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_B, WHEN_C, WHEN_D, 1, 2);
+            }
+
+            private void test(@Nonnull final Duration when1, @Nonnull final Duration when2, @Nonnull final Duration when3, @Nonnull final Integer state1, @Nonnull final Integer state2) {
+                final Actor<Integer> sender = new Actor<>(when1, state1);
+                final Actor<Integer> receiver = new Actor<>(when2, state2);
+                final Signal<Integer> signal1 = new SignalTest.SimpleTestSignal(sender, when3, receiver);
+                receiver.addSignalToReceive(signal1);
+                receiver.receiveSignal();
+                final var event1 = receiver.getLastEvent();
+                assert event1 != null;
+                final Signal<Integer> signal2 = new SignalTest.SimpleTestSignal(sender, event1.getWhen(), receiver);
+                receiver.addSignalToReceive(signal2);
+                receiver.receiveSignal();
+                final var event2 = receiver.getLastEvent();
+                assert event2 != null;
+                final Signal<Integer> signal3 = new SignalTest.SimpleTestSignal(sender, event2.getWhen(), receiver);
+                receiver.addSignalToReceive(signal3);
+                receiver.receiveSignal();
+                receiver.getWhenReceiveNextSignal();// cause a value to be cached
+                receiver.removeSignal(signal2);
+
+                receiveSignal(receiver);
+
+                assertThat("signals to receive", receiver.getSignalsToReceive(), empty());
+                final SortedSet<Event<Integer>> events = receiver.getEvents();
+                assertThat("events", events, hasSize(2));
+                assertThat("event 1 causing signal", events.first().getCausingSignal(), sameInstance(signal1));
+                assertThat("event 2 causing signal", events.last().getCausingSignal(), sameInstance(signal3));
+            }
+        }
     }// class
 
     @Nested
@@ -494,6 +534,7 @@ public class ActorTest {
 
                 assertThat("No signals to receive", receiver.getSignalsToReceive(), empty());
                 assertThat("No events (still)", receiver.getEvents(), empty());
+                assertThat("whenReceiveNextSignal", receiver.getWhenReceiveNextSignal(), is(Signal.NEVER_RECEIVED));
             }
         }
 
@@ -594,8 +635,6 @@ public class ActorTest {
                 for (final var signal : signals) {
                     SignalTest.assertInvariants(signal);
                 }
-                assertThat("No signals to receive", receiver.getSignalsToReceive(), empty());
-                assertThat("No events (still)", receiver.getEvents(), empty());
             }
 
             private void test(@Nonnull final Duration when1, @Nonnull final Duration when2, @Nonnull final Duration when3, @Nonnull final Integer state1, @Nonnull final Integer state2) {
@@ -646,6 +685,7 @@ public class ActorTest {
 
                 assertThat("rescheduled subsequent signal", receiver.getSignalsToReceive(), is(Set.of(signal3)));
                 assertThat("retains event due to previous signal", receiver.getEvents(), is(Set.of(event1)));
+                assertThat("updated when receive next signal", receiver.getWhenReceiveNextSignal(), is(signal3.getWhenReceived(receiver.getStateHistory())));
             }
         }
     }
