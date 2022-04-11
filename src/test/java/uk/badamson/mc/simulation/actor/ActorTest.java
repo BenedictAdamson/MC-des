@@ -635,6 +635,8 @@ public class ActorTest {
                 for (final var signal : signals) {
                     SignalTest.assertInvariants(signal);
                 }
+                assertThat("No signals to receive", receiver.getSignalsToReceive(), empty());
+                assertThat("No events (still)", receiver.getEvents(), empty());
             }
 
             private void test(@Nonnull final Duration when1, @Nonnull final Duration when2, @Nonnull final Duration when3, @Nonnull final Integer state1, @Nonnull final Integer state2) {

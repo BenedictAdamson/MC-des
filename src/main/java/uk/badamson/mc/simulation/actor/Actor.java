@@ -209,7 +209,7 @@ public final class Actor<STATE> {
         assert Thread.holdsLock(lock);
         invalidateEvents(List.copyOf(events.tailSet(firstInvalidEvent)), signalsToRemove);
         invalidateNextSignalToReceive();
-        // TODO increment version
+        version++;
     }
 
     /**
