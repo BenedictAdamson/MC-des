@@ -369,6 +369,43 @@ public class ActorTest {
         }
 
         @Nested
+        public class InvalidatingEmittedSignal {
+
+            @Test
+            public void a() {
+                test(WHEN_A, WHEN_B, 0);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_B, WHEN_C, 1);
+            }
+
+            private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent1, @Nonnull final Integer state0) {
+                final var actor1 = new Actor<>(start, 0);
+                final var actor2 = new Actor<>(start, state0);
+                final Signal<Integer> signal1 = new SignalTest.SimpleTestSignal(actor1, whenSent1, actor2);
+                final Duration whenSent2 = signal1.getWhenReceived(state0);
+                final Signal<Integer> signal2 = new SignalTest.EchoingTestSignal(actor1, whenSent2, actor2);
+                actor2.addSignalToReceive(signal2);
+                actor2.receiveSignal();
+                actor2.addSignalToReceive(signal1);
+                actor2.receiveSignal();
+
+                receiveSignal(actor2);
+
+                final var events = actor2.getEvents();
+                assertThat("events", events, hasSize(2));// guard
+                final var event1 = events.first();
+                final var event2 = events.last();
+                assertThat("event 1 resulted from receiving signal 1", event1, is(signal1.receive(state0)));
+                final Integer state1 = event1.getState();
+                assertThat("event 1 result state", state1, notNullValue());// guard
+                assertThat("event 2 resulted from receiving signal 2", event2, is(signal2.receive(state1)));
+            }
+        }
+
+        @Nested
         public class EmittingSignalToSelf {
 
             @Test
