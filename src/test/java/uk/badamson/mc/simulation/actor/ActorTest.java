@@ -690,6 +690,46 @@ public class ActorTest {
                 assertThat("updated when receive next signal", receiver.getWhenReceiveNextSignal(), is(signal3.getWhenReceived(receiver.getStateHistory())));
             }
         }
+
+        @Nested
+        public class SubsequentEventsWithEmittedSignals {
+
+            @Test
+            public void a() {
+                test(WHEN_A, WHEN_B, WHEN_C, 0, 1);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_B, WHEN_C, WHEN_D, 1, 2);
+            }
+
+            private void test(@Nonnull final Duration when1, @Nonnull final Duration when2, @Nonnull final Duration when3, @Nonnull final Integer state1, @Nonnull final Integer state2) {
+                final Actor<Integer> actor1 = new Actor<>(when1, state1);
+                final Actor<Integer> actor2 = new Actor<>(when2, state2);
+                final Signal<Integer> signal1 = new SignalTest.SimpleTestSignal(actor1, when3, actor2);
+                actor2.addSignalToReceive(signal1);
+                actor2.receiveSignal();
+                final var event1 = actor2.getLastEvent();
+                assert event1 != null;
+                final Signal<Integer> signal2 = new SignalTest.SimpleTestSignal(actor1, event1.getWhen(), actor2);
+                actor2.addSignalToReceive(signal2);
+                actor2.receiveSignal();
+                final var event2 = actor2.getLastEvent();
+                assert event2 != null;
+                final Signal<Integer> signal3 = new SignalTest.EchoingTestSignal(actor1, event2.getWhen(), actor2);
+                actor2.addSignalToReceive(signal3);
+                actor2.receiveSignal();
+                assert !actor1.getSignalsToReceive().isEmpty();
+
+                removeSignal(actor2, signal2);
+
+                assertThat("rescheduled subsequent signal", actor2.getSignalsToReceive(), is(Set.of(signal3)));
+                assertThat("retains event due to previous signal", actor2.getEvents(), is(Set.of(event1)));
+                assertThat("updated when receive next signal", actor2.getWhenReceiveNextSignal(), is(signal3.getWhenReceived(actor2.getStateHistory())));
+                assertThat("removed emitted signal", actor1.getSignalsToReceive(), empty());
+            }
+        }
     }
 
 }// class
