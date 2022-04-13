@@ -136,7 +136,7 @@ public final class Actor<STATE> {
         }
     }
 
-    private static <STATE> boolean determineEventsToInvalidate(
+    private static <STATE> boolean determineEventsToInvalidateAndSignalsToRemove(
             @Nonnull final Signal<STATE> signalToRemove,
             @Nonnull final Set<Actor<STATE>> actors,
             @Nonnull final Map<Actor<STATE>, Event<STATE>> lastValidEventForActors,
@@ -170,7 +170,7 @@ public final class Actor<STATE> {
         }
         signalsToRemove.add(signalToRemove);
         for (final var emittedSignal: emittedSignalsToRemove) {
-            if (!signalsToRemove.contains(emittedSignal) && !determineEventsToInvalidate(
+            if (!signalsToRemove.contains(emittedSignal) && !determineEventsToInvalidateAndSignalsToRemove(
                     emittedSignal, actors, lastValidEventForActors, previousVersionForActors, signalsToRemove)) {
                 return false;
             }
@@ -445,7 +445,7 @@ public final class Actor<STATE> {
             final Map<Actor<STATE>, Event<STATE>> firstInvalidEventForActors = new HashMap<>();
             final Map<Actor<STATE>, Long> previousVersionForActors = new HashMap<>();
             final Set<Signal<STATE>> signalsToRemove = new HashSet<>();
-            if (determineEventsToInvalidate(signal, actors, firstInvalidEventForActors, previousVersionForActors, signalsToRemove)
+            if (determineEventsToInvalidateAndSignalsToRemove(signal, actors, firstInvalidEventForActors, previousVersionForActors, signalsToRemove)
                     && invalidateEventsAndRemoveSignals(actors, firstInvalidEventForActors, previousVersionForActors, signalsToRemove)) {
                 return;
             }
