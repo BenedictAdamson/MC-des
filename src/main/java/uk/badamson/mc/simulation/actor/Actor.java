@@ -460,10 +460,19 @@ public final class Actor<STATE> {
                 computeNextSignalToReceive();
                 previousVersion = version;
             }
-            event = createNextEvent(previousVersion);
-            if (event == null) {
-                done = true;
-            } else {
+            synchronized (lock) {
+                if (isOutOfDate(previousVersion)) {
+                    event = null;
+                    done = false;
+                } else if (nextSignalToReceive == null) {
+                    event = null;
+                    done = true;
+                } else {
+                    event = createNextEvent();
+                    done = true;
+                }
+            }
+            if (event != null) {
                 event = appendEvent(previousVersion, event);
                 done = (event != null);
             }
@@ -496,6 +505,18 @@ public final class Actor<STATE> {
     }
 
     @GuardedBy("lock")
+    @Nonnull
+    private Event<STATE> createNextEvent() throws SignalException {
+        final STATE state = stateHistory.get(whenReceiveNextSignal);
+        assert state != null;
+        try {
+            return nextSignalToReceive.receive(whenReceiveNextSignal, state);
+        } catch (final RuntimeException e) {
+            throw new SignalException(nextSignalToReceive, e);
+        }
+    }
+
+    @GuardedBy("lock")
     private void considerAsNextSignalToReceive(final Signal<STATE> signal) throws SignalException {
         final Duration whenReceived = computeWhenReceived(signal);
         if (compareTo(signal, whenReceived, nextSignalToReceive, whenReceiveNextSignal) < 0) {
@@ -522,21 +543,6 @@ public final class Actor<STATE> {
          * which is safe enough
          */
         return expectedVersion != version;
-    }
-
-    private Event<STATE> createNextEvent(final long previousVersion) throws SignalException {
-        synchronized (lock) {
-            if (nextSignalToReceive == null || isOutOfDate(previousVersion)) {
-                return null;
-            }
-            final STATE state = stateHistory.get(whenReceiveNextSignal);
-            assert state != null;
-            try {
-                return nextSignalToReceive.receive(whenReceiveNextSignal, state);
-            } catch (final RuntimeException e) {
-                throw new SignalException(nextSignalToReceive, e);
-            }
-        }
     }
 
     private Event<STATE> appendEvent(final long previousVersion, @Nonnull final Event<STATE> event) {
