@@ -137,26 +137,34 @@ public class ActorTest {
         SignalTest.assertInvariants(signal);
     }
 
-    private static <STATE> Event<STATE> receiveSignal(@Nonnull final Actor<STATE> actor) {
-        final Event<STATE> event = actor.receiveSignal();
+    @Nonnull
+    private static <STATE> Set<Actor<STATE>> receiveSignal(@Nonnull final Actor<STATE> actor) {
+        final Set<Actor<STATE>> affectedActors = actor.receiveSignal();
 
         assertInvariants(actor);
-        if (event != null) {
-            EventTest.assertInvariants(event);
-            assertThat("the affected object of the event is this", event.getAffectedObject(), sameInstance(actor));
-        }
-        return event;
+        assertThat("affected actors", affectedActors, notNullValue());
+        assertAll("affected actors", affectedActors.stream().map(affectedActor -> () ->{
+            assertThat(affectedActor, notNullValue());
+            assertInvariants(affectedActor);
+        }));
+        return affectedActors;
     }
 
-    private static <STATE> void removeSignal(@Nonnull final Actor<STATE> actor, @Nonnull final Signal<STATE> signal) {
-        actor.removeSignal(signal);
+    private static <STATE> Set<Actor<STATE>> removeSignal(@Nonnull final Actor<STATE> actor, @Nonnull final Signal<STATE> signal) {
+        final Set<Actor<STATE>> affectedActors = actor.removeSignal(signal);
 
         assertInvariants(actor);
         SignalTest.assertInvariants(signal);
+        assertThat("affected actors", affectedActors, notNullValue());
+        assertAll("affected actors", affectedActors.stream().map(affectedActor -> () -> {
+            assertThat(affectedActor, notNullValue());
+            assertInvariants(affectedActor);
+        }));
         assertThat("The signal is not one of of the signals to receive.", actor.getSignalsToReceive(), not(hasItem(signal)));
         assertAll("None of the events have the signal as their causing signal.",
                 actor.getEvents().stream().map(Event::getCausingSignal).map(eventSignal -> () -> assertThat(eventSignal, not(sameInstance(signal))))
         );
+        return affectedActors;
     }
 
     @Test
@@ -267,10 +275,10 @@ public class ActorTest {
         public void none() {
             final var actor = new Actor<>(WHEN_A, 0);
 
-            final var event = receiveSignal(actor);
+            final var affectedActors = receiveSignal(actor);
 
-            assertThat("event", event, nullValue());
-            assertThat("actor events", actor.getEvents(), empty());// guard
+            assertThat("actor events", actor.getEvents(), empty());
+            assertThat("affected actors", affectedActors, empty());
         }
 
         @Test
@@ -322,12 +330,15 @@ public class ActorTest {
                 final Signal<Integer> signal = new SignalTest.SimpleTestSignal(sender, whenSent, receiver);
                 receiver.addSignalToReceive(signal);
 
-                final Event<Integer> event = receiveSignal(receiver);
+                final var affectedActors = receiveSignal(receiver);
 
-                assertThat("event", event, notNullValue());// guard
+                final var events = receiver.getEvents();
+                assertThat("events", events, hasSize(1));
+                final var event = events.first();
                 assertThat("event causing signal", event.getCausingSignal(), sameInstance(signal));
                 assertThat("event state resulted from receiving the signal", event, is(signal.receive(state0)));
                 assertThat("receiver events", receiver.getEvents(), is(Set.of(event)));
+                assertThat("affected actors", affectedActors, contains(receiver));
             }
         }
 
@@ -355,7 +366,7 @@ public class ActorTest {
                 receiver.addSignalToReceive(signal1);
                 receiver.receiveSignal();
 
-                receiveSignal(receiver);
+                final var affectedActors = receiveSignal(receiver);
 
                 final var events = receiver.getEvents();
                 assertThat("events", events, hasSize(2));// guard
@@ -365,6 +376,7 @@ public class ActorTest {
                 final Integer state1 = event1.getState();
                 assertThat("event 1 result state", state1, notNullValue());// guard
                 assertThat("event 2 resulted from receiving signal 2", event2, is(signal2.receive(state1)));
+                assertThat("affected actors", affectedActors, contains(receiver));
             }
         }
 
@@ -392,7 +404,7 @@ public class ActorTest {
                 actor2.addSignalToReceive(signal1);
                 actor2.receiveSignal();
 
-                receiveSignal(actor2);
+                final var affectedActors = receiveSignal(actor2);
 
                 final var events = actor2.getEvents();
                 assertThat("events", events, hasSize(2));// guard
@@ -402,6 +414,7 @@ public class ActorTest {
                 final Integer state1 = event1.getState();
                 assertThat("event 1 result state", state1, notNullValue());// guard
                 assertThat("event 2 resulted from receiving signal 2", event2, is(signal2.receive(state1)));
+                assertThat("affected actors", affectedActors, containsInAnyOrder(actor1, actor2));
             }
         }
 
@@ -424,13 +437,12 @@ public class ActorTest {
                 actor.addSignalToReceive(signal);
                 final var whenReceiveNextSignal0 = actor.getWhenReceiveNextSignal();
 
-                final Event<Integer> event = receiveSignal(actor);
+                final var affectedActors = receiveSignal(actor);
 
-                assertThat("event", event, notNullValue());// guard
-                assertThat("event causing signal", event.getCausingSignal(), sameInstance(signal));// guard
                 assertThat("Has another signal to receive", actor.getSignalsToReceive(), hasSize(1));
                 assertThat("State transition is when the signal was received",
                         actor.getStateHistory().getLastTransitionTime(), is(whenReceiveNextSignal0));
+                assertThat("affected actors", affectedActors, contains(actor));
             }
         }
 
@@ -453,11 +465,12 @@ public class ActorTest {
                 final Signal<Integer> signal1 = new SignalTest.EchoingTestSignal(actorA, whenSent1, actorB);
                 actorB.addSignalToReceive(signal1);
 
-                receiveSignal(actorB);
+                final var affectedActors = receiveSignal(actorB);
 
                 assertInvariants(actorA);
                 assertThat("Original sender has another signal to receive", actorA.getSignalsToReceive(), hasSize(1));
                 assertThat("Original receiver does not have another signal to receive", actorB.getSignalsToReceive(), empty());
+                assertThat("affected actors", affectedActors, containsInAnyOrder(actorA, actorB));
             }
         }
 
@@ -494,13 +507,14 @@ public class ActorTest {
                 receiver.getWhenReceiveNextSignal();// cause a value to be cached
                 receiver.removeSignal(signal2);
 
-                receiveSignal(receiver);
+                final var affectedActors = receiveSignal(receiver);
 
                 assertThat("signals to receive", receiver.getSignalsToReceive(), empty());
                 final SortedSet<Event<Integer>> events = receiver.getEvents();
                 assertThat("events", events, hasSize(2));
                 assertThat("event 1 causing signal", events.first().getCausingSignal(), sameInstance(signal1));
                 assertThat("event 2 causing signal", events.last().getCausingSignal(), sameInstance(signal3));
+                assertThat("affected actors", affectedActors, contains(receiver));
             }
         }
     }// class
@@ -514,10 +528,11 @@ public class ActorTest {
             final Actor<Integer> receiver = new Actor<>(WHEN_B, 1);
             final Signal<Integer> signal = new SignalTest.SimpleTestSignal(sender, WHEN_C, receiver);
 
-            removeSignal(receiver, signal);
+            final var affectedActors = removeSignal(receiver, signal);
 
             assertThat("No signals to receive (still)", receiver.getSignalsToReceive(), empty());
             assertThat("No events (still)", receiver.getEvents(), empty());
+            assertThat("affected actors", affectedActors, empty());
         }
 
         @Nested
@@ -567,11 +582,12 @@ public class ActorTest {
                 final Signal<Integer> signal = new SignalTest.SimpleTestSignal(sender, when3, receiver);
                 receiver.addSignalToReceive(signal);
 
-                removeSignal(receiver, signal);
+                final var affectedActors = removeSignal(receiver, signal);
 
                 assertThat("No signals to receive", receiver.getSignalsToReceive(), empty());
                 assertThat("No events (still)", receiver.getEvents(), empty());
                 assertThat("whenReceiveNextSignal", receiver.getWhenReceiveNextSignal(), is(Signal.NEVER_RECEIVED));
+                assertThat("affected actors", affectedActors, contains(receiver));
             }
         }
 
@@ -624,10 +640,11 @@ public class ActorTest {
                 receiver.addSignalToReceive(signal);
                 receiver.getWhenReceiveNextSignal();
 
-                removeSignal(receiver, signal);
+                final var affectedActors = removeSignal(receiver, signal);
 
                 assertThat("No signals to receive", receiver.getSignalsToReceive(), empty());
                 assertThat("No events (still)", receiver.getEvents(), empty());
+                assertThat("affacted actors", affectedActors, contains(receiver));
             }
         }
 
@@ -683,10 +700,11 @@ public class ActorTest {
                 receiver.addSignalToReceive(signal);
                 receiver.receiveSignal();
 
-                removeSignal(receiver, signal);
+                final var affectedActors = removeSignal(receiver, signal);
 
                 assertThat("No signals to receive", receiver.getSignalsToReceive(), empty());
                 assertThat("No events", receiver.getEvents(), empty());
+                assertThat("affected actors", affectedActors, contains(receiver));
             }
         }
 
@@ -720,11 +738,12 @@ public class ActorTest {
                 receiver.addSignalToReceive(signal3);
                 receiver.receiveSignal();
 
-                removeSignal(receiver, signal2);
+                final var affectedActors = removeSignal(receiver, signal2);
 
                 assertThat("rescheduled subsequent signal", receiver.getSignalsToReceive(), is(Set.of(signal3)));
                 assertThat("retains event due to previous signal", receiver.getEvents(), is(Set.of(event1)));
                 assertThat("updated when receive next signal", receiver.getWhenReceiveNextSignal(), is(signal3.getWhenReceived(receiver.getStateHistory())));
+                assertThat("affected actors", affectedActors, contains(receiver));
             }
         }
 
@@ -759,12 +778,13 @@ public class ActorTest {
                 actor2.receiveSignal();
                 assert !actor1.getSignalsToReceive().isEmpty();
 
-                removeSignal(actor2, signal2);
+                final var affectedActors = removeSignal(actor2, signal2);
 
                 assertThat("rescheduled subsequent signal", actor2.getSignalsToReceive(), is(Set.of(signal3)));
                 assertThat("retains event due to previous signal", actor2.getEvents(), is(Set.of(event1)));
                 assertThat("updated when receive next signal", actor2.getWhenReceiveNextSignal(), is(signal3.getWhenReceived(actor2.getStateHistory())));
                 assertThat("removed emitted signal", actor1.getSignalsToReceive(), empty());
+                assertThat("affected actors", affectedActors, containsInAnyOrder(actor1, actor2));
             }
         }
     }

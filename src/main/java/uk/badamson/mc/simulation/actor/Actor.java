@@ -419,10 +419,13 @@ public final class Actor<STATE> {
      *     <li>None of the {@linkplain #getEvents() events} have the {@code signal} as their {@linkplain Event#getCausingSignal() causing signal}.</li>
      * </ul>
      *
+     * @return
+     * The set of actors affected by this change; does not contain a null element; may be unmodifiable.
      * @throws NullPointerException     if {@code signal} is null
      * @throws IllegalArgumentException if the {@linkplain Signal#getReceiver() receiver} of the {@code signal} is not {@code  this} Actor.
      */
-    public void removeSignal(@Nonnull final Signal<STATE> signal) {
+    @Nonnull
+    public Set<Actor<STATE>> removeSignal(@Nonnull final Signal<STATE> signal) {
         Objects.requireNonNull(signal, "signal");
         if (signal.getReceiver() != this) {
             throw new IllegalArgumentException("signal.receiver != this");
@@ -430,14 +433,14 @@ public final class Actor<STATE> {
         do {
             synchronized (lock) {
                 if (unscheduledSignalsToReceive.remove(signal)) {
-                    return;
+                    return Set.of(this);
                 }
                 if (signalsToReceive.remove(signal)) {
                     if (nextSignalToReceive == signal) {
                         invalidateNextSignalToReceive();
                     }
                     version++;// hard to test
-                    return;
+                    return Set.of(this);
                 }
             }
             final NavigableSet<Actor<STATE>> actors = createActorSetInLockOrder();
@@ -446,7 +449,7 @@ public final class Actor<STATE> {
             final Set<Signal<STATE>> signalsToRemove = new HashSet<>();
             if (determineConsequencesOfRemovingSignal(signal, actors, firstInvalidEventForActors, previousVersionForActors, signalsToRemove)
                     && invalidateEventsAndRemoveSignals(actors, firstInvalidEventForActors, previousVersionForActors, signalsToRemove)) {
-                return;
+                return actors;
             }
         } while (true);
     }
@@ -472,15 +475,15 @@ public final class Actor<STATE> {
      *     <li>If the method returns a (non null) event, the {@linkplain Event#getAffectedObject() affected object} of the event is {@code this}.</li>
      * </ul>
      *
-     * @return the event caused by the received signal, or null if no signal is received.
+     * @return
+     * The set of actors affected by this change; does not contain a null element; may be unmodifiable.
      * @throws SignalException If a {@link Signal} object throws a {@link RuntimeException}.
      *                         The method is safe if this exception is thrown: the state of this Actor will not have changed.
      */
-    @Nullable
-    public Event<STATE> receiveSignal() {
-        Event<STATE> event;
-        boolean done;
+    @Nonnull
+    public Set<Actor<STATE>> receiveSignal() {
         do {
+            Event<STATE> event;
             final long previousVersion;
             synchronized (lock) {
                 computeNextSignalToReceive();
@@ -489,13 +492,10 @@ public final class Actor<STATE> {
             synchronized (lock) {
                 if (isOutOfDate(previousVersion)) {
                     event = null;
-                    done = false;
                 } else if (nextSignalToReceive == null) {
-                    event = null;
-                    done = true;
+                    return Set.of();
                 } else {
                     event = createNextEvent();
-                    done = true;
                 }
             }
             if (event != null) {
@@ -503,17 +503,15 @@ public final class Actor<STATE> {
                 final Map<Actor<STATE>, Event<STATE>> firstInvalidEventForActors = new HashMap<>();
                 final Map<Actor<STATE>, Long> previousVersionForActors = new HashMap<>();
                 final Set<Signal<STATE>> signalsToRemove = new HashSet<>();
-                if (!(determineEventsToInvalidateToAppendEvent(event, actors, firstInvalidEventForActors, previousVersionForActors, signalsToRemove)
-                        && invalidateEventsAndRemoveSignals(actors, firstInvalidEventForActors, previousVersionForActors, signalsToRemove))) {
-                    event = null;
+                if (determineEventsToInvalidateToAppendEvent(event, actors, firstInvalidEventForActors, previousVersionForActors, signalsToRemove)
+                        && invalidateEventsAndRemoveSignals(actors, firstInvalidEventForActors, previousVersionForActors, signalsToRemove)) {
+                    event = appendEvent(previousVersion, event);
+                    if (event != null) {
+                        return actors;
+                    }
                 }
             }
-            if (event != null) {
-                event = appendEvent(previousVersion, event);
-                done = (event != null);
-            }
-        } while (!done);
-        return event;
+        } while (true);
     }
 
     @GuardedBy("lock")
@@ -587,6 +585,14 @@ public final class Actor<STATE> {
             @Nonnull final Map<Actor<STATE>, Event<STATE>> firstInvalidEventForActors,
             @Nonnull final Map<Actor<STATE>, Long> previousVersionForActors,
             @Nonnull final Set<Signal<STATE>> signalsToRemove) {
+        eventToAppend.getSignalsEmitted().forEach(signal -> actors.add(signal.getReceiver()));
+        for (final var signal: eventToAppend.getSignalsEmitted()) {
+            final var actor = signal.getReceiver();
+            synchronized (actor.lock) {
+                //noinspection FieldAccessNotGuarded
+                previousVersionForActors.computeIfAbsent(actor, a -> a.version);
+            }
+        }
         final Set<Signal<STATE>> additionalSignalsToRemove;
         synchronized (lock) {
             final SortedSet<Event<STATE>> invalidatedEvents = events.tailSet(eventToAppend);
