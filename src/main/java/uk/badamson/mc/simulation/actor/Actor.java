@@ -117,42 +117,45 @@ public final class Actor<STATE> {
     }
 
     @Nonnull
-    private static <STATE> NavigableSet<UUID> getLocksFor(@Nonnull final Event<STATE> event) {
-        final NavigableSet<UUID> locks = new TreeSet<>();
-        locks.add(event.getAffectedObject().lock);
-        event.getSignalsEmitted().stream().sequential().map(signal -> signal.getReceiver().lock).forEach(locks::add);
-        return locks;
+    private static <STATE> NavigableSet<Actor<STATE>> getReceiversOfSignalsEmittedInLockOrder(@Nonnull final Event<STATE> event) {
+        final NavigableSet<Actor<STATE>> actors = createActorSetInLockOrder();
+        actors.add(event.getAffectedObject());
+        event.getSignalsEmitted().stream().map(Signal::getReceiver).forEach(actors::add);
+        return actors;
     }
 
-    private static <STATE> Event<STATE> forAllLocks(@Nonnull final NavigableSet<UUID> locks, @Nonnull final Supplier<Event<STATE>> operation) {
-        if (locks.isEmpty()) {
+    private static <STATE, RESULT> RESULT doWithAllActorsLocked(
+            @Nonnull final NavigableSet<Actor<STATE>> actors,
+            @Nonnull final Supplier<RESULT> operation) {
+        if (actors.isEmpty()) {
             return operation.get();
         } else {
-            final UUID firstLock = locks.first();
-            //noinspection SynchronizationOnLocalVariableOrMethodParameter
-            synchronized (firstLock) {
-                return forAllLocks(locks.tailSet(firstLock, false), operation);
+            final Actor<STATE> firstActor = actors.first();
+            final NavigableSet<Actor<STATE>> remainingActors = actors.tailSet(firstActor, false);
+            synchronized (firstActor.lock) {
+                return doWithAllActorsLocked(remainingActors, operation);
             }
         }
     }
 
-    private static <STATE> boolean determineEventsToInvalidateAndSignalsToRemove(
+    private static <STATE> boolean determineConsequencesOfRemovingSignal(
             @Nonnull final Signal<STATE> signalToRemove,
-            @Nonnull final Set<Actor<STATE>> actors,
+            @Nonnull final NavigableSet<Actor<STATE>> actors,
             @Nonnull final Map<Actor<STATE>, Event<STATE>> lastValidEventForActors,
             @Nonnull final Map<Actor<STATE>, Long> previousVersionForActors,
             @Nonnull final Set<Signal<STATE>> signalsToRemove) {
         final var actor = signalToRemove.getReceiver();
         final Set<Signal<STATE>> emittedSignalsToRemove;
         synchronized (actor.lock) {
-            final var version = actor.version;
             final var eventToRemove = actor.eventsForSignals.get(signalToRemove);
-            final boolean mustUnreceive = actor.unscheduledSignalsToReceive.contains(signalToRemove) || actor.signalsToReceive.contains(signalToRemove);
-            if (eventToRemove == null && !mustUnreceive) {
+            final boolean isSignalToReceive = actor.unscheduledSignalsToReceive.contains(signalToRemove) ||
+                    actor.signalsToReceive.contains(signalToRemove);
+            if (eventToRemove == null && !isSignalToReceive) {
                 return true;
             }
             final var lastValidEventForActor = lastValidEventForActors.get(actor);
             final var previousVersionForActor = previousVersionForActors.get(actor);
+            final var version = actor.version;
             if (previousVersionForActor != null && previousVersionForActor != version) {
                 return false;// lost data race
             }
@@ -160,7 +163,8 @@ public final class Actor<STATE> {
             if (eventToRemove != null && (lastValidEventForActor == null || eventToRemove.compareTo(lastValidEventForActor) < 0)) {
                 lastValidEventForActors.put(actor, eventToRemove);
                 previousVersionForActors.put(actor, version);
-                emittedSignalsToRemove = actor.events.tailSet(eventToRemove).stream().flatMap(event -> event.getSignalsEmitted().stream()).collect(Collectors.toSet());
+                emittedSignalsToRemove = actor.events.tailSet(eventToRemove).stream()
+                        .flatMap(event -> event.getSignalsEmitted().stream()).collect(Collectors.toSet());
             } else {
                 emittedSignalsToRemove = Set.of();
             }
@@ -169,8 +173,8 @@ public final class Actor<STATE> {
             }
         }
         signalsToRemove.add(signalToRemove);
-        for (final var emittedSignal: emittedSignalsToRemove) {
-            if (!signalsToRemove.contains(emittedSignal) && !determineEventsToInvalidateAndSignalsToRemove(
+        for (final var emittedSignal : emittedSignalsToRemove) {
+            if (!signalsToRemove.contains(emittedSignal) && !determineConsequencesOfRemovingSignal(
                     emittedSignal, actors, lastValidEventForActors, previousVersionForActors, signalsToRemove)) {
                 return false;
             }
@@ -179,14 +183,9 @@ public final class Actor<STATE> {
         return true;
     }
 
-    private static <STATE> boolean invalidateEventsAndRemoveSignals(
-            @Nonnull final Set<Actor<STATE>> actors,
-            @Nonnull final Map<Actor<STATE>, Event<STATE>> firstInvalidEventForActors,
-            @Nonnull final Map<Actor<STATE>, Long> previousVersionForActors,
-            @Nonnull final Set<Signal<STATE>> signalsToRemove) {
-        final NavigableSet<Actor<STATE>> actorsInLockOrder = new TreeSet<>(Comparator.comparing(a -> a.lock));
-        actorsInLockOrder.addAll(actors);
-        return invalidateEventsAndRemoveSignals(actorsInLockOrder, firstInvalidEventForActors, previousVersionForActors, signalsToRemove);
+    @Nonnull
+    private static <STATE> NavigableSet<Actor<STATE>> createActorSetInLockOrder() {
+        return new TreeSet<>(Comparator.comparing(a -> a.lock));
     }
 
     private static <STATE> boolean invalidateEventsAndRemoveSignals(
@@ -199,7 +198,7 @@ public final class Actor<STATE> {
             return true;
         } else {
             final var actor = actorsInLockOrder.first();
-            final NavigableSet<Actor<STATE>> remainingActorsInLockOrder = actorsInLockOrder.tailSet(actor, false);
+            final var remainingActorsInLockOrder = actorsInLockOrder.tailSet(actor, false);
             final var previousVersionForActor = previousVersionForActors.get(actor);
             assert previousVersionForActor != null;
             synchronized (actor.lock) {
@@ -209,15 +208,15 @@ public final class Actor<STATE> {
         }
     }
 
-    private static <STATE> void invalidateEventsAndRemoveSignalsWhileLocked
-            (@Nonnull final Map<Actor<STATE>, Event<STATE>> firstInvalidEventForActors,
-             @Nonnull final Set<Signal<STATE>> signalsToRemove) {
+    private static <STATE> void invalidateEventsAndRemoveSignalsWhileLocked(
+            @Nonnull final Map<Actor<STATE>, Event<STATE>> firstInvalidEventForActors,
+            @Nonnull final Set<Signal<STATE>> signalsToRemove) {
         firstInvalidEventForActors.forEach((actor, firstInvalidEvent) -> {
             assert Thread.holdsLock(actor.lock);
             //noinspection FieldAccessNotGuarded
             actor.invalidateEventsWhileLocked(firstInvalidEvent, signalsToRemove);
         });
-        for (final var signal: signalsToRemove) {
+        for (final var signal : signalsToRemove) {
             final var actor = signal.getReceiver();
             assert Thread.holdsLock(actor.lock);
             //noinspection FieldAccessNotGuarded
@@ -441,11 +440,11 @@ public final class Actor<STATE> {
                     return;
                 }
             }
-            final Set<Actor<STATE>> actors = new HashSet<>();
+            final NavigableSet<Actor<STATE>> actors = createActorSetInLockOrder();
             final Map<Actor<STATE>, Event<STATE>> firstInvalidEventForActors = new HashMap<>();
             final Map<Actor<STATE>, Long> previousVersionForActors = new HashMap<>();
             final Set<Signal<STATE>> signalsToRemove = new HashSet<>();
-            if (determineEventsToInvalidateAndSignalsToRemove(signal, actors, firstInvalidEventForActors, previousVersionForActors, signalsToRemove)
+            if (determineConsequencesOfRemovingSignal(signal, actors, firstInvalidEventForActors, previousVersionForActors, signalsToRemove)
                     && invalidateEventsAndRemoveSignals(actors, firstInvalidEventForActors, previousVersionForActors, signalsToRemove)) {
                 return;
             }
@@ -500,7 +499,7 @@ public final class Actor<STATE> {
                 }
             }
             if (event != null) {
-                final Set<Actor<STATE>> actors = new HashSet<>();
+                final NavigableSet<Actor<STATE>> actors = createActorSetInLockOrder();
                 final Map<Actor<STATE>, Event<STATE>> firstInvalidEventForActors = new HashMap<>();
                 final Map<Actor<STATE>, Long> previousVersionForActors = new HashMap<>();
                 final Set<Signal<STATE>> signalsToRemove = new HashSet<>();
@@ -525,12 +524,7 @@ public final class Actor<STATE> {
             signalsToReceive.addAll(unscheduledSignalsToReceive);
             unscheduledSignalsToReceive.clear();
             for (final var signal : signalsToReceive) {
-                try {
-                    considerAsNextSignalToReceive(signal);
-                } catch (final SignalException e) {
-                    invalidateNextSignalToReceive();
-                    throw e;
-                }
+                considerAsNextSignalToReceive(signal);
             }
         } else {
             for (final var signal : List.copyOf(unscheduledSignalsToReceive)) {
@@ -555,13 +549,18 @@ public final class Actor<STATE> {
 
     @GuardedBy("lock")
     private void considerAsNextSignalToReceive(final Signal<STATE> signal) throws SignalException {
-        final Duration whenReceived = computeWhenReceived(signal);
-        if (compareTo(signal, whenReceived, nextSignalToReceive, whenReceiveNextSignal) < 0) {
-            nextSignalToReceive = signal;
-            whenReceiveNextSignal = whenReceived;
+        try {
+            final Duration whenReceived = computeWhenReceived(signal);
+            if (compareTo(signal, whenReceived, nextSignalToReceive, whenReceiveNextSignal) < 0) {
+                nextSignalToReceive = signal;
+                whenReceiveNextSignal = whenReceived;
+            }
+            signalsToReceive.add(signal);
+            unscheduledSignalsToReceive.remove(signal);
+        } catch (final SignalException e) {
+            invalidateNextSignalToReceive();
+            throw e;
         }
-        signalsToReceive.add(signal);
-        unscheduledSignalsToReceive.remove(signal);
     }
 
     @Nonnull
@@ -584,14 +583,14 @@ public final class Actor<STATE> {
 
     private boolean determineEventsToInvalidateToAppendEvent(
             @Nonnull final Event<STATE> eventToAppend,
-            @Nonnull final Set<Actor<STATE>> actors,
+            @Nonnull final NavigableSet<Actor<STATE>> actors,
             @Nonnull final Map<Actor<STATE>, Event<STATE>> firstInvalidEventForActors,
             @Nonnull final Map<Actor<STATE>, Long> previousVersionForActors,
             @Nonnull final Set<Signal<STATE>> signalsToRemove) {
         final Set<Signal<STATE>> additionalSignalsToRemove;
         synchronized (lock) {
             final SortedSet<Event<STATE>> invalidatedEvents = events.tailSet(eventToAppend);
-            final Event<STATE> firstEventToRemove = invalidatedEvents.isEmpty()? null: invalidatedEvents.first();
+            final Event<STATE> firstEventToRemove = invalidatedEvents.isEmpty() ? null : invalidatedEvents.first();
             final var firstInvalidEventForActor = firstInvalidEventForActors.get(this);
             final var previousVersionForActor = previousVersionForActors.get(this);
             if (previousVersionForActor != null && previousVersionForActor != version) {
@@ -609,12 +608,12 @@ public final class Actor<STATE> {
             }
             actors.add(this);
         }
-        for (final var additionalSignalToRemove: additionalSignalsToRemove) {
+        for (final var additionalSignalToRemove : additionalSignalsToRemove) {
             if (!signalsToRemove.contains(additionalSignalToRemove)) {
                 signalsToRemove.add(additionalSignalToRemove);
-             if (!determineEventsToInvalidateAndSignalsToRemove(additionalSignalToRemove, actors, firstInvalidEventForActors, previousVersionForActors, signalsToRemove)) {
-                 return false;
-             }
+                if (!determineConsequencesOfRemovingSignal(additionalSignalToRemove, actors, firstInvalidEventForActors, previousVersionForActors, signalsToRemove)) {
+                    return false;
+                }
             }
         }
         return true;
@@ -623,7 +622,7 @@ public final class Actor<STATE> {
     private Event<STATE> appendEvent(final long previousVersion, @Nonnull final Event<STATE> event) {
         assert event.getAffectedObject() == this;
         //noinspection FieldAccessNotGuarded
-        return forAllLocks(getLocksFor(event), () -> appendEventWhileLocked(previousVersion, event));
+        return doWithAllActorsLocked(getReceiversOfSignalsEmittedInLockOrder(event), () -> appendEventWhileLocked(previousVersion, event));
     }
 
     @GuardedBy("lock")
