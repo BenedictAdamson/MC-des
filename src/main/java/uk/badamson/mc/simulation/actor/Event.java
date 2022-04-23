@@ -182,7 +182,7 @@ public final class Event<STATE> implements Comparable<Event<STATE>>{
      * <p>
      *     The natural ordering of Event objects is by their
      *     {@linkplain  #getWhen() time of occurrence},
-     *     then by their {@linkplain  #getCausingSignal() causing signal}.
+     *     then by other criteria.
      *     The natural ordering is consistent with {@link #equals(Object)}
      * </p>
      */
@@ -190,7 +190,16 @@ public final class Event<STATE> implements Comparable<Event<STATE>>{
     public int compareTo(@Nonnull final Event<STATE> that) {
         int c = when.compareTo(that.when);
         if (c == 0) {
-            c = causingSignal.compareTo(that.causingSignal);
+            c = causingSignal.getWhenSent().compareTo(that.causingSignal.getWhenSent());
+        }
+        if (c == 0) {
+            c = causingSignal.getSender().lock.compareTo(that.causingSignal.getSender().lock);
+        }
+        if (c == 0) {
+            c = causingSignal.getMedium().id.compareTo(that.causingSignal.getMedium().id);
+        }
+        if (c == 0) {
+            c = causingSignal.getReceiver().lock.compareTo(that.causingSignal.getReceiver().lock);
         }
         return c;
     }

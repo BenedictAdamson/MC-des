@@ -19,6 +19,7 @@ package uk.badamson.mc.simulation.actor;
  */
 
 import javax.annotation.concurrent.Immutable;
+import java.util.UUID;
 
 /**
  * <p>
@@ -32,4 +33,10 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public class Medium {
 
+    final UUID id = UUID.randomUUID();
+
+    @Override
+    public String toString() {
+        return "Medium@" + id;
+    }
 }

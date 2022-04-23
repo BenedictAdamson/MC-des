@@ -49,7 +49,7 @@ public final class Actor<STATE> {
     /**
      * Comparable so can predictably order locks to avoid deadlock.
      */
-    private final UUID lock = UUID.randomUUID();
+    final UUID lock = UUID.randomUUID();
 
     @GuardedBy("lock")
     private final ModifiableValueHistory<STATE> stateHistory = new ModifiableValueHistory<>();
