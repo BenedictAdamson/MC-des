@@ -37,11 +37,20 @@ import static org.junit.jupiter.api.Assertions.*;
 public class EventTest {
 
     private static final Duration WHEN_A = Duration.ofMillis(0);
+
     private static final Duration WHEN_B = Duration.ofMillis(5000);
+
     private static final Actor<Integer> ACTOR_A = new Actor<>(WHEN_A, 0);
+
     private static final Actor<Integer> ACTOR_B = new Actor<>(WHEN_B, 1);
-    private static final Signal<Integer> SIGNAL_A = new SignalTest.SimpleTestSignal(ACTOR_A, WHEN_A, ACTOR_B);
-    private static final Signal<Integer> SIGNAL_B = new SignalTest.SimpleTestSignal(ACTOR_B, WHEN_B, ACTOR_A);
+
+    private static final Medium MEDIUM_A = new Medium();
+
+    private static final Medium MEDIUM_B = new Medium();
+
+    private static final Signal<Integer> SIGNAL_A = new SignalTest.SimpleTestSignal(WHEN_A, ACTOR_A, ACTOR_B, MEDIUM_A);
+
+    private static final Signal<Integer> SIGNAL_B = new SignalTest.SimpleTestSignal(WHEN_B, ACTOR_B, ACTOR_A, MEDIUM_B);
 
     public static <STATE> void assertInvariants(@Nonnull final Event<STATE> event) {
         ObjectVerifier.assertInvariants(event);// inherited
@@ -77,7 +86,7 @@ public class EventTest {
             @Nonnull final Signal<STATE> causingSignal,
             @Nonnull final Duration when,
             @Nonnull final Actor<STATE> affectedObject,
-                                            @Nullable final STATE state,
+            @Nullable final STATE state,
             @Nonnull final Set<Signal<STATE>> signalsEmitted) {
         final var event = new Event<>(causingSignal, when, affectedObject, state, signalsEmitted);
 
@@ -120,7 +129,7 @@ public class EventTest {
     public void signalEmitted() {
         final var when = WHEN_A;
         final var receiver = ACTOR_A;
-        final Set<Signal<Integer>> signalsEmitted = Set.of(new SignalTest.SimpleTestSignal(receiver, when, ACTOR_B));
+        final Set<Signal<Integer>> signalsEmitted = Set.of(new SignalTest.SimpleTestSignal(when, receiver, ACTOR_B, MEDIUM_A));
         constructor(SIGNAL_A, when, receiver, 0, signalsEmitted);
     }
 

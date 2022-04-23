@@ -55,25 +55,18 @@ public abstract class Signal<STATE> implements Comparable<Signal<STATE>> {
     public static final Duration NEVER_RECEIVED = Duration.ofSeconds(Long.MAX_VALUE, 999_999_999);
 
     @Nonnull
-    private final Actor<STATE> sender;
+    private final Id<STATE> id;
 
-    @Nonnull
-    private final Duration whenSent;
+    protected Signal(@Nonnull final Id<STATE> id) {
+        this.id = Objects.requireNonNull(id, "id");
+    }
 
-    @Nonnull
-    private final Actor<STATE> receiver;
-
-    /**
-     * <p>
-     * Construct a signal with given attribute values.
-     * </p>
-     *
-     * @throws NullPointerException If any {@linkplain Nonnull} argument is null
-     */
-    protected Signal(@Nonnull final Actor<STATE> sender, @Nonnull final Duration whenSent, @Nonnull final Actor<STATE> receiver) {
-        this.sender = Objects.requireNonNull(sender, "sender");
-        this.whenSent = Objects.requireNonNull(whenSent, "whenSent");
-        this.receiver = Objects.requireNonNull(receiver, "receiver");
+    protected Signal(
+            @Nonnull final Duration whenSent,
+            @Nonnull final Actor<STATE> sender, @Nonnull final Actor<STATE> receiver,
+            @Nonnull final Medium medium
+    ) {
+        this(new Id<>(whenSent, sender, receiver, medium));
     }
 
     /**
@@ -102,17 +95,25 @@ public abstract class Signal<STATE> implements Comparable<Signal<STATE>> {
     @Nonnegative
     protected abstract Duration getPropagationDelay(@Nonnull STATE receiverState);
 
+    @Nonnull
+    public Id<STATE> getId() {
+        return id;
+    }
+
     /**
      * <p>
      * The simulated object that this signal was sent to; the object that
      * will receive it.
      * </p>
+     * <ul>
+     *     <li>The same as the {@link Id#getReceiver() receiver} of the {@link #getId() ID} of this Signal.
+     * </ul>
      *
      * @see #getSender()
      */
     @Nonnull
     public final Actor<STATE> getReceiver() {
-        return receiver;
+        return id.getReceiver();
     }
 
     /**
@@ -124,12 +125,28 @@ public abstract class Signal<STATE> implements Comparable<Signal<STATE>> {
      * {@linkplain #getReceiver() receiver} may be the same.
      * That can be done to implement internal events, such as timers.
      * </p>
+     * <ul>
+     *     <li>The same as the {@link Id#getSender() sender} of the {@link #getId() ID} of this Signal.
+     * </ul>
      *
      * @see #getReceiver()
      */
     @Nonnull
     public final Actor<STATE> getSender() {
-        return sender;
+        return id.getSender();
+    }
+
+    /**
+     * <p>
+     * The means of transmitting this signal.
+     * </p>
+     * <ul>
+     *     <li>The same as the {@link Id#getMedium() medium} of the {@link #getId() ID} of this Signal.
+     * </ul>
+     */
+    @Nonnull
+    public final Medium getMedium() {
+        return id.getMedium();
     }
 
     /**
@@ -267,10 +284,13 @@ public abstract class Signal<STATE> implements Comparable<Signal<STATE>> {
      * <p>
      * The point in time when this signal was sent (emitted).
      * </p>
+     * <ul>
+     *     <li>The same as the {@link Id#getWhenSent() when sent} time of the {@link #getId() ID} of this Signal.
+     * </ul>
      */
     @Nonnull
     public final Duration getWhenSent() {
-        return whenSent;
+        return id.getWhenSent();
     }
 
     /**

@@ -61,12 +61,20 @@ public class SignalTest {
         ObjectVerifier.assertInvariants(signal);// inherited
         ComparableVerifier.assertInvariants(signal);// inherited
 
+        final var id = signal.getId();
         final var receiver = signal.getReceiver();
         final var sender = signal.getSender();
         final var whenSent = signal.getWhenSent();
-        assertAll("Not null", () -> assertNotNull(receiver, "receiver"),
+        assertAll("Not null",
+                () -> assertNotNull(id, "id"),
+                () -> assertNotNull(receiver, "receiver"),
                 () -> assertNotNull(sender, "sender"),
                 () -> assertNotNull(whenSent, "whenSent"));
+        assertAll(
+                () -> assertThat(receiver, sameInstance(id.getReceiver())),
+                () -> assertThat(sender, sameInstance(id.getSender())),
+                () -> assertThat(whenSent, sameInstance(id.getWhenSent()))
+        );
     }
 
     public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal1,
@@ -101,14 +109,17 @@ public class SignalTest {
         }
     }
 
-    private static Signal<Integer> constructor(@Nonnull final Actor<Integer> sender, @Nonnull final Duration whenSent, @Nonnull final Actor<Integer> receiver) {
-        final Signal<Integer> signal = new SimpleTestSignal(sender, whenSent, receiver);
+    private static Signal<Integer> constructor(
+            @Nonnull final Actor<Integer> sender, @Nonnull final Duration whenSent,
+            @Nonnull final Actor<Integer> receiver, @Nonnull final Medium medium) {
+        final Signal<Integer> signal = new SimpleTestSignal(whenSent, sender, receiver, medium);
 
         assertInvariants(signal);
         assertAll("Attributes",
                 () -> assertSame(sender, signal.getSender(), "sender"),
                 () -> assertSame(whenSent, signal.getWhenSent(), "whenSent"),
-                () -> assertSame(receiver, signal.getReceiver(), "receiver")
+                () -> assertSame(receiver, signal.getReceiver(), "receiver"),
+                () -> assertSame(medium, signal.getMedium(), "medium")
         );
         return signal;
     }
@@ -212,8 +223,9 @@ public class SignalTest {
 
         private final UUID id = UUID.randomUUID();
 
-        protected AbstractTestSignal(@Nonnull final Actor<Integer> sender, @Nonnull final Duration whenSent, @Nonnull final Actor<Integer> receiver) {
-            super(sender, whenSent, receiver);
+        protected AbstractTestSignal(
+                @Nonnull final Actor<Integer> sender, @Nonnull final Duration whenSent, @Nonnull final Actor<Integer> receiver, @Nonnull final Medium medium) {
+            super(whenSent, sender, receiver, medium);
         }
 
         @Override
@@ -265,8 +277,11 @@ public class SignalTest {
 
     static class SimpleTestSignal extends AbstractTestSignal {
 
-        SimpleTestSignal(@Nonnull final Actor<Integer> sender, @Nonnull final Duration whenSent, @Nonnull final Actor<Integer> receiver) {
-            super(sender, whenSent, receiver);
+        SimpleTestSignal(
+                @Nonnull final Duration whenSent,
+                @Nonnull final Actor<Integer> sender, @Nonnull final Actor<Integer> receiver,
+                @Nonnull final Medium medium) {
+            super(sender, whenSent, receiver, medium);
         }
 
         @Override
@@ -277,26 +292,32 @@ public class SignalTest {
 
     static class StrobingTestSignal extends AbstractTestSignal {
 
-        StrobingTestSignal(@Nonnull final Actor<Integer> sender, @Nonnull final Duration whenSent, @Nonnull final Actor<Integer> receiver) {
-            super(sender, whenSent, receiver);
+        StrobingTestSignal(
+                @Nonnull final Duration whenSent,
+                @Nonnull final Actor<Integer> sender, @Nonnull final Actor<Integer> receiver,
+                @Nonnull final Medium medium) {
+            super(sender, whenSent, receiver, medium);
         }
 
         @Override
         protected Set<Signal<Integer>> signalsEmitted(@Nonnull final Duration when) {
-            return Set.of(new StrobingTestSignal(getReceiver(), when, getReceiver()));
+            return Set.of(new StrobingTestSignal(when, getReceiver(), getReceiver(), getMedium()));
         }
 
     }
 
     static class EchoingTestSignal extends AbstractTestSignal {
 
-        EchoingTestSignal(@Nonnull final Actor<Integer> sender, @Nonnull final Duration whenSent, @Nonnull final Actor<Integer> receiver) {
-            super(sender, whenSent, receiver);
+        EchoingTestSignal(
+                @Nonnull final Duration whenSent,
+                @Nonnull final Actor<Integer> sender, @Nonnull final Actor<Integer> receiver,
+                @Nonnull final Medium medium) {
+            super(sender, whenSent, receiver, medium);
         }
 
         @Override
         protected Set<Signal<Integer>> signalsEmitted(@Nonnull final Duration when) {
-            return Set.of(new EchoingTestSignal(getReceiver(), when, getSender()));
+            return Set.of(new EchoingTestSignal(when, getReceiver(), getSender(), getMedium()));
         }
 
     }
@@ -410,7 +431,7 @@ public class SignalTest {
 
         @Test
         public void a() {
-            final var signal = constructor(ACTOR_A, WHEN_A, ACTOR_B);
+            final var signal = constructor(ACTOR_A, WHEN_A, ACTOR_B, MEDIUM_A);
 
             assertInvariants(signal, 0);
             assertInvariants(signal, Integer.MAX_VALUE);
@@ -419,12 +440,12 @@ public class SignalTest {
 
         @Test
         public void b() {
-            constructor(ACTOR_B, WHEN_B, ACTOR_A);
+            constructor(ACTOR_B, WHEN_B, ACTOR_A, MEDIUM_B);
         }
 
         @Test
         public void endOfTime() {
-            final var signal = constructor(ACTOR_A, Signal.NEVER_RECEIVED, ACTOR_B);
+            final var signal = constructor(ACTOR_A, Signal.NEVER_RECEIVED, ACTOR_B, MEDIUM_A);
 
             assertInvariants(signal, 0);
             assertInvariants(signal, Integer.MAX_VALUE);
@@ -433,13 +454,13 @@ public class SignalTest {
         @Test
         public void reflexive() {
             final Actor<Integer> actor = ACTOR_A;
-            constructor(actor, WHEN_A, actor);
+            constructor(actor, WHEN_A, actor, MEDIUM_A);
         }
 
         @Test
         public void two() {
-            final Signal<Integer> signalA = new SimpleTestSignal(ACTOR_A, WHEN_A, ACTOR_B);
-            final Signal<Integer> signalB = new SimpleTestSignal(ACTOR_B, WHEN_B, ACTOR_A);
+            final Signal<Integer> signalA = new SimpleTestSignal(WHEN_A, ACTOR_A, ACTOR_B, MEDIUM_A);
+            final Signal<Integer> signalB = new SimpleTestSignal(WHEN_B, ACTOR_B, ACTOR_A, MEDIUM_B);
 
             assertInvariants(signalA, signalB);
             assertNotEquals(signalA, signalB);
@@ -473,7 +494,7 @@ public class SignalTest {
                 @Nonnull final Actor<Integer> receiver,
                 @Nonnull final Integer receiverState)
                 throws Signal.UnreceivableSignalException {
-            final var signal = new SimpleTestSignal(sender, whenSent, receiver);
+            final var signal = new SimpleTestSignal(whenSent, sender, receiver, MEDIUM_A);
             receive(signal, receiverState);
         }
 
@@ -495,7 +516,7 @@ public class SignalTest {
         private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent, @Nonnull final Integer state0) {
             final var sender = new Actor<>(start, state0);
             final var receiver = new Actor<>(start, state0);
-            final var signal = new SimpleTestSignal(sender, whenSent, receiver);
+            final var signal = new SimpleTestSignal(whenSent, sender, receiver, MEDIUM_A);
             final ValueHistory<Integer> receiverStateHistory = new ConstantValueHistory<>(state0);
 
             final var event = receiveForStateHistory(signal, receiverStateHistory);
@@ -529,7 +550,7 @@ public class SignalTest {
                 }
 
                 private void test(@Nonnull final Duration whenSet, @Nullable final Integer receiverState) {
-                    final var signal = new SimpleTestSignal(ACTOR_A, whenSet, ACTOR_B);
+                    final var signal = new SimpleTestSignal(whenSet, ACTOR_A, ACTOR_B, MEDIUM_A);
                     final ValueHistory<Integer> receiverStateHistory = new ConstantValueHistory<>(receiverState);
 
                     final var whenReceived = getWhenReceived(signal, receiverStateHistory);
@@ -585,7 +606,7 @@ public class SignalTest {
                 private void test(@Nonnull final Duration whenSet, @Nonnull final Duration transitionTime,
                                   @Nonnull final Integer receiverState0, @Nonnull final Integer receiverState1) {
                     assert whenSet.compareTo(transitionTime) < 0;
-                    final var signal = new SimpleTestSignal(ACTOR_A, whenSet, ACTOR_B);
+                    final var signal = new SimpleTestSignal(whenSet, ACTOR_A, ACTOR_B, MEDIUM_A);
                     final ModifiableValueHistory<Integer> receiverStateHistory = new ModifiableValueHistory<>(
                             receiverState0);
                     receiverStateHistory.appendTransition(transitionTime, receiverState1);

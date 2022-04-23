@@ -48,6 +48,10 @@ public class ActorTest {
 
     static final Duration WHEN_D = Duration.ofMillis(11000);
 
+    static final Medium MEDIUM_A = new Medium();
+
+    static final Medium MEDIUM_B = new Medium();
+
     public static <STATE> void assertInvariants(@Nonnull final Actor<STATE> actor) {
         ObjectVerifier.assertInvariants(actor);// inherited
 
@@ -143,7 +147,7 @@ public class ActorTest {
 
         assertInvariants(actor);
         assertThat("affected actors", affectedActors, notNullValue());
-        assertAll("affected actors", affectedActors.stream().map(affectedActor -> () ->{
+        assertAll("affected actors", affectedActors.stream().map(affectedActor -> () -> {
             assertThat(affectedActor, notNullValue());
             assertInvariants(affectedActor);
         }));
@@ -174,7 +178,7 @@ public class ActorTest {
         final int nSignals = 32;
         final List<Signal<Integer>> signals = new ArrayList<>(nSignals);
         for (int s = 0; s < nSignals; s++) {
-            final Signal<Integer> signal = new SignalTest.SimpleTestSignal(sender, WHEN_C.plusSeconds(s), receiver);
+            final Signal<Integer> signal = new SignalTest.SimpleTestSignal(WHEN_C.plusSeconds(s), sender, receiver, MEDIUM_A);
             signals.add(signal);
         }
         final CountDownLatch ready = new CountDownLatch(1);
@@ -232,7 +236,7 @@ public class ActorTest {
             private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent, @Nonnull final Integer state0) {
                 final var sender = new Actor<>(start, 0);
                 final var receiver = new Actor<>(start, state0);
-                final Signal<Integer> signal = new SignalTest.SimpleTestSignal(sender, whenSent, receiver);
+                final Signal<Integer> signal = new SignalTest.SimpleTestSignal(whenSent, sender, receiver, MEDIUM_A);
 
                 addSignalToReceive(receiver, signal);
 
@@ -257,7 +261,7 @@ public class ActorTest {
             private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent, @Nonnull final Integer state0) {
                 final var sender = new Actor<>(start, 0);
                 final var receiver = new Actor<>(start, state0);
-                final Signal<Integer> signal = new SignalTest.SimpleTestSignal(sender, whenSent, receiver);
+                final Signal<Integer> signal = new SignalTest.SimpleTestSignal(whenSent, sender, receiver, MEDIUM_A);
                 receiver.addSignalToReceive(signal);
                 receiver.receiveSignal();
 
@@ -293,7 +297,7 @@ public class ActorTest {
                 for (int r = 0; r < nActors; r++) {
                     if (s == r) continue;
                     final var receiver = actors.get(r);
-                    final var signal = new SignalTest.EchoingTestSignal(sender, WHEN_B, receiver);
+                    final var signal = new SignalTest.EchoingTestSignal(WHEN_B, sender, receiver, MEDIUM_A);
                     receiver.addSignalToReceive(signal);
                 }
             }
@@ -327,7 +331,7 @@ public class ActorTest {
             private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent, @Nonnull final Integer state0) {
                 final var sender = new Actor<>(start, 0);
                 final var receiver = new Actor<>(start, state0);
-                final Signal<Integer> signal = new SignalTest.SimpleTestSignal(sender, whenSent, receiver);
+                final Signal<Integer> signal = new SignalTest.SimpleTestSignal(whenSent, sender, receiver, MEDIUM_A);
                 receiver.addSignalToReceive(signal);
 
                 final var affectedActors = receiveSignal(receiver);
@@ -358,9 +362,9 @@ public class ActorTest {
             private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent1, @Nonnull final Integer state0) {
                 final var sender = new Actor<>(start, 0);
                 final var receiver = new Actor<>(start, state0);
-                final Signal<Integer> signal1 = new SignalTest.SimpleTestSignal(sender, whenSent1, receiver);
+                final Signal<Integer> signal1 = new SignalTest.SimpleTestSignal(whenSent1, sender, receiver, MEDIUM_A);
                 final Duration whenSent2 = signal1.getWhenReceived(state0);
-                final Signal<Integer> signal2 = new SignalTest.SimpleTestSignal(sender, whenSent2, receiver);
+                final Signal<Integer> signal2 = new SignalTest.SimpleTestSignal(whenSent2, sender, receiver, MEDIUM_B);
                 receiver.addSignalToReceive(signal2);
                 receiver.receiveSignal();
                 receiver.addSignalToReceive(signal1);
@@ -396,9 +400,9 @@ public class ActorTest {
             private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent1, @Nonnull final Integer state0) {
                 final var actor1 = new Actor<>(start, 0);
                 final var actor2 = new Actor<>(start, state0);
-                final Signal<Integer> signal1 = new SignalTest.SimpleTestSignal(actor1, whenSent1, actor2);
+                final Signal<Integer> signal1 = new SignalTest.SimpleTestSignal(whenSent1, actor1, actor2, MEDIUM_A);
                 final Duration whenSent2 = signal1.getWhenReceived(state0);
-                final Signal<Integer> signal2 = new SignalTest.EchoingTestSignal(actor1, whenSent2, actor2);
+                final Signal<Integer> signal2 = new SignalTest.EchoingTestSignal(whenSent2, actor1, actor2, MEDIUM_B);
                 actor2.addSignalToReceive(signal2);
                 actor2.receiveSignal();
                 actor2.addSignalToReceive(signal1);
@@ -433,7 +437,7 @@ public class ActorTest {
 
             private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent1, @Nonnull final Integer state0) {
                 final var actor = new Actor<>(start, state0);
-                final Signal<Integer> signal = new SignalTest.StrobingTestSignal(actor, whenSent1, actor);
+                final Signal<Integer> signal = new SignalTest.StrobingTestSignal(whenSent1, actor, actor, MEDIUM_A);
                 actor.addSignalToReceive(signal);
                 final var whenReceiveNextSignal0 = actor.getWhenReceiveNextSignal();
 
@@ -462,7 +466,7 @@ public class ActorTest {
             private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent1, @Nonnull final Integer state0) {
                 final var actorA = new Actor<>(start, state0);
                 final var actorB = new Actor<>(start, state0);
-                final Signal<Integer> signal1 = new SignalTest.EchoingTestSignal(actorA, whenSent1, actorB);
+                final Signal<Integer> signal1 = new SignalTest.EchoingTestSignal(whenSent1, actorA, actorB, MEDIUM_A);
                 actorB.addSignalToReceive(signal1);
 
                 final var affectedActors = receiveSignal(actorB);
@@ -491,17 +495,17 @@ public class ActorTest {
             private void test(@Nonnull final Duration when1, @Nonnull final Duration when2, @Nonnull final Duration when3, @Nonnull final Integer state1, @Nonnull final Integer state2) {
                 final Actor<Integer> sender = new Actor<>(when1, state1);
                 final Actor<Integer> receiver = new Actor<>(when2, state2);
-                final Signal<Integer> signal1 = new SignalTest.SimpleTestSignal(sender, when3, receiver);
+                final Signal<Integer> signal1 = new SignalTest.SimpleTestSignal(when3, sender, receiver, MEDIUM_A);
                 receiver.addSignalToReceive(signal1);
                 receiver.receiveSignal();
                 final var event1 = receiver.getLastEvent();
                 assert event1 != null;
-                final Signal<Integer> signal2 = new SignalTest.SimpleTestSignal(sender, event1.getWhen(), receiver);
+                final Signal<Integer> signal2 = new SignalTest.SimpleTestSignal(event1.getWhen(), sender, receiver, MEDIUM_A);
                 receiver.addSignalToReceive(signal2);
                 receiver.receiveSignal();
                 final var event2 = receiver.getLastEvent();
                 assert event2 != null;
-                final Signal<Integer> signal3 = new SignalTest.SimpleTestSignal(sender, event2.getWhen(), receiver);
+                final Signal<Integer> signal3 = new SignalTest.SimpleTestSignal(event2.getWhen(), sender, receiver, MEDIUM_A);
                 receiver.addSignalToReceive(signal3);
                 receiver.receiveSignal();
                 receiver.getWhenReceiveNextSignal();// cause a value to be cached
@@ -526,7 +530,7 @@ public class ActorTest {
         public void absent() {
             final Actor<Integer> sender = new Actor<>(WHEN_A, 0);
             final Actor<Integer> receiver = new Actor<>(WHEN_B, 1);
-            final Signal<Integer> signal = new SignalTest.SimpleTestSignal(sender, WHEN_C, receiver);
+            final Signal<Integer> signal = new SignalTest.SimpleTestSignal(WHEN_C, sender, receiver, MEDIUM_A);
 
             final var affectedActors = removeSignal(receiver, signal);
 
@@ -555,7 +559,7 @@ public class ActorTest {
                 final int nSignals = 32;
                 final List<Signal<Integer>> signals = new ArrayList<>(nSignals);
                 for (int s = 0; s < nSignals; s++) {
-                    final Signal<Integer> signal = new SignalTest.SimpleTestSignal(sender, WHEN_C.plusSeconds(s), receiver);
+                    final Signal<Integer> signal = new SignalTest.SimpleTestSignal(WHEN_C.plusSeconds(s), sender, receiver, MEDIUM_A);
                     signals.add(signal);
                     receiver.addSignalToReceive(signal);
                 }
@@ -579,7 +583,7 @@ public class ActorTest {
             private void test(@Nonnull final Duration when1, @Nonnull final Duration when2, @Nonnull final Duration when3, @Nonnull final Integer state1, @Nonnull final Integer state2) {
                 final Actor<Integer> sender = new Actor<>(when1, state1);
                 final Actor<Integer> receiver = new Actor<>(when2, state2);
-                final Signal<Integer> signal = new SignalTest.SimpleTestSignal(sender, when3, receiver);
+                final Signal<Integer> signal = new SignalTest.SimpleTestSignal(when3, sender, receiver, MEDIUM_A);
                 receiver.addSignalToReceive(signal);
 
                 final var affectedActors = removeSignal(receiver, signal);
@@ -611,7 +615,7 @@ public class ActorTest {
                 final int nSignals = 32;
                 final List<Signal<Integer>> signals = new ArrayList<>(nSignals);
                 for (int s = 0; s < nSignals; s++) {
-                    final Signal<Integer> signal = new SignalTest.SimpleTestSignal(sender, WHEN_C.plusSeconds(s), receiver);
+                    final Signal<Integer> signal = new SignalTest.SimpleTestSignal(WHEN_C.plusSeconds(s), sender, receiver, MEDIUM_A);
                     signals.add(signal);
                     receiver.addSignalToReceive(signal);
                 }
@@ -636,7 +640,7 @@ public class ActorTest {
             private void test(@Nonnull final Duration when1, @Nonnull final Duration when2, @Nonnull final Duration when3, @Nonnull final Integer state1, @Nonnull final Integer state2) {
                 final Actor<Integer> sender = new Actor<>(when1, state1);
                 final Actor<Integer> receiver = new Actor<>(when2, state2);
-                final Signal<Integer> signal = new SignalTest.SimpleTestSignal(sender, when3, receiver);
+                final Signal<Integer> signal = new SignalTest.SimpleTestSignal(when3, sender, receiver, MEDIUM_A);
                 receiver.addSignalToReceive(signal);
                 receiver.getWhenReceiveNextSignal();
 
@@ -644,7 +648,7 @@ public class ActorTest {
 
                 assertThat("No signals to receive", receiver.getSignalsToReceive(), empty());
                 assertThat("No events (still)", receiver.getEvents(), empty());
-                assertThat("affacted actors", affectedActors, contains(receiver));
+                assertThat("affected actors", affectedActors, contains(receiver));
             }
         }
 
@@ -668,7 +672,7 @@ public class ActorTest {
                 final int nSignals = 32;
                 final List<Signal<Integer>> signals = new ArrayList<>(nSignals);
                 for (int s = 0; s < nSignals; s++) {
-                    final Signal<Integer> signal = new SignalTest.SimpleTestSignal(sender, WHEN_C.plusSeconds(s), receiver);
+                    final Signal<Integer> signal = new SignalTest.SimpleTestSignal(WHEN_C.plusSeconds(s), sender, receiver, MEDIUM_A);
                     signals.add(signal);
                     receiver.addSignalToReceive(signal);
                 }
@@ -696,7 +700,7 @@ public class ActorTest {
             private void test(@Nonnull final Duration when1, @Nonnull final Duration when2, @Nonnull final Duration when3, @Nonnull final Integer state1, @Nonnull final Integer state2) {
                 final Actor<Integer> sender = new Actor<>(when1, state1);
                 final Actor<Integer> receiver = new Actor<>(when2, state2);
-                final Signal<Integer> signal = new SignalTest.SimpleTestSignal(sender, when3, receiver);
+                final Signal<Integer> signal = new SignalTest.SimpleTestSignal(when3, sender, receiver, MEDIUM_A);
                 receiver.addSignalToReceive(signal);
                 receiver.receiveSignal();
 
@@ -724,17 +728,17 @@ public class ActorTest {
             private void test(@Nonnull final Duration when1, @Nonnull final Duration when2, @Nonnull final Duration when3, @Nonnull final Integer state1, @Nonnull final Integer state2) {
                 final Actor<Integer> sender = new Actor<>(when1, state1);
                 final Actor<Integer> receiver = new Actor<>(when2, state2);
-                final Signal<Integer> signal1 = new SignalTest.SimpleTestSignal(sender, when3, receiver);
+                final Signal<Integer> signal1 = new SignalTest.SimpleTestSignal(when3, sender, receiver, MEDIUM_A);
                 receiver.addSignalToReceive(signal1);
                 receiver.receiveSignal();
                 final var event1 = receiver.getLastEvent();
                 assert event1 != null;
-                final Signal<Integer> signal2 = new SignalTest.SimpleTestSignal(sender, event1.getWhen(), receiver);
+                final Signal<Integer> signal2 = new SignalTest.SimpleTestSignal(event1.getWhen(), sender, receiver, MEDIUM_A);
                 receiver.addSignalToReceive(signal2);
                 receiver.receiveSignal();
                 final var event2 = receiver.getLastEvent();
                 assert event2 != null;
-                final Signal<Integer> signal3 = new SignalTest.SimpleTestSignal(sender, event2.getWhen(), receiver);
+                final Signal<Integer> signal3 = new SignalTest.SimpleTestSignal(event2.getWhen(), sender, receiver, MEDIUM_A);
                 receiver.addSignalToReceive(signal3);
                 receiver.receiveSignal();
 
@@ -763,17 +767,17 @@ public class ActorTest {
             private void test(@Nonnull final Duration when1, @Nonnull final Duration when2, @Nonnull final Duration when3, @Nonnull final Integer state1, @Nonnull final Integer state2) {
                 final Actor<Integer> actor1 = new Actor<>(when1, state1);
                 final Actor<Integer> actor2 = new Actor<>(when2, state2);
-                final Signal<Integer> signal1 = new SignalTest.SimpleTestSignal(actor1, when3, actor2);
+                final Signal<Integer> signal1 = new SignalTest.SimpleTestSignal(when3, actor1, actor2, MEDIUM_A);
                 actor2.addSignalToReceive(signal1);
                 actor2.receiveSignal();
                 final var event1 = actor2.getLastEvent();
                 assert event1 != null;
-                final Signal<Integer> signal2 = new SignalTest.SimpleTestSignal(actor1, event1.getWhen(), actor2);
+                final Signal<Integer> signal2 = new SignalTest.SimpleTestSignal(event1.getWhen(), actor1, actor2, MEDIUM_A);
                 actor2.addSignalToReceive(signal2);
                 actor2.receiveSignal();
                 final var event2 = actor2.getLastEvent();
                 assert event2 != null;
-                final Signal<Integer> signal3 = new SignalTest.EchoingTestSignal(actor1, event2.getWhen(), actor2);
+                final Signal<Integer> signal3 = new SignalTest.EchoingTestSignal(event2.getWhen(), actor1, actor2, MEDIUM_A);
                 actor2.addSignalToReceive(signal3);
                 actor2.receiveSignal();
                 assert !actor1.getSignalsToReceive().isEmpty();
