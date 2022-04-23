@@ -494,6 +494,45 @@ public abstract class Signal<STATE> implements Comparable<Signal<STATE>> {
         public Medium getMedium() {
             return medium;
         }
+
+        /**
+         * {@inheritDoc}
+         *
+         * <p>
+         * The Signal.Id class has value semantics.
+         * </p>
+         */
+        @Override
+        public boolean equals(final Object that) {
+            if (this == that) return true;
+            if (that == null || getClass() != that.getClass()) return false;
+
+            final Id<?> id = (Id<?>) that;
+            return
+                    whenSent.equals(id.whenSent) &&
+                            sender.equals(id.sender) &&
+                            receiver.equals(id.receiver) &&
+                            medium.equals(id.medium);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = whenSent.hashCode();
+            result = 31 * result + sender.hashCode();
+            result = 31 * result + receiver.hashCode();
+            result = 31 * result + medium.hashCode();
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "{" +
+                    "@" + whenSent +
+                    " " + sender +
+                    "\u2192" + receiver +
+                    " through " + medium +
+                    '}';
+        }
     }
 
 }

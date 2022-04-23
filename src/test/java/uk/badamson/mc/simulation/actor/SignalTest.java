@@ -22,6 +22,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import uk.badamson.dbc.assertions.ComparableVerifier;
+import uk.badamson.dbc.assertions.EqualsSemanticsVerifier;
 import uk.badamson.dbc.assertions.ObjectVerifier;
 import uk.badamson.mc.history.ConstantValueHistory;
 import uk.badamson.mc.history.ModifiableValueHistory;
@@ -314,6 +315,12 @@ public class SignalTest {
 
         public static <ACTOR> void assertInvariants(@Nonnull final Signal.Id<ACTOR> id1, @Nonnull final Signal.Id<ACTOR> id2) {
             ObjectVerifier.assertInvariants(id1, id2);
+            assertAll(
+                    () -> EqualsSemanticsVerifier.assertValueSemantics(id1, id2, "whenSent", Signal.Id::getWhenSent),
+                    () -> EqualsSemanticsVerifier.assertValueSemantics(id1, id2, "sender", Signal.Id::getSender),
+                    () -> EqualsSemanticsVerifier.assertValueSemantics(id1, id2, "receiver", Signal.Id::getReceiver),
+                    () -> EqualsSemanticsVerifier.assertValueSemantics(id1, id2, "medium", Signal.Id::getMedium)
+            );
         }
 
         @Nested
@@ -343,6 +350,58 @@ public class SignalTest {
                         () -> assertThat(id.getMedium(), sameInstance(medium))
                 );
             }
+        }
+
+        @Nested
+        public class Two {
+
+            @Test
+            public void equal() {
+                final var idA = new Signal.Id<>(SignalTest.WHEN_A, SignalTest.ACTOR_A, SignalTest.ACTOR_B, SignalTest.MEDIUM_A);
+                final var idB = new Signal.Id<>(WHEN_A, ACTOR_A, ACTOR_B, MEDIUM_A);
+                assertInvariants(idA, idB);
+                assertThat(idA, is(idB));
+            }
+
+            @Test
+            public void differentWhenSent() {
+                testDifferent(
+                        WHEN_B, ACTOR_A, ACTOR_B, MEDIUM_A
+                );
+            }
+
+            @Test
+            public void differentSender() {
+                testDifferent(
+                        WHEN_A, ACTOR_B, ACTOR_B, MEDIUM_A
+                );
+            }
+
+            @Test
+            public void differentReceiver() {
+                testDifferent(
+                        WHEN_A, ACTOR_A, ACTOR_A, MEDIUM_A
+                );
+            }
+
+            @Test
+            public void differentMedium() {
+                testDifferent(
+                        WHEN_A, ACTOR_A, ACTOR_B, MEDIUM_B
+                );
+            }
+
+            private void testDifferent(
+                    @Nonnull final Duration whenSentB,
+                    @Nonnull final Actor<Integer> senderB, @Nonnull final Actor<Integer> receiverB,
+                    @Nonnull final Medium mediumB
+            ) {
+                final var idA = new Signal.Id<>(SignalTest.WHEN_A, SignalTest.ACTOR_A, SignalTest.ACTOR_B, SignalTest.MEDIUM_A);
+                final var idB = new Signal.Id<>(whenSentB, senderB, receiverB, mediumB);
+                assertInvariants(idA, idB);
+                assertThat(idA, not(idB));
+            }
+
         }
     }
 
