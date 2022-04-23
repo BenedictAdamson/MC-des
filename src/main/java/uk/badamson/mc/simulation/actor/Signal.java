@@ -18,6 +18,7 @@ package uk.badamson.mc.simulation.actor;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import uk.badamson.mc.history.TimestampedValue;
 import uk.badamson.mc.history.ValueHistory;
 
@@ -509,11 +510,13 @@ public abstract class Signal<STATE> {
         }
 
         @Nonnull
+        @SuppressFBWarnings(value="EI_EXPOSE_REP", justification="effectively immutable")
         public Actor<STATE> getSender() {
             return sender;
         }
 
         @Nonnull
+        @SuppressFBWarnings(value="EI_EXPOSE_REP", justification="effectively immutable")
         public Actor<STATE> getReceiver() {
             return receiver;
         }

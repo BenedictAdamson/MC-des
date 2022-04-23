@@ -102,6 +102,7 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
      * </p>
      */
     @Nonnull
+    @SuppressFBWarnings(value="EI_EXPOSE_REP", justification="effectively immutable")
     public Actor<STATE> getAffectedObject() {
         return affectedObject;
     }
