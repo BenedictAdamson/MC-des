@@ -33,7 +33,6 @@ import javax.annotation.Nullable;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -78,6 +77,7 @@ public class SignalTest {
     public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal1,
                                                 @Nonnull final Signal<STATE> signal2) {
         ObjectVerifier.assertInvariants(signal1, signal2);// inherited
+        EqualsSemanticsVerifier.assertEntitySemantics(signal1, signal2, Signal::getId);
     }
 
     public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal,
@@ -217,8 +217,6 @@ public class SignalTest {
 
     static abstract class AbstractTestSignal extends Signal<Integer> {
 
-        private final UUID id = UUID.randomUUID();
-
         protected AbstractTestSignal(
                 @Nonnull final Actor<Integer> sender, @Nonnull final Duration whenSent, @Nonnull final Actor<Integer> receiver, @Nonnull final Medium medium) {
             super(whenSent, sender, receiver, medium);
@@ -246,21 +244,6 @@ public class SignalTest {
             final Set<Signal<Integer>> signalsEmitted = signalsEmitted(when);
             final Integer newState = receiverState + 1;
             return new Event<>(this, when, receiver, newState, signalsEmitted);
-        }
-
-        @Override
-        public final boolean equals(final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            final AbstractTestSignal that = (AbstractTestSignal) o;
-
-            return id.equals(that.id);
-        }
-
-        @Override
-        public final int hashCode() {
-            return id.hashCode();
         }
 
         protected abstract Set<Signal<Integer>> signalsEmitted(@Nonnull final Duration when);
@@ -448,15 +431,26 @@ public class SignalTest {
             constructor(actor, WHEN_A, actor, MEDIUM_A);
         }
 
-        @Test
-        public void two() {
-            final Signal<Integer> signalA = new SimpleTestSignal(WHEN_A, ACTOR_A, ACTOR_B, MEDIUM_A);
-            final Signal<Integer> signalB = new SimpleTestSignal(WHEN_B, ACTOR_B, ACTOR_A, MEDIUM_B);
+        @Nested
+        public class Two {
 
-            assertInvariants(signalA, signalB);
-            assertNotEquals(signalA, signalB);
-        }
+            @Test
+            public void equal() {
+                final Signal<Integer> signalA = new SimpleTestSignal(WHEN_A, ACTOR_A, ACTOR_A, MEDIUM_A);
+                final Signal<Integer> signalB = new SimpleTestSignal(WHEN_A, ACTOR_A, ACTOR_A, MEDIUM_A);
+                assertInvariants(signalA, signalB);
+                assertThat(signalA, is(signalB));
+            }
 
+            @Test
+            public void different() {
+                final Signal<Integer> signalA = new SimpleTestSignal(WHEN_A, ACTOR_A, ACTOR_A, MEDIUM_A);
+                final Signal<Integer> signalB = new SimpleTestSignal(WHEN_B, ACTOR_B, ACTOR_B, MEDIUM_B);
+                assertInvariants(signalA, signalB);
+                assertThat(signalA, not(signalB));
+            }
+
+        }// class
     }// class
 
     @Nested

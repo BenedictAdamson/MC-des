@@ -69,6 +69,21 @@ public abstract class Signal<STATE> {
         this(new Id<>(whenSent, sender, receiver, medium));
     }
 
+    @Override
+    public final boolean equals(final Object that) {
+        if (this == that) return true;
+        if (!(that instanceof Signal<?>)) return false;
+
+        final Signal<?> signal = (Signal<?>) that;
+
+        return id.equals(signal.id);
+    }
+
+    @Override
+    public final int hashCode() {
+        return id.hashCode();
+    }
+
     /**
      * <p>
      * The length of time it takes for this signal to propagate from the
@@ -428,17 +443,7 @@ public abstract class Signal<STATE> {
     }
 
     final int tieBreakCompareTo(@Nonnull final Signal<STATE> that) {
-        int c = getWhenSent().compareTo(that.getWhenSent());
-        if (c == 0) {
-            c = getSender().lock.compareTo(that.getSender().lock);
-        }
-        if (c == 0) {
-            c = getMedium().id.compareTo(that.getMedium().id);
-        }
-        if (c == 0) {
-            c = getReceiver().lock.compareTo(that.getReceiver().lock);
-        }
-        return c;
+        return id.tieBreakCompareTo(that.id);
     }
 
     /**
@@ -555,6 +560,20 @@ public abstract class Signal<STATE> {
                     "\u2192" + receiver +
                     " through " + medium +
                     '}';
+        }
+
+        int tieBreakCompareTo(@Nonnull final Id<STATE> that) {
+            int c = whenSent.compareTo(that.whenSent);
+            if (c == 0) {
+                c = sender.lock.compareTo(that.sender.lock);
+            }
+            if (c == 0) {
+                c = medium.id.compareTo(that.medium.id);
+            }
+            if (c == 0) {
+                c = receiver.lock.compareTo(that.receiver.lock);
+            }
+            return c;
         }
     }
 
