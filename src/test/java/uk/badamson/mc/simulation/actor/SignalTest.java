@@ -43,9 +43,13 @@ import static org.junit.jupiter.api.Assertions.*;
 public class SignalTest {
 
     private static final Duration WHEN_A = Duration.ofMillis(0);
+
     private static final Duration WHEN_B = Duration.ofMillis(5000);
+
     private static final Duration WHEN_C = Duration.ofMillis(7000);
+
     private static final Actor<Integer> ACTOR_A = new Actor<>(WHEN_A, 0);
+
     private static final Actor<Integer> ACTOR_B = new Actor<>(WHEN_B, 1);
 
     public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal) {
@@ -99,7 +103,7 @@ public class SignalTest {
         assertAll("Attributes",
                 () -> assertSame(sender, signal.getSender(), "sender"),
                 () -> assertSame(whenSent, signal.getWhenSent(), "whenSent"),
-        () -> assertSame(receiver, signal.getReceiver(), "receiver")
+                () -> assertSame(receiver, signal.getReceiver(), "receiver")
         );
         return signal;
     }
@@ -248,7 +252,7 @@ public class SignalTest {
 
         @Override
         public final int compareTo(@Nonnull final Signal<Integer> that) {
-            return id.compareTo(((AbstractTestSignal)that).id);
+            return id.compareTo(((AbstractTestSignal) that).id);
         }
 
         protected abstract Set<Signal<Integer>> signalsEmitted(@Nonnull final Duration when);
@@ -290,6 +294,44 @@ public class SignalTest {
             return Set.of(new EchoingTestSignal(getReceiver(), when, getSender()));
         }
 
+    }
+
+    public static class IdTest {
+
+        public static <ACTOR> void assertInvariants(@Nonnull final Signal.Id<ACTOR> id) {
+            ObjectVerifier.assertInvariants(id);
+            assertAll(
+                    () -> assertThat(id.getSender(), notNullValue()),
+                    () -> assertThat(id.getWhenSent(), notNullValue()),
+                    () -> assertThat(id.getReceiver(), notNullValue()));
+        }
+
+        public static <ACTOR> void assertInvariants(@Nonnull final Signal.Id<ACTOR> id1, @Nonnull final Signal.Id<ACTOR> id2) {
+            ObjectVerifier.assertInvariants(id1, id2);
+        }
+
+        @Nested
+        public class One {
+
+            @Test
+            public void a() {
+                test(ACTOR_A, WHEN_A, ACTOR_B);
+            }
+
+            @Test
+            public void b() {
+                test(ACTOR_B, WHEN_B, ACTOR_A);
+            }
+
+            private <STATE> void test(@Nonnull final Actor<STATE> sender, @Nonnull final Duration whenSent, @Nonnull final Actor<STATE> receiver) {
+                final var id = new Signal.Id<>(sender, whenSent, receiver);
+                assertInvariants(id);
+                assertAll(
+                        () -> assertThat(id.getSender(), sameInstance(sender)),
+                        () -> assertThat(id.getWhenSent(), sameInstance(whenSent)),
+                        () -> assertThat(id.getReceiver(), sameInstance(receiver)));
+            }
+        }
     }
 
     @Nested

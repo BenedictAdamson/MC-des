@@ -67,6 +67,7 @@ public abstract class Signal<STATE> implements Comparable<Signal<STATE>> {
      * <p>
      * Construct a signal with given attribute values.
      * </p>
+     *
      * @throws NullPointerException If any {@linkplain Nonnull} argument is null
      */
     protected Signal(@Nonnull final Actor<STATE> sender, @Nonnull final Duration whenSent, @Nonnull final Actor<STATE> receiver) {
@@ -292,7 +293,7 @@ public abstract class Signal<STATE> implements Comparable<Signal<STATE>> {
      * As it uses only immutable objects, it has no reason to acquire locks.</li>
      * </ul>
      *
-     * @param when The point in time that reception of the signal occurred
+     * @param when          The point in time that reception of the signal occurred
      * @param receiverState The state of the receiver when the signal arrived
      * @return The effect of this signal.
      * @throws NullPointerException        If a {@link Nonnull} argument is null.
@@ -446,5 +447,39 @@ public abstract class Signal<STATE> implements Comparable<Signal<STATE>> {
         }
 
     }// class
+
+    @Immutable
+    public static final class Id<STATE> {
+
+        @Nonnull
+        private final Actor<STATE> sender;
+
+        @Nonnull
+        private final Duration whenSent;
+
+        @Nonnull
+        private final Actor<STATE> receiver;
+
+        public Id(@Nonnull final Actor<STATE> sender, @Nonnull final Duration whenSent, @Nonnull final Actor<STATE> receiver) {
+            this.sender = Objects.requireNonNull(sender, "sender");
+            this.whenSent = Objects.requireNonNull(whenSent, "whenSent");
+            this.receiver = Objects.requireNonNull(receiver, "receiver");
+        }
+
+        @Nonnull
+        public Actor<STATE> getSender() {
+            return sender;
+        }
+
+        @Nonnull
+        public Duration getWhenSent() {
+            return whenSent;
+        }
+
+        @Nonnull
+        public Actor<STATE> getReceiver() {
+            return receiver;
+        }
+    }
 
 }
