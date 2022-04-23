@@ -52,6 +52,10 @@ public class SignalTest {
 
     private static final Actor<Integer> ACTOR_B = new Actor<>(WHEN_B, 1);
 
+    private static final Medium MEDIUM_A = new Medium();
+
+    private static final Medium MEDIUM_B = new Medium();
+
     public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal) {
         ObjectVerifier.assertInvariants(signal);// inherited
         ComparableVerifier.assertInvariants(signal);// inherited
@@ -303,7 +307,9 @@ public class SignalTest {
             assertAll(
                     () -> assertThat(id.getWhenSent(), notNullValue()),
                     () -> assertThat(id.getSender(), notNullValue()),
-                    () -> assertThat(id.getReceiver(), notNullValue()));
+                    () -> assertThat(id.getReceiver(), notNullValue()),
+                    () -> assertThat(id.getMedium(), notNullValue())
+            );
         }
 
         public static <ACTOR> void assertInvariants(@Nonnull final Signal.Id<ACTOR> id1, @Nonnull final Signal.Id<ACTOR> id2) {
@@ -315,23 +321,27 @@ public class SignalTest {
 
             @Test
             public void a() {
-                test(WHEN_A, ACTOR_A, ACTOR_B);
+                test(WHEN_A, ACTOR_A, ACTOR_B, MEDIUM_A);
             }
 
             @Test
             public void b() {
-                test(WHEN_B, ACTOR_B, ACTOR_A);
+                test(WHEN_B, ACTOR_B, ACTOR_A, MEDIUM_B);
             }
 
             private <STATE> void test(
-                    @Nonnull final Duration whenSent, @Nonnull final Actor<STATE> sender, @Nonnull final Actor<STATE> receiver
+                    @Nonnull final Duration whenSent,
+                    @Nonnull final Actor<STATE> sender, @Nonnull final Actor<STATE> receiver,
+                    @Nonnull final Medium medium
             ) {
-                final var id = new Signal.Id<>(whenSent, sender, receiver);
+                final var id = new Signal.Id<>(whenSent, sender, receiver, medium);
                 assertInvariants(id);
                 assertAll(
                         () -> assertThat(id.getWhenSent(), sameInstance(whenSent)),
                         () -> assertThat(id.getSender(), sameInstance(sender)),
-                        () -> assertThat(id.getReceiver(), sameInstance(receiver)));
+                        () -> assertThat(id.getReceiver(), sameInstance(receiver)),
+                        () -> assertThat(id.getMedium(), sameInstance(medium))
+                );
             }
         }
     }

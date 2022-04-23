@@ -460,13 +460,19 @@ public abstract class Signal<STATE> implements Comparable<Signal<STATE>> {
         @Nonnull
         private final Actor<STATE> receiver;
 
+        @Nonnull
+        private final Medium medium;
+
         public Id(
                 @Nonnull final Duration whenSent,
-                @Nonnull final Actor<STATE> sender, @Nonnull final Actor<STATE> receiver
+                @Nonnull final Actor<STATE> sender,
+                @Nonnull final Actor<STATE> receiver,
+                @Nonnull final Medium medium
         ) {
             this.whenSent = Objects.requireNonNull(whenSent, "whenSent");
             this.sender = Objects.requireNonNull(sender, "sender");
             this.receiver = Objects.requireNonNull(receiver, "receiver");
+            this.medium = Objects.requireNonNull(medium, "medium");
         }
 
         @Nonnull
@@ -482,6 +488,11 @@ public abstract class Signal<STATE> implements Comparable<Signal<STATE>> {
         @Nonnull
         public Actor<STATE> getReceiver() {
             return receiver;
+        }
+
+        @Nonnull
+        public Medium getMedium() {
+            return medium;
         }
     }
 
