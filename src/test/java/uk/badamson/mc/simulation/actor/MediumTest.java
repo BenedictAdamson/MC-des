@@ -18,68 +18,17 @@ package uk.badamson.mc.simulation.actor;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import uk.badamson.dbc.assertions.CollectionVerifier;
+import uk.badamson.dbc.assertions.ObjectVerifier;
 
 import javax.annotation.Nonnull;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.jupiter.api.Assertions.assertAll;
 
 public class MediumTest {
 
-    static <STATE> void addAll(@Nonnull final Medium<STATE> medium, @Nonnull final Collection<Signal<STATE>> signals) {
-        final Set<Signal<STATE>> mediumSignals0 = medium.getSignals();
-
-        medium.addAll(signals);
-
-        assertInvariants(medium);
-        final Set<Signal<STATE>> mediumSignals = medium.getSignals();
-        assertAll("signals contains all",
-                () -> assertThat("original signals", mediumSignals.containsAll(mediumSignals0)),
-                () -> assertThat("added signals", mediumSignals.containsAll(signals)));
+    public static void assertInvariants(@Nonnull final Medium medium) {
+        ObjectVerifier.assertInvariants(medium);
     }
 
-    static <STATE> void assertInvariants(@Nonnull final Medium<STATE> medium) {
-        final Set<Signal<STATE>> signals = medium.getSignals();
-        assertThat("signals", signals, notNullValue());// guard
-        CollectionVerifier.assertForAllElements("signals", signals, signal -> {
-            assertThat("signal", signal, notNullValue());// guard
-            SignalTest.assertInvariants(signal);
-        });
+    public static void assertInvariants(@Nonnull final Medium medium1, @Nonnull final Medium medium2) {
+        ObjectVerifier.assertInvariants(medium1, medium2);
     }
-
-    static <STATE> void removeAll(@Nonnull final Medium<STATE> medium,
-                                  @Nonnull final Collection<Signal<STATE>> signals) {
-        medium.removeAll(signals);
-
-        assertInvariants(medium);
-        final Set<Signal<STATE>> mediumSignals = medium.getSignals();
-        assertThat("has none of the removed signals", Collections.disjoint(mediumSignals, signals));
-    }
-
-    static final class RecordingMedium<STATE> implements Medium<STATE> {
-        private final Set<Signal<STATE>> signals = ConcurrentHashMap.newKeySet();
-
-        @Override
-        public void addAll(@Nonnull final Collection<Signal<STATE>> signals) {
-            this.signals.addAll(signals);
-        }
-
-        @Nonnull
-        @Override
-        public Set<Signal<STATE>> getSignals() {
-            return Set.copyOf(signals);
-        }
-
-        @Override
-        public void removeAll(@Nonnull final Collection<Signal<STATE>> signals) {
-            this.signals.removeAll(signals);
-        }
-
-    }// class
 }

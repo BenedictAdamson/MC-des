@@ -21,10 +21,11 @@ package uk.badamson.mc.simulation.actor;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
-import java.time.Duration;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Executor;
 
 /**
  * <p>
@@ -73,17 +74,12 @@ public final class Universe<STATE> {
      * </ul>
      *
      * @param actors A snapshot of the history information of all the objects in the
-     *                        universe.
+     *               universe.
      * @throws NullPointerException If {@code objectHistories} is null
      */
     public Universe(@Nonnull final Collection<Actor<STATE>> actors) {
         Objects.requireNonNull(actors, "actors");
         this.actors.addAll(actors);
-    }
-
-    @Nonnull
-    SchedulingMedium createMedium(@Nonnull final Executor executor, @Nonnull final Duration advanceTo) {
-        return new SchedulingMedium(executor, advanceTo);
     }
 
     /**
@@ -109,35 +105,5 @@ public final class Universe<STATE> {
     public String toString() {
         return "Universe" + actors;
     }
-
-    final class SchedulingMedium implements Medium<STATE> {
-
-        SchedulingMedium(@Nonnull final Executor executor, @Nonnull final Duration advanceTo) {
-            Objects.requireNonNull(executor, "executor");
-            Objects.requireNonNull(advanceTo, "advanceTo");
-        }
-
-        @Override
-        public void addAll(@Nonnull final Collection<Signal<STATE>> signals) {
-                // TODO affect the receiver
-        }
-
-        @Nonnull
-        @Override
-        public Set<Signal<STATE>> getSignals() {
-            return Set.of();// TODO
-        }
-
-        @Nonnull
-        Universe<STATE> getUniverse() {
-            return Universe.this;
-        }
-
-        @Override
-        public void removeAll(@Nonnull final Collection<Signal<STATE>> signals) {
-            // TODO
-        }
-
-    }// class
 
 }

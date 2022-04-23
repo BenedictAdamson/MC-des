@@ -1,6 +1,6 @@
 package uk.badamson.mc.simulation.actor;
 /*
- * © Copyright Benedict Adamson 2021.
+ * © Copyright Benedict Adamson 2021-22.
  *
  * This file is part of MC-des.
  *
@@ -18,10 +18,7 @@ package uk.badamson.mc.simulation.actor;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import javax.annotation.Nonnull;
-import javax.annotation.concurrent.ThreadSafe;
-import java.util.Collection;
-import java.util.Set;
+import javax.annotation.concurrent.Immutable;
 
 /**
  * <p>
@@ -32,66 +29,7 @@ import java.util.Set;
  *
  * @see Signal
  */
-@ThreadSafe
-interface Medium<STATE> {
-
-    /**
-     * <p>
-     * Add several signals to be transmitted through this medium.
-     * </p>
-     * <p>
-     * {@linkplain Set#addAll(Collection) Adds all} the given {@code signals} to the
-     * {@linkplain #getSignals() signals} being transmitted through this medium.
-     * </p>
-     *
-     * @param signals The signals to be transmitted. The method will not modify this
-     *                collection.
-     * @throws NullPointerException  <ul>
-     *                               <li>If {@code signals} is null</li>
-     *                               <li>If {@code signals} contains null</li>
-     *                               </ul>
-     * @throws IllegalStateException If any of the {@code signals} are inconsistent with this medium.
-     *                               For example, if the signal {@linkplain Signal#getReceiver()
-     *                               receiver} is unknown.
-     * @see Set#addAll(Collection)
-     */
-    void addAll(@Nonnull Collection<Signal<STATE>> signals);
-
-    /**
-     * <p>
-     * The signals that are being transmitted through this medium.
-     * </p>
-     * <ul>
-     * <li>Does not contain a null signal.</li>
-     * <li>May be unmodifiable.</li>
-     * <li>A snapshot: the returned set does not reflect subsequent changes.</li>
-     * </ul>
-     */
-    @Nonnull
-    Set<Signal<STATE>> getSignals();
-
-    /**
-     * <p>
-     * Remove several signals, which might previously have been
-     * {@linkplain #addAll(Collection) added} for transmission through this medium.
-     * </p>
-     * <p>
-     * {@linkplain Set#removeAll(Collection) Removes all} the given {@code signals}
-     * from the {@linkplain #getSignals() set of signals} being transmitted through
-     * this medium.
-     * </p>
-     *
-     * @param signals The signals to be removed. The method will not modify this
-     *                collection.
-     * @throws NullPointerException  <ul>
-     *                               <li>If {@code signals} is null</li>
-     *                               <li>If {@code signals} contains null</li>
-     *                               </ul>
-     * @throws IllegalStateException If any of the {@code signals} are inconsistent with this medium.
-     *                               For example, if the signal {@linkplain Signal#getReceiver()
-     *                               receiver} is unknown.
-     * @see Set#removeAll(Collection)
-     */
-    void removeAll(@Nonnull Collection<Signal<STATE>> signals);
+@Immutable
+public class Medium {
 
 }

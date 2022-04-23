@@ -21,24 +21,23 @@ package uk.badamson.mc.simulation.actor;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import uk.badamson.dbc.assertions.CollectionVerifier;
-import uk.badamson.dbc.assertions.EqualsSemanticsVerifier;
 import uk.badamson.dbc.assertions.ObjectVerifier;
-import uk.badamson.mc.history.ValueHistory;
 
 import javax.annotation.Nonnull;
 import java.time.Duration;
-import java.util.*;
-import java.util.concurrent.Executor;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class UniverseTest {
 
     static final Duration WHEN_A = ActorTest.WHEN_A;
+
     static final Duration WHEN_B = ActorTest.WHEN_B;
-    private static final Executor DIRECT_EXECUTOR = Runnable::run;
 
     private static <STATE> void assertEmpty(@Nonnull final Universe<STATE> universe) {
         assertThat("actors", universe.getActors(), empty());
@@ -68,46 +67,6 @@ public class UniverseTest {
         assertThat("copied actors", new HashSet<>(universe.getActors()),
                 is(new HashSet<>(actors)));
     }
-
-    @Nonnull
-    private static <STATE> Universe<STATE>.SchedulingMedium createMedium(@Nonnull final Universe<STATE> universe,
-                                                                         @Nonnull final Executor executor, @Nonnull final Duration advanceTo) {
-        final var medium = universe.createMedium(executor, advanceTo);
-
-        assertInvariants(universe);
-        assertThat("result", medium, notNullValue());// guard
-        SchedulingMediumTest.assertInvariants(medium);
-
-        return medium;
-    }
-
-    private static class DeferringExecutor implements Executor {
-
-        @Override
-        public void execute(@Nonnull final Runnable command) {
-            // Do nothing
-        }
-
-    }// class
-
-    public static class SchedulingMediumTest {
-
-        static <STATE> void assertInvariants(@Nonnull final Universe<STATE>.SchedulingMedium medium) {
-            ObjectVerifier.assertInvariants(medium);// inherited
-            MediumTest.assertInvariants(medium);// inherited
-
-            CollectionVerifier.assertForAllElements(medium.getUniverse().getActors(), actor -> {
-                assertThat("actor", actor, notNullValue());// guard
-            });
-        }
-
-        static <STATE> void removeAll(@Nonnull final Universe<STATE>.SchedulingMedium medium,
-                                      @Nonnull final Collection<Signal<STATE>> signals) {
-            MediumTest.removeAll(medium, signals);// inherited
-
-            assertInvariants(medium);
-        }
-    }// class
 
     @Nested
     public class Constructor {
@@ -159,35 +118,6 @@ public class UniverseTest {
                 }
             }// class
         }// class
-
-    }// class
-
-    @Nested
-    public class CreateMedium {
-
-        @Nested
-        public class NoObjects {
-
-            @Test
-            public void toEndOfTime() {
-                test(DIRECT_EXECUTOR, ValueHistory.END_OF_TIME);
-            }
-
-            @Test
-            public void a() {
-                test(new DeferringExecutor(), WHEN_A);
-            }
-
-            private void test(final Executor executor, final Duration advanceTo) {
-                final var universe = new Universe<Integer>();
-
-                final var medium = createMedium(universe, executor, advanceTo);
-
-                assertThat("signals", medium.getSignals(), empty());
-            }
-
-        }// class
-
 
     }// class
 }
