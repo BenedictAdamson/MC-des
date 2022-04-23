@@ -301,8 +301,8 @@ public class SignalTest {
         public static <ACTOR> void assertInvariants(@Nonnull final Signal.Id<ACTOR> id) {
             ObjectVerifier.assertInvariants(id);
             assertAll(
-                    () -> assertThat(id.getSender(), notNullValue()),
                     () -> assertThat(id.getWhenSent(), notNullValue()),
+                    () -> assertThat(id.getSender(), notNullValue()),
                     () -> assertThat(id.getReceiver(), notNullValue()));
         }
 
@@ -315,20 +315,22 @@ public class SignalTest {
 
             @Test
             public void a() {
-                test(ACTOR_A, WHEN_A, ACTOR_B);
+                test(WHEN_A, ACTOR_A, ACTOR_B);
             }
 
             @Test
             public void b() {
-                test(ACTOR_B, WHEN_B, ACTOR_A);
+                test(WHEN_B, ACTOR_B, ACTOR_A);
             }
 
-            private <STATE> void test(@Nonnull final Actor<STATE> sender, @Nonnull final Duration whenSent, @Nonnull final Actor<STATE> receiver) {
-                final var id = new Signal.Id<>(sender, whenSent, receiver);
+            private <STATE> void test(
+                    @Nonnull final Duration whenSent, @Nonnull final Actor<STATE> sender, @Nonnull final Actor<STATE> receiver
+            ) {
+                final var id = new Signal.Id<>(whenSent, sender, receiver);
                 assertInvariants(id);
                 assertAll(
-                        () -> assertThat(id.getSender(), sameInstance(sender)),
                         () -> assertThat(id.getWhenSent(), sameInstance(whenSent)),
+                        () -> assertThat(id.getSender(), sameInstance(sender)),
                         () -> assertThat(id.getReceiver(), sameInstance(receiver)));
             }
         }

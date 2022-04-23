@@ -452,28 +452,31 @@ public abstract class Signal<STATE> implements Comparable<Signal<STATE>> {
     public static final class Id<STATE> {
 
         @Nonnull
-        private final Actor<STATE> sender;
+        private final Duration whenSent;
 
         @Nonnull
-        private final Duration whenSent;
+        private final Actor<STATE> sender;
 
         @Nonnull
         private final Actor<STATE> receiver;
 
-        public Id(@Nonnull final Actor<STATE> sender, @Nonnull final Duration whenSent, @Nonnull final Actor<STATE> receiver) {
-            this.sender = Objects.requireNonNull(sender, "sender");
+        public Id(
+                @Nonnull final Duration whenSent,
+                @Nonnull final Actor<STATE> sender, @Nonnull final Actor<STATE> receiver
+        ) {
             this.whenSent = Objects.requireNonNull(whenSent, "whenSent");
+            this.sender = Objects.requireNonNull(sender, "sender");
             this.receiver = Objects.requireNonNull(receiver, "receiver");
-        }
-
-        @Nonnull
-        public Actor<STATE> getSender() {
-            return sender;
         }
 
         @Nonnull
         public Duration getWhenSent() {
             return whenSent;
+        }
+
+        @Nonnull
+        public Actor<STATE> getSender() {
+            return sender;
         }
 
         @Nonnull
