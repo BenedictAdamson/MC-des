@@ -21,7 +21,6 @@ package uk.badamson.mc.simulation.actor;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import uk.badamson.dbc.assertions.ComparableVerifier;
 import uk.badamson.dbc.assertions.EqualsSemanticsVerifier;
 import uk.badamson.dbc.assertions.ObjectVerifier;
 import uk.badamson.mc.history.ConstantValueHistory;
@@ -59,7 +58,6 @@ public class SignalTest {
 
     public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal) {
         ObjectVerifier.assertInvariants(signal);// inherited
-        ComparableVerifier.assertInvariants(signal);// inherited
 
         final var id = signal.getId();
         final var receiver = signal.getReceiver();
@@ -80,8 +78,6 @@ public class SignalTest {
     public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal1,
                                                 @Nonnull final Signal<STATE> signal2) {
         ObjectVerifier.assertInvariants(signal1, signal2);// inherited
-        ComparableVerifier.assertInvariants(signal1, signal2);// inherited
-        ComparableVerifier.assertNaturalOrderingIsConsistentWithEquals(signal1, signal2);
     }
 
     public static <STATE> void assertInvariants(@Nonnull final Signal<STATE> signal,
@@ -265,11 +261,6 @@ public class SignalTest {
         @Override
         public final int hashCode() {
             return id.hashCode();
-        }
-
-        @Override
-        public final int compareTo(@Nonnull final Signal<Integer> that) {
-            return id.compareTo(((AbstractTestSignal) that).id);
         }
 
         protected abstract Set<Signal<Integer>> signalsEmitted(@Nonnull final Duration when);

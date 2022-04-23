@@ -42,16 +42,20 @@ import java.util.Set;
  *                required.
  */
 @Immutable
-public final class Event<STATE> implements Comparable<Event<STATE>>{
+public final class Event<STATE> implements Comparable<Event<STATE>> {
 
     @Nonnull
     private final Signal<STATE> causingSignal;
+
     @Nonnull
     private final Duration when;
+
     @Nonnull
     private final Actor<STATE> affectedObject;
+
     @Nullable
     private final STATE state;
+
     @Nonnull
     private final Set<Signal<STATE>> signalsEmitted;
 
@@ -125,7 +129,7 @@ public final class Event<STATE> implements Comparable<Event<STATE>>{
      * empty}.</li>
      * </ul>
      */
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification="signalsEmitted is unmodifiable")
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "signalsEmitted is unmodifiable")
     @Nonnull
     public Set<Signal<STATE>> getSignalsEmitted() {
         return signalsEmitted;
@@ -180,26 +184,17 @@ public final class Event<STATE> implements Comparable<Event<STATE>>{
      * {@inheritDoc}
      *
      * <p>
-     *     The natural ordering of Event objects is by their
-     *     {@linkplain  #getWhen() time of occurrence},
-     *     then by other criteria.
-     *     The natural ordering is consistent with {@link #equals(Object)}
+     * The natural ordering of Event objects is by their
+     * {@linkplain  #getWhen() time of occurrence},
+     * then by other criteria.
+     * The natural ordering is consistent with {@link #equals(Object)}
      * </p>
      */
     @Override
     public int compareTo(@Nonnull final Event<STATE> that) {
         int c = when.compareTo(that.when);
         if (c == 0) {
-            c = causingSignal.getWhenSent().compareTo(that.causingSignal.getWhenSent());
-        }
-        if (c == 0) {
-            c = causingSignal.getSender().lock.compareTo(that.causingSignal.getSender().lock);
-        }
-        if (c == 0) {
-            c = causingSignal.getMedium().id.compareTo(that.causingSignal.getMedium().id);
-        }
-        if (c == 0) {
-            c = causingSignal.getReceiver().lock.compareTo(that.causingSignal.getReceiver().lock);
+            c = causingSignal.tieBreakCompareTo(that.causingSignal);
         }
         return c;
     }

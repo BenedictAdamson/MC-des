@@ -39,7 +39,7 @@ import java.util.UUID;
  *                required.
  */
 @Immutable
-public abstract class Signal<STATE> implements Comparable<Signal<STATE>> {
+public abstract class Signal<STATE> {
 
     /**
      * <p>
@@ -427,16 +427,19 @@ public abstract class Signal<STATE> implements Comparable<Signal<STATE>> {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>However, for the Signal class it <em>is</em> required that
-     * {@code (x.compareTo(y)==0) == (x.equals(y))}:
-     * Signal has a natural ordering that is
-     * inconsistent with equals.
-     */
-    @Override
-    public abstract int compareTo(@Nonnull Signal<STATE> that);
+    final int tieBreakCompareTo(@Nonnull final Signal<STATE> that) {
+        int c = getWhenSent().compareTo(that.getWhenSent());
+        if (c == 0) {
+            c = getSender().lock.compareTo(that.getSender().lock);
+        }
+        if (c == 0) {
+            c = getMedium().id.compareTo(that.getMedium().id);
+        }
+        if (c == 0) {
+            c = getReceiver().lock.compareTo(that.getReceiver().lock);
+        }
+        return c;
+    }
 
     /**
      * <p>

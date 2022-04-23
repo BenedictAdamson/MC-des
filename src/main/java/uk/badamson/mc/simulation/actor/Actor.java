@@ -43,13 +43,13 @@ import java.util.stream.Collectors;
 @ThreadSafe
 public final class Actor<STATE> {
 
-    @Nonnull
-    private final Duration start;
-
     /**
      * Comparable so can predictably order locks to avoid deadlock.
      */
     final UUID lock = UUID.randomUUID();
+
+    @Nonnull
+    private final Duration start;
 
     @GuardedBy("lock")
     private final ModifiableValueHistory<STATE> stateHistory = new ModifiableValueHistory<>();
@@ -99,18 +99,14 @@ public final class Actor<STATE> {
             @Nonnull final Duration whenReceived1,
             @Nullable final Signal<STATE> signal2,
             @Nonnull final Duration whenReceived2
-    ) throws SignalException {
+    ) {
         int compare;
         if (signal2 == null) {
             compare = -1;
         } else {
             compare = whenReceived1.compareTo(whenReceived2);
             if (compare == 0) {
-                try {
-                    compare = signal1.compareTo(signal2);
-                } catch (final RuntimeException e) {
-                    throw new SignalException(signal1, e);
-                }
+                compare = signal1.tieBreakCompareTo(signal2);
             }
         }
         return compare;
