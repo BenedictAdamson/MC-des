@@ -28,6 +28,9 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -252,6 +255,83 @@ public final class Actor<STATE> {
             }
         }
         return true;
+    }
+
+    /**
+     * <p>
+     * Have a set of actors {@link #receiveSignal() receive signals}
+     * until the {@link  #getWhenReceiveNextSignal time of their next signal}
+     * is {@link Duration#compareTo(Duration) at or after} a given time,
+     * with the processing done using a given {@link Executor}.
+     * </p>
+     *
+     * @return a Future that {@linkplain Future#isDone() is done} when all the actors have been advanced,
+     * or an exception prevents a full computation.
+     * @throws NullPointerException <ul>
+     *                              <li>if any {@link Nonnull} annotated argument is null.</li>
+     *                              <li>if any {@code actors} contains a null</li>
+     *                              </ul>
+     */
+    @Nonnull
+    public static <STATE> Future<Void> advanceTo(
+            @Nonnull final Duration when,
+            @Nonnull final Set<Actor<STATE>> actors,
+            @Nonnull final Executor executor
+    ) {
+        Objects.requireNonNull(when, "when");
+        Objects.requireNonNull(actors, "actors");
+        Objects.requireNonNull(executor, "executor");
+        return advanceToWithCompletableFuture(when, Set.copyOf(actors), executor);
+    }
+
+    private static <STATE> CompletableFuture<Void> advanceToWithCompletableFuture(
+            @Nonnull final Duration when,
+            @Nonnull final Set<Actor<STATE>> actors,
+            @Nonnull final Executor executor
+    ) {
+        final int nActors = actors.size();
+        if (nActors == 0) {
+            return CompletableFuture.completedFuture(null);
+        } else if (nActors == 1) {
+            final var actor = actors.iterator().next();
+            return actor.advanceTo(when, executor);
+        } else {
+            final Collection<CompletableFuture<Void>> futures = actors.stream()
+                    .map(actor -> actor.advanceTo(when, executor))
+                    .collect(Collectors.toUnmodifiableList());
+            return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+        }
+    }
+
+    private CompletableFuture<Void> advanceTo(@Nonnull final Duration when, @Nonnull final Executor executor) {
+        final CompletableFuture<Void> future = new CompletableFuture<>();
+        executor.execute(() -> {
+            final Set<Actor<STATE>> affectedActors;
+            try {
+                if (getWhenReceiveNextSignal().compareTo(when) < 0) {
+                    affectedActors = receiveSignal();
+                } else {
+                    affectedActors = Set.of();
+                }
+            } catch (final SignalException e) {
+                future.completeExceptionally(e);
+                return;
+            }
+            if (affectedActors.isEmpty()) {
+                future.complete(null);
+            } else {
+                advanceToWithCompletableFuture(when, affectedActors, executor)
+                        .handle((ignored, exception) -> {
+                            if (exception == null) {
+                                future.complete(null);
+                            } else {
+                                future.completeExceptionally(exception);
+                            }
+                            return null;
+                        });
+            }
+        });
+        return future;
     }
 
     @GuardedBy("lock")

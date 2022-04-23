@@ -215,6 +215,31 @@ public class SignalTest {
         }
     }// class
 
+    static final class ThrowingSignal extends Signal<Integer> {
+
+        static final class InevitableException extends RuntimeException {
+            InevitableException() {
+                super("Inevitable thrown exception");
+            }
+        }
+
+        ThrowingSignal(@Nonnull final Duration whenSent, @Nonnull final Actor<Integer> sender, @Nonnull final Actor<Integer> receiver, @Nonnull final Medium medium) {
+            super(whenSent, sender, receiver, medium);
+        }
+
+        @Nonnull
+        @Override
+        protected Duration getPropagationDelay(@Nonnull final Integer receiverState) {
+            return Duration.ofSeconds(1L);
+        }
+
+        @Nonnull
+        @Override
+        protected Event<Integer> receive(@Nonnull final Duration when, @Nonnull final Integer receiverState) throws InevitableException {
+            throw new InevitableException();
+        }
+    }
+
     static abstract class AbstractTestSignal extends Signal<Integer> {
 
         protected AbstractTestSignal(

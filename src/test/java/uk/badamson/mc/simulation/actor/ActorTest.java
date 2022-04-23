@@ -26,11 +26,11 @@ import uk.badamson.dbc.assertions.ObjectVerifier;
 import uk.badamson.dbc.assertions.ThreadSafetyTest;
 import uk.badamson.mc.history.ValueHistoryTest;
 
+import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -51,6 +51,8 @@ public class ActorTest {
     static final Medium MEDIUM_A = new Medium();
 
     static final Medium MEDIUM_B = new Medium();
+
+    private static final Executor DIRECT_EXECUTOR = Runnable::run;
 
     public static <STATE> void assertInvariants(@Nonnull final Actor<STATE> actor) {
         ObjectVerifier.assertInvariants(actor);// inherited
@@ -128,7 +130,7 @@ public class ActorTest {
             assertNotNull(signal, "event");// guard
             assertAll("event " + signal,
                     () -> SignalTest.assertInvariants(signal),
-                    () -> assertThat("whenSent", signal.getWhenSent(), greaterThan(actor.getStart())),
+                    () -> assertThat("whenSent", signal.getWhenSent(), greaterThanOrEqualTo(actor.getStart())),
                     () -> assertThat("receiver", signal.getReceiver(), sameInstance(actor))
             );
         });
@@ -171,6 +173,26 @@ public class ActorTest {
         return affectedActors;
     }
 
+    private static <STATE> Future<Void> advanceTo(
+            @Nonnull final Duration when, @Nonnull final Set<Actor<STATE>> actors, @Nonnull final Executor executor
+    ) {
+        final Future<Void> future = Actor.advanceTo(when, actors, executor);
+        assertThat(future, notNullValue());
+        return future;
+    }
+
+    private static <STATE> void assertAllHaveAdvancedTo(
+            @Nonnull final Duration when, @Nonnull final Set<Actor<STATE>> actors
+    ) {
+        assertAll(
+                actors.stream().map(actor -> () -> {
+                    assertThat(actor, notNullValue());
+                    assertInvariants(actor);
+                    assertThat(actor.getWhenReceiveNextSignal(), greaterThanOrEqualTo(when));
+                })
+        );
+    }
+
     @Test
     public void concurrentlyRemoveAndReceiveSignals() {
         final Actor<Integer> sender = new Actor<>(WHEN_A, 0);
@@ -194,6 +216,220 @@ public class ActorTest {
         assertInvariants(receiver);
         for (final var signal : signals) {
             SignalTest.assertInvariants(signal);
+        }
+    }
+
+    @Nested
+    public class AdvanceTo {
+        @Test
+        public void noActors() throws Exception {
+            final var future = advanceTo(WHEN_A, Set.of(), DIRECT_EXECUTOR);
+            future.get();
+        }
+
+        @Nested
+        public class NoOp1WithNoSignalsToReceive {
+
+            @Test
+            public void just() throws Exception {
+                test(WHEN_A, WHEN_A, 0);
+            }
+
+            @Test
+            public void after() throws Exception {
+                test(WHEN_B, WHEN_C, 1);
+            }
+
+            private void test(
+                    @Nonnull final Duration start, @Nonnull final Duration when, final Integer state
+            ) throws Exception {
+                assert start.compareTo(when) <= 0;
+                final var actor = new Actor<>(start, state);
+                final Set<Actor<Integer>> actors = Set.of(actor);
+
+                final var future = advanceTo(when, actors, DIRECT_EXECUTOR);
+                future.get();
+
+                assertInvariants(actor);
+                assertAllHaveAdvancedTo(when, actors);
+                assertThat(actors, contains(actor));
+
+            }
+        }
+
+        @Nested
+        public class WhenReceivingASignalIsNecessary {
+
+            @Test
+            public void near() throws Exception {
+                test(WHEN_A, 1, Duration.ofNanos(1L));
+            }
+
+            @Test
+            public void far() throws Exception {
+                test(WHEN_B, 2, Duration.ofDays(365));
+            }
+
+            @Test
+            public void two() throws Exception {
+                final Duration margin = Duration.ofSeconds(1L);
+                assert WHEN_A.compareTo(margin) < 0;
+                final var sender = new Actor<>(WHEN_A, 1);
+                final var actorA = new Actor<>(WHEN_A, 1);
+                final var actorB = new Actor<>(WHEN_A, 2);
+                final var signalA = new SignalTest.SimpleTestSignal(WHEN_A, sender, actorA, MEDIUM_A);
+                final var signalB = new SignalTest.SimpleTestSignal(WHEN_A, sender, actorB, MEDIUM_B);
+                actorA.addSignalToReceive(signalA);
+                actorB.addSignalToReceive(signalB);
+                final Duration whenReceiveNextSignalA = actorA.getWhenReceiveNextSignal();
+                final Duration whenReceiveNextSignalB = actorB.getWhenReceiveNextSignal();
+                assert whenReceiveNextSignalA.compareTo(Signal.NEVER_RECEIVED.minus(margin)) <= 0;
+                assert whenReceiveNextSignalB.compareTo(Signal.NEVER_RECEIVED.minus(margin)) <= 0;
+                final var when = Collections.max(Arrays.asList(whenReceiveNextSignalA, whenReceiveNextSignalB)).plus(margin);
+                final Set<Actor<Integer>> actors = Set.of(actorA, actorB);
+
+                final var future = advanceTo(when, actors, DIRECT_EXECUTOR);
+                future.get();
+
+                assertInvariants(actorA);
+                assertInvariants(actorB);
+                assertAllHaveAdvancedTo(when, actors);
+                assertThat(actors, containsInAnyOrder(actorA, actorB));
+            }
+
+            @Test
+            public void concurrent() throws Exception {
+                final Duration margin = Duration.ofSeconds(1L);
+                final int nThreads = 16;
+                final int nActors = nThreads * 4;
+                assert WHEN_A.compareTo(margin) < 0;
+                final var sender = new Actor<>(WHEN_A, 1);
+                final Set<Actor<Integer>> actors = new HashSet<>(nActors);
+                for (int a = 0; a < nActors; ++a) {
+                    final var actor = new Actor<>(WHEN_A, a);
+                    final var signal = new SignalTest.SimpleTestSignal(WHEN_A, sender, actor, MEDIUM_A);
+                    actor.addSignalToReceive(signal);
+                    actors.add(actor);
+                }
+                final Duration whenReceiveNextSignal = actors.stream()
+                        .map(Actor::getWhenReceiveNextSignal)
+                        .max(Comparator.naturalOrder())
+                        .orElseThrow();
+                assert whenReceiveNextSignal.compareTo(Signal.NEVER_RECEIVED.minus(margin)) <= 0;
+                final var when = whenReceiveNextSignal.plus(margin);
+                final Executor executor = Executors.newFixedThreadPool(nThreads);
+
+                final var future = advanceTo(when, actors, executor);
+                future.get();
+
+                assertAllHaveAdvancedTo(when, actors);
+            }
+
+            @Test
+            public void receiveSignalThrowsException() {
+                final Duration margin = Duration.ofSeconds(10);
+                assert WHEN_B.compareTo(margin) < 0;
+                final var sender = new Actor<>(WHEN_B, 2);
+                final var actor = new Actor<>(WHEN_B, 2);
+                final var signal = new SignalTest.ThrowingSignal(WHEN_B, sender, actor, MEDIUM_A);
+                actor.addSignalToReceive(signal);
+                final Duration whenReceiveNextSignal = actor.getWhenReceiveNextSignal();
+                assert whenReceiveNextSignal.compareTo(Signal.NEVER_RECEIVED.minus(margin)) <= 0;
+                final var when = whenReceiveNextSignal.plus(margin);
+                final Set<Actor<Integer>> actors = Set.of(actor);
+
+                final var future = advanceTo(when, actors, DIRECT_EXECUTOR);
+                final ExecutionException exception = assertThrows(ExecutionException.class, future::get);
+
+                assertThat(exception.getCause(), isA(Actor.SignalException.class));
+                assertThat(exception.getCause().getCause(), isA(SignalTest.ThrowingSignal.InevitableException.class));
+            }
+
+            private void test(@Nonnull final Duration start, final int state0, @Nonnull @Nonnegative final Duration margin) throws Exception {
+                assert start.compareTo(margin) < 0;
+                final var sender = new Actor<>(start, state0);
+                final var actor = new Actor<>(start, state0);
+                final var signal = new SignalTest.SimpleTestSignal(start, sender, actor, MEDIUM_A);
+                actor.addSignalToReceive(signal);
+                final Duration whenReceiveNextSignal = actor.getWhenReceiveNextSignal();
+                assert whenReceiveNextSignal.compareTo(Signal.NEVER_RECEIVED.minus(margin)) <= 0;
+                final var when = whenReceiveNextSignal.plus(margin);
+                final Set<Actor<Integer>> actors = Set.of(actor);
+
+                final var future = advanceTo(when, actors, DIRECT_EXECUTOR);
+                future.get();
+
+                assertInvariants(actor);
+                assertAllHaveAdvancedTo(when, actors);
+                assertThat(actors, contains(actor));
+            }
+        }
+
+        @Nested
+        public class WhenReceivingASequenceOfSignalsIsNecessary {
+
+            @Test
+            public void a() throws Exception {
+                test(WHEN_A, 1, Duration.ofDays(1));
+            }
+
+            @Test
+            public void b() throws Exception {
+                test(WHEN_B, 2, Duration.ofDays(2));
+            }
+
+            private void test(@Nonnull final Duration start, final int state0, @Nonnull @Nonnegative final Duration margin) throws Exception {
+                assert start.compareTo(margin) < 0;
+                final var sender = new Actor<>(start, state0);
+                final var actor = new Actor<>(start, state0);
+                final var signal = new SignalTest.StrobingTestSignal(start, sender, actor, MEDIUM_A);
+                actor.addSignalToReceive(signal);
+                final Duration whenReceiveNextSignal = actor.getWhenReceiveNextSignal();
+                assert whenReceiveNextSignal.compareTo(Signal.NEVER_RECEIVED.minus(margin)) <= 0;
+                final var when = whenReceiveNextSignal.plus(margin);
+                final Set<Actor<Integer>> actors = Set.of(actor);
+
+                final var future = advanceTo(when, actors, DIRECT_EXECUTOR);
+                future.get();
+
+                assertInvariants(actor);
+                assertAllHaveAdvancedTo(when, actors);
+                assertThat(actors, contains(actor));
+            }
+        }
+
+        @Nested
+        public class WhenReceivingASignalIsUnnecessary {
+
+            @Test
+            public void near() throws Exception {
+                test(WHEN_A, 1, Duration.ofNanos(1L));
+            }
+
+            @Test
+            public void far() throws Exception {
+                test(WHEN_B, 2, Duration.ofDays(365));
+            }
+
+            private void test(@Nonnull final Duration start, final int state0, @Nonnull @Nonnegative final Duration margin) throws Exception {
+                assert start.compareTo(margin) < 0;
+                final var sender = new Actor<>(start, state0);
+                final var actor = new Actor<>(start, state0);
+                final var signal = new SignalTest.SimpleTestSignal(start, sender, actor, MEDIUM_A);
+                actor.addSignalToReceive(signal);
+                final Duration whenReceiveNextSignal = actor.getWhenReceiveNextSignal();
+                final var when = whenReceiveNextSignal.minus(margin);
+                assert !actor.getSignalsToReceive().isEmpty();
+                final Set<Actor<Integer>> actors = Set.of(actor);
+
+                final var future = advanceTo(when, actors, DIRECT_EXECUTOR);
+                future.get();
+
+                assertInvariants(actor);
+                assertAllHaveAdvancedTo(when, actors);
+                assertThat(actors, contains(actor));
+                assertThat("did not process any signals", actor.getSignalsToReceive(), contains(signal));
+            }
         }
     }
 
