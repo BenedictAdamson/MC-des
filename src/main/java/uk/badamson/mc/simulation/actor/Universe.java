@@ -21,11 +21,8 @@ package uk.badamson.mc.simulation.actor;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * <p>
@@ -34,76 +31,128 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * <p>
  * The histories of the objects may be <dfn>asynchronous</dfn>: different
  * objects may have state transitions at different times.
- * <p>
- * This collection is modifiable: the histories of the simulated objects may be
- * appended to.
  * </p>
+ * <ul>
+ *     <li>Does not {@linkplain #contains(Object) contain} nulls.</li>
+ *     <li>Does not contain} duplicates.</li>
+ * </ul>
  *
  * @param <STATE> The class of states of the simulated objects. This must be
  *                {@link Immutable immutable}. It ought to have value semantics, but
  *                that is not required.
  */
 @ThreadSafe
-public final class Universe<STATE> {
+public final class Universe<STATE> implements Collection<Actor<STATE>> {
 
-    private final Collection<Actor<STATE>> actors = new CopyOnWriteArrayList<>();
+    private final Map<UUID, Actor<STATE>> actors = new ConcurrentHashMap<>();
 
-    private final Object lock = new Object();
-
-    /**
-     * <p>
-     * Construct an empty universe.
-     * </p>
-     * <ul>
-     * <li>The {@linkplain #getActors() collection of actors} {@linkplain Collection#isEmpty()
-     * is empty}.</li>
-     * </ul>
-     */
-    public Universe() {
-        // Do nothing
-    }
-
-    /**
-     * <p>
-     * Construct a universe given the histories of all the objects in it.
-     * </p>
-     * <ul>
-     * <li>The {@linkplain #getActors() object histories} of this universe
-     * are {@linkplain Map#equals(Object) equivalent to} the given
-     * {@code objectHistories}.</li>
-     * </ul>
-     *
-     * @param actors A snapshot of the history information of all the objects in the
-     *               universe.
-     * @throws NullPointerException If {@code objectHistories} is null
-     */
-    public Universe(@Nonnull final Collection<Actor<STATE>> actors) {
-        Objects.requireNonNull(actors, "actors");
-        this.actors.addAll(actors);
-    }
-
-    /**
-     * <p>
-     * Get a snapshot of the history information of all the objects in this
-     * universe.
-     * </p>
-     * <ul>
-     * <li>The returned collection will not subsequently change due to events.</li>
-     * <li>Has no null elements.</li>
-     * <li>Has no duplicate elements.</li>
-     * <li>May be unmodifiable.</li>
-     * </ul>
-     */
     @Nonnull
-    public Collection<Actor<STATE>> getActors() {
-        synchronized (lock) {// hard to test
-            return List.copyOf(actors);
-        }
+    @Override
+    public Iterator<Actor<STATE>> iterator() {
+        return actors.values().iterator();
     }
 
     @Override
-    public String toString() {
-        return "Universe" + actors;
+    public int size() {
+        return actors.size();
     }
+
+    @Override
+    public boolean add(final Actor<STATE> actor) {
+        Objects.requireNonNull(actor);
+        return actors.putIfAbsent(actor.lock, actor) == null;
+    }
+
+    @Override
+    public void clear() {
+        actors.clear();
+    }
+
+    @Override
+    public boolean equals(final Object that) {
+        if (this == that) return true;
+        if (that == null || getClass() != that.getClass()) return false;
+
+        final Universe<?> universe = (Universe<?>) that;
+
+        return actors.equals(universe.actors);
+    }
+
+    @Override
+    public int hashCode() {
+        return actors.hashCode();
+    }
+
+    @Override
+    public boolean contains(final Object o) {
+        if (!(o instanceof Actor)) {
+            return false;
+        }
+        final Actor<?> actor = (Actor<?>) o;
+        return actors.containsKey(actor.lock);
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return actors.isEmpty();
+    }
+
+    @Override
+    public Spliterator<Actor<STATE>> spliterator() {
+        return actors.values().spliterator();
+    }
+
+    @Override
+    public boolean remove(final Object o) {
+        if (!(o instanceof Actor<?>)) {
+            return false;
+        }
+        return removeActor((Actor<?>) o);
+    }
+
+    @Override
+    public boolean removeAll(final Collection<?> objects) {
+        return objects.stream()
+                .filter(o -> o instanceof Actor<?>)
+                .map(o -> (Actor<?>) o)
+                .map(this::removeActor)
+                .reduce((r1, r2) -> r1 || r2)
+                .orElse(Boolean.FALSE);
+    }
+
+    private boolean removeActor(final Actor<?> actor) {
+        return actors.remove(actor.lock) != null;
+    }
+
+    @Nonnull
+    @Override
+    public Object[] toArray() {
+        return actors.values().toArray();
+    }
+
+    @Nonnull
+    @Override
+    public <T> T[] toArray(@Nonnull final T[] a) {
+        return actors.values().toArray(a);
+    }
+
+    @Override
+    public boolean containsAll(@Nonnull final Collection<?> c) {
+        return actors.values().containsAll(c);
+    }
+
+    @Override
+    public boolean addAll(@Nonnull final Collection<? extends Actor<STATE>> c) {
+        return c.stream()
+                .map(this::add)
+                .reduce((a1, a2) -> a1 || a2)
+                .orElse(false);
+    }
+
+    @Override
+    public boolean retainAll(@Nonnull final Collection<?> c) {
+        return actors.values().retainAll(c);
+    }
+
 
 }
