@@ -267,7 +267,7 @@ public final class Actor<STATE> {
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
     }
 
-    CompletableFuture<Void> advanceTo(@Nonnull final Duration when, @Nonnull final Executor executor) {
+    private CompletableFuture<Void> advanceTo(@Nonnull final Duration when, @Nonnull final Executor executor) {
         final CompletableFuture<Void> future = new CompletableFuture<>();
         executor.execute(() -> {
             final Set<Actor<STATE>> affectedActors;
