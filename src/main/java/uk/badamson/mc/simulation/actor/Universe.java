@@ -21,8 +21,11 @@ package uk.badamson.mc.simulation.actor;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
 
 /**
  * <p>
@@ -154,5 +157,25 @@ public final class Universe<STATE> implements Collection<Actor<STATE>> {
         return actors.values().retainAll(c);
     }
 
-
+    /**
+     * <p>
+     * Have the actors of this Universe {@link Actor#receiveSignal() receive signals}
+     * until the {@link  Actor#getWhenReceiveNextSignal time of their next signal}
+     * is {@link Duration#compareTo(Duration) at or after} a given time,
+     * with the processing done using a given {@link Executor}.
+     * </p>
+     *
+     * @return a Future that {@linkplain Future#isDone() is done} when all the actors have been advanced,
+     * or an exception prevents a full computation.
+     * @throws NullPointerException if any {@link Nonnull} annotated argument is null.
+     */
+    @Nonnull
+    public Future<Void> advanceTo(
+            @Nonnull final Duration when,
+            @Nonnull final Executor executor
+    ) {
+        Objects.requireNonNull(when, "when");
+        Objects.requireNonNull(executor, "executor");
+        return Actor.advanceToWithCompletableFuture(when, this, executor);
+    }
 }

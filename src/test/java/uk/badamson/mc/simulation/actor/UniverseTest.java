@@ -24,22 +24,34 @@ import org.junit.jupiter.api.Test;
 import uk.badamson.dbc.assertions.CollectionVerifier;
 import uk.badamson.dbc.assertions.ObjectVerifier;
 
+import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 import java.time.Duration;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class UniverseTest {
 
-    static final Duration WHEN_A = ActorTest.WHEN_A;
 
-    static final Duration WHEN_B = ActorTest.WHEN_B;
+    static final Medium MEDIUM_A = new Medium();
+
+    static final Medium MEDIUM_B = new Medium();
+
+    private static final Duration WHEN_A = Duration.ofMillis(0);
+
+    private static final Duration WHEN_B = Duration.ofMillis(5000);
+
+    private static final Duration WHEN_C = Duration.ofMillis(7000);
+
+    private static final Executor DIRECT_EXECUTOR = Runnable::run;
 
     public static <STATE> void assertInvariants(@Nonnull final Universe<STATE> universe) {
         ObjectVerifier.assertInvariants(universe);// inherited
@@ -121,6 +133,27 @@ public class UniverseTest {
         assertInvariants(universe);
 
         return changed;
+    }
+
+
+    private static <STATE> Future<Void> advanceTo(@Nonnull final Universe<STATE> universe,
+                                                  @Nonnull final Duration when, @Nonnull final Executor executor
+    ) {
+        final Future<Void> future = universe.advanceTo(when, executor);
+        assertThat(future, notNullValue());
+        return future;
+    }
+
+    private static <STATE> void assertAllHaveAdvancedTo(
+            @Nonnull final Duration when, @Nonnull final Universe<STATE> universe
+    ) {
+        assertAll(
+                universe.stream().map(actor -> () -> {
+                    assertThat(actor, notNullValue());
+                    ActorTest.assertInvariants(actor);
+                    assertThat(actor.getWhenReceiveNextSignal(), greaterThanOrEqualTo(when));
+                })
+        );
     }
 
     @Test
@@ -453,4 +486,234 @@ public class UniverseTest {
         }
     }
 
+
+    @Nested
+    public class AdvanceTo {
+        @Test
+        public void noActors() throws Exception {
+            final Universe<Integer> universe = new Universe<>();
+
+            final var future = advanceTo(universe, WHEN_A, DIRECT_EXECUTOR);
+            future.get();
+
+            assertInvariants(universe);
+        }
+
+        @Nested
+        public class NoOp1WithNoSignalsToReceive {
+
+            @Test
+            public void just() throws Exception {
+                test(WHEN_A, WHEN_A, 0);
+            }
+
+            @Test
+            public void after() throws Exception {
+                test(WHEN_B, WHEN_C, 1);
+            }
+
+            private void test(
+                    @Nonnull final Duration start, @Nonnull final Duration when, final Integer state
+            ) throws Exception {
+                assert start.compareTo(when) <= 0;
+                final var actor = new Actor<>(start, state);
+                final Universe<Integer> universe = new Universe<>();
+                universe.add(actor);
+
+                final var future = advanceTo(universe, when, DIRECT_EXECUTOR);
+                future.get();
+
+                assertInvariants(universe);
+                assertAllHaveAdvancedTo(when, universe);
+                assertThat(universe, contains(actor));
+
+            }
+        }
+
+        @Nested
+        public class WhenReceivingASignalIsNecessary {
+
+            @Test
+            public void near() throws Exception {
+                test(WHEN_A, 1, Duration.ofNanos(1L));
+            }
+
+            @Test
+            public void far() throws Exception {
+                test(WHEN_B, 2, Duration.ofDays(365));
+            }
+
+            @Test
+            public void two() throws Exception {
+                final Duration margin = Duration.ofSeconds(1L);
+                assert WHEN_A.compareTo(margin) < 0;
+                final var sender = new Actor<>(WHEN_A, 1);
+                final var actorA = new Actor<>(WHEN_A, 1);
+                final var actorB = new Actor<>(WHEN_A, 2);
+                final var signalA = new SignalTest.SimpleTestSignal(WHEN_A, sender, actorA, MEDIUM_A);
+                final var signalB = new SignalTest.SimpleTestSignal(WHEN_A, sender, actorB, MEDIUM_B);
+                actorA.addSignalToReceive(signalA);
+                actorB.addSignalToReceive(signalB);
+                final Duration whenReceiveNextSignalA = actorA.getWhenReceiveNextSignal();
+                final Duration whenReceiveNextSignalB = actorB.getWhenReceiveNextSignal();
+                assert whenReceiveNextSignalA.compareTo(Signal.NEVER_RECEIVED.minus(margin)) <= 0;
+                assert whenReceiveNextSignalB.compareTo(Signal.NEVER_RECEIVED.minus(margin)) <= 0;
+                final var when = Collections.max(Arrays.asList(
+                        whenReceiveNextSignalA, whenReceiveNextSignalB
+                )).plus(margin);
+                final Universe<Integer> universe = new Universe<>();
+                universe.add(actorA);
+                universe.add(actorB);
+
+                final var future = advanceTo(universe, when, DIRECT_EXECUTOR);
+                future.get();
+
+                assertInvariants(universe);
+                ActorTest.assertInvariants(actorA);
+                ActorTest.assertInvariants(actorB);
+                assertAllHaveAdvancedTo(when, universe);
+                assertThat(universe, containsInAnyOrder(actorA, actorB));
+            }
+
+            @Test
+            public void concurrent() throws Exception {
+                final Duration margin = Duration.ofSeconds(1L);
+                final int nThreads = 16;
+                final int nActors = nThreads * 4;
+                assert WHEN_A.compareTo(margin) < 0;
+                final var sender = new Actor<>(WHEN_A, 1);
+                final Universe<Integer> universe = new Universe<>();
+                for (int a = 0; a < nActors; ++a) {
+                    final var actor = new Actor<>(WHEN_A, a);
+                    final var signal = new SignalTest.SimpleTestSignal(WHEN_A, sender, actor, MEDIUM_A);
+                    actor.addSignalToReceive(signal);
+                    universe.add(actor);
+                }
+                final Duration whenReceiveNextSignal = universe.stream()
+                        .map(Actor::getWhenReceiveNextSignal)
+                        .max(Comparator.naturalOrder())
+                        .orElseThrow();
+                assert whenReceiveNextSignal.compareTo(Signal.NEVER_RECEIVED.minus(margin)) <= 0;
+                final var when = whenReceiveNextSignal.plus(margin);
+                final Executor executor = Executors.newFixedThreadPool(nThreads);
+
+                final var future = advanceTo(universe, when, executor);
+                future.get();
+
+                assertAllHaveAdvancedTo(when, universe);
+            }
+
+            @Test
+            public void receiveSignalThrowsException() {
+                final Duration margin = Duration.ofSeconds(10);
+                assert WHEN_B.compareTo(margin) < 0;
+                final var sender = new Actor<>(WHEN_B, 2);
+                final var actor = new Actor<>(WHEN_B, 2);
+                final var signal = new SignalTest.ThrowingSignal(WHEN_B, sender, actor, MEDIUM_A);
+                actor.addSignalToReceive(signal);
+                final Duration whenReceiveNextSignal = actor.getWhenReceiveNextSignal();
+                assert whenReceiveNextSignal.compareTo(Signal.NEVER_RECEIVED.minus(margin)) <= 0;
+                final var when = whenReceiveNextSignal.plus(margin);
+                final Universe<Integer> universe = new Universe<>();
+                universe.add(actor);
+
+                final var future = advanceTo(universe, when, DIRECT_EXECUTOR);
+                final ExecutionException exception = assertThrows(ExecutionException.class, future::get);
+
+                assertThat(exception.getCause(), isA(Actor.SignalException.class));
+                assertThat(exception.getCause().getCause(), isA(SignalTest.ThrowingSignal.InevitableException.class));
+            }
+
+            private void test(
+                    @Nonnull final Duration start, final int state0, @Nonnull @Nonnegative final Duration margin
+            ) throws Exception {
+                assert start.compareTo(margin) < 0;
+                final var sender = new Actor<>(start, state0);
+                final var actor = new Actor<>(start, state0);
+                final var signal = new SignalTest.SimpleTestSignal(start, sender, actor, MEDIUM_A);
+                actor.addSignalToReceive(signal);
+                final Duration whenReceiveNextSignal = actor.getWhenReceiveNextSignal();
+                assert whenReceiveNextSignal.compareTo(Signal.NEVER_RECEIVED.minus(margin)) <= 0;
+                final var when = whenReceiveNextSignal.plus(margin);
+                final Universe<Integer> universe = new Universe<>();
+                universe.add(actor);
+
+                final var future = advanceTo(universe, when, DIRECT_EXECUTOR);
+                future.get();
+
+                ActorTest.assertInvariants(actor);
+                assertAllHaveAdvancedTo(when, universe);
+                assertThat(universe, contains(actor));
+            }
+        }
+
+        @Nested
+        public class WhenReceivingASequenceOfSignalsIsNecessary {
+
+            @Test
+            public void a() throws Exception {
+                test(WHEN_A, 1, Duration.ofDays(1));
+            }
+
+            @Test
+            public void b() throws Exception {
+                test(WHEN_B, 2, Duration.ofDays(2));
+            }
+
+            private void test(@Nonnull final Duration start, final int state0, @Nonnull @Nonnegative final Duration margin) throws Exception {
+                assert start.compareTo(margin) < 0;
+                final var sender = new Actor<>(start, state0);
+                final var actor = new Actor<>(start, state0);
+                final var signal = new SignalTest.StrobingTestSignal(start, sender, actor, MEDIUM_A);
+                actor.addSignalToReceive(signal);
+                final Duration whenReceiveNextSignal = actor.getWhenReceiveNextSignal();
+                assert whenReceiveNextSignal.compareTo(Signal.NEVER_RECEIVED.minus(margin)) <= 0;
+                final var when = whenReceiveNextSignal.plus(margin);
+                final Universe<Integer> universe = new Universe<>();
+                universe.add(actor);
+
+                final var future = advanceTo(universe, when, DIRECT_EXECUTOR);
+                future.get();
+
+                ActorTest.assertInvariants(actor);
+                assertAllHaveAdvancedTo(when, universe);
+                assertThat(universe, contains(actor));
+            }
+        }
+
+        @Nested
+        public class WhenReceivingASignalIsUnnecessary {
+
+            @Test
+            public void near() throws Exception {
+                test(WHEN_A, 1, Duration.ofNanos(1L));
+            }
+
+            @Test
+            public void far() throws Exception {
+                test(WHEN_B, 2, Duration.ofDays(365));
+            }
+
+            private void test(@Nonnull final Duration start, final int state0, @Nonnull @Nonnegative final Duration margin) throws Exception {
+                assert start.compareTo(margin) < 0;
+                final var sender = new Actor<>(start, state0);
+                final var actor = new Actor<>(start, state0);
+                final var signal = new SignalTest.SimpleTestSignal(start, sender, actor, MEDIUM_A);
+                actor.addSignalToReceive(signal);
+                final Duration whenReceiveNextSignal = actor.getWhenReceiveNextSignal();
+                final var when = whenReceiveNextSignal.minus(margin);
+                assert !actor.getSignalsToReceive().isEmpty();
+                final Universe<Integer> universe = new Universe<>();
+                universe.add(actor);
+
+                final var future = advanceTo(universe, when, DIRECT_EXECUTOR);
+                future.get();
+
+                ActorTest.assertInvariants(actor);
+                assertAllHaveAdvancedTo(when, universe);
+                assertThat(universe, contains(actor));
+                assertThat("did not process any signals", actor.getSignalsToReceive(), contains(signal));
+            }
+        }
+    }
 }

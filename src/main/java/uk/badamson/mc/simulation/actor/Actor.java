@@ -30,7 +30,6 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Future;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -257,36 +256,9 @@ public final class Actor<STATE> {
         return true;
     }
 
-    /**
-     * <p>
-     * Have a set of actors {@link #receiveSignal() receive signals}
-     * until the {@link  #getWhenReceiveNextSignal time of their next signal}
-     * is {@link Duration#compareTo(Duration) at or after} a given time,
-     * with the processing done using a given {@link Executor}.
-     * </p>
-     *
-     * @return a Future that {@linkplain Future#isDone() is done} when all the actors have been advanced,
-     * or an exception prevents a full computation.
-     * @throws NullPointerException <ul>
-     *                              <li>if any {@link Nonnull} annotated argument is null.</li>
-     *                              <li>if any {@code actors} contains a null</li>
-     *                              </ul>
-     */
-    @Nonnull
-    public static <STATE> Future<Void> advanceTo(
+    static <STATE> CompletableFuture<Void> advanceToWithCompletableFuture(
             @Nonnull final Duration when,
-            @Nonnull final Set<Actor<STATE>> actors,
-            @Nonnull final Executor executor
-    ) {
-        Objects.requireNonNull(when, "when");
-        Objects.requireNonNull(actors, "actors");
-        Objects.requireNonNull(executor, "executor");
-        return advanceToWithCompletableFuture(when, Set.copyOf(actors), executor);
-    }
-
-    private static <STATE> CompletableFuture<Void> advanceToWithCompletableFuture(
-            @Nonnull final Duration when,
-            @Nonnull final Set<Actor<STATE>> actors,
+            @Nonnull final Collection<Actor<STATE>> actors,
             @Nonnull final Executor executor
     ) {
         final int nActors = actors.size();
@@ -303,7 +275,7 @@ public final class Actor<STATE> {
         }
     }
 
-    private CompletableFuture<Void> advanceTo(@Nonnull final Duration when, @Nonnull final Executor executor) {
+    CompletableFuture<Void> advanceTo(@Nonnull final Duration when, @Nonnull final Executor executor) {
         final CompletableFuture<Void> future = new CompletableFuture<>();
         executor.execute(() -> {
             final Set<Actor<STATE>> affectedActors;
