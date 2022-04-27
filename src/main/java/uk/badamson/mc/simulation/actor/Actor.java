@@ -261,18 +261,10 @@ public final class Actor<STATE> {
             @Nonnull final Collection<Actor<STATE>> actors,
             @Nonnull final Executor executor
     ) {
-        final int nActors = actors.size();
-        if (nActors == 0) {
-            return CompletableFuture.completedFuture(null);
-        } else if (nActors == 1) {
-            final var actor = actors.iterator().next();
-            return actor.advanceTo(when, executor);
-        } else {
-            final Collection<CompletableFuture<Void>> futures = actors.stream()
-                    .map(actor -> actor.advanceTo(when, executor))
-                    .collect(Collectors.toUnmodifiableList());
-            return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
-        }
+        final Collection<CompletableFuture<Void>> futures = actors.stream()
+                .map(actor -> actor.advanceTo(when, executor))
+                .collect(Collectors.toUnmodifiableList());
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
     }
 
     CompletableFuture<Void> advanceTo(@Nonnull final Duration when, @Nonnull final Executor executor) {
