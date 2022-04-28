@@ -217,12 +217,6 @@ public class SignalTest {
 
     static final class ThrowingSignal extends Signal<Integer> {
 
-        static final class InevitableException extends RuntimeException {
-            InevitableException() {
-                super("Inevitable thrown exception");
-            }
-        }
-
         ThrowingSignal(@Nonnull final Duration whenSent, @Nonnull final Actor<Integer> sender, @Nonnull final Actor<Integer> receiver, @Nonnull final Medium medium) {
             super(whenSent, sender, receiver, medium);
         }
@@ -237,6 +231,12 @@ public class SignalTest {
         @Override
         protected Event<Integer> receive(@Nonnull final Duration when, @Nonnull final Integer receiverState) throws InevitableException {
             throw new InevitableException();
+        }
+
+        static final class InevitableException extends RuntimeException {
+            InevitableException() {
+                super("Inevitable thrown exception");
+            }
         }
     }
 
@@ -268,7 +268,7 @@ public class SignalTest {
             final var receiver = getReceiver();
             final Set<Signal<Integer>> signalsEmitted = signalsEmitted(when);
             final Integer newState = receiverState + 1;
-            return new Event<>(this, when, receiver, newState, signalsEmitted);
+            return new Event<>(this, when, receiver, newState, signalsEmitted, Set.of());
         }
 
         protected abstract Set<Signal<Integer>> signalsEmitted(@Nonnull final Duration when);

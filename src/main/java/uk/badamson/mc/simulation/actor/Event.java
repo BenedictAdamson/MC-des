@@ -59,6 +59,30 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
     @Nonnull
     private final Set<Signal<STATE>> signalsEmitted;
 
+    @Nonnull
+    private final Set<Actor<STATE>> createdActors;
+
+    /**
+     * <p>
+     * Construct a simple event that causes only a state transition.
+     * </p>
+     *
+     * @throws NullPointerException If any {@link Nonnull} argument is null.
+     */
+    public Event(
+            @Nonnull final Signal<STATE> causingSignal,
+            @Nonnull final Duration when,
+            @Nonnull final Actor<STATE> affectedObject,
+            @Nullable final STATE state
+    ) {
+        this.causingSignal = Objects.requireNonNull(causingSignal, "causingSignal");
+        this.when = Objects.requireNonNull(when, "when");
+        this.affectedObject = Objects.requireNonNull(affectedObject, "affectedObject");
+        this.state = state;
+        this.signalsEmitted = Set.of();
+        this.createdActors = Set.of();
+    }
+
     /**
      * <p>
      * Construct an event with given attribute values.
@@ -67,24 +91,30 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
      * @throws NullPointerException     <ul>
      *                                  <li>If any {@link Nonnull} argument is null.</li>
      *                                  <li>If {@code signalsEmitted} contains a null.</li>
+     *                                  <li>If {@code createdActors} contains a null.</li>
      *                                  </ul>
-     * @throws IllegalArgumentException If {@code signalsEmitted} contains a signal that was not sent by
-     *                                  the event represented by this effect. That is, if the signal was
-     *                                  not
-     *                                  <ul>
-     *                                  <li>{@linkplain Signal#getSender() sent} from the same object as
-     *                                  the {@code affectedObject}, or</li>
-     *                                  <li>{@linkplain Signal#getWhenSent() sent} at the same time as
+     * @throws IllegalArgumentException <ul>
+     *                                  <li>If {@code signalsEmitted} contains a signal that was not
+     *                                  {@linkplain Signal#getSender() sent} from the same object as
+     *                                  the {@code affectedObject}</li>
+     *                                  <li>If {@code signalsEmitted} contains a signal that was not {@linkplain Signal#getWhenSent() sent} at the same time as
      *                                  {@code when}.</li>
+     *                                  <li> If {@code createdActors} {@linkplain Set#contains(Object) contains} {@code affectedObject}.</li>
+     *                                  <li>If any of the {@code createdActors} have a {@linkplain Actor#getStart() start time} that is not {@linkplain Duration#equals(Object) equal to} {@code when}.</li>
      *                                  </ul>
      */
-    public Event(@Nonnull final Signal<STATE> causingSignal, @Nonnull final Duration when, @Nonnull final Actor<STATE> affectedObject, @Nullable final STATE state,
-                 @Nonnull final Set<Signal<STATE>> signalsEmitted) {
+    public Event(@Nonnull final Signal<STATE> causingSignal,
+                 @Nonnull final Duration when,
+                 @Nonnull final Actor<STATE> affectedObject,
+                 @Nullable final STATE state,
+                 @Nonnull final Set<Signal<STATE>> signalsEmitted,
+                 @Nonnull final Set<Actor<STATE>> createdActors) {
         this.causingSignal = Objects.requireNonNull(causingSignal, "causingSignal");
         this.when = Objects.requireNonNull(when, "when");
         this.affectedObject = Objects.requireNonNull(affectedObject, "affectedObject");
         this.state = state;
         this.signalsEmitted = Set.copyOf(signalsEmitted);
+        this.createdActors = Set.copyOf(createdActors);
         /* Check after copy to avoid race hazards. */
         this.signalsEmitted.forEach(signal -> {
             if (affectedObject != signal.getSender()) {
@@ -92,6 +122,14 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
             }
             if (when != signal.getWhenSent()) {
                 throw new IllegalArgumentException("signalEmitted not sent at event time.");
+            }
+        });
+        this.createdActors.forEach(actor -> {
+            if (!when.equals(actor.getStart())) {
+                throw new IllegalArgumentException("createdActors.start not equal to when.");
+            }
+            if (this.createdActors.contains(affectedObject)) {
+                throw new IllegalArgumentException("affectedObject is a createdActors.");
             }
         });
     }
@@ -102,7 +140,7 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
      * </p>
      */
     @Nonnull
-    @SuppressFBWarnings(value="EI_EXPOSE_REP", justification="effectively immutable")
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "effectively immutable")
     public Actor<STATE> getAffectedObject() {
         return affectedObject;
     }
@@ -157,6 +195,14 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
     @Nonnull
     public Duration getWhen() {
         return when;
+    }
+
+    /**
+     * Does not contains null.
+     */
+    @Nonnull
+    public Set<Actor<STATE>> getCreatedActors() {
+        return createdActors;
     }
 
     @Override
