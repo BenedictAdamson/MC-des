@@ -21,7 +21,6 @@ package uk.badamson.mc.simulation.actor;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 import uk.badamson.dbc.assertions.ComparableVerifier;
 import uk.badamson.dbc.assertions.ObjectVerifier;
 
@@ -29,11 +28,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.time.Duration;
 import java.util.Set;
-import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
@@ -49,9 +46,9 @@ public class EventTest {
 
     private static final Medium MEDIUM_A = new Medium();
 
-    private static final Medium MEDIUM_B = new Medium();
-
     private static final Signal<Integer> SIGNAL_A = new SignalTest.SimpleTestSignal(WHEN_A, ACTOR_A, ACTOR_B, MEDIUM_A);
+
+    private static final Medium MEDIUM_B = new Medium();
 
     private static final Signal<Integer> SIGNAL_B = new SignalTest.SimpleTestSignal(WHEN_B, ACTOR_B, ACTOR_A, MEDIUM_B);
 
@@ -62,15 +59,32 @@ public class EventTest {
         final var affectedObject = event.getAffectedObject();
         final var causingSignal = event.getCausingSignal();
         final var signalsEmitted = event.getSignalsEmitted();
+        final var createdActors = event.getCreatedActors();
         final var when = event.getWhen();
+        final var indirectlyAffectedObjects = event.getIndirectlyAffectedObjects();
 
         assertAll("Not null", () -> assertNotNull(affectedObject, "affectedObject"),
                 () -> assertNotNull(causingSignal, "causingSignal"),
                 () -> assertNotNull(signalsEmitted, "signalsEmitted"), // guard
-                () -> assertNotNull(when, "when"));
+                () -> assertNotNull(when, "when"),
+                () -> assertThat(createdActors, notNullValue()),
+                () -> assertThat(indirectlyAffectedObjects, notNullValue()));
 
         assertAll("signalsEmitted",
-                createSignalsEmittedInvariantAssertions(when, affectedObject, signalsEmitted));
+                signalsEmitted.stream().map(signal -> () -> {
+                    assertNotNull(signal, "signal");
+                    SignalTest.assertInvariants(signal);
+                    assertSame(affectedObject, signal.getSender(), "sender");
+                    assertSame(when, signal.getWhenSent(), "whenSent");
+                    assertThat(indirectlyAffectedObjects, hasItem(signal.getReceiver()));
+                }));
+        assertAll(
+                createdActors.stream().map(actor -> () -> {
+                    assertThat(actor, notNullValue());
+                    assertThat(actor.getStart(), is(when));
+                })
+        );
+        assertThat(indirectlyAffectedObjects, hasItem(affectedObject));
     }
 
     public static <STATE> void assertInvariants(@Nonnull final Event<STATE> event1,
@@ -119,17 +133,6 @@ public class EventTest {
                 () -> assertThat(event.getSignalsEmitted(), containsInAnyOrder(signalsEmitted.toArray())),
                 () -> assertThat(event.getCreatedActors(), containsInAnyOrder(createdActors.toArray())));
 
-    }
-
-    private static <STATE> Stream<Executable> createSignalsEmittedInvariantAssertions(
-            final Duration when,
-            final Actor<STATE> affectedObject, final Set<Signal<STATE>> signalsEmitted) {
-        return signalsEmitted.stream().map(signal -> () -> {
-            assertNotNull(signal, "signal");
-            SignalTest.assertInvariants(signal);
-            assertSame(affectedObject, signal.getSender(), "sender");
-            assertSame(when, signal.getWhenSent(), "whenSent");
-        });
     }
 
     @Test

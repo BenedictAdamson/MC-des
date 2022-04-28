@@ -556,12 +556,16 @@ public final class Actor<STATE> {
      * <p>
      * Although this method removes a signal from the set of signals to receive,
      * it may also add signals for events that have been invalidated by the signal received.
+     * If the method {@linkplain Signal#receive(Duration, Object) receives} a signal, that creates a new
+     * {@linkplain  #getEvents() event} for this actor,
+     * which will be the {@linkplain SortedSet#last() last} of the events.
      * </p>
-     * <ul>
-     *     <li>If the method returns a (non null) event, the {@linkplain Event#getAffectedObject() affected object} of the event is {@code this}.</li>
-     * </ul>
      *
-     * @return The set of actors affected by this change; does not contain a null element; may be unmodifiable.
+     * @return The set of actors affected by this change; does not contain a null element; may be {@linkplain Set#isEmpty() empty}; may be unmodifiable.
+     * <ul>
+     *     <li>Empty if, and only if, no signal is received.</li>
+     *     <li>If it is not empty, it is the {@linkplain Event#getIndirectlyAffectedObjects() indirectly affected objects} of the event caused by reception of the signal.</li>
+     * </ul>
      * @throws SignalException If a {@link Signal} object throws a {@link RuntimeException}.
      *                         The method is safe if this exception is thrown: the state of this Actor will not have changed.
      */

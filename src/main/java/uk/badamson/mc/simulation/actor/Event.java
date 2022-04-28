@@ -24,6 +24,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -62,6 +63,9 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
     @Nonnull
     private final Set<Actor<STATE>> createdActors;
 
+    @Nonnull
+    private final Set<Actor<STATE>> indirectlyAffectedObjects;
+
     /**
      * <p>
      * Construct a simple event that causes only a state transition.
@@ -81,6 +85,7 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
         this.state = state;
         this.signalsEmitted = Set.of();
         this.createdActors = Set.of();
+        this.indirectlyAffectedObjects = Set.of(affectedObject);
     }
 
     /**
@@ -132,6 +137,18 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
                 throw new IllegalArgumentException("affectedObject is a createdActors.");
             }
         });
+        this.indirectlyAffectedObjects = createIndirectlyAffectedObjects(
+                affectedObject, this.signalsEmitted
+        );
+    }
+
+    private static <STATE> Set<Actor<STATE>> createIndirectlyAffectedObjects(
+            @Nonnull final Actor<STATE> affectedObject,
+            @Nonnull final Set<Signal<STATE>> signalsEmitted) {
+        final Set<Actor<STATE>> result = new HashSet<>(1 + signalsEmitted.size());
+        result.add(affectedObject);
+        signalsEmitted.forEach(signal -> result.add(signal.getReceiver()));
+        return Set.copyOf(result);
     }
 
     /**
@@ -143,6 +160,22 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
     @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "effectively immutable")
     public Actor<STATE> getAffectedObject() {
         return affectedObject;
+    }
+
+    /**
+     * <p>
+     * All simulated objects that will indirectly be affected by this event.
+     * </p>
+     * <ul>
+     *     <li>Does not contain null.</li>
+     *     <li>May be unmodifiable</li>
+     *     <li>{@linkplain Set#contains(Object) contains} the {@linkplain #getAffectedObject() directly affected object}.</li>
+     *     <li>{@linkplain Set#contains(Object) contains} the {@linkplain Signal#getReceiver() receivers} of {@linkplain #getSignalsEmitted() signals emitted}.</li>
+     * </ul>
+     */
+    @Nonnull
+    public Set<Actor<STATE>> getIndirectlyAffectedObjects() {
+        return indirectlyAffectedObjects;
     }
 
     /**
