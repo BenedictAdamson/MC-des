@@ -176,6 +176,6 @@ public final class Universe<STATE> implements Collection<Actor<STATE>> {
     ) {
         Objects.requireNonNull(when, "when");
         Objects.requireNonNull(executor, "executor");
-        return Actor.advanceToWithCompletableFuture(when, this, executor);
+        return Actor.advanceSeveralActors(when, this, executor);
     }
 }

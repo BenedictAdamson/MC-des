@@ -256,9 +256,20 @@ public final class Actor<STATE> {
         return true;
     }
 
-    static <STATE> CompletableFuture<Void> advanceToWithCompletableFuture(
+    static <STATE> CompletableFuture<Void> advanceSeveralActors(
             @Nonnull final Duration when,
             @Nonnull final Collection<Actor<STATE>> actors,
+            @Nonnull final Executor executor
+    ) {
+        final Collection<CompletableFuture<Void>> futures = actors.stream()
+                .map(actor -> actor.advanceTo(when, executor))
+                .collect(Collectors.toUnmodifiableList());
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+    }
+
+    private static <STATE> CompletableFuture<Void> advanceToWithCompletableFuture(
+            @Nonnull final Duration when,
+            @Nonnull final Set<Actor<STATE>> actors,
             @Nonnull final Executor executor
     ) {
         final int nActors = actors.size();
@@ -268,10 +279,7 @@ public final class Actor<STATE> {
             final var actor = actors.iterator().next();
             return actor.advanceTo(when, executor);
         } else {
-            final Collection<CompletableFuture<Void>> futures = actors.stream()
-                    .map(actor -> actor.advanceTo(when, executor))
-                    .collect(Collectors.toUnmodifiableList());
-            return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+            return advanceSeveralActors(when, actors, executor);
         }
     }
 
