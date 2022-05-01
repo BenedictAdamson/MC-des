@@ -22,6 +22,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
+import uk.badamson.dbc.assertions.EqualsSemanticsVerifier;
 import uk.badamson.dbc.assertions.ObjectVerifier;
 import uk.badamson.dbc.assertions.ThreadSafetyTest;
 import uk.badamson.mc.history.ValueHistoryTest;
@@ -142,15 +143,12 @@ public class ActorTest {
     }
 
     @Nonnull
-    private static <STATE> Set<Actor<STATE>> receiveSignal(@Nonnull final Actor<STATE> actor) {
-        final Set<Actor<STATE>> affectedActors = actor.receiveSignal();
+    private static <STATE> Actor.AffectedActors<STATE> receiveSignal(@Nonnull final Actor<STATE> actor) {
+        final Actor.AffectedActors<STATE> affectedActors = actor.receiveSignal();
 
         assertInvariants(actor);
-        assertThat("affected actors", affectedActors, notNullValue());
-        assertAll("affected actors", affectedActors.stream().map(affectedActor -> () -> {
-            assertThat(affectedActor, notNullValue());
-            assertInvariants(affectedActor);
-        }));
+        assertThat(affectedActors, notNullValue());
+        AffectedActorsTest.assertInvariants(affectedActors);
         return affectedActors;
     }
 
@@ -194,6 +192,160 @@ public class ActorTest {
         assertInvariants(receiver);
         for (final var signal : signals) {
             SignalTest.assertInvariants(signal);
+        }
+    }
+
+    public static class AffectedActorsTest {
+
+        public static <STATE> void assertInvariants(@Nonnull final Actor.AffectedActors<STATE> affected) {
+            final Set<Actor<STATE>> added = affected.getAdded();
+            final Set<Actor<STATE>> changed = affected.getChanged();
+            final Set<Actor<STATE>> removed = affected.getRemoved();
+            assertAll(
+                    () -> assertThat(added, notNullValue()),
+                    () -> assertThat(changed, notNullValue()),
+                    () -> assertThat(removed, notNullValue()));
+            assertAll(added.stream().map(actor -> () -> {
+                assertThat(actor, notNullValue());
+                ActorTest.assertInvariants(actor);
+                assertThat(changed, not(hasItem(actor)));
+                assertThat(removed, not(hasItem(actor)));
+            }));
+            assertAll(changed.stream().map(actor -> () -> {
+                assertThat(actor, notNullValue());
+                ActorTest.assertInvariants(actor);
+                assertThat(removed, not(hasItem(actor)));
+            }));
+            assertAll(removed.stream().map(actor -> () -> {
+                assertThat(actor, notNullValue());
+                ActorTest.assertInvariants(actor);
+            }));
+            assertThat(affected.isEmpty(), is(added.isEmpty() && changed.isEmpty() && removed.isEmpty()));
+        }
+
+        public static <STATE> void assertInvariants(
+                @Nonnull final Actor.AffectedActors<STATE> affected1,
+                @Nonnull final Actor.AffectedActors<STATE> affected2
+        ) {
+            ObjectVerifier.assertInvariants(affected1, affected2);
+            EqualsSemanticsVerifier.assertValueSemantics(
+                    affected1, affected2, "added", Actor.AffectedActors::getAdded
+            );
+            EqualsSemanticsVerifier.assertValueSemantics(
+                    affected1, affected2, "changed", Actor.AffectedActors::getChanged
+            );
+            EqualsSemanticsVerifier.assertValueSemantics(
+                    affected1, affected2, "removed", Actor.AffectedActors::getRemoved
+            );
+        }
+
+        private static <STATE> void constructor(
+                @Nonnull final Set<Actor<STATE>> changed,
+                @Nonnull final Set<Actor<STATE>> added,
+                @Nonnull final Set<Actor<STATE>> removed) {
+            final var affected = new Actor.AffectedActors<>(changed, added, removed);
+
+            assertInvariants(affected);
+            assertThat(affected.getChanged(), is(changed));
+            assertThat(affected.getAdded(), is(added));
+            assertThat(affected.getRemoved(), is(removed));
+        }
+
+        @Nested
+        public class One {
+            @Test
+            public void emptySets() {
+                constructor(Set.of(), Set.of(), Set.of());
+            }
+
+            @Test
+            public void hasChanged() {
+                final Actor<Integer> actor = new Actor<>(WHEN_A, 1);
+                constructor(Set.of(actor), Set.of(), Set.of());
+            }
+
+            @Test
+            public void hasAdded() {
+                final Actor<Integer> actor = new Actor<>(WHEN_A, 1);
+                constructor(Set.of(), Set.of(actor), Set.of());
+            }
+
+            @Test
+            public void hasRemoved() {
+                final Actor<Integer> actor = new Actor<>(WHEN_A, 1);
+                constructor(Set.of(), Set.of(), Set.of(actor));
+            }
+
+        }
+
+        @Nested
+        public class Two {
+
+            @Test
+            public void differentChanged() {
+                final Actor<Integer> actorA = new Actor<>(WHEN_A, 1);
+                final Actor<Integer> actorB = new Actor<>(WHEN_B, 2);
+                testDifferent(
+                        Set.of(actorA), Set.of(), Set.of(),
+                        Set.of(actorB), Set.of(), Set.of()
+                );
+            }
+
+            @Test
+            public void differentAdded() {
+                final Actor<Integer> actorA = new Actor<>(WHEN_A, 1);
+                final Actor<Integer> actorB = new Actor<>(WHEN_B, 2);
+                testDifferent(
+                        Set.of(), Set.of(actorA), Set.of(),
+                        Set.of(), Set.of(actorB), Set.of()
+                );
+            }
+
+            @Test
+            public void differentRemoved() {
+                final Actor<Integer> actorA = new Actor<>(WHEN_A, 1);
+                final Actor<Integer> actorB = new Actor<>(WHEN_B, 2);
+                testDifferent(
+                        Set.of(), Set.of(), Set.of(actorA),
+                        Set.of(), Set.of(), Set.of(actorB)
+                );
+            }
+
+            @Test
+            public void equivalentEmpty() {
+                testDifferent(
+                        Set.of(), Set.of(), Set.of(),
+                        Set.of(), Set.of(), Set.of()
+                );
+            }
+
+            @Test
+            public void equivalentNotEmpty() {
+                final Actor<Integer> actorA = new Actor<>(WHEN_A, 1);
+                final Actor<Integer> actorB = new Actor<>(WHEN_B, 2);
+                final Actor<Integer> actorC = new Actor<>(WHEN_C, 3);
+                final Actor<Integer> actorD = new Actor<>(WHEN_A, 4);
+                final Actor<Integer> actorE = new Actor<>(WHEN_B, 5);
+                final Actor<Integer> actorF = new Actor<>(WHEN_C, 6);
+                testDifferent(
+                        Set.of(actorA), Set.of(actorB), Set.of(actorC),
+                        Set.of(actorD), Set.of(actorE), Set.of(actorF)
+                );
+            }
+
+            private <STATE> void testDifferent(
+                    @Nonnull final Set<Actor<STATE>> changedA,
+                    @Nonnull final Set<Actor<STATE>> addedA,
+                    @Nonnull final Set<Actor<STATE>> removedA,
+                    @Nonnull final Set<Actor<STATE>> changedB,
+                    @Nonnull final Set<Actor<STATE>> addedB,
+                    @Nonnull final Set<Actor<STATE>> removedB) {
+                final var affectedA = new Actor.AffectedActors<>(changedA, addedA, removedA);
+                final var affectedB = new Actor.AffectedActors<>(changedB, addedB, removedB);
+
+                assertInvariants(affectedA, affectedB);
+                assertThat(affectedA, not(is(affectedB)));
+            }
         }
     }
 
@@ -281,8 +433,10 @@ public class ActorTest {
 
             final var affectedActors = receiveSignal(actor);
 
-            assertThat("actor events", actor.getEvents(), empty());
-            assertThat("affected actors", affectedActors, empty());
+            assertThat(actor.getEvents(), empty());
+            assertThat(affectedActors.getAdded(), empty());
+            assertThat(affectedActors.getChanged(), empty());
+            assertThat(affectedActors.getRemoved(), empty());
         }
 
         @Test
@@ -342,7 +496,9 @@ public class ActorTest {
                 assertThat("event causing signal", event.getCausingSignal(), sameInstance(signal));
                 assertThat("event state resulted from receiving the signal", event, is(signal.receive(state0)));
                 assertThat("receiver events", receiver.getEvents(), is(Set.of(event)));
-                assertThat("affected actors", affectedActors, contains(receiver));
+                assertThat(affectedActors.getAdded(), empty());
+                assertThat(affectedActors.getRemoved(), empty());
+                assertThat(affectedActors.getChanged(), contains(receiver));
             }
         }
 
@@ -380,7 +536,9 @@ public class ActorTest {
                 final Integer state1 = event1.getState();
                 assertThat("event 1 result state", state1, notNullValue());// guard
                 assertThat("event 2 resulted from receiving signal 2", event2, is(signal2.receive(state1)));
-                assertThat("affected actors", affectedActors, contains(receiver));
+                assertThat(affectedActors.getAdded(), empty());
+                assertThat(affectedActors.getRemoved(), empty());
+                assertThat(affectedActors.getChanged(), contains(receiver));
             }
         }
 
@@ -418,7 +576,9 @@ public class ActorTest {
                 final Integer state1 = event1.getState();
                 assertThat("event 1 result state", state1, notNullValue());// guard
                 assertThat("event 2 resulted from receiving signal 2", event2, is(signal2.receive(state1)));
-                assertThat("affected actors", affectedActors, containsInAnyOrder(actor1, actor2));
+                assertThat(affectedActors.getAdded(), empty());
+                assertThat(affectedActors.getRemoved(), empty());
+                assertThat(affectedActors.getChanged(), containsInAnyOrder(actor1, actor2));
             }
         }
 
@@ -446,7 +606,9 @@ public class ActorTest {
                 assertThat("Has another signal to receive", actor.getSignalsToReceive(), hasSize(1));
                 assertThat("State transition is when the signal was received",
                         actor.getStateHistory().getLastTransitionTime(), is(whenReceiveNextSignal0));
-                assertThat("affected actors", affectedActors, contains(actor));
+                assertThat(affectedActors.getAdded(), empty());
+                assertThat(affectedActors.getRemoved(), empty());
+                assertThat(affectedActors.getChanged(), contains(actor));
             }
         }
 
@@ -474,7 +636,9 @@ public class ActorTest {
                 assertInvariants(actorA);
                 assertThat("Original sender has another signal to receive", actorA.getSignalsToReceive(), hasSize(1));
                 assertThat("Original receiver does not have another signal to receive", actorB.getSignalsToReceive(), empty());
-                assertThat("affected actors", affectedActors, containsInAnyOrder(actorA, actorB));
+                assertThat(affectedActors.getAdded(), empty());
+                assertThat(affectedActors.getRemoved(), empty());
+                assertThat(affectedActors.getChanged(), containsInAnyOrder(actorA, actorB));
             }
         }
 
@@ -518,7 +682,9 @@ public class ActorTest {
                 assertThat("events", events, hasSize(2));
                 assertThat("event 1 causing signal", events.first().getCausingSignal(), sameInstance(signal1));
                 assertThat("event 2 causing signal", events.last().getCausingSignal(), sameInstance(signal3));
-                assertThat("affected actors", affectedActors, contains(receiver));
+                assertThat(affectedActors.getAdded(), empty());
+                assertThat(affectedActors.getRemoved(), empty());
+                assertThat(affectedActors.getChanged(), contains(receiver));
             }
         }
     }// class

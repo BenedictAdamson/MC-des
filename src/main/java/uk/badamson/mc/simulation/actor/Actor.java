@@ -286,12 +286,12 @@ public final class Actor<STATE> {
     private CompletableFuture<Void> advanceTo(@Nonnull final Duration when, @Nonnull final Executor executor) {
         final CompletableFuture<Void> future = new CompletableFuture<>();
         executor.execute(() -> {
-            final Set<Actor<STATE>> affectedActors;
+            final AffectedActors<STATE> affectedActors;
             try {
                 if (getWhenReceiveNextSignal().compareTo(when) < 0) {
                     affectedActors = receiveSignal();
                 } else {
-                    affectedActors = Set.of();
+                    affectedActors = AffectedActors.emptyInstance();
                 }
             } catch (final SignalException e) {
                 future.completeExceptionally(e);
@@ -300,7 +300,7 @@ public final class Actor<STATE> {
             if (affectedActors.isEmpty()) {
                 future.complete(null);
             } else {
-                advanceToWithCompletableFuture(when, affectedActors, executor)
+                advanceToWithCompletableFuture(when, affectedActors.getChanged(), executor)
                         .handle((ignored, exception) -> {
                             if (exception == null) {
                                 future.complete(null);
@@ -563,14 +563,14 @@ public final class Actor<STATE> {
      *
      * @return The set of actors affected by this change; does not contain a null element; may be {@linkplain Set#isEmpty() empty}; may be unmodifiable.
      * <ul>
-     *     <li>Empty if, and only if, no signal is received.</li>
-     *     <li>If it is not empty, it is the {@linkplain Event#getIndirectlyAffectedObjects() indirectly affected objects} of the event caused by reception of the signal.</li>
+     *     <li>No {@linkplain AffectedActors#getChanged() changed} actors if, and only if, no signal is received.</li>
+     *     <li>If {@linkplain AffectedActors#getChanged() changed} actors is not empty, it includes all the {@linkplain Event#getIndirectlyAffectedObjects() indirectly affected objects} of the event caused by reception of the signal.</li>
      * </ul>
      * @throws SignalException If a {@link Signal} object throws a {@link RuntimeException}.
      *                         The method is safe if this exception is thrown: the state of this Actor will not have changed.
      */
     @Nonnull
-    public Set<Actor<STATE>> receiveSignal() {
+    public AffectedActors<STATE> receiveSignal() {
         do {
             final long previousVersion;
             synchronized (lock) {
@@ -582,7 +582,7 @@ public final class Actor<STATE> {
                 if (isOutOfDate(previousVersion)) {
                     event = null;
                 } else if (nextSignalToReceive == null) {
-                    return Set.of();
+                    return AffectedActors.emptyInstance();
                 } else {
                     event = createNextEvent();
                 }
@@ -595,7 +595,7 @@ public final class Actor<STATE> {
                 if (determineConsequencesOfAppendingEvent(event, actors, firstInvalidEventForActors, previousVersionForActors, signalsToRemove)
                         && invalidateEventsAndRemoveSignals(actors, firstInvalidEventForActors, previousVersionForActors, signalsToRemove)
                         && appendEvent(previousVersion, event)) {
-                    return actors;
+                    return new AffectedActors<>(actors, Set.of(), Set.of());
                 }
             }
         } while (true);
@@ -797,6 +797,57 @@ public final class Actor<STATE> {
     public static final class SignalException extends RuntimeException {
         <STATE> SignalException(@Nonnull final Signal<STATE> signal, @Nonnull final RuntimeException cause) {
             super("Signal " + signal + " threw exception " + cause, cause);
+        }
+    }
+
+    @Immutable
+    public static final class AffectedActors<STATE> {
+
+        private static final AffectedActors<?> EMPTY = new AffectedActors<>(Set.of(), Set.of(), Set.of());
+
+        @Nonnull
+        private final Set<Actor<STATE>> changed;
+
+        @Nonnull
+        private final Set<Actor<STATE>> added;
+
+        @Nonnull
+        private final Set<Actor<STATE>> removed;
+
+        public AffectedActors(@Nonnull final Set<Actor<STATE>> changed, @Nonnull final Set<Actor<STATE>> added, @Nonnull final Set<Actor<STATE>> removed) {
+            this.changed = Set.copyOf(changed);
+            this.added = Set.copyOf(added);
+            this.removed = Set.copyOf(removed);
+        }
+
+        @SuppressWarnings("unchecked")
+        public static <STATE> AffectedActors<STATE> emptyInstance() {
+            return (AffectedActors<STATE>) EMPTY;
+        }
+
+        /**
+         * Exclusive with the sets of {@linkplain #getAdded() added actors} and {@linkplain #getRemoved() removed actors}.
+         */
+        @Nonnull
+        public Set<Actor<STATE>> getChanged() {
+            return changed;
+        }
+
+        /**
+         * Exclusive with the set of {@linkplain #getRemoved() removed actors}.
+         */
+        @Nonnull
+        public Set<Actor<STATE>> getAdded() {
+            return added;
+        }
+
+        @Nonnull
+        public Set<Actor<STATE>> getRemoved() {
+            return removed;
+        }
+
+        public boolean isEmpty() {
+            return changed.isEmpty() && added.isEmpty() && removed.isEmpty();
         }
     }
 }
