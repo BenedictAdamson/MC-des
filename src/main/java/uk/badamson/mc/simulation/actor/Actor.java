@@ -256,18 +256,27 @@ public final class Actor<STATE> {
         return true;
     }
 
-    static <STATE> CompletableFuture<Void> advanceSeveralActors(
+    static <STATE> CompletableFuture<AffectedActors<STATE>> advanceSeveralActors(
             @Nonnull final Duration when,
             @Nonnull final Collection<Actor<STATE>> actors,
             @Nonnull final Executor executor
     ) {
-        final Collection<CompletableFuture<Void>> futures = actors.stream()
-                .map(actor -> actor.advanceTo(when, executor))
-                .collect(Collectors.toUnmodifiableList());
-        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+        if (actors.isEmpty()) {
+            return CompletableFuture.completedFuture(AffectedActors.emptyInstance());
+        } else {
+            final Iterator<Actor<STATE>> a = actors.iterator();
+            final Actor<STATE> actor1 = a.next();
+            CompletableFuture<AffectedActors<STATE>> result = actor1.advanceTo(when, executor);
+            while (a.hasNext()) {
+                final Actor<STATE> nextActor = a.next();
+                final CompletableFuture<AffectedActors<STATE>> nextFuture = nextActor.advanceTo(when, executor);
+                result = result.thenCombine(nextFuture, AffectedActors::plus);
+            }
+            return result;
+        }
     }
 
-    private static <STATE> CompletableFuture<Void> advanceToWithCompletableFuture(
+    private static <STATE> CompletableFuture<AffectedActors<STATE>> advanceToWithCompletableFuture(
             @Nonnull final Duration when,
             @Nonnull final Set<Actor<STATE>> actors,
             @Nonnull final Executor executor
@@ -283,8 +292,8 @@ public final class Actor<STATE> {
         }
     }
 
-    private CompletableFuture<Void> advanceTo(@Nonnull final Duration when, @Nonnull final Executor executor) {
-        final CompletableFuture<Void> future = new CompletableFuture<>();
+    private CompletableFuture<AffectedActors<STATE>> advanceTo(@Nonnull final Duration when, @Nonnull final Executor executor) {
+        final CompletableFuture<AffectedActors<STATE>> future = new CompletableFuture<>();
         executor.execute(() -> {
             final AffectedActors<STATE> affectedActors;
             try {
@@ -298,12 +307,12 @@ public final class Actor<STATE> {
                 return;
             }
             if (affectedActors.isEmpty()) {
-                future.complete(null);
+                future.complete(affectedActors);
             } else {
                 advanceToWithCompletableFuture(when, affectedActors.getChanged(), executor)
-                        .handle((ignored, exception) -> {
+                        .handle((indirectlyAffectedActors, exception) -> {
                             if (exception == null) {
-                                future.complete(null);
+                                future.complete(affectedActors);// TODO include indirectlyAffectedActors
                             } else {
                                 future.completeExceptionally(exception);
                             }
@@ -825,6 +834,19 @@ public final class Actor<STATE> {
             return (AffectedActors<STATE>) EMPTY;
         }
 
+        @Nonnull
+        private static <STATE> Set<Actor<STATE>> plus(@Nonnull final Set<Actor<STATE>> actorsA, @Nonnull final Set<Actor<STATE>> actorsB) {
+            if (actorsB.isEmpty()) {
+                return actorsA;
+            } else if (actorsA.isEmpty()) {
+                return actorsB;
+            } else {
+                final var result = new HashSet<>(actorsA);
+                result.addAll(actorsB);
+                return result;
+            }
+        }
+
         /**
          * Exclusive with the sets of {@linkplain #getAdded() added actors} and {@linkplain #getRemoved() removed actors}.
          */
@@ -848,6 +870,50 @@ public final class Actor<STATE> {
 
         public boolean isEmpty() {
             return changed.isEmpty() && added.isEmpty() && removed.isEmpty();
+        }
+
+        @Override
+        public String toString() {
+            return "{" +
+                    "changed=" + changed +
+                    ", added=" + added +
+                    ", removed=" + removed +
+                    '}';
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            final AffectedActors<?> that = (AffectedActors<?>) o;
+
+            return changed.equals(that.changed) &&
+                    added.equals(that.added) &&
+                    removed.equals(that.removed);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = changed.hashCode();
+            result = 31 * result + added.hashCode();
+            result = 31 * result + removed.hashCode();
+            return result;
+        }
+
+        @Nonnull
+        public AffectedActors<STATE> plus(@Nonnull final AffectedActors<STATE> that) {
+            if (that.isEmpty()) {
+                return this;
+            } else if (isEmpty()) {
+                return that;
+            } else {
+                return new AffectedActors<>(
+                        plus(changed, that.changed),
+                        plus(added, that.added),
+                        plus(removed, that.removed)
+                );
+            }
         }
     }
 }

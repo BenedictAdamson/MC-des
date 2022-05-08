@@ -251,6 +251,33 @@ public class ActorTest {
             assertThat(affected.getRemoved(), is(removed));
         }
 
+        @Nonnull
+        private static <STATE> Actor.AffectedActors<STATE> plus(
+                @Nonnull final Actor.AffectedActors<STATE> affectedA,
+                @Nonnull final Actor.AffectedActors<STATE> affectedB) {
+            final Actor.AffectedActors<STATE> resultAB = affectedA.plus(affectedB);
+            final Actor.AffectedActors<STATE> resultBA = affectedB.plus(affectedA);
+
+            assertAll(
+                    () -> assertThat(resultAB, notNullValue()),
+                    () -> assertThat(resultBA, notNullValue()));
+            assertAll(
+                    () -> assertInvariants(affectedA),
+                    () -> assertInvariants(affectedB),
+                    () -> assertInvariants(resultAB),
+                    () -> assertInvariants(resultBA));
+            assertAll(
+                    () -> assertInvariants(affectedA, affectedB),
+                    () -> assertInvariants(affectedA, resultAB),
+                    () -> assertInvariants(affectedA, resultBA),
+                    () -> assertInvariants(affectedB, resultAB),
+                    () -> assertInvariants(affectedB, resultBA),
+                    () -> assertInvariants(resultAB, resultBA));
+            assertThat("symmetric", resultAB, is(resultBA));
+
+            return resultAB;
+        }
+
         @Nested
         public class One {
             @Test
@@ -313,7 +340,7 @@ public class ActorTest {
 
             @Test
             public void equivalentEmpty() {
-                testDifferent(
+                testEquivalent(
                         Set.of(), Set.of(), Set.of(),
                         Set.of(), Set.of(), Set.of()
                 );
@@ -324,12 +351,9 @@ public class ActorTest {
                 final Actor<Integer> actorA = new Actor<>(WHEN_A, 1);
                 final Actor<Integer> actorB = new Actor<>(WHEN_B, 2);
                 final Actor<Integer> actorC = new Actor<>(WHEN_C, 3);
-                final Actor<Integer> actorD = new Actor<>(WHEN_A, 4);
-                final Actor<Integer> actorE = new Actor<>(WHEN_B, 5);
-                final Actor<Integer> actorF = new Actor<>(WHEN_C, 6);
-                testDifferent(
+                testEquivalent(
                         Set.of(actorA), Set.of(actorB), Set.of(actorC),
-                        Set.of(actorD), Set.of(actorE), Set.of(actorF)
+                        Set.of(actorA), Set.of(actorB), Set.of(actorC)
                 );
             }
 
@@ -345,6 +369,95 @@ public class ActorTest {
 
                 assertInvariants(affectedA, affectedB);
                 assertThat(affectedA, not(is(affectedB)));
+            }
+
+            private <STATE> void testEquivalent(
+                    @Nonnull final Set<Actor<STATE>> changedA,
+                    @Nonnull final Set<Actor<STATE>> addedA,
+                    @Nonnull final Set<Actor<STATE>> removedA,
+                    @Nonnull final Set<Actor<STATE>> changedB,
+                    @Nonnull final Set<Actor<STATE>> addedB,
+                    @Nonnull final Set<Actor<STATE>> removedB) {
+                final var affectedA = new Actor.AffectedActors<>(changedA, addedA, removedA);
+                final var affectedB = new Actor.AffectedActors<>(changedB, addedB, removedB);
+
+                assertInvariants(affectedA, affectedB);
+                assertThat(affectedA, is(affectedB));
+            }
+        }
+
+        @Nested
+        public class Plus {
+
+            @Test
+            public void bothEmpty() {
+                final Actor.AffectedActors<Integer> empty = Actor.AffectedActors.emptyInstance();
+                final var result = plus(empty, empty);
+                assertThat(result.isEmpty(), is(true));
+            }
+
+            @Test
+            public void changed() {
+                final var actorA = new Actor<>(WHEN_A, 1);
+                final var actorB = new Actor<>(WHEN_B, 2);
+                final var affectedA = new Actor.AffectedActors<>(Set.of(actorA), Set.of(), Set.of());
+                final var affectedB = new Actor.AffectedActors<>(Set.of(actorB), Set.of(), Set.of());
+
+                final var result = plus(affectedA, affectedB);
+
+                assertThat(result, is(new Actor.AffectedActors<>(Set.of(actorA, actorB), Set.of(), Set.of())));
+            }
+
+            @Test
+            public void added() {
+                final var actorA = new Actor<>(WHEN_A, 1);
+                final var actorB = new Actor<>(WHEN_B, 2);
+                final var affectedA = new Actor.AffectedActors<>(Set.of(), Set.of(actorA), Set.of());
+                final var affectedB = new Actor.AffectedActors<>(Set.of(), Set.of(actorB), Set.of());
+
+                final var result = plus(affectedA, affectedB);
+
+                assertThat(result, is(new Actor.AffectedActors<>(Set.of(), Set.of(actorA, actorB), Set.of())));
+            }
+
+            @Test
+            public void removed() {
+                final var actorA = new Actor<>(WHEN_A, 1);
+                final var actorB = new Actor<>(WHEN_B, 2);
+                final var affectedA = new Actor.AffectedActors<>(Set.of(), Set.of(), Set.of(actorA));
+                final var affectedB = new Actor.AffectedActors<>(Set.of(), Set.of(), Set.of(actorB));
+
+                final var result = plus(affectedA, affectedB);
+
+                assertThat(result, is(new Actor.AffectedActors<>(Set.of(), Set.of(), Set.of(actorA, actorB))));
+            }
+
+            @Nested
+            public class OneEmpty {
+
+                @Test
+                public void changed() {
+                    test(Set.of(new Actor<>(WHEN_A, 1)), Set.of(), Set.of());
+                }
+
+                @Test
+                public void added() {
+                    test(Set.of(), Set.of(new Actor<>(WHEN_A, 1)), Set.of());
+                }
+
+                @Test
+                public void removed() {
+                    test(Set.of(), Set.of(), Set.of(new Actor<>(WHEN_A, 1)));
+                }
+
+                private void test(@Nonnull final Set<Actor<Integer>> changed, @Nonnull final Set<Actor<Integer>> added, @Nonnull final Set<Actor<Integer>> removed) {
+                    final Actor.AffectedActors<Integer> empty = Actor.AffectedActors.emptyInstance();
+                    final Actor.AffectedActors<Integer> notEmpty = new Actor.AffectedActors<>(changed, added, removed);
+
+                    final var result = plus(empty, notEmpty);
+
+                    assertThat(result, is(notEmpty));
+                }
             }
         }
     }

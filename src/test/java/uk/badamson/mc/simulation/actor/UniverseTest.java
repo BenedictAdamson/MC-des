@@ -136,10 +136,10 @@ public class UniverseTest {
     }
 
 
-    private static <STATE> Future<Void> advanceTo(@Nonnull final Universe<STATE> universe,
-                                                  @Nonnull final Duration when, @Nonnull final Executor executor
+    private static <STATE> Future<Actor.AffectedActors<STATE>> advanceTo(@Nonnull final Universe<STATE> universe,
+                                                                         @Nonnull final Duration when, @Nonnull final Executor executor
     ) {
-        final Future<Void> future = universe.advanceTo(when, executor);
+        final Future<Actor.AffectedActors<STATE>> future = universe.advanceTo(when, executor);
         assertThat(future, notNullValue());
         return future;
     }
@@ -494,9 +494,12 @@ public class UniverseTest {
             final Universe<Integer> universe = new Universe<>();
 
             final var future = advanceTo(universe, WHEN_A, DIRECT_EXECUTOR);
-            future.get();
+            final Actor.AffectedActors<Integer> affectedActors = future.get();
 
             assertInvariants(universe);
+            assertThat(affectedActors, notNullValue());
+            ActorTest.AffectedActorsTest.assertInvariants(affectedActors);
+            assertThat(affectedActors, is(Actor.AffectedActors.emptyInstance()));
         }
 
         @Nested
@@ -521,11 +524,14 @@ public class UniverseTest {
                 universe.add(actor);
 
                 final var future = advanceTo(universe, when, DIRECT_EXECUTOR);
-                future.get();
+                final Actor.AffectedActors<Integer> affectedActors = future.get();
 
                 assertInvariants(universe);
                 assertAllHaveAdvancedTo(when, universe);
                 assertThat(universe, contains(actor));
+                assertThat(affectedActors, notNullValue());
+                ActorTest.AffectedActorsTest.assertInvariants(affectedActors);
+                assertThat(affectedActors, is(Actor.AffectedActors.emptyInstance()));
 
             }
         }
@@ -566,13 +572,19 @@ public class UniverseTest {
                 universe.add(actorB);
 
                 final var future = advanceTo(universe, when, DIRECT_EXECUTOR);
-                future.get();
+                final Actor.AffectedActors<Integer> affectedActors = future.get();
 
                 assertInvariants(universe);
                 ActorTest.assertInvariants(actorA);
                 ActorTest.assertInvariants(actorB);
                 assertAllHaveAdvancedTo(when, universe);
                 assertThat(universe, containsInAnyOrder(actorA, actorB));
+                assertThat(affectedActors, notNullValue());
+                ActorTest.AffectedActorsTest.assertInvariants(affectedActors);
+                assertAll(
+                        () -> assertThat(affectedActors.getRemoved(), empty()),
+                        () -> assertThat(affectedActors.getAdded(), empty()),
+                        () -> assertThat(affectedActors.getChanged(), containsInAnyOrder(actorA, actorB)));
             }
 
             @Test
@@ -598,9 +610,15 @@ public class UniverseTest {
                 final Executor executor = Executors.newFixedThreadPool(nThreads);
 
                 final var future = advanceTo(universe, when, executor);
-                future.get();
+                final Actor.AffectedActors<Integer> affectedActors = future.get();
 
                 assertAllHaveAdvancedTo(when, universe);
+                assertThat(affectedActors, notNullValue());
+                ActorTest.AffectedActorsTest.assertInvariants(affectedActors);
+                assertAll(
+                        () -> assertThat(affectedActors.getRemoved(), empty()),
+                        () -> assertThat(affectedActors.getAdded(), empty()),
+                        () -> assertThat(affectedActors.getChanged(), containsInAnyOrder(universe.toArray())));
             }
 
             @Test
@@ -639,11 +657,17 @@ public class UniverseTest {
                 universe.add(actor);
 
                 final var future = advanceTo(universe, when, DIRECT_EXECUTOR);
-                future.get();
+                final Actor.AffectedActors<Integer> affectedActors = future.get();
 
                 ActorTest.assertInvariants(actor);
                 assertAllHaveAdvancedTo(when, universe);
                 assertThat(universe, contains(actor));
+                assertThat(affectedActors, notNullValue());
+                ActorTest.AffectedActorsTest.assertInvariants(affectedActors);
+                assertAll(
+                        () -> assertThat(affectedActors.getRemoved(), empty()),
+                        () -> assertThat(affectedActors.getAdded(), empty()),
+                        () -> assertThat(affectedActors.getChanged(), contains(actor)));
             }
         }
 
@@ -673,11 +697,17 @@ public class UniverseTest {
                 universe.add(actor);
 
                 final var future = advanceTo(universe, when, DIRECT_EXECUTOR);
-                future.get();
+                final Actor.AffectedActors<Integer> affectedActors = future.get();
 
                 ActorTest.assertInvariants(actor);
                 assertAllHaveAdvancedTo(when, universe);
                 assertThat(universe, contains(actor));
+                assertThat(affectedActors, notNullValue());
+                ActorTest.AffectedActorsTest.assertInvariants(affectedActors);
+                assertAll(
+                        () -> assertThat(affectedActors.getRemoved(), empty()),
+                        () -> assertThat(affectedActors.getAdded(), empty()),
+                        () -> assertThat(affectedActors.getChanged(), contains(actor)));
             }
         }
 
@@ -707,12 +737,15 @@ public class UniverseTest {
                 universe.add(actor);
 
                 final var future = advanceTo(universe, when, DIRECT_EXECUTOR);
-                future.get();
+                final Actor.AffectedActors<Integer> affectedActors = future.get();
 
                 ActorTest.assertInvariants(actor);
                 assertAllHaveAdvancedTo(when, universe);
                 assertThat(universe, contains(actor));
-                assertThat("did not process any signals", actor.getSignalsToReceive(), contains(signal));
+                assertThat("did not process signal", actor.getSignalsToReceive(), contains(signal));
+                assertThat(affectedActors, notNullValue());
+                ActorTest.AffectedActorsTest.assertInvariants(affectedActors);
+                assertThat(affectedActors, is(Actor.AffectedActors.emptyInstance()));
             }
         }
     }

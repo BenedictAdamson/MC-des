@@ -166,11 +166,11 @@ public final class Universe<STATE> implements Collection<Actor<STATE>> {
      * </p>
      *
      * @return a Future that {@linkplain Future#isDone() is done} when all the actors have been advanced,
-     * or an exception prevents a full computation.
+     * or an exception prevents a full computation, providing information about which actors of this universe changed.
      * @throws NullPointerException if any {@link Nonnull} annotated argument is null.
      */
     @Nonnull
-    public Future<Void> advanceTo(
+    public Future<Actor.AffectedActors<STATE>> advanceTo(
             @Nonnull final Duration when,
             @Nonnull final Executor executor
     ) {
