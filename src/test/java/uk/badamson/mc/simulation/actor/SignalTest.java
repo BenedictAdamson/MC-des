@@ -266,12 +266,18 @@ public class SignalTest {
                 throw new IllegalArgumentException("when not after whenSent");
             }
             final var receiver = getReceiver();
-            final Set<Signal<Integer>> signalsEmitted = signalsEmitted(when);
             final Integer newState = receiverState + 1;
-            return new Event<>(this, when, receiver, newState, signalsEmitted, Set.of());
+            return new Event<>(
+                    this, when, receiver, newState,
+                    signalsEmitted(when), actorsCreated(when)
+            );
         }
 
         protected abstract Set<Signal<Integer>> signalsEmitted(@Nonnull final Duration when);
+
+        protected Set<Actor<Integer>> actorsCreated(@Nonnull final Duration when) {
+            return Set.of();
+        }
     }
 
     static class SimpleTestSignal extends AbstractTestSignal {
@@ -319,6 +325,28 @@ public class SignalTest {
             return Set.of(new EchoingTestSignal(when, getReceiver(), getSender(), getMedium()));
         }
 
+    }
+
+    static class ActorCreatingTestSignal extends AbstractTestSignal {
+
+        ActorCreatingTestSignal(
+                @Nonnull final Duration whenSent,
+                @Nonnull final Actor<Integer> sender, @Nonnull final Actor<Integer> receiver,
+                @Nonnull final Medium medium) {
+            super(sender, whenSent, receiver, medium);
+        }
+
+        @Override
+        protected Set<Signal<Integer>> signalsEmitted(@Nonnull final Duration when) {
+            return Set.of();
+        }
+
+        @Override
+        protected Set<Actor<Integer>> actorsCreated(@Nonnull final Duration when) {
+            final int state = when.toSecondsPart();
+            final Actor<Integer> actor = new Actor<>(when, state);
+            return Set.of(actor);
+        }
     }
 
     public static class IdTest {

@@ -138,7 +138,7 @@ public final class Actor<STATE> {
 
     private static <STATE> boolean determineConsequencesOfRemovingSignal(
             @Nonnull final Signal<STATE> signalToRemove,
-            @Nonnull final NavigableSet<Actor<STATE>> actors,
+            @Nonnull final NavigableSet<Actor<STATE>> participatingActors,
             @Nonnull final Map<Actor<STATE>, Event<STATE>> lastValidEventForActors,
             @Nonnull final Map<Actor<STATE>, Long> previousVersionForActors,
             @Nonnull final Set<Signal<STATE>> signalsToRemove) {
@@ -157,7 +157,7 @@ public final class Actor<STATE> {
             if (previousVersionForActor != null && previousVersionForActor != version) {
                 return false;// lost data race
             }
-            actors.add(actor);
+            participatingActors.add(actor);
             if (eventToRemove != null && (lastValidEventForActor == null || eventToRemove.compareTo(lastValidEventForActor) < 0)) {
                 lastValidEventForActors.put(actor, eventToRemove);
                 previousVersionForActors.put(actor, version);
@@ -173,7 +173,7 @@ public final class Actor<STATE> {
         signalsToRemove.add(signalToRemove);
         for (final var emittedSignal : emittedSignalsToRemove) {
             if (!signalsToRemove.contains(emittedSignal) && !determineConsequencesOfRemovingSignal(
-                    emittedSignal, actors, lastValidEventForActors, previousVersionForActors, signalsToRemove)) {
+                    emittedSignal, participatingActors, lastValidEventForActors, previousVersionForActors, signalsToRemove)) {
                 return false;
             }
             signalsToRemove.add(emittedSignal);
@@ -187,21 +187,24 @@ public final class Actor<STATE> {
     }
 
     private static <STATE> boolean invalidateEventsAndRemoveSignals(
-            @Nonnull final NavigableSet<Actor<STATE>> actorsInLockOrder,
+            @Nonnull final NavigableSet<Actor<STATE>> participatingActorsInLockOrder,
             @Nonnull final Map<Actor<STATE>, Event<STATE>> firstInvalidEventForActors,
             @Nonnull final Map<Actor<STATE>, Long> previousVersionForActors,
             @Nonnull final Set<Signal<STATE>> signalsToRemove) {
-        if (actorsInLockOrder.isEmpty()) {
+        if (participatingActorsInLockOrder.isEmpty()) {
             invalidateEventsAndRemoveSignalsWhileLocked(firstInvalidEventForActors, signalsToRemove);
             return true;
         } else {
-            final var actor = actorsInLockOrder.first();
-            final var remainingActorsInLockOrder = actorsInLockOrder.tailSet(actor, false);
+            final var actor = participatingActorsInLockOrder.first();
+            final var remainingParticipatingActorsInLockOrder =
+                    participatingActorsInLockOrder.tailSet(actor, false);
             final var previousVersionForActor = previousVersionForActors.get(actor);
             assert previousVersionForActor != null;
             synchronized (actor.lock) {
                 return previousVersionForActor == actor.version &&
-                        invalidateEventsAndRemoveSignals(remainingActorsInLockOrder, firstInvalidEventForActors, previousVersionForActors, signalsToRemove);
+                        invalidateEventsAndRemoveSignals(
+                                remainingParticipatingActorsInLockOrder, firstInvalidEventForActors,
+                                previousVersionForActors, signalsToRemove);
             }
         }
     }
@@ -226,11 +229,13 @@ public final class Actor<STATE> {
 
     private static <STATE> void determineConsequencesOfSignalsEmitted(
             @Nonnull final Event<STATE> event,
-            @Nonnull final NavigableSet<Actor<STATE>> actors,
+            @Nonnull final NavigableSet<Actor<STATE>> participatingActors,
+            @Nonnull final Set<Actor<STATE>> changedActors,
             @Nonnull final Map<Actor<STATE>, Long> previousVersionForActors) {
         for (final var signal : event.getSignalsEmitted()) {
             final var actor = signal.getReceiver();
-            actors.add(actor);
+            participatingActors.add(actor);
+            changedActors.add(actor);
             synchronized (actor.lock) {
                 //noinspection FieldAccessNotGuarded
                 previousVersionForActors.computeIfAbsent(actor, a -> a.version);
@@ -239,7 +244,7 @@ public final class Actor<STATE> {
     }
 
     private static <STATE> boolean determineConsequencesOfRemovingSignals(
-            @Nonnull final NavigableSet<Actor<STATE>> actors,
+            @Nonnull final NavigableSet<Actor<STATE>> participatingActors,
             @Nonnull final Map<Actor<STATE>, Event<STATE>> firstInvalidEventForActors,
             @Nonnull final Map<Actor<STATE>, Long> previousVersionForActors,
             @Nonnull final Set<Signal<STATE>> signalsToRemove,
@@ -248,7 +253,7 @@ public final class Actor<STATE> {
             if (!signalsToRemove.contains(additionalSignalToRemove)) {
                 signalsToRemove.add(additionalSignalToRemove);
                 if (!determineConsequencesOfRemovingSignal(
-                        additionalSignalToRemove, actors, firstInvalidEventForActors, previousVersionForActors, signalsToRemove)) {
+                        additionalSignalToRemove, participatingActors, firstInvalidEventForActors, previousVersionForActors, signalsToRemove)) {
                     return false;
                 }
             }
@@ -597,14 +602,17 @@ public final class Actor<STATE> {
                 }
             }
             if (event != null) {
-                final NavigableSet<Actor<STATE>> actors = createActorSetInLockOrder();
+                final NavigableSet<Actor<STATE>> participatingActors = createActorSetInLockOrder();
+                final Set<Actor<STATE>> changedActors = new HashSet<>();
+                final Set<Actor<STATE>> addedActors = new HashSet<>();
                 final Map<Actor<STATE>, Event<STATE>> firstInvalidEventForActors = new HashMap<>();
                 final Map<Actor<STATE>, Long> previousVersionForActors = new HashMap<>();
                 final Set<Signal<STATE>> signalsToRemove = new HashSet<>();
-                if (determineConsequencesOfAppendingEvent(event, actors, firstInvalidEventForActors, previousVersionForActors, signalsToRemove)
-                        && invalidateEventsAndRemoveSignals(actors, firstInvalidEventForActors, previousVersionForActors, signalsToRemove)
+                if (determineConsequencesOfAppendingEvent(event,
+                        participatingActors, changedActors, addedActors, firstInvalidEventForActors, previousVersionForActors, signalsToRemove)
+                        && invalidateEventsAndRemoveSignals(participatingActors, firstInvalidEventForActors, previousVersionForActors, signalsToRemove)
                         && appendEvent(previousVersion, event)) {
-                    return new AffectedActors<>(actors, Set.of(), Set.of());
+                    return new AffectedActors<>(changedActors, addedActors, Set.of());
                 }
             }
         } while (true);
@@ -677,16 +685,20 @@ public final class Actor<STATE> {
 
     private boolean determineConsequencesOfAppendingEvent(
             @Nonnull final Event<STATE> eventToAppend,
-            @Nonnull final NavigableSet<Actor<STATE>> actors,
+            @Nonnull final NavigableSet<Actor<STATE>> participatingActors,
+            @Nonnull final Set<Actor<STATE>> changedActors,
+            @Nonnull final Set<Actor<STATE>> addedActors,
             @Nonnull final Map<Actor<STATE>, Event<STATE>> firstInvalidEventForActors,
             @Nonnull final Map<Actor<STATE>, Long> previousVersionForActors,
             @Nonnull final Set<Signal<STATE>> signalsToRemove) {
-        determineConsequencesOfSignalsEmitted(eventToAppend, actors, previousVersionForActors);
+        determineConsequencesOfSignalsEmitted(
+                eventToAppend, participatingActors, changedActors, previousVersionForActors
+        );
         final Set<Signal<STATE>> additionalSignalsToRemove = new HashSet<>();
         synchronized (lock) {
             if (!determineDirectConsequencesOfAppendingEvent(
                     eventToAppend,
-                    actors,
+                    participatingActors, changedActors, addedActors,
                     firstInvalidEventForActors,
                     previousVersionForActors,
                     additionalSignalsToRemove)) {
@@ -694,7 +706,7 @@ public final class Actor<STATE> {
             }
         }
         return determineConsequencesOfRemovingSignals(
-                actors,
+                participatingActors,
                 firstInvalidEventForActors,
                 previousVersionForActors,
                 signalsToRemove,
@@ -704,7 +716,9 @@ public final class Actor<STATE> {
     @GuardedBy("lock")
     private boolean determineDirectConsequencesOfAppendingEvent(
             @Nonnull final Event<STATE> eventToAppend,
-            @Nonnull final NavigableSet<Actor<STATE>> actors,
+            @Nonnull final NavigableSet<Actor<STATE>> participatingActors,
+            @Nonnull final Set<Actor<STATE>> changedActors,
+            @Nonnull final Set<Actor<STATE>> addedActors,
             @Nonnull final Map<Actor<STATE>, Event<STATE>> firstInvalidEventForActors,
             @Nonnull final Map<Actor<STATE>, Long> previousVersionForActors,
             @Nonnull final Set<Signal<STATE>> additionalSignalsToRemove) {
@@ -722,7 +736,12 @@ public final class Actor<STATE> {
         } else if (previousVersionForActor == null) {
             previousVersionForActors.put(this, version);
         }
-        actors.add(this);
+        final Set<Actor<STATE>> createdActors = eventToAppend.getCreatedActors();
+        participatingActors.add(this);
+        participatingActors.addAll(createdActors);
+        changedActors.add(this);
+        addedActors.addAll(createdActors);
+        createdActors.forEach(createdActor -> previousVersionForActors.put(createdActor, 0L));
         return true;
     }
 

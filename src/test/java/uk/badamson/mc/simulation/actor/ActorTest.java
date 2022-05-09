@@ -19,6 +19,7 @@ package uk.badamson.mc.simulation.actor;
  */
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
@@ -837,6 +838,37 @@ public class ActorTest {
                 assertThat(affectedActors.getAdded(), empty());
                 assertThat(affectedActors.getRemoved(), empty());
                 assertThat(affectedActors.getChanged(), contains(receiver));
+            }
+        }
+
+        @Nested
+        public class ActorCreatingSignal {
+
+            @Test
+            public void a() {
+                test(WHEN_A, WHEN_B, 1);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_B, WHEN_C, 2);
+            }
+
+            private void test(@Nonnull final Duration start, @Nonnull final Duration whenSent1, @Nonnull final Integer state0) {
+                final var actorA = new Actor<>(start, state0);
+                final var actorB = new Actor<>(start, state0);
+                final Signal<Integer> signal = new SignalTest.ActorCreatingTestSignal(whenSent1, actorA, actorB, MEDIUM_A);
+                actorB.addSignalToReceive(signal);
+
+                final var affectedActors = receiveSignal(actorB);
+
+                assertInvariants(actorA);
+                assertThat(affectedActors.getRemoved(), empty());
+                assertThat(affectedActors.getChanged(), contains(actorB));
+                final var added = affectedActors.getAdded();
+                assertThat("created a new actor", added, Matchers.<Collection<Actor<Integer>>>allOf(
+                        hasSize(1), not(hasItem(actorA)), not(hasItem(actorB))
+                ));
             }
         }
     }// class
