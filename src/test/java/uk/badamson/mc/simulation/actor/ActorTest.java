@@ -208,13 +208,13 @@ public class ActorTest {
             assertAll(added.stream().map(actor -> () -> {
                 assertThat(actor, notNullValue());
                 ActorTest.assertInvariants(actor);
-                assertThat(changed, not(hasItem(actor)));
-                assertThat(removed, not(hasItem(actor)));
+                assertThat("added and changed are distinct", changed, not(hasItem(actor)));
+                assertThat("added and removed are distinct", removed, not(hasItem(actor)));
             }));
             assertAll(changed.stream().map(actor -> () -> {
                 assertThat(actor, notNullValue());
                 ActorTest.assertInvariants(actor);
-                assertThat(removed, not(hasItem(actor)));
+                assertThat("changed and removed are distinct", removed, not(hasItem(actor)));
             }));
             assertAll(removed.stream().map(actor -> () -> {
                 assertThat(actor, notNullValue());
@@ -397,7 +397,7 @@ public class ActorTest {
             }
 
             @Test
-            public void changed() {
+            public void differentChanged() {
                 final var actorA = new Actor<>(WHEN_A, 1);
                 final var actorB = new Actor<>(WHEN_B, 2);
                 final var affectedA = new Actor.AffectedActors<>(Set.of(actorA), Set.of(), Set.of());
@@ -409,7 +409,7 @@ public class ActorTest {
             }
 
             @Test
-            public void added() {
+            public void differentAdded() {
                 final var actorA = new Actor<>(WHEN_A, 1);
                 final var actorB = new Actor<>(WHEN_B, 2);
                 final var affectedA = new Actor.AffectedActors<>(Set.of(), Set.of(actorA), Set.of());
@@ -421,7 +421,7 @@ public class ActorTest {
             }
 
             @Test
-            public void removed() {
+            public void differentRemoved() {
                 final var actorA = new Actor<>(WHEN_A, 1);
                 final var actorB = new Actor<>(WHEN_B, 2);
                 final var affectedA = new Actor.AffectedActors<>(Set.of(), Set.of(), Set.of(actorA));
@@ -430,6 +430,45 @@ public class ActorTest {
                 final var result = plus(affectedA, affectedB);
 
                 assertThat(result, is(new Actor.AffectedActors<>(Set.of(), Set.of(), Set.of(actorA, actorB))));
+            }
+
+            @Test
+            public void addedAndChanged() {
+                final var actor = new Actor<>(WHEN_A, 1);
+                final var affectedA = new Actor.AffectedActors<>(Set.of(actor), Set.of(), Set.of());
+                final var affectedB = new Actor.AffectedActors<>(Set.of(), Set.of(actor), Set.of());
+
+                final var result = plus(affectedA, affectedB);
+
+                assertThat(
+                        "treat as added", result,
+                        is(new Actor.AffectedActors<>(Set.of(), Set.of(actor), Set.of())));
+            }
+
+            @Test
+            public void addedAndRemoved() {
+                final var actor = new Actor<>(WHEN_A, 1);
+                final var affectedA = new Actor.AffectedActors<>(Set.of(), Set.of(actor), Set.of());
+                final var affectedB = new Actor.AffectedActors<>(Set.of(), Set.of(), Set.of(actor));
+
+                final var result = plus(affectedA, affectedB);
+
+                assertThat(
+                        "treat as no-op", result,
+                        is(new Actor.AffectedActors<>(Set.of(), Set.of(), Set.of())));
+            }
+
+            @Test
+            public void changedAndRemoved() {
+                final var actor = new Actor<>(WHEN_A, 1);
+                final var affectedA = new Actor.AffectedActors<>(Set.of(actor), Set.of(), Set.of());
+                final var affectedB = new Actor.AffectedActors<>(Set.of(), Set.of(), Set.of(actor));
+
+                final var result = plus(affectedA, affectedB);
+
+                assertThat(
+                        "treat as changed", result,
+                        is(new Actor.AffectedActors<>(Set.of(), Set.of(), Set.of(actor))));
             }
 
             @Nested

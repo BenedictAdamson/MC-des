@@ -835,16 +835,46 @@ public final class Actor<STATE> {
         }
 
         @Nonnull
-        private static <STATE> Set<Actor<STATE>> plus(@Nonnull final Set<Actor<STATE>> actorsA, @Nonnull final Set<Actor<STATE>> actorsB) {
+        private static <STATE> Set<Actor<STATE>> plus(
+                @Nonnull final Set<Actor<STATE>> actorsA,
+                @Nonnull final Set<Actor<STATE>> actorsB
+        ) {
             if (actorsB.isEmpty()) {
                 return actorsA;
             } else if (actorsA.isEmpty()) {
                 return actorsB;
             } else {
-                final var result = new HashSet<>(actorsA);
+                final Set<Actor<STATE>> result = new HashSet<>(actorsA);
                 result.addAll(actorsB);
                 return result;
             }
+        }
+
+        @Nonnull
+        private static <STATE> Set<Actor<STATE>> minus(
+                @Nonnull final Set<Actor<STATE>> actorsA,
+                @Nonnull final Set<Actor<STATE>> actorsB
+        ) {
+            if (actorsA.isEmpty() || actorsB.isEmpty()) {
+                return actorsA;
+            } else {
+                final Set<Actor<STATE>> result = new HashSet<>(actorsA);
+                result.removeAll(actorsB);
+                return reduceDuplicateObjects(result, actorsA, actorsB);
+            }
+        }
+
+        @SafeVarargs
+        @Nonnull
+        private static <T> T reduceDuplicateObjects(
+                @Nonnull final T newObject,
+                @Nonnull final T... oldObjects) {
+            for (final var oldObject : oldObjects) {
+                if (oldObject.equals(newObject)) {
+                    return oldObject;
+                }
+            }
+            return newObject;
         }
 
         /**
@@ -908,10 +938,19 @@ public final class Actor<STATE> {
             } else if (isEmpty()) {
                 return that;
             } else {
+                final var changedSum = plus(changed, that.changed);
+                final var addedSum = plus(added, that.added);
+                final var removedSum = plus(removed, that.removed);
+                var changedResult = minus(changedSum, plus(addedSum, removedSum));
+                var addedResult = minus(addedSum, removedSum);
+                var removedResult = minus(removedSum, addedSum);
+                changedResult = reduceDuplicateObjects(changedResult, Set.of(), changed, that.changed);
+                addedResult = reduceDuplicateObjects(addedResult, Set.of(), added, that.added);
+                removedResult = reduceDuplicateObjects(removedResult, Set.of(), removed, that.removed);
                 return new AffectedActors<>(
-                        plus(changed, that.changed),
-                        plus(added, that.added),
-                        plus(removed, that.removed)
+                        changedResult,
+                        addedResult,
+                        removedResult
                 );
             }
         }
