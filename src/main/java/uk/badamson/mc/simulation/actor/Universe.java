@@ -182,6 +182,7 @@ public final class Universe<STATE> implements Collection<Actor<STATE>> {
 
     @Nonnull
     private Actor.AffectedActors<STATE> apply(@Nonnull final Actor.AffectedActors<STATE> affectedActors) {
+        removeAll(affectedActors.getRemoved());
         addAll(affectedActors.getAdded());
         return affectedActors;
     }

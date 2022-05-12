@@ -620,6 +620,45 @@ public class UniverseTest {
             }
 
             @Test
+            public void removesActor() throws Exception {
+                final var state0 = 1;
+                final var margin = Duration.ofSeconds(7);
+                final var actor1 = new Actor<>(WHEN_A, 0);
+                final var actor2 = new Actor<>(WHEN_A, state0);
+                final Signal<Integer> signal1 = new SignalTest.SimpleTestSignal(WHEN_A, actor1, actor2, MEDIUM_A);
+                final Duration whenSent2 = signal1.getWhenReceived(state0);
+                final Signal<Integer> signal2 = new SignalTest.ActorCreatingTestSignal(whenSent2, actor1, actor2, MEDIUM_B);
+                actor2.addSignalToReceive(signal2);
+                final var affectedActors2 = actor2.receiveSignal();
+                assert affectedActors2.getAdded().size() == 1;
+                final var addedActor = affectedActors2.getAdded().iterator().next();
+                actor2.addSignalToReceive(signal1);
+                final Duration whenReceiveNextSignal = actor2.getWhenReceiveNextSignal();
+                assert whenReceiveNextSignal.compareTo(Signal.NEVER_RECEIVED.minus(margin)) <= 0;
+                final var when = whenReceiveNextSignal.plus(margin);
+                final Universe<Integer> universe = new Universe<>();
+                universe.add(actor2);
+                universe.add(addedActor);
+
+                final var future = advanceTo(universe, when, DIRECT_EXECUTOR);
+                final Actor.AffectedActors<Integer> affectedActors = future.get();
+
+                assertInvariants(universe);
+                ActorTest.assertInvariants(actor2);
+                ActorTest.assertInvariants(addedActor);
+                assertAllHaveAdvancedTo(when, universe);
+                assertThat(universe, hasItem(actor2));
+                assertThat(affectedActors, notNullValue());
+                ActorTest.AffectedActorsTest.assertInvariants(affectedActors);
+                final var actorsAdded = affectedActors.getAdded();
+                assertAll(
+                        () -> assertThat("removed", affectedActors.getRemoved(), contains(addedActor)),
+                        () -> assertThat("added", actorsAdded, empty()),
+                        () -> assertThat("changed", affectedActors.getChanged(), contains(actor2)));
+                assertThat(universe, contains(actor2));
+            }
+
+            @Test
             public void concurrent() throws Exception {
                 final Duration margin = Duration.ofSeconds(1L);
                 final int nThreads = 16;
