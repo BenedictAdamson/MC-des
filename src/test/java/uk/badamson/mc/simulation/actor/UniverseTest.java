@@ -588,6 +588,38 @@ public class UniverseTest {
             }
 
             @Test
+            public void addsActor() throws Exception {
+                final Duration margin = Duration.ofSeconds(1L);
+                assert WHEN_A.compareTo(margin) < 0;
+                final var sender = new Actor<>(WHEN_A, 1);
+                final var actor = new Actor<>(WHEN_A, 1);
+                final Signal<Integer> signal = new SignalTest.ActorCreatingTestSignal(WHEN_A, sender, actor, MEDIUM_A);
+                actor.addSignalToReceive(signal);
+                final Duration whenReceiveNextSignal = actor.getWhenReceiveNextSignal();
+                assert whenReceiveNextSignal.compareTo(Signal.NEVER_RECEIVED.minus(margin)) <= 0;
+                final var when = whenReceiveNextSignal.plus(margin);
+                final Universe<Integer> universe = new Universe<>();
+                universe.add(actor);
+
+                final var future = advanceTo(universe, when, DIRECT_EXECUTOR);
+                final Actor.AffectedActors<Integer> affectedActors = future.get();
+
+                assertInvariants(universe);
+                ActorTest.assertInvariants(actor);
+                assertAllHaveAdvancedTo(when, universe);
+                assertThat(universe, hasItem(actor));
+                assertThat(affectedActors, notNullValue());
+                ActorTest.AffectedActorsTest.assertInvariants(affectedActors);
+                final var actorsAdded = affectedActors.getAdded();
+                assertAll(
+                        () -> assertThat(affectedActors.getRemoved(), empty()),
+                        () -> assertThat(actorsAdded, hasSize(1)),
+                        () -> assertThat(affectedActors.getChanged(), contains(actor)));
+                final var actorAdded = actorsAdded.iterator().next();
+                assertThat(universe, containsInAnyOrder(actor, actorAdded));
+            }
+
+            @Test
             public void concurrent() throws Exception {
                 final Duration margin = Duration.ofSeconds(1L);
                 final int nThreads = 16;
