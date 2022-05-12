@@ -48,8 +48,6 @@ public class ActorTest {
 
     static final Duration WHEN_C = Duration.ofMillis(7000);
 
-    static final Duration WHEN_D = Duration.ofMillis(11000);
-
     static final Medium MEDIUM_A = new Medium();
 
     static final Medium MEDIUM_B = new Medium();
@@ -153,37 +151,18 @@ public class ActorTest {
         return affectedActors;
     }
 
-    private static <STATE> Set<Actor<STATE>> removeSignal(@Nonnull final Actor<STATE> actor, @Nonnull final Signal<STATE> signal) {
-        final Set<Actor<STATE>> affectedActors = actor.removeSignal(signal);
-
-        assertInvariants(actor);
-        SignalTest.assertInvariants(signal);
-        assertThat("affected actors", affectedActors, notNullValue());
-        assertAll("affected actors", affectedActors.stream().map(affectedActor -> () -> {
-            assertThat(affectedActor, notNullValue());
-            assertInvariants(affectedActor);
-        }));
-        assertThat("The signal is not one of of the signals to receive.", actor.getSignalsToReceive(), not(hasItem(signal)));
-        assertAll("None of the events have the signal as their causing signal.",
-                actor.getEvents().stream().map(Event::getCausingSignal).map(eventSignal -> () -> assertThat(eventSignal, not(sameInstance(signal))))
-        );
-        return affectedActors;
-    }
-
     @Test
-    public void concurrentlyRemoveAndReceiveSignals() {
+    public void concurrentlyReceiveSignals() {
         final Actor<Integer> sender = new Actor<>(WHEN_A, 0);
         final Actor<Integer> receiver = new Actor<>(WHEN_B, 1);
         final int nSignals = 32;
+        final CountDownLatch ready = new CountDownLatch(1);
         final List<Signal<Integer>> signals = new ArrayList<>(nSignals);
+        final List<Future<Void>> futures = new ArrayList<>(nSignals);
         for (int s = 0; s < nSignals; s++) {
             final Signal<Integer> signal = new SignalTest.SimpleTestSignal(WHEN_C.plusSeconds(s), sender, receiver, MEDIUM_A);
             signals.add(signal);
-        }
-        final CountDownLatch ready = new CountDownLatch(1);
-        final List<Future<Void>> futures = new ArrayList<>(nSignals * 2);
-        for (final var signal : signals) {
-            futures.add(ThreadSafetyTest.runInOtherThread(ready, () -> receiver.removeSignal(signal)));
+            receiver.addSignalToReceive(signal);
             futures.add(ThreadSafetyTest.runInOtherThread(ready, receiver::receiveSignal));
         }
 
@@ -795,52 +774,6 @@ public class ActorTest {
             }
         }
 
-
-        @Nested
-        public class AfterRemovingSignal {
-
-            @Test
-            public void a() {
-                test(WHEN_A, WHEN_B, WHEN_C, 0, 1);
-            }
-
-            @Test
-            public void b() {
-                test(WHEN_B, WHEN_C, WHEN_D, 1, 2);
-            }
-
-            private void test(@Nonnull final Duration when1, @Nonnull final Duration when2, @Nonnull final Duration when3, @Nonnull final Integer state1, @Nonnull final Integer state2) {
-                final Actor<Integer> sender = new Actor<>(when1, state1);
-                final Actor<Integer> receiver = new Actor<>(when2, state2);
-                final Signal<Integer> signal1 = new SignalTest.SimpleTestSignal(when3, sender, receiver, MEDIUM_A);
-                receiver.addSignalToReceive(signal1);
-                receiver.receiveSignal();
-                final var event1 = receiver.getLastEvent();
-                assert event1 != null;
-                final Signal<Integer> signal2 = new SignalTest.SimpleTestSignal(event1.getWhen(), sender, receiver, MEDIUM_A);
-                receiver.addSignalToReceive(signal2);
-                receiver.receiveSignal();
-                final var event2 = receiver.getLastEvent();
-                assert event2 != null;
-                final Signal<Integer> signal3 = new SignalTest.SimpleTestSignal(event2.getWhen(), sender, receiver, MEDIUM_A);
-                receiver.addSignalToReceive(signal3);
-                receiver.receiveSignal();
-                receiver.getWhenReceiveNextSignal();// cause a value to be cached
-                receiver.removeSignal(signal2);
-
-                final var affectedActors = receiveSignal(receiver);
-
-                assertThat("signals to receive", receiver.getSignalsToReceive(), empty());
-                final SortedSet<Event<Integer>> events = receiver.getEvents();
-                assertThat("events", events, hasSize(2));
-                assertThat("event 1 causing signal", events.first().getCausingSignal(), sameInstance(signal1));
-                assertThat("event 2 causing signal", events.last().getCausingSignal(), sameInstance(signal3));
-                assertThat(affectedActors.getAdded(), empty());
-                assertThat(affectedActors.getRemoved(), empty());
-                assertThat(affectedActors.getChanged(), contains(receiver));
-            }
-        }
-
         @Nested
         public class ActorCreatingSignal {
 
@@ -872,275 +805,5 @@ public class ActorTest {
             }
         }
     }// class
-
-    @Nested
-    public class RemoveSignal {
-
-        @Test
-        public void absent() {
-            final Actor<Integer> sender = new Actor<>(WHEN_A, 0);
-            final Actor<Integer> receiver = new Actor<>(WHEN_B, 1);
-            final Signal<Integer> signal = new SignalTest.SimpleTestSignal(WHEN_C, sender, receiver, MEDIUM_A);
-
-            final var affectedActors = removeSignal(receiver, signal);
-
-            assertThat("No signals to receive (still)", receiver.getSignalsToReceive(), empty());
-            assertThat("No events (still)", receiver.getEvents(), empty());
-            assertThat("affected actors", affectedActors, empty());
-        }
-
-        @Nested
-        public class Unscheduled {
-
-            @Test
-            public void a() {
-                test(WHEN_A, WHEN_B, WHEN_C, 0, 1);
-            }
-
-            @Test
-            public void b() {
-                test(WHEN_B, WHEN_C, WHEN_D, 1, 2);
-            }
-
-            @Test
-            public void concurrent() {
-                final Actor<Integer> sender = new Actor<>(WHEN_A, 0);
-                final Actor<Integer> receiver = new Actor<>(WHEN_B, 1);
-                final int nSignals = 32;
-                final List<Signal<Integer>> signals = new ArrayList<>(nSignals);
-                for (int s = 0; s < nSignals; s++) {
-                    final Signal<Integer> signal = new SignalTest.SimpleTestSignal(WHEN_C.plusSeconds(s), sender, receiver, MEDIUM_A);
-                    signals.add(signal);
-                    receiver.addSignalToReceive(signal);
-                }
-                final CountDownLatch ready = new CountDownLatch(1);
-                final List<Future<Void>> futures = new ArrayList<>(nSignals);
-                for (final var signal : signals) {
-                    futures.add(ThreadSafetyTest.runInOtherThread(ready, () -> receiver.removeSignal(signal)));
-                }
-
-                ready.countDown();
-                ThreadSafetyTest.get(futures);
-
-                assertInvariants(receiver);
-                for (final var signal : signals) {
-                    SignalTest.assertInvariants(signal);
-                }
-                assertThat("No signals to receive", receiver.getSignalsToReceive(), empty());
-                assertThat("No events (still)", receiver.getEvents(), empty());
-            }
-
-            private void test(@Nonnull final Duration when1, @Nonnull final Duration when2, @Nonnull final Duration when3, @Nonnull final Integer state1, @Nonnull final Integer state2) {
-                final Actor<Integer> sender = new Actor<>(when1, state1);
-                final Actor<Integer> receiver = new Actor<>(when2, state2);
-                final Signal<Integer> signal = new SignalTest.SimpleTestSignal(when3, sender, receiver, MEDIUM_A);
-                receiver.addSignalToReceive(signal);
-
-                final var affectedActors = removeSignal(receiver, signal);
-
-                assertThat("No signals to receive", receiver.getSignalsToReceive(), empty());
-                assertThat("No events (still)", receiver.getEvents(), empty());
-                assertThat("whenReceiveNextSignal", receiver.getWhenReceiveNextSignal(), is(Signal.NEVER_RECEIVED));
-                assertThat("affected actors", affectedActors, contains(receiver));
-            }
-        }
-
-        @Nested
-        public class Scheduled {
-
-            @Test
-            public void a() {
-                test(WHEN_A, WHEN_B, WHEN_C, 0, 1);
-            }
-
-            @Test
-            public void b() {
-                test(WHEN_B, WHEN_C, WHEN_D, 1, 2);
-            }
-
-            @Test
-            public void concurrent() {
-                final Actor<Integer> sender = new Actor<>(WHEN_A, 0);
-                final Actor<Integer> receiver = new Actor<>(WHEN_B, 1);
-                final int nSignals = 32;
-                final List<Signal<Integer>> signals = new ArrayList<>(nSignals);
-                for (int s = 0; s < nSignals; s++) {
-                    final Signal<Integer> signal = new SignalTest.SimpleTestSignal(WHEN_C.plusSeconds(s), sender, receiver, MEDIUM_A);
-                    signals.add(signal);
-                    receiver.addSignalToReceive(signal);
-                }
-                final CountDownLatch ready = new CountDownLatch(1);
-                final List<Future<Void>> futures = new ArrayList<>(nSignals);
-                for (final var signal : signals) {
-                    futures.add(ThreadSafetyTest.runInOtherThread(ready, () -> receiver.removeSignal(signal)));
-                }
-                receiver.getWhenReceiveNextSignal();
-
-                ready.countDown();
-                ThreadSafetyTest.get(futures);
-
-                assertInvariants(receiver);
-                for (final var signal : signals) {
-                    SignalTest.assertInvariants(signal);
-                }
-                assertThat("No signals to receive", receiver.getSignalsToReceive(), empty());
-                assertThat("No events (still)", receiver.getEvents(), empty());
-            }
-
-            private void test(@Nonnull final Duration when1, @Nonnull final Duration when2, @Nonnull final Duration when3, @Nonnull final Integer state1, @Nonnull final Integer state2) {
-                final Actor<Integer> sender = new Actor<>(when1, state1);
-                final Actor<Integer> receiver = new Actor<>(when2, state2);
-                final Signal<Integer> signal = new SignalTest.SimpleTestSignal(when3, sender, receiver, MEDIUM_A);
-                receiver.addSignalToReceive(signal);
-                receiver.getWhenReceiveNextSignal();
-
-                final var affectedActors = removeSignal(receiver, signal);
-
-                assertThat("No signals to receive", receiver.getSignalsToReceive(), empty());
-                assertThat("No events (still)", receiver.getEvents(), empty());
-                assertThat("affected actors", affectedActors, contains(receiver));
-            }
-        }
-
-        @Nested
-        public class Received {
-
-            @Test
-            public void a() {
-                test(WHEN_A, WHEN_B, WHEN_C, 0, 1);
-            }
-
-            @Test
-            public void b() {
-                test(WHEN_B, WHEN_C, WHEN_D, 1, 2);
-            }
-
-            @Test
-            public void concurrent() {
-                final Actor<Integer> sender = new Actor<>(WHEN_A, 0);
-                final Actor<Integer> receiver = new Actor<>(WHEN_B, 1);
-                final int nSignals = 32;
-                final List<Signal<Integer>> signals = new ArrayList<>(nSignals);
-                for (int s = 0; s < nSignals; s++) {
-                    final Signal<Integer> signal = new SignalTest.SimpleTestSignal(WHEN_C.plusSeconds(s), sender, receiver, MEDIUM_A);
-                    signals.add(signal);
-                    receiver.addSignalToReceive(signal);
-                }
-                for (int s = 0; s < nSignals; s++) {
-                    receiver.receiveSignal();
-                }
-                final CountDownLatch ready = new CountDownLatch(1);
-                final List<Future<Void>> futures = new ArrayList<>(nSignals);
-                for (final var signal : signals) {
-                    futures.add(ThreadSafetyTest.runInOtherThread(ready, () -> receiver.removeSignal(signal)));
-                }
-                receiver.getWhenReceiveNextSignal();
-
-                ready.countDown();
-                ThreadSafetyTest.get(futures);
-
-                assertInvariants(receiver);
-                for (final var signal : signals) {
-                    SignalTest.assertInvariants(signal);
-                }
-                assertThat("No signals to receive", receiver.getSignalsToReceive(), empty());
-                assertThat("No events (still)", receiver.getEvents(), empty());
-            }
-
-            private void test(@Nonnull final Duration when1, @Nonnull final Duration when2, @Nonnull final Duration when3, @Nonnull final Integer state1, @Nonnull final Integer state2) {
-                final Actor<Integer> sender = new Actor<>(when1, state1);
-                final Actor<Integer> receiver = new Actor<>(when2, state2);
-                final Signal<Integer> signal = new SignalTest.SimpleTestSignal(when3, sender, receiver, MEDIUM_A);
-                receiver.addSignalToReceive(signal);
-                receiver.receiveSignal();
-
-                final var affectedActors = removeSignal(receiver, signal);
-
-                assertThat("No signals to receive", receiver.getSignalsToReceive(), empty());
-                assertThat("No events", receiver.getEvents(), empty());
-                assertThat("affected actors", affectedActors, contains(receiver));
-            }
-        }
-
-        @Nested
-        public class SubsequentEvents {
-
-            @Test
-            public void a() {
-                test(WHEN_A, WHEN_B, WHEN_C, 0, 1);
-            }
-
-            @Test
-            public void b() {
-                test(WHEN_B, WHEN_C, WHEN_D, 1, 2);
-            }
-
-            private void test(@Nonnull final Duration when1, @Nonnull final Duration when2, @Nonnull final Duration when3, @Nonnull final Integer state1, @Nonnull final Integer state2) {
-                final Actor<Integer> sender = new Actor<>(when1, state1);
-                final Actor<Integer> receiver = new Actor<>(when2, state2);
-                final Signal<Integer> signal1 = new SignalTest.SimpleTestSignal(when3, sender, receiver, MEDIUM_A);
-                receiver.addSignalToReceive(signal1);
-                receiver.receiveSignal();
-                final var event1 = receiver.getLastEvent();
-                assert event1 != null;
-                final Signal<Integer> signal2 = new SignalTest.SimpleTestSignal(event1.getWhen(), sender, receiver, MEDIUM_A);
-                receiver.addSignalToReceive(signal2);
-                receiver.receiveSignal();
-                final var event2 = receiver.getLastEvent();
-                assert event2 != null;
-                final Signal<Integer> signal3 = new SignalTest.SimpleTestSignal(event2.getWhen(), sender, receiver, MEDIUM_A);
-                receiver.addSignalToReceive(signal3);
-                receiver.receiveSignal();
-
-                final var affectedActors = removeSignal(receiver, signal2);
-
-                assertThat("rescheduled subsequent signal", receiver.getSignalsToReceive(), is(Set.of(signal3)));
-                assertThat("retains event due to previous signal", receiver.getEvents(), is(Set.of(event1)));
-                assertThat("updated when receive next signal", receiver.getWhenReceiveNextSignal(), is(signal3.getWhenReceived(receiver.getStateHistory())));
-                assertThat("affected actors", affectedActors, contains(receiver));
-            }
-        }
-
-        @Nested
-        public class SubsequentEventsWithEmittedSignals {
-
-            @Test
-            public void a() {
-                test(WHEN_A, WHEN_B, WHEN_C, 0, 1);
-            }
-
-            @Test
-            public void b() {
-                test(WHEN_B, WHEN_C, WHEN_D, 1, 2);
-            }
-
-            private void test(@Nonnull final Duration when1, @Nonnull final Duration when2, @Nonnull final Duration when3, @Nonnull final Integer state1, @Nonnull final Integer state2) {
-                final Actor<Integer> actor1 = new Actor<>(when1, state1);
-                final Actor<Integer> actor2 = new Actor<>(when2, state2);
-                final Signal<Integer> signal1 = new SignalTest.SimpleTestSignal(when3, actor1, actor2, MEDIUM_A);
-                actor2.addSignalToReceive(signal1);
-                actor2.receiveSignal();
-                final var event1 = actor2.getLastEvent();
-                assert event1 != null;
-                final Signal<Integer> signal2 = new SignalTest.SimpleTestSignal(event1.getWhen(), actor1, actor2, MEDIUM_A);
-                actor2.addSignalToReceive(signal2);
-                actor2.receiveSignal();
-                final var event2 = actor2.getLastEvent();
-                assert event2 != null;
-                final Signal<Integer> signal3 = new SignalTest.EchoingTestSignal(event2.getWhen(), actor1, actor2, MEDIUM_A);
-                actor2.addSignalToReceive(signal3);
-                actor2.receiveSignal();
-                assert !actor1.getSignalsToReceive().isEmpty();
-
-                final var affectedActors = removeSignal(actor2, signal2);
-
-                assertThat("rescheduled subsequent signal", actor2.getSignalsToReceive(), is(Set.of(signal3)));
-                assertThat("retains event due to previous signal", actor2.getEvents(), is(Set.of(event1)));
-                assertThat("updated when receive next signal", actor2.getWhenReceiveNextSignal(), is(signal3.getWhenReceived(actor2.getStateHistory())));
-                assertThat("removed emitted signal", actor1.getSignalsToReceive(), empty());
-                assertThat("affected actors", affectedActors, containsInAnyOrder(actor1, actor2));
-            }
-        }
-    }
 
 }// class
