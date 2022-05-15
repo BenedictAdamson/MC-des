@@ -22,11 +22,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
-import java.util.SortedMap;
-import java.util.SortedSet;
+import java.util.*;
 import java.util.stream.Stream;
 
 /**
@@ -52,8 +48,6 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * <li>The {@linkplain #getFirstValue() first value} is the given value.</li>
      * <li>The {@linkplain #getLastValue() last value} is the given value.</li>
      * </ul>
-     *
-     * @param value The value {@linkplain #get(Duration) at} all points in time.
      */
     public ConstantValueHistory(@Nullable final VALUE value) {
         this.value = value;
@@ -97,8 +91,6 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * <li>This method is more efficient than using the
      * {@link #getTransitionTimes()} method.</li>
      * </ul>
-     *
-     * @return the first transition time.
      */
     @Nullable
     @Override
@@ -122,8 +114,6 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * <li>This method is more efficient than using the
      * {@link #getTransitionTimes()} method.</li>
      * </ul>
-     *
-     * @return the last transition time.
      */
     @Nullable
     @Override
@@ -148,11 +138,6 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * <li>This method is more efficient than using the
      * {@link #getTransitionTimes()} method.</li>
      * </ul>
-     *
-     * @param when The point in time of interest, expressed as a duration since an
-     *             epoch.
-     * @return the transition time at or after the given time.
-     * @throws NullPointerException if {@code when} is null.
      */
     @Nullable
     @Override
@@ -170,9 +155,9 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * <li>The transitions map {@linkplain SortedMap#isEmpty() is empty}.</li>
      * <li>The transitions map is
      * {@linkplain Collections#unmodifiableSortedMap(SortedMap) unmodifiable}.</li>
+     * <li>The transitions map
+     * {@linkplain SortedMap#isEmpty() is empty} because the value is constant.</li>
      * </ul>
-     *
-     * @return a map of the transitions.
      */
     @Nonnull
     @Override
@@ -185,7 +170,6 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * The points in time when the value of this history changes.
      * </p>
      * <ul>
-     * <li>Always have a (non null) set of transition times.</li>
      * <li>The transition times are represented as the duration since an (implied)
      * epoch.</li>
      * <li>The set of transition times {@linkplain SortedSet#isEmpty() is
@@ -193,8 +177,6 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * <li>The returned set is
      * {@linkplain Collections#unmodifiableSortedSet(SortedSet) unmodifiable}.</li>
      * </ul>
-     *
-     * @return the transition times
      */
     @Nonnull
     @Override
@@ -228,14 +210,11 @@ public final class ConstantValueHistory<VALUE> extends AbstractValueHistory<VALU
      * value of this history.
      * </p>
      * <ul>
-     * <li>Always creates a (non null) steam.</li>
      * <li>The stream of transitions {@linkplain Stream#count() is empty}.</li>
      * <li>Using the stream of transitions is more efficient than getting the
      * {@linkplain #getTransitions() transitions map} and then creating a stream
      * from its entries.</li>
      * </ul>
-     *
-     * @return a stream of the transitions.
      */
     @Nonnull
     @Override

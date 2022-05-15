@@ -35,7 +35,8 @@ import java.util.stream.Collectors;
 
 /**
  * <p>
- * A simulated object.
+ * A simulated object that (potentially) has a time-wise varying state,
+ * which varies only as a result of receiving {@linkplain Signal signals}.
  * </p>
  *
  * @param <STATE> The class of states of the simulated object. This must be
@@ -88,7 +89,6 @@ public final class Actor<STATE> {
      *
      * @param start The first point in time for which the actor has a known state.
      * @param state The first (known) state of the actor.
-     * @throws NullPointerException If any argument is null
      */
     public Actor(@Nonnull final Duration start, @Nonnull final STATE state) {
         Objects.requireNonNull(state, "state");
@@ -176,7 +176,44 @@ public final class Actor<STATE> {
         }
     }
 
-    private CompletableFuture<AffectedActors<STATE>> advanceTo(@Nonnull final Duration when, @Nonnull final Executor executor) {
+    private static <STATE> void addActorVersionsToLockToRemoveEvents(
+            @Nonnull final NavigableMap<Actor<STATE>, Long> versions,
+            @Nonnull final Set<Event<STATE>> events) {
+        while (!events.isEmpty()) {
+            final Event<STATE> event = events.iterator().next();
+            events.remove(event);
+            for (final var signal : event.getSignalsEmitted()) {
+                final var receiver = signal.getReceiver();
+                synchronized (receiver.lock) {
+                    versions.putIfAbsent(receiver, receiver.version);
+                    final var causedEvent = receiver.eventsForSignals.get(signal);
+                    if (causedEvent != null) {
+                        events.addAll(receiver.events.tailSet(causedEvent, false));
+                    }
+                }
+            }
+            for (final var createdActor : event.getCreatedActors()) {
+                synchronized (createdActor.lock) {
+                    versions.putIfAbsent(createdActor, createdActor.version);
+                    events.addAll(createdActor.events);
+                }
+            }
+        }
+    }
+
+    @Nonnull
+    private static <STATE> AffectedActors<STATE> removeEventsWhileLocked(@Nonnull final Collection<Event<STATE>> invalidatedEvents) {
+        //noinspection FieldAccessNotGuarded
+        return invalidatedEvents.stream()
+                .flatMap(invalidatedEvent -> invalidatedEvent.getSignalsEmitted().stream())
+                .map(signal -> signal.getReceiver().removeSignalWhileLocked(signal))
+                .reduce(AffectedActors::plus)
+                .orElse(AffectedActors.emptyInstance());
+    }
+
+    private CompletableFuture<AffectedActors<STATE>> advanceTo(
+            @Nonnull final Duration when,
+            @Nonnull final Executor executor) {
         final CompletableFuture<AffectedActors<STATE>> future = new CompletableFuture<>();
         executor.execute(() -> {
             final AffectedActors<STATE> affectedActors;
@@ -213,12 +250,12 @@ public final class Actor<STATE> {
      * {@linkplain Event#getAffectedObject() affected} this actor.
      * </p>
      * <ul>
-     * <li>The events sequence may be {@linkplain List#isEmpty() empty}.</li>
+     * <li>The events sequence may be {@linkplain SortedSet#isEmpty() empty}.</li>
      * <li>All events {@linkplain Event#getAffectedObject() affect} this actor.</li>
      * <li>All events {@linkplain Event#getWhen() occurred}
      * {@linkplain Duration#compareTo(Duration) after} the {@linkplain #getStart()
      * start} time of this history.</li>
-     * <li>The returned event sequence is a snapshot: a copy of data, it is not
+     * <li>The returned event sequence is a snapshot: it is not
      * updated if this actor is subsequently changed.</li>
      * <li>Note that events may be <i>measured as simultaneous</i>: events can have
      * {@linkplain Duration#equals(Object) equivalent}
@@ -297,7 +334,7 @@ public final class Actor<STATE> {
      * {@linkplain #getEvents() event} is {@linkplain #equals(Object) equivalent to}
      * the {@linkplain ValueHistory#get(Duration) value} of the state history at the
      * {@linkplain Event#getWhen() time of occurrence} of the event.</li>
-     * <li>The returned state history is a snapshot: a copy of data, it is not
+     * <li>The returned state history is a snapshot: it is not
      * updated if this actor is subsequently changed.</li>
      * </ul>
      */
@@ -311,14 +348,16 @@ public final class Actor<STATE> {
     /**
      * <p>
      * The signals that, when received, will add to the {@linkplain #getEvents() sequence of events}
-     * of this actor, but which have not yet been {@linkplain  #receiveSignal() received}.
+     * of this actor, but which have not yet been {@linkplain #receiveSignal() received}.
      * </p>
      * <ul>
      *     <li>Does not contain a null element.</li>
-     *     <li>A snapshot: not updated when signals are subsequently {@linkplain  #addSignalToReceive(Signal) added} or {@linkplain #receiveSignal() received}.</li>
+     *     <li>A snapshot: not updated when signals are subsequently {@linkplain  #addSignalToReceive(Signal) added} or
+     *     {@linkplain #receiveSignal() received}.</li>
      *     <li>The set may be unmodifiable.</li>
      *     <li>The {@linkplain Signal#getReceiver() receiver} of every signal in the set is this actor.</li>
-     *     <li>The {@linkplain Signal#getWhenSent()} sending time} of every signal in the set is {@linkplain Duration#compareTo(Duration) before} the {@linkplain #getStart() start time} of this actor.</li>
+     *     <li>The {@linkplain Signal#getWhenSent()} sending time} of every signal in the set is
+     *     {@linkplain Duration#compareTo(Duration) before} the {@linkplain #getStart() start time} of this actor.</li>
      * </ul>
      */
     @Nonnull
@@ -340,11 +379,13 @@ public final class Actor<STATE> {
      *
      * <ul>
      *     <li>After the {@linkplain #getStart() start} time.</li>
-     *     <li>{@linkplain Signal#NEVER_RECEIVED} if {@linkplain Set#isEmpty() no} {@linkplain #getSignalsToReceive() signals to receive}.</li>
+     *     <li>{@link Signal#NEVER_RECEIVED} if {@linkplain Set#isEmpty() no}
+     *     {@linkplain #getSignalsToReceive() signals to receive}.</li>
      * </ul>
      *
      * @throws SignalException If a {@link Signal} object throws a {@link RuntimeException}.
-     *                         The method is safe if this exception is thrown: the state of this Actor will not have changed.
+     *                         The method is safe if this exception is thrown:
+     *                         the state of this Actor will not have changed.
      */
     @Nonnull
     public Duration getWhenReceiveNextSignal() {
@@ -358,10 +399,11 @@ public final class Actor<STATE> {
      * Add a signal to the {@linkplain #getSignalsToReceive() set of signals to receive}.
      * </p>
      *
-     * @throws NullPointerException     If {@code signal} is null
      * @throws IllegalArgumentException <ul>
      *                                  <li>If the {@linkplain Signal#getReceiver() receiver} of the {@code signal} is not this actor.</li>
-     *                                  <li>If the {@linkplain Signal#getWhenSent()} sending time of the {@code signal} is {@linkplain Duration#compareTo(Duration) before} the {@linkplain #getStart() start time} of this actor.</li>
+     *                                  <li>If the {@linkplain Signal#getWhenSent()} sending time of the {@code signal}
+     *                                  is {@linkplain Duration#compareTo(Duration) before} the
+     *                                  {@linkplain #getStart() start time} of this actor.</li>
      *                                  </ul>
      * @see #receiveSignal()
      */
@@ -399,13 +441,16 @@ public final class Actor<STATE> {
      * which will be the {@linkplain SortedSet#last() last} of the events.
      * </p>
      *
-     * @return The set of actors affected by this change; does not contain a null element; may be {@linkplain Set#isEmpty() empty}; may be unmodifiable.
+     * @return The actors affected by this change.
      * <ul>
      *     <li>No {@linkplain AffectedActors#getChanged() changed} actors if, and only if, no signal is received.</li>
-     *     <li>If {@linkplain AffectedActors#getChanged() changed} actors is not empty, it includes all the {@linkplain Event#getIndirectlyAffectedObjects() indirectly affected objects} of the event caused by reception of the signal.</li>
+     *     <li>If {@linkplain AffectedActors#getChanged() changed} actors is not empty,
+     *     it includes all the {@linkplain Event#getIndirectlyAffectedObjects() indirectly affected objects}
+     *     of the event caused by reception of the signal.</li>
      * </ul>
      * @throws SignalException If a {@link Signal} object throws a {@link RuntimeException}.
-     *                         The method is safe if this exception is thrown: the state of this Actor will not have changed.
+     *                         The method is safe if this exception is thrown:
+     *                         the state of this Actor will not have changed.
      */
     @Nonnull
     public AffectedActors<STATE> receiveSignal() {
@@ -451,8 +496,8 @@ public final class Actor<STATE> {
 
     @Nullable
     private AffectedActors<STATE> tryToRemoveEvent(
-        final long previousVersion,
-        @Nonnull final Event<STATE> event
+            final long previousVersion,
+            @Nonnull final Event<STATE> event
     ) {
         //noinspection FieldAccessNotGuarded
         return doWithAllActorsLocked(actorVersionsToLockToRemoveEvent(previousVersion, event), () -> removeEventWhileLocked(event));
@@ -497,31 +542,6 @@ public final class Actor<STATE> {
         return result;
     }
 
-    private static <STATE> void addActorVersionsToLockToRemoveEvents(
-            @Nonnull final NavigableMap<Actor<STATE>, Long> versions,
-            @Nonnull final Set<Event<STATE>> events) {
-        while(!events.isEmpty()) {
-            final Event<STATE> event = events.iterator().next();
-            events.remove(event);
-            for (final var signal : event.getSignalsEmitted()) {
-                final var receiver = signal.getReceiver();
-                synchronized (receiver.lock) {
-                    versions.putIfAbsent(receiver, receiver.version);
-                    final var causedEvent = receiver.eventsForSignals.get(signal);
-                    if (causedEvent != null) {
-                        events.addAll(receiver.events.tailSet(causedEvent, false));
-                    }
-                }
-            }
-            for (final var createdActor : event.getCreatedActors()) {
-                synchronized (createdActor.lock) {
-                    versions.putIfAbsent(createdActor, createdActor.version);
-                    events.addAll(createdActor.events);
-                }
-            }
-        }
-    }
-
     @GuardedBy("lock")
     private Duration computeNextSignalToReceive() throws SignalException {
         if (whenReceiveNextSignal == null) {
@@ -546,6 +566,7 @@ public final class Actor<STATE> {
     private Event<STATE> createNextEvent() throws SignalException {
         final STATE state = stateHistory.get(whenReceiveNextSignal);
         assert state != null;
+        assert nextSignalToReceive != null;
         try {
             return nextSignalToReceive.receive(whenReceiveNextSignal, state);
         } catch (final RuntimeException e) {
@@ -554,7 +575,7 @@ public final class Actor<STATE> {
     }
 
     @GuardedBy("lock")
-    private void considerAsNextSignalToReceive(final Signal<STATE> signal) throws SignalException {
+    private void considerAsNextSignalToReceive(@Nonnull final Signal<STATE> signal) throws SignalException {
         try {
             final Duration whenReceived = computeWhenReceived(signal);
             if (compareTo(signal, whenReceived, nextSignalToReceive, whenReceiveNextSignal) < 0) {
@@ -605,10 +626,9 @@ public final class Actor<STATE> {
         return new AffectedActors<>(event.getIndirectlyAffectedObjects(), event.getCreatedActors(), Set.of());
     }
 
-
     @Nonnull
     @GuardedBy("lock")
-    private AffectedActors<STATE> removeEventWhileLocked(@Nonnull final Event<STATE> event)  {
+    private AffectedActors<STATE> removeEventWhileLocked(@Nonnull final Event<STATE> event) {
         assert this == event.getAffectedObject();
         assert Thread.holdsLock(lock);
         final List<Event<STATE>> invalidatedEvents = new ArrayList<>(events.tailSet(event, true));
@@ -620,6 +640,7 @@ public final class Actor<STATE> {
         invalidatedCausingSignals.forEach(eventsForSignals.keySet()::remove);
         signalsToReceive.addAll(invalidatedCausingSignals);
         invalidateNextSignalToReceive();
+        version++;
         var result = new AffectedActors<>(Set.of(this), Set.of(), Set.of());
         result = result.plus(removeEventsWhileLocked(invalidatedEvents));
         result = result.plus(invalidatedEvents.stream().sequential()
@@ -632,8 +653,9 @@ public final class Actor<STATE> {
 
     @Nonnull
     @GuardedBy("lock")
-    private AffectedActors<STATE> removeSignalWhileLocked(@Nonnull final Signal<STATE> signal)  {
+    private AffectedActors<STATE> removeSignalWhileLocked(@Nonnull final Signal<STATE> signal) {
         assert Thread.holdsLock(lock);
+        version++;
         if (unscheduledSignalsToReceive.remove(signal)) {
             invalidateNextSignalToReceive();
             return new AffectedActors<>(Set.of(this), Set.of(), Set.of());
@@ -649,23 +671,13 @@ public final class Actor<STATE> {
 
     @Nonnull
     @GuardedBy("lock")
-    private AffectedActors<STATE> removeWhileLocked()  {
+    private AffectedActors<STATE> removeWhileLocked() {
         assert Thread.holdsLock(lock);
         final List<Event<STATE>> invalidatedEvents = new ArrayList<>(events);
         Collections.reverse(invalidatedEvents);
         var result = new AffectedActors<>(Set.of(), Set.of(), Set.of(this));
         result = result.plus(removeEventsWhileLocked(invalidatedEvents));
         return result;
-    }
-
-    @Nonnull
-    private static <STATE> AffectedActors<STATE> removeEventsWhileLocked(@Nonnull final Collection<Event<STATE>> invalidatedEvents)  {
-        //noinspection FieldAccessNotGuarded
-        return invalidatedEvents.stream()
-                .flatMap(invalidatedEvent -> invalidatedEvent.getSignalsEmitted().stream())
-                .map(signal -> signal.getReceiver().removeSignalWhileLocked(signal))
-                .reduce(AffectedActors::plus)
-                .orElse(AffectedActors.emptyInstance());
     }
 
     @GuardedBy("lock")
@@ -706,6 +718,16 @@ public final class Actor<STATE> {
         }
     }
 
+    /**
+     * <p>
+     * The sets of Actor objects {@linkplain #getChanged() changed}, {@linkplain #getAdded() added} and {@linkplain #getRemoved()}  removed}
+     * by a {@linkplain Signal signal} or set of signals.
+     * </p>
+     *
+     * @param <STATE> The class of states of the Actors. This must be
+     *                {@link Immutable immutable}. It ought to have value semantics, but
+     *                that is not required.
+     */
     @Immutable
     public static final class AffectedActors<STATE> {
 
@@ -775,6 +797,10 @@ public final class Actor<STATE> {
         }
 
         /**
+         * The Actors that had {@linkplain Actor#getEvents() events} added or removed,
+         * or had {@linkplain Actor#getSignalsToReceive() signals to receive} added,
+         * as a result of a {@linkplain Signal signal} or set of signals.
+         * <p>
          * Exclusive with the sets of {@linkplain #getAdded() added actors} and {@linkplain #getRemoved() removed actors}.
          */
         @Nonnull
@@ -783,6 +809,9 @@ public final class Actor<STATE> {
         }
 
         /**
+         * The Actors {@linkplain Event#getCreatedActors() created} by {@linkplain Signal#receiveForStateHistory(ValueHistory) reception of a signal}
+         * or set of signals.
+         * <p>
          * Exclusive with the set of {@linkplain #getRemoved() removed actors}.
          */
         @Nonnull
@@ -790,6 +819,14 @@ public final class Actor<STATE> {
             return added;
         }
 
+        /**
+         * The Actors removed by {@linkplain Actor#receiveSignal()  reception of a signal}
+         * or set of signals.
+         * <p>
+         * Receiving a signal can result in removal of an actor
+         * if it invalidates {@linkplain Event events} that
+         * {@linkplain Event#getCreatedActors() added} actors.
+         */
         @Nonnull
         public Set<Actor<STATE>> getRemoved() {
             return removed;

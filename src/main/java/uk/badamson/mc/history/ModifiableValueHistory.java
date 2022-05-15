@@ -38,6 +38,7 @@ import java.util.stream.Stream;
 public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VALUE> {
 
     private final NavigableMap<Duration, VALUE> transitions = new TreeMap<>();
+
     @Nullable
     private VALUE firstValue;
 
@@ -65,8 +66,6 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * <li>The {@linkplain #getFirstValue() value of this history at the start of
      * time} is the given value.</li>
      * </ul>
-     *
-     * @param value The value at all points in time
      */
     public ModifiableValueHistory(@Nullable final VALUE value) {
         firstValue = value;
@@ -84,10 +83,6 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * {@code transitions} map.</li>
      * </ul>
      *
-     * @param firstValue  The {@linkplain #get(Duration) value} of this history at the
-     *                    {@linkplain #START_OF_TIME start of time}.
-     * @param transitions The transitions in the value of this history.
-     * @throws NullPointerException     If {@code transitions} is null
      * @throws IllegalArgumentException If adjacent {@linkplain SortedMap#values() values} of
      *                                  {@code transitions} are
      *                                  {@linkplain Objects#equals(Object, Object) equivalent or
@@ -115,9 +110,6 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * <ul>
      * <li>This {@linkplain #equals(Object) equals} the given value history.</li>
      * </ul>
-     *
-     * @param that The value history to copy.
-     * @throws NullPointerException If {@code that} is null
      */
     public ModifiableValueHistory(@Nonnull final ValueHistory<VALUE> that) {
         Objects.requireNonNull(that, "that");
@@ -145,15 +137,13 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * @param when  The point in time when the transition occurs, represented as the
      *              duration since an (implied) epoch.
      * @param value The value at and after the transition.
-     * @throws NullPointerException  If {@code when} is null.
-     * @throws IllegalStateException
-     *     If
-     *     <ul>
-     *         <li>{@code when} is at or before the {@linkplain #getLastTransitionTime() last transition time}.</li>
-     *         <li>{@code when} is {@linkplain Objects#equals(Object, Object) equivalent to} the {@linkplain #getLastValue() last value}.</li>
-     *     </ul>
-     *     This history is unchanged if the method throws IllegalStateException.
-     *                                                                                                                                                                   {@link IllegalStateException}.
+     * @throws IllegalStateException If
+     *                               <ul>
+     *                                   <li>{@code when} is at or before the {@linkplain #getLastTransitionTime() last transition time}.</li>
+     *                                   <li>{@code when} is {@linkplain Objects#equals(Object, Object) equivalent to} the {@linkplain #getLastValue() last value}.</li>
+     *                               </ul>
+     *                               This history is unchanged if the method throws IllegalStateException.
+     *                                                                                                                                                                                             {@link IllegalStateException}.
      * @see #setValueFrom(Duration, Object)
      */
     public void appendTransition(@Nonnull final Duration when, final VALUE value) throws IllegalStateException {
@@ -204,8 +194,8 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
         return previousTransition == null ? firstValue : previousTransition.getValue();
     }
 
-    @Override
     @Nonnull
+    @Override
     public TimestampedValue<VALUE> getTimestampedValue(@Nonnull final Duration when) {
         Objects.requireNonNull(when, "when");
         final SortedMap<Duration, VALUE> atOrBefore;
@@ -224,31 +214,32 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
         return new TimestampedValue<>(start, end, value);
     }
 
+    @Nullable
     @Override
-    public @Nullable
-    Duration getFirstTransitionTime() {
+    public Duration getFirstTransitionTime() {
         return transitions.isEmpty() ? null : transitions.firstKey();
     }
 
+    @Nullable
     @Override
-    public @Nullable
-    VALUE getFirstValue() {
+    public VALUE getFirstValue() {
         return firstValue;
     }
 
+    @Nullable
     @Override
-    public @Nullable
-    Duration getLastTransitionTime() {
+    public Duration getLastTransitionTime() {
         return transitions.isEmpty() ? null : transitions.lastKey();
     }
 
+    @Nullable
     @Override
-    public @Nullable
-    VALUE getLastValue() {
+    public VALUE getLastValue() {
         final var lastTransition = transitions.lastEntry();
         return lastTransition == null ? firstValue : lastTransition.getValue();
     }
 
+    @Nullable
     @Override
     public Duration getTransitionTimeAtOrAfter(@Nonnull final Duration when) {
         Objects.requireNonNull(when, "when");
@@ -265,9 +256,9 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * <li>The transitions map is a newly constructed object.</li>
      * </ul>
      */
+    @Nonnull
     @Override
-    public @Nonnull
-    SortedMap<Duration, VALUE> getTransitions() {
+    public SortedMap<Duration, VALUE> getTransitions() {
         return new TreeMap<>(transitions);
     }
 
@@ -283,9 +274,9 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * this history.</li>
      * </ul>
      */
+    @Nonnull
     @Override
-    public @Nonnull
-    SortedSet<Duration> getTransitionTimes() {
+    public SortedSet<Duration> getTransitionTimes() {
         return Collections.unmodifiableSortedSet(transitions.navigableKeySet());
     }
 
@@ -314,9 +305,6 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * {@linkplain #getTransitions() transitions} before the point in time.</li>
      * </ul>
      *
-     * @param when The point in time from which transitions must be removed,
-     *             represented as the duration since an (implied) epoch.
-     * @throws NullPointerException If {@code when} is null.
      * @see #appendTransition(Duration, Object)
      */
     public void removeTransitionsFrom(@Nonnull final Duration when) {
@@ -341,12 +329,6 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * given time.</li>
      * </ul>
      *
-     * @param when  The point in time from which this history must have the
-     *              {@code value}, represented as the duration since an (implied)
-     *              epoch.
-     * @param value The value that this history must have at or after the given point
-     *              in time.
-     * @throws NullPointerException If {@code when} is null.
      * @see #appendTransition(Duration, Object)
      * @see #setValueUntil(Duration, Object)
      */
@@ -379,12 +361,6 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
      * the given time.</li>
      * </ul>
      *
-     * @param when  The point in time until which this history must have the
-     *              {@code value}, represented as the duration since an (implied)
-     *              epoch.
-     * @param value The value that this history must have at or before the given point
-     *              in time.
-     * @throws NullPointerException If {@code when} is null.
      * @see #setValueFrom(Duration, Object)
      */
     public void setValueUntil(@Nonnull final Duration when, @Nullable final VALUE value) {
@@ -401,9 +377,9 @@ public final class ModifiableValueHistory<VALUE> extends AbstractValueHistory<VA
         }
     }
 
+    @Nonnull
     @Override
-    public @Nonnull
-    Stream<Map.Entry<Duration, VALUE>> streamOfTransitions() {
+    public Stream<Map.Entry<Duration, VALUE>> streamOfTransitions() {
         return transitions.entrySet().stream();
     }
 

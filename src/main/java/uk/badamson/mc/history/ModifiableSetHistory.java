@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018,2021.
+ * © Copyright Benedict Adamson 2018,2021-22.
  *
  * This file is part of MC-des.
  *
@@ -34,7 +34,6 @@ import java.util.stream.Stream;
  * </p>
  *
  * @param <VALUE> The class of values of this set history. This must be {@link Immutable immutable}, or have reference semantics.
- *
  * @see ModifiableValueHistory
  */
 @NotThreadSafe
@@ -43,16 +42,13 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
     private static final ValueHistory<Boolean> ABSENT = new ConstantValueHistory<>(Boolean.FALSE);
 
     private final Set<VALUE> firstValue = new HashSet<>();
+
     private final Map<VALUE, ModifiableValueHistory<Boolean>> containsMap = new HashMap<>();
 
     /**
      * <p>
      * Construct a set value history that is initially {@linkplain Set#isEmpty()
      * empty} for all points in time.
-     * </p>
-     * <ul>
-     * <li>This {@linkplain #isEmpty() is empty}.</li>
-     * </ul>
      */
     public ModifiableSetHistory() {
         // Do nothing
@@ -78,12 +74,6 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
      * is at or before the given time.</li>
      * </ul>
      *
-     * @param when  The point in time from which this set history must have the
-     *              {@code value} as one of the values of the set, represented as the
-     *              duration since an (implied) epoch.
-     * @param value The value that this set history must have as one of the values of
-     *              the set at or after the given point in time.
-     * @throws NullPointerException If {@code when} is null.
      * @see ModifiableValueHistory#setValueFrom(Duration, Object)
      * @see Set#add(Object)
      */
@@ -117,12 +107,6 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
      * time} after the given time.</li>
      * </ul>
      *
-     * @param when  The point in time until which this set history must have the
-     *              {@code value} as one of the values of the set, represented as the
-     *              duration since an (implied) epoch.
-     * @param value The value that this set history must have as one of the values of
-     *              the set at or before the given point in time.
-     * @throws NullPointerException If {@code when} is null.
      * @see ModifiableValueHistory#setValueUntil(Duration, Object)
      * @see Set#add(Object)
      */
@@ -137,9 +121,9 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
         firstValue.add(value);
     }
 
+    @Nonnull
     @Override
-    public @Nonnull
-    ValueHistory<Boolean> contains(@Nullable final VALUE value) {
+    public ValueHistory<Boolean> contains(@Nullable final VALUE value) {
         final var c = containsMap.get(value);
         return c == null ? ABSENT : c;
     }
@@ -160,9 +144,9 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
         }
     }
 
+    @Nonnull
     @Override
-    public @Nonnull
-    Set<VALUE> get(@Nonnull final Duration when) {
+    public Set<VALUE> get(@Nonnull final Duration when) {
         Objects.requireNonNull(when, "when");
         return containsMap.entrySet().stream().filter(e -> e.getValue().get(when))
                 .map(Map.Entry::getKey).collect(Collectors.toSet());
@@ -176,23 +160,23 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
         return lastValue;
     }
 
+    @Nullable
     @Override
-    public @Nullable
-    Duration getFirstTransitionTime() {
+    public Duration getFirstTransitionTime() {
         return containsMap.values().stream().map(ModifiableValueHistory::getFirstTransitionTime)
                 .filter(Objects::nonNull)
                 .min(Comparator.naturalOrder()).orElse(null);
     }
 
+    @Nonnull
     @Override
-    public @Nonnull
-    Set<VALUE> getFirstValue() {
+    public Set<VALUE> getFirstValue() {
         return Collections.unmodifiableSet(firstValue);
     }
 
+    @Nullable
     @Override
-    public @Nullable
-    Duration getLastTransitionTime() {
+    public Duration getLastTransitionTime() {
         return containsMap.values().stream().map(ModifiableValueHistory::getLastTransitionTime)
                 .filter(Objects::nonNull)
                 .max(Comparator.naturalOrder()).orElse(null);
@@ -205,9 +189,9 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
                 .orElse(null);
     }
 
+    @Nonnull
     @Override
-    public @Nonnull
-    SortedMap<Duration, Set<VALUE>> getTransitions() {
+    public SortedMap<Duration, Set<VALUE>> getTransitions() {
         final SortedMap<Duration, Set<VALUE>> transitions = new TreeMap<>();
         for (final var t : getTransitionTimes()) {
             transitions.put(t, get(t));
@@ -215,9 +199,9 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
         return transitions;
     }
 
+    @Nonnull
     @Override
-    public @Nonnull
-    SortedSet<Duration> getTransitionTimes() {
+    public SortedSet<Duration> getTransitionTimes() {
         return streamOfTransitionTimes().collect(Collectors.toCollection(TreeSet::new));
     }
 
@@ -251,7 +235,6 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
      * not {@linkplain Set#contains(Object) contain} the given value.</li>
      * </ul>
      *
-     * @param value The value to remove
      * @see Set#remove(Object)
      */
     public void remove(@Nullable final VALUE value) {
@@ -259,9 +242,9 @@ public final class ModifiableSetHistory<VALUE> extends AbstractValueHistory<Set<
         firstValue.remove(value);
     }
 
+    @Nonnull
     @Override
-    public @Nonnull
-    Stream<Map.Entry<Duration, Set<VALUE>>> streamOfTransitions() {
+    public Stream<Map.Entry<Duration, Set<VALUE>>> streamOfTransitions() {
         return streamOfTransitionTimes().distinct().map(t -> new AbstractMap.SimpleImmutableEntry<>(t, get(t)));
     }
 

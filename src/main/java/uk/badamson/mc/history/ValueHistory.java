@@ -266,7 +266,6 @@ public interface ValueHistory<VALUE> {
      * The points in time when the value of this history changes.
      * </p>
      * <ul>
-     * <li>Always have a (non null) set of transition times.</li>
      * <li>The transition times are represented as the duration since an (implied)
      * epoch.</li>
      * <li>There is not a transition at the {@linkplain ValueHistory#START_OF_TIME

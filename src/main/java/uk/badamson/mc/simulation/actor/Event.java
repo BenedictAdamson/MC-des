@@ -70,8 +70,6 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
      * <p>
      * Construct a simple event that causes only a state transition.
      * </p>
-     *
-     * @throws NullPointerException If any {@link Nonnull} argument is null.
      */
     public Event(
             @Nonnull final Signal<STATE> causingSignal,
@@ -102,10 +100,12 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
      *                                  <li>If {@code signalsEmitted} contains a signal that was not
      *                                  {@linkplain Signal#getSender() sent} from the same object as
      *                                  the {@code affectedObject}</li>
-     *                                  <li>If {@code signalsEmitted} contains a signal that was not {@linkplain Signal#getWhenSent() sent} at the same time as
+     *                                  <li>If {@code signalsEmitted} contains a signal that was not
+     *                                  {@linkplain Signal#getWhenSent() sent} at the same time as
      *                                  {@code when}.</li>
      *                                  <li> If {@code createdActors} {@linkplain Set#contains(Object) contains} {@code affectedObject}.</li>
-     *                                  <li>If any of the {@code createdActors} have a {@linkplain Actor#getStart() start time} that is not {@linkplain Duration#equals(Object) equal to} {@code when}.</li>
+     *                                  <li>If any of the {@code createdActors} have a
+     *                                  {@linkplain Actor#getStart() start time} that is not {@linkplain Duration#equals(Object) equal to} {@code when}.</li>
      *                                  </ul>
      */
     public Event(@Nonnull final Signal<STATE> causingSignal,
@@ -178,11 +178,6 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
         return indirectlyAffectedObjects;
     }
 
-    /**
-     * <p>
-     * The signal that caused this event.
-     * </p>
-     */
     @Nonnull
     public Signal<STATE> getCausingSignal() {
         return causingSignal;
@@ -231,7 +226,16 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
     }
 
     /**
-     * Does not contains null.
+     * The Actors that first have a non-null {@linkplain Actor#getStateHistory() state} as a result of this event.
+     *
+     * <ul>
+     * <li>Does not contains null.</li>
+     * <li>May be {@linkplain Set#isEmpty() empty}</li>
+     * <li>Does not {@linkplain Set#contains(Object) contain} the
+     *  {@linkplain #getAffectedObject() directly affected object}.</li>
+     * <li>The {@linkplain Actor#getStart() start time} of the created actors is
+     * {@linkplain Duration#equals(Object) equal to} the {@linkplain #getWhen() time that this event occurred}.</li>
+     * </ul>
      */
     @Nonnull
     public Set<Actor<STATE>> getCreatedActors() {
@@ -240,7 +244,7 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
 
     @Override
     public String toString() {
-        return "Event [@" + when + ", " + affectedObject + "→" + state + ", ⇝" + signalsEmitted + "]";
+        return "Event [@" + when + ", " + affectedObject + "→" + state + ", →" + signalsEmitted + ", +" + createdActors + "]";
     }
 
     @Override

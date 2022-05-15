@@ -81,7 +81,9 @@ public class EventTest {
         assertAll(
                 createdActors.stream().map(actor -> () -> {
                     assertThat(actor, notNullValue());
-                    assertThat(actor.getStart(), is(when));
+                    assertAll(
+                            ()->assertThat(actor.getStart(), is(when)),
+                            ()->assertThat(actor, not(is(affectedObject))));
                 })
         );
         assertThat(indirectlyAffectedObjects, hasItem(affectedObject));

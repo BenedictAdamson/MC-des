@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018,2021.
+ * © Copyright Benedict Adamson 2018,2021-22.
  *
  * This file is part of MC-des.
  *
@@ -39,8 +39,10 @@ public final class TimestampedValue<VALUE> {
 
     @Nonnull
     private final Duration start;
+
     @Nonnull
     private final Duration end;
+
     @Nullable
     private final VALUE value;
 
