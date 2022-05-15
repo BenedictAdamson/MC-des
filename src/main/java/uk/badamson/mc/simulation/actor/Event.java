@@ -19,6 +19,7 @@ package uk.badamson.mc.simulation.actor;
  */
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import uk.badamson.mc.history.ValueHistory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -38,7 +39,7 @@ import java.util.Set;
  * also the only means by which simulated objects can emit signals.
  * </p>
  *
- * @param <STATE> The class of states of a receiver. This must be {@link Immutable
+ * @param <STATE> The class of states of a {@link Signal}  receiver. This must be {@link Immutable
  *                immutable}. It ought to have value semantics, but that is not
  *                required.
  */
@@ -46,10 +47,7 @@ import java.util.Set;
 public final class Event<STATE> implements Comparable<Event<STATE>> {
 
     @Nonnull
-    private final Signal<STATE> causingSignal;
-
-    @Nonnull
-    private final Duration when;
+    private final Id<STATE> id;
 
     @Nonnull
     private final Actor<STATE> affectedObject;
@@ -77,8 +75,7 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
             @Nonnull final Actor<STATE> affectedObject,
             @Nullable final STATE state
     ) {
-        this.causingSignal = Objects.requireNonNull(causingSignal, "causingSignal");
-        this.when = Objects.requireNonNull(when, "when");
+        this.id = new Id<>(causingSignal, when);
         this.affectedObject = Objects.requireNonNull(affectedObject, "affectedObject");
         this.state = state;
         this.signalsEmitted = Set.of();
@@ -114,8 +111,7 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
                  @Nullable final STATE state,
                  @Nonnull final Set<Signal<STATE>> signalsEmitted,
                  @Nonnull final Set<Actor<STATE>> createdActors) {
-        this.causingSignal = Objects.requireNonNull(causingSignal, "causingSignal");
-        this.when = Objects.requireNonNull(when, "when");
+        this.id = new Id<>(causingSignal, when);
         this.affectedObject = Objects.requireNonNull(affectedObject, "affectedObject");
         this.state = state;
         this.signalsEmitted = Set.copyOf(signalsEmitted);
@@ -180,7 +176,7 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
 
     @Nonnull
     public Signal<STATE> getCausingSignal() {
-        return causingSignal;
+        return id.getCausingSignal();
     }
 
     /**
@@ -222,11 +218,11 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
      */
     @Nonnull
     public Duration getWhen() {
-        return when;
+        return id.getWhen();
     }
 
     /**
-     * The Actors that first have a non-null {@linkplain Actor#getStateHistory() state} as a result of this event.
+     * The Actors that have their a non-null {@linkplain Actor#getStateHistory() state} as a result of this event.
      *
      * <ul>
      * <li>Does not contains null.</li>
@@ -242,11 +238,30 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
         return createdActors;
     }
 
-    @Override
-    public String toString() {
-        return "Event [@" + when + ", " + affectedObject + "→" + state + ", →" + signalsEmitted + ", +" + createdActors + "]";
+    /**
+     * The unique ID of this event.
+     *
+     * <ul>
+     *     <li>The {@linkplain #getCausingSignal() causing signal} of this event is the same as the {@linkplain Id#getCausingSignal() causing signal} of the ID.</li>
+     *     <li>The {@linkplain #getWhen() time of occurrence} of this event is the same as the {@linkplain Id#getWhen() time of occurrence}  of the ID.</li>
+     * </ul>
+     */
+    @Nonnull
+    public Id<STATE> getId() {
+        return id;
     }
 
+    @Override
+    public String toString() {
+        return "Event{" + id + "}";
+    }
+
+    /**
+     * Whether this object is <i>equivalent to</i> a given object.
+     * <p>
+     * The Event class has <i>reference semantics</i>,
+     * with the {@link #getId() providing the unique ID}.
+     */
     @Override
     public boolean equals(final Object that) {
         if (this == that) return true;
@@ -254,32 +269,116 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
 
         final Event<?> event = (Event<?>) that;
 
-        return when.equals(event.when) && causingSignal.equals(event.causingSignal);
+        return id.equals(event.id);
     }
 
     @Override
     public int hashCode() {
-        int result = when.hashCode();
-        result = 31 * result + causingSignal.hashCode();
-        return result;
+        return id.hashCode();
     }
 
     /**
      * {@inheritDoc}
      *
      * <p>
-     * The natural ordering of Event objects is by their
-     * {@linkplain  #getWhen() time of occurrence},
-     * then by other criteria.
-     * The natural ordering is consistent with {@link #equals(Object)}
+     * The natural ordering of Event objects is the same as the natural ordering of their {@linkplain #getId() IDs}.
      * </p>
      */
     @Override
     public int compareTo(@Nonnull final Event<STATE> that) {
-        int c = when.compareTo(that.when);
-        if (c == 0) {
-            c = causingSignal.tieBreakCompareTo(that.causingSignal);
+        return id.compareTo(that.id);
+    }
+
+    /**
+     * The unique ID of an {@link Event}.
+     *
+     * @param <STATE> The class of states of a {@link Signal} receiver. This must be {@link Immutable
+     *                immutable}. It ought to have value semantics, but that is not
+     *                required.
+     */
+    public static final class Id<STATE> implements Comparable<Id<STATE>> {
+
+        @Nonnull
+        private final Signal<STATE> causingSignal;
+
+        @Nonnull
+        private final Duration when;
+
+        public Id(
+                @Nonnull final Signal<STATE> causingSignal,
+                @Nonnull final Duration when
+        ) {
+            this.causingSignal = Objects.requireNonNull(causingSignal, "causingSignal");
+            this.when = Objects.requireNonNull(when, "when");
         }
-        return c;
+
+        /**
+         * <p>
+         * The point in time that the event occurred.
+         * </p>
+         */
+        @Nonnull
+        public Duration getWhen() {
+            return when;
+        }
+
+        /**
+         * <p>
+         * The signal, {@linkplain Signal#receiveForStateHistory(ValueHistory) reception} of which
+         * caused the event.
+         * </p>
+         */
+        @Nonnull
+        public Signal<STATE> getCausingSignal() {
+            return causingSignal;
+        }
+
+
+        @Override
+        public String toString() {
+            return "@" + when + "\u2190" + causingSignal;
+        }
+
+        /**
+         * Whether this object is equivalent to another.
+         * <p>
+         * This class has <i>value semantics</i>.
+         */
+        @Override
+        public boolean equals(final Object that) {
+            if (this == that) return true;
+            if (that == null || getClass() != that.getClass()) return false;
+
+            final Id<?> id = (Id<?>) that;
+
+            return when.equals(id.when) && causingSignal.equals(id.causingSignal);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = when.hashCode();
+            result = 31 * result + causingSignal.hashCode();
+            return result;
+        }
+
+        /**
+         * {@inheritDoc}
+         *
+         * <p>
+         * The natural ordering of Event.Id objects is by their
+         * {@linkplain  #getWhen() time of occurrence},
+         * then by a tie-break.
+         * The natural ordering is consistent with {@link #equals(Object)}
+         * </p>
+         */
+        @Override
+        public int compareTo(@Nonnull final Id<STATE> that) {
+            int c = when.compareTo(that.when);
+            if (c == 0) {
+                c = causingSignal.tieBreakCompareTo(that.causingSignal);
+            }
+            return c;
+        }
+
     }
 }
