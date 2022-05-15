@@ -22,15 +22,10 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import uk.badamson.dbc.assertions.ObjectVerifier;
 
-import java.util.Collections;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertAll;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * <p>
- * Unit test and auxiliary test code for the {@link ConstantValueHistory} class.
- * </p>
- */
 public class ConstantValueHistoryTest {
 
     public static <VALUE> void assertInvariants(final ConstantValueHistory<VALUE> history) {
@@ -38,13 +33,12 @@ public class ConstantValueHistoryTest {
         ValueHistoryTest.assertInvariants(history);// inherited
 
         assertAll(
-                () -> assertEquals(Collections.emptySortedSet(), history.getTransitionTimes(),
-                        "The set of transition times is empty."),
-                () -> assertEquals(Collections.emptyMap(), history.getTransitions(), "The transitions map is empty."),
-                () -> assertTrue(history.isEmpty(), "A ConstantValueHistory is always empty."),
-                () -> assertEquals(0, history.streamOfTransitions().count(), "The stream of transitions is empty."),
-                () -> assertNull(history.getFirstTransitionTime(), "The first transition time is null."),
-                () -> assertNull(history.getLastTransitionTime(), "The  last transition time is null."));
+                () -> assertThat("transitionTimes", history.getTransitionTimes(), empty()),
+                () -> assertThat("transitions", history.getTransitions(), anEmptyMap()),
+                () -> assertThat("empty", history.isEmpty(), is(true)),
+                () -> assertThat("streamOfTransitions.count", history.streamOfTransitions().count(), is(0L)),
+                () -> assertThat("firstTransitionTime", history.getFirstTransitionTime(), nullValue()),
+                () -> assertThat("lastTransitionTime", history.getLastTransitionTime(), nullValue()));
     }
 
     public static <VALUE> void assertInvariants(final ConstantValueHistory<VALUE> history1,
@@ -57,8 +51,8 @@ public class ConstantValueHistoryTest {
         final ConstantValueHistory<VALUE> history = new ConstantValueHistory<>(value);
 
         assertInvariants(history);
-        assertAll(() -> assertSame(value, history.getFirstValue(), "The first value is the given value."),
-                () -> assertSame(value, history.getLastValue(), "The last value is the given value."));
+        assertAll(() -> assertThat("firstValue", history.getFirstValue(), sameInstance(value)),
+                () -> assertThat("lastValue", history.getLastValue(), sameInstance(value)));
     }
 
     private <VALUE> void constructor_2Equals(@Nullable final VALUE value) {
@@ -66,7 +60,7 @@ public class ConstantValueHistoryTest {
         final ConstantValueHistory<VALUE> history2 = new ConstantValueHistory<>(value);
 
         assertInvariants(history1, history2);
-        assertEquals(history1, history2);
+        assertThat(history1, is(history2));
     }
 
     @Test

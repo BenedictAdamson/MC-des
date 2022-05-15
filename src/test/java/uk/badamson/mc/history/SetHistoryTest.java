@@ -1,6 +1,6 @@
 package uk.badamson.mc.history;
 /*
- * © Copyright Benedict Adamson 2018.
+ * © Copyright Benedict Adamson 2018,22.
  *
  * This file is part of MC-des.
  *
@@ -22,12 +22,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.collection.IsIn.in;
-import static org.hamcrest.core.Every.everyItem;
-import static org.hamcrest.core.IsIterableContaining.hasItem;
-import static org.hamcrest.core.IsNot.not;
-import static org.hamcrest.core.IsNull.nullValue;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertAll;
 
 /**
  * <p>
@@ -40,7 +37,7 @@ public class SetHistoryTest {
                                                          final VALUE value) {
         final ValueHistory<Boolean> contains = history.contains(value);
 
-        assertNotNull(contains, "Always have a containment history for a value.");// guard
+        assertThat(contains, notNullValue());
         final var transitionTimes = contains.getTransitionTimes();
         final Set<Boolean> containsValues = transitionTimes.stream().map(contains::get)
                 .collect(Collectors.toSet());
@@ -50,10 +47,10 @@ public class SetHistoryTest {
                 "The transition times of the containment history of a value is a sub set of the transition times of this history.",
                 transitionTimes, everyItem(in(history.getTransitionTimes())));
         assertUniverseInvariants(history);
-        for (final var t : transitionTimes) {
-            assertEquals(history.get(t).contains(value), contains.get(t), "The containment history for a value indicates that the value is present for a point in time if, and only if, that value is contained in the set for which this is a history at that point in time.");
-        }
-
+        assertAll(
+                transitionTimes.stream().map(t -> () ->
+                        assertThat("get(t).contains(value) [" + t + "]", history.get(t).contains(value), is(contains.get(t)))
+                ));
     }
 
     public static <VALUE> void assertInvariants(final SetHistory<VALUE> history) {
@@ -70,10 +67,9 @@ public class SetHistoryTest {
 
     private static <VALUE> void assertUniverseInvariants(final SetHistory<VALUE> history) {
         final Set<VALUE> universe = history.getUniverse();
-        assertNotNull(universe, "Always have a (non null) universe."); // guard
-        assertTrue(universe.containsAll(history.getFirstValue()),
-                "The value of this time varying set at the start of time is a non-strict sub set of the universe.");
-        assertTrue(universe.containsAll(history.getLastValue()),
-                "The value of this time varying set at the end of time is a non-strict sub set of the universe.");
+        assertThat("universe", universe, notNullValue());
+        assertAll("universe is a super set of",
+                () -> assertThat("firstValue", universe.containsAll(history.getFirstValue()), is(true)),
+                () -> assertThat("lastValue", universe.containsAll(history.getLastValue()), is(true)));
     }
 }

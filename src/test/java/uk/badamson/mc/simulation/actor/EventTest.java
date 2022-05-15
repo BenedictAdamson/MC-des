@@ -32,7 +32,7 @@ import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertAll;
 
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
 public class EventTest {
@@ -65,22 +65,22 @@ public class EventTest {
         final var indirectlyAffectedObjects = event.getIndirectlyAffectedObjects();
         final var id = event.getId();
 
-        assertAll("Not null", () -> assertNotNull(affectedObject, "affectedObject"),
-                () -> assertNotNull(causingSignal, "causingSignal"),
-                () -> assertNotNull(signalsEmitted, "signalsEmitted"), // guard
-                () -> assertNotNull(when, "when"),
-                () -> assertThat(createdActors, notNullValue()),
-                () -> assertThat(indirectlyAffectedObjects, notNullValue()),
-                () -> assertThat(id, notNullValue()));
+        assertAll(() -> assertThat("affectedObject", affectedObject, notNullValue()),
+                () -> assertThat("causingSignal", causingSignal, notNullValue()),
+                () -> assertThat("signalsEmitted", signalsEmitted, notNullValue()), // guard
+                () -> assertThat("when", when, notNullValue()),
+                () -> assertThat("createdActors", createdActors, notNullValue()),
+                () -> assertThat("indirectlyAffectedObjects", indirectlyAffectedObjects, notNullValue()),
+                () -> assertThat("id", id, notNullValue()));
         IdTest.assertInvariants(id);
 
         assertAll("signalsEmitted",
                 signalsEmitted.stream().map(signal -> () -> {
-                    assertNotNull(signal, "signal");
+                    assertThat(signal, notNullValue());
                     SignalTest.assertInvariants(signal);
-                    assertSame(affectedObject, signal.getSender(), "sender");
-                    assertSame(when, signal.getWhenSent(), "whenSent");
-                    assertThat(indirectlyAffectedObjects, hasItem(signal.getReceiver()));
+                    assertThat("sender", signal.getSender(), sameInstance(affectedObject));
+                    assertThat("whenSent", signal.getWhenSent(), sameInstance(when));
+                    assertThat("indirectlyAffectedObjects has receiver", indirectlyAffectedObjects, hasItem(signal.getReceiver()));
                 }));
         assertAll(
                 createdActors.stream().map(actor -> () -> {
@@ -121,11 +121,11 @@ public class EventTest {
         final var event = new Event<>(causingSignal, when, state);
 
         assertInvariants(event);
-        assertAll("Attributes", () -> assertSame(causingSignal, event.getCausingSignal(), "causingSignal"),
-                () -> assertSame(when, event.getWhen(), "when"),
-                () -> assertSame(state, event.getState(), "state"),
-                () -> assertThat(event.getSignalsEmitted(), empty()),
-                () -> assertThat(event.getCreatedActors(), empty()));
+        assertAll(() -> assertThat("causingSignal", event.getCausingSignal(), sameInstance(causingSignal)),
+                () -> assertThat("when", event.getWhen(), sameInstance(when)),
+                () -> assertThat("state", event.getState(), sameInstance(state)),
+                () -> assertThat("signalsEmitted", event.getSignalsEmitted(), empty()),
+                () -> assertThat("createdActors", event.getCreatedActors(), empty()));
 
     }
 
@@ -138,11 +138,11 @@ public class EventTest {
         final var event = new Event<>(causingSignal, when, state, signalsEmitted, createdActors);
 
         assertInvariants(event);
-        assertAll("Attributes", () -> assertSame(causingSignal, event.getCausingSignal(), "causingSignal"),
-                () -> assertSame(when, event.getWhen(), "when"),
-                () -> assertSame(state, event.getState(), "state"),
-                () -> assertThat(event.getSignalsEmitted(), containsInAnyOrder(signalsEmitted.toArray())),
-                () -> assertThat(event.getCreatedActors(), containsInAnyOrder(createdActors.toArray())));
+        assertAll(() -> assertThat("causingSignal", event.getCausingSignal(), sameInstance(causingSignal)),
+                () -> assertThat("when", event.getWhen(), sameInstance(when)),
+                () -> assertThat("state", event.getState(), sameInstance(state)),
+                () -> assertThat("signalsEmitted", event.getSignalsEmitted(), containsInAnyOrder(signalsEmitted.toArray())),
+                () -> assertThat("createdActors", event.getCreatedActors(), containsInAnyOrder(createdActors.toArray())));
 
     }
 
@@ -185,8 +185,8 @@ public class EventTest {
             final var causingSignal = id.getCausingSignal();
             final var when = id.getWhen();
 
-            assertAll(() -> assertNotNull(causingSignal, "causingSignal"),
-                    () -> assertNotNull(when, "when"));
+            assertAll(() -> assertThat("causingSignal", causingSignal, notNullValue()),
+                    () -> assertThat("when", when, notNullValue()));
         }
 
         public static <STATE> void assertInvariants(@Nonnull final Event.Id<STATE> id1,
@@ -199,8 +199,9 @@ public class EventTest {
 
             final int compareTo = id1.compareTo(id2);
             final int compareToWhen = id1.getWhen().compareTo(id2.getWhen());
-            assertFalse(compareToWhen < 0 && 0 <= compareTo, "natural ordering first sorts by when (<)");
-            assertFalse(compareToWhen > 0 && 0 >= compareTo, "natural ordering first sorts by when (>)");
+            assertAll("natural ordering first sorts by when",
+                    () -> assertThat("<", compareToWhen < 0 && 0 <= compareTo, is(false)),
+                    () -> assertThat(">", compareToWhen > 0 && 0 >= compareTo, is(false)));
         }
 
         private static <STATE> void constructor(
@@ -209,8 +210,8 @@ public class EventTest {
             final var event = new Event.Id<>(causingSignal, when);
 
             assertInvariants(event);
-            assertAll("Attributes", () -> assertSame(causingSignal, event.getCausingSignal(), "causingSignal"),
-                    () -> assertSame(when, event.getWhen(), "when")
+            assertAll(() -> assertThat("causingSignal", event.getCausingSignal(), sameInstance(causingSignal)),
+                    () -> assertThat("when", event.getWhen(), sameInstance(when))
             );
 
         }

@@ -36,7 +36,8 @@ import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class UniverseTest {
 
@@ -75,10 +76,11 @@ public class UniverseTest {
 
         assertInvariants(universe);
         ActorTest.assertInvariants(actor);
-        assertThat(universe, hasItem(actor));
-        assertTrue(universe.contains(actor));
-        assertThat(universe, not(empty()));
-        assertTrue(universe.iterator().hasNext());
+        assertAll(
+                ()->assertThat(universe, hasItem(actor)),
+        ()->assertThat(universe, not(empty())),
+        ()->assertThat("contains(actor)", universe.contains(actor), is(true)));
+        assertThat(universe.iterator().hasNext(), is(true));
         assertThat("parallelStream contains", universe.parallelStream().collect(Collectors.toUnmodifiableList()), hasItem(actor));
         assertThat(universe, either(hasSize(size0 + 1)).or(hasSize(size0)));
         assertThat("stream contains", universe.stream().collect(Collectors.toUnmodifiableList()), hasItem(actor));
@@ -90,7 +92,7 @@ public class UniverseTest {
         final boolean changed = universe.addAll(actors);
 
         assertInvariants(universe);
-        assertTrue(universe.containsAll(actors));
+        assertThat(universe.containsAll(actors), is(true));
 
         return changed;
     }
@@ -109,7 +111,7 @@ public class UniverseTest {
         final boolean removed = universe.remove(o);
 
         assertInvariants(universe);
-        assertFalse(universe.contains(o));
+        assertThat(universe.contains(o), is(false));
         assertThat(universe, hasSize(removed ? size0 - 1 : size0));
 
         return removed;
@@ -122,7 +124,7 @@ public class UniverseTest {
 
         assertInvariants(universe);
         assertThat(universe.size(), lessThanOrEqualTo(size0));
-        assertFalse(removed && universe.size() == size0);
+        assertThat("size has changed if element removed", removed && universe.size() == size0, is(false));
 
         return removed;
     }
@@ -221,7 +223,7 @@ public class UniverseTest {
                 assertThat("added", added);
                 assertThat(universe, hasSize(2));
                 assertThat(universe, containsInAnyOrder(actorA, actorB));
-                assertTrue(universe.containsAll(List.of(actorA, actorB)));
+                assertThat(universe.containsAll(List.of(actorA, actorB)), is(true));
             }
         }
     }
@@ -235,7 +237,7 @@ public class UniverseTest {
 
             final boolean changed = addAll(universe, actors);
 
-            assertFalse(changed);
+            assertThat(changed, is(false));
             assertThat(universe, Matchers.empty());
         }
 
@@ -247,7 +249,7 @@ public class UniverseTest {
 
             final boolean changed = addAll(universe, actors);
 
-            assertTrue(changed);
+            assertThat(changed, is(true));
             assertThat(universe, contains(actor));
         }
 
@@ -261,7 +263,7 @@ public class UniverseTest {
 
             final boolean changed = addAll(universe, actors);
 
-            assertTrue(changed);
+            assertThat(changed, is(true));
             assertThat(universe, containsInAnyOrder(actorA, actorB));
         }
 
@@ -274,7 +276,7 @@ public class UniverseTest {
 
             final boolean changed = addAll(universe, actors);
 
-            assertFalse(changed);
+            assertThat(changed, is(false));
             assertThat(universe, contains(actor));
         }
 
@@ -287,7 +289,7 @@ public class UniverseTest {
 
             final boolean changed = addAll(universe, actors);
 
-            assertTrue(changed);
+            assertThat(changed, is(true));
             assertThat(universe, containsInAnyOrder(actorA, actorB));
         }
     }
@@ -323,7 +325,7 @@ public class UniverseTest {
 
             final boolean removed = remove(universe, new Object());
 
-            assertFalse(removed);
+            assertThat(removed, is(false));
         }
 
         @Test
@@ -333,7 +335,7 @@ public class UniverseTest {
 
             final boolean removed = remove(universe, actor);
 
-            assertFalse(removed);
+            assertThat(removed, is(false));
         }
 
         @Test
@@ -344,7 +346,7 @@ public class UniverseTest {
 
             final boolean removed = remove(universe, actor);
 
-            assertTrue(removed);
+            assertThat(removed, is(true));
         }
 
         @Test
@@ -357,7 +359,7 @@ public class UniverseTest {
 
             final boolean removed = remove(universe, actorA);
 
-            assertTrue(removed);
+            assertThat(removed, is(true));
             assertThat(universe, contains(actorB));
         }
     }
@@ -371,7 +373,7 @@ public class UniverseTest {
 
             final boolean removed = removeAll(universe, List.of(new Object()));
 
-            assertFalse(removed);
+            assertThat(removed, is(false));
         }
 
         @Test
@@ -381,7 +383,7 @@ public class UniverseTest {
 
             final boolean removed = removeAll(universe, List.of(actor));
 
-            assertFalse(removed);
+            assertThat(removed, is(false));
         }
 
         @Test
@@ -392,7 +394,7 @@ public class UniverseTest {
 
             final boolean removed = removeAll(universe, List.of(actor));
 
-            assertTrue(removed);
+            assertThat(removed, is(true));
         }
 
         @Test
@@ -405,7 +407,7 @@ public class UniverseTest {
 
             final boolean removed = removeAll(universe, List.of(actorA));
 
-            assertTrue(removed);
+            assertThat(removed, is(true));
             assertThat(universe, contains(actorB));
         }
 
@@ -419,7 +421,7 @@ public class UniverseTest {
 
             final boolean removed = removeAll(universe, List.of(actorA, actorB));
 
-            assertTrue(removed);
+            assertThat(removed, is(true));
             assertThat(universe, empty());
         }
     }
@@ -432,7 +434,7 @@ public class UniverseTest {
 
             final boolean changed = retainAll(universe, List.of());
 
-            assertFalse(changed);
+            assertThat(changed, is(false));
             assertThat(universe, empty());
         }
 
@@ -443,7 +445,7 @@ public class UniverseTest {
 
             final boolean changed = retainAll(universe, List.of(actor));
 
-            assertFalse(changed);
+            assertThat(changed, is(false));
             assertThat(universe, empty());
         }
 
@@ -455,7 +457,7 @@ public class UniverseTest {
 
             final boolean changed = retainAll(universe, List.of());
 
-            assertTrue(changed);
+            assertThat(changed, is(true));
             assertThat(universe, empty());
         }
 
@@ -467,7 +469,7 @@ public class UniverseTest {
 
             final boolean changed = retainAll(universe, List.of(actor));
 
-            assertFalse(changed);
+            assertThat(changed, is(false));
             assertThat(universe, contains(actor));
         }
 
@@ -481,7 +483,7 @@ public class UniverseTest {
 
             final boolean changed = retainAll(universe, List.of(actorA));
 
-            assertTrue(changed);
+            assertThat(changed, is(true));
             assertThat(universe, contains(actorA));
         }
     }

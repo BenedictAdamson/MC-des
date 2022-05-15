@@ -27,16 +27,16 @@ import uk.badamson.dbc.assertions.ObjectVerifier;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.time.Duration;
-import java.util.Objects;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertAll;
 
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
 public class TimestampedValueTest {
 
     private static final Duration WHEN_A = Duration.ofMillis(0);
+
     private static final Duration WHEN_B = Duration.ofMillis(5000);
 
     public static <STATE> void assertInvariants(@Nonnull final TimestampedValue<STATE> timestamped) {
@@ -44,9 +44,10 @@ public class TimestampedValueTest {
 
         final var start = timestamped.getStart();
         final var end = timestamped.getEnd();
-        assertAll("Not null", // guard
-                () -> assertNotNull(start, "start"), () -> assertNotNull(end, "end"));
-        assertThat("The end time is at or after the start time.", end, greaterThanOrEqualTo(start));
+        assertAll(
+                () -> assertThat("start", start, notNullValue()),
+                () -> assertThat("end", end, notNullValue()));
+        assertThat(end, greaterThanOrEqualTo(start));
     }
 
     public static <STATE> void assertInvariants(@Nonnull final TimestampedValue<STATE> timestamped1,
@@ -58,13 +59,10 @@ public class TimestampedValueTest {
         if (value1 != null && value2 != null) {
             ObjectVerifier.assertInvariants(value1, value2);
         }
-        assertAll("Value semantics",
+        assertAll(
                 () -> EqualsSemanticsVerifier.assertValueSemantics(timestamped1, timestamped2, "start",
                         TimestampedValue::getStart),
-                () -> EqualsSemanticsVerifier.assertValueSemantics(timestamped1, timestamped2, "end", TimestampedValue::getEnd),
-                () -> assertEquals(timestamped1.equals(timestamped2), (timestamped1.getStart().equals(timestamped2.getStart())
-                        && timestamped1.getEnd().equals(timestamped2.getEnd())
-                        && Objects.equals(value1, value2)), "equals"));
+                () -> EqualsSemanticsVerifier.assertValueSemantics(timestamped1, timestamped2, "end", TimestampedValue::getEnd));
     }
 
     private static <VALUE> void constructor(@Nonnull final Duration start, @Nonnull final Duration end,
@@ -72,9 +70,9 @@ public class TimestampedValueTest {
         final var timestamped = new TimestampedValue<>(start, end, value);
 
         assertInvariants(timestamped);
-        assertAll(() -> assertSame(start, timestamped.getStart(), "start"),
-                () -> assertSame(end, timestamped.getEnd(), "end"),
-                () -> assertSame(value, timestamped.getValue(), "value"));
+        assertAll(() -> assertThat("start", timestamped.getStart(), sameInstance(start)),
+                () -> assertThat("end", timestamped.getEnd(), sameInstance(end)),
+                () -> assertThat("value", timestamped.getValue(), sameInstance(value)));
     }
 
     @Nested
@@ -113,7 +111,7 @@ public class TimestampedValueTest {
                 final var timestampedB = new TimestampedValue<>(start, endB, value);
 
                 assertInvariants(timestampedA, timestampedB);
-                assertNotEquals(timestampedA, timestampedB);
+                assertThat(timestampedA, not(timestampedB));
             }
 
             @Test
@@ -127,7 +125,7 @@ public class TimestampedValueTest {
                 final var timestampedB = new TimestampedValue<>(startB, end, value);
 
                 assertInvariants(timestampedA, timestampedB);
-                assertNotEquals(timestampedA, timestampedB);
+                assertThat(timestampedA, not(timestampedB));
             }
 
             @Test
@@ -141,7 +139,7 @@ public class TimestampedValueTest {
                 final var timestampedB = new TimestampedValue<>(start, end, valueB);
 
                 assertInvariants(timestampedA, timestampedB);
-                assertNotEquals(timestampedA, timestampedB);
+                assertThat(timestampedA, not(timestampedB));
             }
 
             @Test
@@ -162,7 +160,7 @@ public class TimestampedValueTest {
                 final var timestampedB = new TimestampedValue<>(startB, endB, valueB);
 
                 assertInvariants(timestampedA, timestampedB);
-                assertEquals(timestampedA, timestampedB);
+                assertThat(timestampedA, is(timestampedB));
             }
         }// class
 

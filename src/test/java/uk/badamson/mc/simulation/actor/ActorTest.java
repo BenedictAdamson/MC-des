@@ -37,7 +37,7 @@ import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertAll;
 
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
 public class ActorTest {
@@ -62,11 +62,11 @@ public class ActorTest {
         final var signalsToReceive = actor.getSignalsToReceive();
         final var whenReceiveNextSignal = actor.getWhenReceiveNextSignal();
 
-        assertAll("Not null", () -> assertNotNull(events, "events"), // guard
-                () -> assertNotNull(start, "start"), // guard
-                () -> assertNotNull(stateHistory, "stateHistory"), // guard
-                () -> assertNotNull(signalsToReceive, "signalsToReceive"), // guard
-                () -> assertNotNull(whenReceiveNextSignal, "whenReceiveNextSignal")
+        assertAll(() -> assertThat("events", events, notNullValue()), // guard
+                () -> assertThat("start", start, notNullValue()), // guard
+                () -> assertThat("stateHistory", stateHistory, notNullValue()), // guard
+                () -> assertThat("signalsToReceive", signalsToReceive, notNullValue()), // guard
+                () -> assertThat("whenReceiveNextSignal", whenReceiveNextSignal, notNullValue())
         );
         ValueHistoryTest.assertInvariants(stateHistory);
 
@@ -78,16 +78,14 @@ public class ActorTest {
                         () -> assertThat("is either null or is the  last of the sequence of events.",
                                 lastEvent == null || lastEvent == events.last())
                 ),
-                () -> assertAll("stateHistory", () -> assertSame(start, stateHistory.getFirstTransitionTime(),
-                                "The first transition time of the state history is the same as the start time of this history."),
-                        () -> assertNull(stateHistory.getFirstValue(),
-                                "The state at the start of time of the state history is null."),
-                        () -> assertFalse(stateHistory.isEmpty(), "The state history is never empty.")
+                () -> assertAll("stateHistory", () -> assertThat(stateHistory.getFirstTransitionTime(), sameInstance(start)),
+                        () -> assertThat(stateHistory.getFirstValue(), nullValue()),
+                        () -> assertThat(stateHistory.isEmpty(), is(false))
                 ),
                 () -> assertAll("whenReceiveNextSignal",
                         () -> assertThat("after start", whenReceiveNextSignal, greaterThan(start)),
-                        () -> assertFalse(signalsToReceive.isEmpty() &&
-                                !Signal.NEVER_RECEIVED.equals(whenReceiveNextSignal), "NEVER_RECEIVED if no signals to receive")
+                        () -> assertThat("NEVER_RECEIVED if no signals to receive", signalsToReceive.isEmpty() &&
+                                !Signal.NEVER_RECEIVED.equals(whenReceiveNextSignal), is(false))
                 )
         );
     }
@@ -104,16 +102,16 @@ public class ActorTest {
         assertInvariants(actor);
         final var stateTransitions = actor.getStateHistory().getTransitions();
         assertAll(
-                () -> assertSame(start, actor.getStart(), "start"),
-                () -> assertSame(stateTransitions.firstKey(), actor.getStart(), "start"),
-                () -> assertEquals(stateTransitions, Map.of(start, state), "stateTransitions"),
+                () -> assertThat("start", actor.getStart(), sameInstance(start)),
+                () -> assertThat("stateTransitions", stateTransitions, is(Map.of(start, state))),
+                () -> assertThat("stateTransitions.firstKey", stateTransitions.firstKey(), sameInstance(actor.getStart())),
                 () -> assertThat("events", actor.getEvents(), empty()));
 
     }
 
     private static <STATE> Stream<Executable> createEventsAssertions(@Nonnull final Actor<STATE> actor) {
         return actor.getEvents().stream().map(event -> () -> {
-            assertNotNull(event, "event");// guard
+            assertThat(event, notNullValue());// guard
             assertAll("event " + event,
                     () -> EventTest.assertInvariants(event),
                     () -> assertThat("when", event.getWhen(), greaterThan(actor.getStart())),
@@ -125,7 +123,7 @@ public class ActorTest {
 
     private static <STATE> Stream<Executable> createSignalsToReceiveAssertions(@Nonnull final Actor<STATE> actor) {
         return actor.getSignalsToReceive().stream().map(signal -> () -> {
-            assertNotNull(signal, "event");// guard
+            assertThat(signal, notNullValue());// guard
             assertAll("event " + signal,
                     () -> SignalTest.assertInvariants(signal),
                     () -> assertThat("whenSent", signal.getWhenSent(), greaterThanOrEqualTo(actor.getStart())),

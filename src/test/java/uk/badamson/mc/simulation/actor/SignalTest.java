@@ -36,7 +36,8 @@ import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SuppressFBWarnings(justification = "Checking contract", value = "EC_NULL_ARG")
 public class SignalTest {
@@ -62,15 +63,15 @@ public class SignalTest {
         final var receiver = signal.getReceiver();
         final var sender = signal.getSender();
         final var whenSent = signal.getWhenSent();
-        assertAll("Not null",
-                () -> assertNotNull(id, "id"),
-                () -> assertNotNull(receiver, "receiver"),
-                () -> assertNotNull(sender, "sender"),
-                () -> assertNotNull(whenSent, "whenSent"));
         assertAll(
-                () -> assertThat(receiver, sameInstance(id.getReceiver())),
-                () -> assertThat(sender, sameInstance(id.getSender())),
-                () -> assertThat(whenSent, sameInstance(id.getWhenSent()))
+                () -> assertThat("id", id, notNullValue()),
+                () -> assertThat("receiver", receiver, notNullValue()),
+                () -> assertThat("sender", sender, notNullValue()),
+                () -> assertThat("whenSent", whenSent, notNullValue()));
+        assertAll(
+                () -> assertThat("receiver", receiver, sameInstance(id.getReceiver())),
+                () -> assertThat("sender", sender, sameInstance(id.getSender())),
+                () -> assertThat("whenSent", whenSent, sameInstance(id.getWhenSent()))
         );
     }
 
@@ -91,8 +92,8 @@ public class SignalTest {
         } else {
             final var propagationDelay = signal.getPropagationDelay(receiverState);
 
-            assertAll("Not null", () -> assertNotNull(propagationDelay, "propagationDelay"), // guard
-                    () -> assertNotNull(whenReceived, "whenReceived"));// guard
+            assertAll(() -> assertThat("propagationDelay", propagationDelay, notNullValue()), // guard
+                    () -> assertThat("whenReceived", whenReceived, notNullValue()));// guard
             assertThat("Non-negative propagationDelay", propagationDelay, greaterThan(Duration.ZERO));
             assertThat(
                     "The reception time is after the sending time, unless the sending time is the maximum possible value.",
@@ -111,11 +112,11 @@ public class SignalTest {
         final Signal<Integer> signal = new SimpleTestSignal(whenSent, sender, receiver, medium);
 
         assertInvariants(signal);
-        assertAll("Attributes",
-                () -> assertSame(sender, signal.getSender(), "sender"),
-                () -> assertSame(whenSent, signal.getWhenSent(), "whenSent"),
-                () -> assertSame(receiver, signal.getReceiver(), "receiver"),
-                () -> assertSame(medium, signal.getMedium(), "medium")
+        assertAll(
+                () -> assertThat("sender", signal.getSender(), sameInstance(sender)),
+                () -> assertThat("whenSent", signal.getWhenSent(), sameInstance(whenSent)),
+                () -> assertThat("receiver", signal.getReceiver(), sameInstance(receiver)),
+                () -> assertThat("medium", signal.getMedium(), sameInstance(medium))
         );
         return signal;
     }
@@ -124,14 +125,15 @@ public class SignalTest {
                                                    @Nonnull final ValueHistory<STATE> receiverStateHistory) {
         final var whenReceived = signal.getWhenReceived(receiverStateHistory);
 
-        assertNotNull(whenReceived, "Not null, whenReceived");// guard
+        assertThat(whenReceived,notNullValue());// guard
         assertInvariants(signal);
         final var stateWhenReceived = receiverStateHistory.get(whenReceived);
         assertThat(
                 "The reception time is after the sending time, unless the sending time is the maximum possible value.",
                 whenReceived, either(greaterThan(signal.getWhenSent())).or(is(Signal.NEVER_RECEIVED)));
-        assertFalse(stateWhenReceived == null && !Signal.NEVER_RECEIVED.equals(whenReceived),
-                "If the simulated object is destroyed or removed it can not receive a signal.");
+        assertThat("If the simulated object is destroyed or removed it can not receive a signal.",
+                stateWhenReceived == null && !Signal.NEVER_RECEIVED.equals(whenReceived),
+                is(false));
         assertThat("The reception time is consistent with the receiver history",
                 signal.getWhenReceived(stateWhenReceived), lessThanOrEqualTo(whenReceived));
 
@@ -148,15 +150,15 @@ public class SignalTest {
             throw e;
         }
 
-        assertNotNull(effect, "Not null, effect");// guard
+        assertThat(effect, notNullValue());// guard
         assertInvariants(signal);
         EventTest.assertInvariants(effect);
         final var whenOccurred = effect.getWhen();
-        assertAll("event", () -> assertSame(signal, effect.getCausingSignal(), "causingSignal"),
-                () -> assertEquals(signal.getReceiver(), effect.getAffectedObject(), "affectedObject"),
+        assertAll("event", () -> assertThat("causingSignal", effect.getCausingSignal(), sameInstance(signal)),
+                () -> assertThat("affectedObject", effect.getAffectedObject(), sameInstance(signal.getReceiver())),
                 () -> assertThat("whenOccurred is before the maximum possible Duration value", whenOccurred,
                         lessThan(Signal.NEVER_RECEIVED)),
-                () -> assertEquals(signal.getWhenReceived(receiverState), whenOccurred, "whenOccurred = whenReceived"));
+                () -> assertThat("whenOccurred = whenReceived", signal.getWhenReceived(receiverState), is(whenOccurred)));
 
         return effect;
     }
@@ -171,15 +173,15 @@ public class SignalTest {
             throw e;
         }
 
-        assertNotNull(effect, "Not null, effect");// guard
+        assertThat(effect, notNullValue());// guard
         assertInvariants(signal);
         EventTest.assertInvariants(effect);
         final var whenOccurred = effect.getWhen();
-        assertAll("event", () -> assertSame(signal, effect.getCausingSignal(), "causingSignal"),
-                () -> assertEquals(signal.getReceiver(), effect.getAffectedObject(), "affectedObject"),
+        assertAll("event", () -> assertThat("causingSignal", effect.getCausingSignal(), sameInstance(signal)),
+                () -> assertThat("affectedObject", effect.getAffectedObject(), sameInstance(signal.getReceiver())),
                 () -> assertThat("whenOccurred is before the maximum possible Duration value", whenOccurred,
                         lessThan(Signal.NEVER_RECEIVED)),
-                () -> assertEquals(signal.getWhenReceived(receiverStateHistory), whenOccurred, "whenOccurred = whenReceived"));
+                () -> assertThat("whenOccurred = whenReceived", signal.getWhenReceived(receiverStateHistory), is(whenOccurred)));
 
         return effect;
     }
@@ -592,7 +594,7 @@ public class SignalTest {
 
                     final var whenReceived = getWhenReceived(signal, receiverStateHistory);
 
-                    assertEquals(signal.getWhenReceived(receiverState), whenReceived, "when received");
+                    assertThat(whenReceived, is(signal.getWhenReceived(receiverState)));
                 }
 
             }// class
