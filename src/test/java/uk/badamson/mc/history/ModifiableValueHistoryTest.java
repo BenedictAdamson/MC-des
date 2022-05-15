@@ -31,12 +31,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * <p>
- * Unit test and auxiliary test code for the {@link ModifiableValueHistory}
- * class.
- * </p>
- */
 public class ModifiableValueHistoryTest {
 
     private static final Duration WHEN_1 = Duration.ZERO;

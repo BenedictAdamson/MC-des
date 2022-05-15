@@ -26,11 +26,6 @@ import static org.hamcrest.Matchers.*;
 import static org.hamcrest.collection.IsIn.in;
 import static org.junit.jupiter.api.Assertions.assertAll;
 
-/**
- * <p>
- * Unit test and auxiliary test code for the {@link SetHistory} interface.
- * </p>
- */
 public class SetHistoryTest {
 
     private static <VALUE> void assertContainsInvariants(final SetHistory<VALUE> history,

@@ -28,11 +28,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertAll;
 
-/**
- * <p>
- * Unit test and auxiliary test code for the {@link ValueHistory} interface.
- * </p>
- */
 public class ValueHistoryTest {
 
     public static <VALUE> void assertInvariants(final ValueHistory<VALUE> history) {
