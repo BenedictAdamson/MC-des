@@ -25,7 +25,14 @@ import java.util.UUID;
  * <p>
  * A means for transmitting {@linkplain Signal signals} from their
  * {@linkplain Signal#getSender() senders} to their
- * {@linkplain Signal#getReceiver() receivers}
+ * {@linkplain Signal#getReceiver() receivers}.
+ * </p>
+ * <p>
+ * Used as part of the {@linkplain Signal.Id unique ID} of a signal,
+ * so signals witrh otherwise equivalent {@linkplain Signal#getSender() senders},
+ * {@linkplain Signal#getReceiver() receivers} and
+ * {@linkplain Signal#getWhenSent() sending times}
+ * can be distinguished.
  * </p>
  *
  * @see Signal
@@ -38,5 +45,25 @@ public class Medium {
     @Override
     public String toString() {
         return "Medium@" + id;
+    }
+
+    /**
+     * Whether this object is <i>equivalent</i> to another.
+     * <p>
+     * This class has reference semantics.
+     */
+    @Override
+    public final boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        final Medium medium = (Medium) o;
+
+        return id.equals(medium.id);
+    }
+
+    @Override
+    public final int hashCode() {
+        return id.hashCode();
     }
 }
