@@ -265,10 +265,9 @@ public class SignalTest {
             if (when.compareTo(getWhenSent()) <= 0) {
                 throw new IllegalArgumentException("when not after whenSent");
             }
-            final var receiver = getReceiver();
             final Integer newState = receiverState + 1;
             return new Event<>(
-                    this, when, receiver, newState,
+                    this, when, newState,
                     signalsEmitted(when), actorsCreated(when)
             );
         }
