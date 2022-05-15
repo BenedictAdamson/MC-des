@@ -350,7 +350,7 @@ public class SignalTest {
 
     public static class IdTest {
 
-        public static <ACTOR> void assertInvariants(@Nonnull final Signal.Id<ACTOR> id) {
+        public static <STATE> void assertInvariants(@Nonnull final Signal.Id<STATE> id) {
             ObjectVerifier.assertInvariants(id);
             assertAll(
                     () -> assertThat(id.getWhenSent(), notNullValue()),
@@ -360,7 +360,7 @@ public class SignalTest {
             );
         }
 
-        public static <ACTOR> void assertInvariants(@Nonnull final Signal.Id<ACTOR> id1, @Nonnull final Signal.Id<ACTOR> id2) {
+        public static <STATE> void assertInvariants(@Nonnull final Signal.Id<STATE> id1, @Nonnull final Signal.Id<STATE> id2) {
             ObjectVerifier.assertInvariants(id1, id2);
             assertAll(
                     () -> EqualsSemanticsVerifier.assertValueSemantics(id1, id2, "whenSent", Signal.Id::getWhenSent),

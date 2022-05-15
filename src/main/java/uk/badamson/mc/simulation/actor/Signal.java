@@ -28,11 +28,10 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import java.time.Duration;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * <p>
- * A signal (or message) sent from one {@linkplain Actor simulated object} to another.
+ * A signal (or message) sent from one {@link Actor} to another.
  * </p>
  *
  * @param <STATE> The class of states of a receiver. This must be {@link Immutable
@@ -70,6 +69,12 @@ public abstract class Signal<STATE> {
         this(new Id<>(whenSent, sender, receiver, medium));
     }
 
+    /**
+     * Whether this object is <i>equivalent</i> to another.
+     * <p>
+     * The Signal class has <i>entity semantics</i>,
+     * with the {@link #getId()} method providing the unique ID.
+     */
     @Override
     public final boolean equals(final Object that) {
         if (this == that) return true;
@@ -122,7 +127,7 @@ public abstract class Signal<STATE> {
      * will receive it.
      * </p>
      * <ul>
-     *     <li>The same as the {@link Id#getReceiver() receiver} of the {@link #getId() ID} of this Signal.
+     *     <li>The same as the {@link Id#getReceiver() receiver} of the {@link #getId() ID} of this Signal.</li>
      * </ul>
      *
      * @see #getSender()
@@ -142,7 +147,7 @@ public abstract class Signal<STATE> {
      * That can be done to implement internal events, such as timers.
      * </p>
      * <ul>
-     *     <li>The same as the {@link Id#getSender() sender} of the {@link #getId() ID} of this Signal.
+     *     <li>The same as the {@link Id#getSender() sender} of the {@link #getId() ID} of this Signal.</li>
      * </ul>
      *
      * @see #getReceiver()
@@ -182,7 +187,7 @@ public abstract class Signal<STATE> {
      * <p>
      * This is a <i>template method</i> that delegates to the
      * {@link #getPropagationDelay(Object)} <i>primitive operation</i>.
-     * It may ne called while a lock is held. It should be quick.
+     * It may be called while a lock is held.
      * </p>
      * <ul>
      * <li>Destroyed objects can not receive signals:
@@ -198,8 +203,8 @@ public abstract class Signal<STATE> {
      * <li>Otherwise it returns {@link #NEVER_RECEIVED}.</li>
      * </ul>
      *
-     * @param receiverState The state that the simulated object has as a result of this
-     *                      effect. A null state indicates that the simulated object is
+     * @param receiverState The state that the simulated object has just before it receives this signal.
+     *                      A null state indicates that the simulated object is
      *                      destroyed or removed.
      * @see #receive(Object)
      * @see #getWhenReceived(ValueHistory)
@@ -215,7 +220,7 @@ public abstract class Signal<STATE> {
             try {
                 haveEnoughTime = whenSent.compareTo(NEVER_RECEIVED.minus(propagationDelay)) < 0;
             } catch (final ArithmeticException e) {
-                throw new AssertionError("propagationDelay non-negative (was negative)", e);
+                throw new IllegalStateException("propagationDelay non-negative (was negative)", e);
             }
             assert !Duration.ZERO.equals(propagationDelay);
             if (haveEnoughTime) {
@@ -230,7 +235,7 @@ public abstract class Signal<STATE> {
      * <p>
      * The point in time when this signal will be received, if the
      * {@linkplain #getReceiver() receiver} has a given {@linkplain ValueHistory
-     * time-varying state}
+     * history of time-varying states}
      * </p>
      * <p>
      * The reception time can depend on the receiver state to implement signals sent
@@ -265,7 +270,6 @@ public abstract class Signal<STATE> {
      *                             {@linkplain ValueHistory#get(Duration) value at a point in time}
      *                             indicates that the simulated object was destroyed or removed at or
      *                             before that point in time.
-     * @throws NullPointerException     If {@code receiverStateHistory} is null.
      * @throws IllegalArgumentException If the {@code receiverStateHistory} has a
      *                                  {@linkplain ValueHistory#getTransitions() transition} to a null
      *                                  state at a time before the last transition. That is, if
@@ -301,7 +305,7 @@ public abstract class Signal<STATE> {
      * The point in time when this signal was sent (emitted).
      * </p>
      * <ul>
-     *     <li>The same as the {@link Id#getWhenSent() when sent} time of the {@link #getId() ID} of this Signal.
+     *     <li>The same as the {@link Id#getWhenSent() when sent} time of the {@link #getId() ID} of this Signal.</li>
      * </ul>
      */
     @Nonnull
@@ -317,9 +321,6 @@ public abstract class Signal<STATE> {
      * <ul>
      * <li>The {@linkplain Event#getCausingSignal() signal causing} the
      * returned event is this signal.</li>
-     * <li>The {@linkplain Event#getAffectedObject() affected object} of the
-     * returned event is {@linkplain UUID#equals(Object) equal to} the
-     * {@linkplain #getReceiver() receiver} of this signal.</li>
      * <li>The {@linkplain Event#getWhen() time of occurrence} of the
      * returned event is the same as {@code when}.</li>
      * <li>The implementation must be deterministic: the returned value may depend
@@ -340,9 +341,7 @@ public abstract class Signal<STATE> {
      *                                     In particular, the method <em>may</em> throw this if {@code when}
      *                                     is not {@linkplain Duration#equals(Object) equal to} the
      *                                     {@linkplain #getWhenSent() sending time} plus the
-     *                                     {@linkplain #getPropagationDelay(Object) propagation delay}. This
-     *                                     is a non-fatal error: if this exception is thrown, all invariants
-     *                                     have been maintained.
+     *                                     {@linkplain #getPropagationDelay(Object) propagation delay}.
      * @throws IllegalStateException       If the {@code when} or this signal is inconsistent with
      *                                     {@code receiverState} in some way.
      * @see #receive(Object)
@@ -364,9 +363,6 @@ public abstract class Signal<STATE> {
      * </p>
      * <ul>
      * <li>The {@linkplain Event#getCausingSignal() signal causing} the returned event is this signal.</li>
-     * <li>The {@linkplain Event#getAffectedObject() affected object} of the
-     * returned event is {@linkplain UUID#equals(Object) equal to} the
-     * {@linkplain #getReceiver() receiver} of this signal.</li>
      * <li>The {@linkplain Event#getWhen() occurrence time} of the returned
      * event is {@linkplain Duration#compareTo(Duration) before} the maximum
      * possible {@link Duration} value.</li>
@@ -378,7 +374,6 @@ public abstract class Signal<STATE> {
      *
      * @param receiverState The state of the {@linkplain #getReceiver() receiver} for which to
      *                      compute the {@linkplain Event effect} of this signal.
-     * @throws NullPointerException        If {@code receiverState} is null.
      * @throws UnreceivableSignalException If it is impossible for the receiver to receive this signal while
      *                                     its state is {@code receiverState}. This is a non-fatal error: if
      *                                     this exception is thrown, all invariants have been maintained.
@@ -409,8 +404,6 @@ public abstract class Signal<STATE> {
      * </p>
      * <ul>
      * <li>The {@linkplain Event#getCausingSignal() signal causing} the returned event is this signal.</li>
-     * <li>The {@linkplain Event#getAffectedObject() affected object} of the
-     * returned event is the {@linkplain #getReceiver() receiver} of this signal.</li>
      * <li>The {@linkplain Event#getWhen() occurrence time} of the returned
      * event is {@linkplain Duration#compareTo(Duration) before} the maximum
      * possible {@link Duration} value.</li>
@@ -424,9 +417,7 @@ public abstract class Signal<STATE> {
      *                             {@linkplain ValueHistory#get(Duration) value at a point in time}
      *                             indicates that the simulated object was destroyed or removed at or
      *                             before that point in time.
-     * @throws NullPointerException        If {@code receiverStateHistory} is null.
-     * @throws UnreceivableSignalException If it is impossible for the receiver to receive this. This is a non-fatal error: if
-     *                                     this exception is thrown, all invariants have been maintained.
+     * @throws UnreceivableSignalException If it is impossible for the receiver to receive this signal.
      * @throws IllegalStateException       If this signal is inconsistent with {@code receiverStateHistory} in some
      *                                     way.
      */
@@ -477,6 +468,13 @@ public abstract class Signal<STATE> {
 
     }// class
 
+    /**
+     * The unique ID of a Signal.
+     *
+     * @param <STATE> The class of states of a receiver of a Signal. This must be {@link Immutable
+     *                immutable}. It ought to have value semantics, but that is not
+     *                required.
+     */
     @Immutable
     public static final class Id<STATE> {
 
@@ -510,13 +508,13 @@ public abstract class Signal<STATE> {
         }
 
         @Nonnull
-        @SuppressFBWarnings(value="EI_EXPOSE_REP", justification="effectively immutable")
+        @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "effectively immutable")
         public Actor<STATE> getSender() {
             return sender;
         }
 
         @Nonnull
-        @SuppressFBWarnings(value="EI_EXPOSE_REP", justification="effectively immutable")
+        @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "effectively immutable")
         public Actor<STATE> getReceiver() {
             return receiver;
         }

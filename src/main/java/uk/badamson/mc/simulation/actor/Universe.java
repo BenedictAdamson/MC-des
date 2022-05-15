@@ -82,8 +82,6 @@ public final class Universe<STATE> implements Collection<Actor<STATE>> {
      * this method will therefore throw a {@link NullPointerException}
      * if {@code actor} is null
      * </p>
-     *
-     * @throws NullPointerException if {@code actor} is null
      */
     @Override
     public boolean add(final Actor<STATE> actor) {
@@ -157,8 +155,7 @@ public final class Universe<STATE> implements Collection<Actor<STATE>> {
     }
 
     @GuardedBy("additionLock")
-    @Nonnull
-    private Boolean removeAllWhileLocked(final Collection<?> objects) {
+    private boolean removeAllWhileLocked(final Collection<?> objects) {
         return objects.stream()
                 .filter(o -> o instanceof Actor<?>)
                 .map(o -> (Actor<?>) o)
@@ -214,7 +211,7 @@ public final class Universe<STATE> implements Collection<Actor<STATE>> {
     /**
      * <p>
      * Have the actors of this Universe {@link Actor#receiveSignal() receive signals}
-     * until the {@link  Actor#getWhenReceiveNextSignal time of their next signal}
+     * until the {@link  Actor#getWhenReceiveNextSignal() time of their next signal}
      * is {@link Duration#compareTo(Duration) at or after} a given time,
      * with the processing done using a given {@link Executor}.
      * </p>
@@ -226,7 +223,6 @@ public final class Universe<STATE> implements Collection<Actor<STATE>> {
      *
      * @return a Future that {@linkplain Future#isDone() is done} when all the actors have been advanced,
      * or an exception prevents a full computation, providing information about which actors of this universe changed.
-     * @throws NullPointerException if any {@link Nonnull} annotated argument is null.
      */
     @Nonnull
     public Future<Actor.AffectedActors<STATE>> advanceTo(

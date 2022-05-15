@@ -253,7 +253,7 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
     /**
      * Whether this object is <i>equivalent to</i> a given object.
      * <p>
-     * The Event class has <i>reference semantics</i>,
+     * The Event class has <i>entity semantics</i>,
      * with the {@link #getId() providing the unique ID}.
      */
     @Override
