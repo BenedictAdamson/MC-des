@@ -92,12 +92,13 @@ public class SignalTest {
         } else {
             final var propagationDelay = signal.getPropagationDelay(receiverState);
 
-            assertAll(() -> assertThat("propagationDelay", propagationDelay, notNullValue()), // guard
-                    () -> assertThat("whenReceived", whenReceived, notNullValue()));// guard
-            assertThat("Non-negative propagationDelay", propagationDelay, greaterThan(Duration.ZERO));
-            assertThat(
-                    "The reception time is after the sending time, unless the sending time is the maximum possible value.",
-                    whenReceived, either(greaterThan(whenSent)).or(is(Signal.NEVER_RECEIVED)));
+            assertAll(() -> assertThat("propagationDelay", propagationDelay, notNullValue()),
+                    () -> assertThat("whenReceived", whenReceived, notNullValue()));
+            assertAll(
+                    () -> assertThat("propagationDelay", propagationDelay, greaterThan(Duration.ZERO)),
+                    () -> assertThat(
+                            "The reception time is after the sending time, unless the sending time is the maximum possible value.",
+                            whenReceived, either(greaterThan(whenSent)).or(is(Signal.NEVER_RECEIVED))));
             if (whenReceived.compareTo(Signal.NEVER_RECEIVED) < 0) {
                 assertThat(
                         "If the interval between the sending time and the maximum possible value is less than the propagation delay, the reception time is the sending time plus the propagation delay.",
@@ -125,17 +126,18 @@ public class SignalTest {
                                                    @Nonnull final ValueHistory<STATE> receiverStateHistory) {
         final var whenReceived = signal.getWhenReceived(receiverStateHistory);
 
-        assertThat(whenReceived,notNullValue());// guard
+        assertThat(whenReceived, notNullValue());
         assertInvariants(signal);
         final var stateWhenReceived = receiverStateHistory.get(whenReceived);
-        assertThat(
-                "The reception time is after the sending time, unless the sending time is the maximum possible value.",
-                whenReceived, either(greaterThan(signal.getWhenSent())).or(is(Signal.NEVER_RECEIVED)));
-        assertThat("If the simulated object is destroyed or removed it can not receive a signal.",
-                stateWhenReceived == null && !Signal.NEVER_RECEIVED.equals(whenReceived),
-                is(false));
-        assertThat("The reception time is consistent with the receiver history",
-                signal.getWhenReceived(stateWhenReceived), lessThanOrEqualTo(whenReceived));
+        assertAll("whenReceived",
+                () -> assertThat(
+                        "after the sending time, unless the sending time is the maximum possible value.",
+                        whenReceived, either(greaterThan(signal.getWhenSent())).or(is(Signal.NEVER_RECEIVED))),
+                () -> assertThat("If the simulated object is destroyed or removed it can not receive a signal.",
+                        stateWhenReceived == null && !Signal.NEVER_RECEIVED.equals(whenReceived),
+                        is(false)),
+                () -> assertThat("is consistent with the receiver history",
+                        signal.getWhenReceived(stateWhenReceived), lessThanOrEqualTo(whenReceived)));
 
         return whenReceived;
     }
@@ -150,7 +152,7 @@ public class SignalTest {
             throw e;
         }
 
-        assertThat(effect, notNullValue());// guard
+        assertThat(effect, notNullValue());
         assertInvariants(signal);
         EventTest.assertInvariants(effect);
         final var whenOccurred = effect.getWhen();
@@ -173,7 +175,7 @@ public class SignalTest {
             throw e;
         }
 
-        assertThat(effect, notNullValue());// guard
+        assertThat(effect, notNullValue());
         assertInvariants(signal);
         EventTest.assertInvariants(effect);
         final var whenOccurred = effect.getWhen();

@@ -58,7 +58,7 @@ public class UniverseTest {
         ObjectVerifier.assertInvariants(universe);// inherited
 
         CollectionVerifier.assertForAllElements(universe, actor -> {
-            assertThat(actor, notNullValue());// guard
+            assertThat(actor, notNullValue());
             ActorTest.assertInvariants(actor);
         });
         assertThat(universe.toArray().length, is(universe.size()));

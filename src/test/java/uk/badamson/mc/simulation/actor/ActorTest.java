@@ -62,10 +62,10 @@ public class ActorTest {
         final var signalsToReceive = actor.getSignalsToReceive();
         final var whenReceiveNextSignal = actor.getWhenReceiveNextSignal();
 
-        assertAll(() -> assertThat("events", events, notNullValue()), // guard
-                () -> assertThat("start", start, notNullValue()), // guard
-                () -> assertThat("stateHistory", stateHistory, notNullValue()), // guard
-                () -> assertThat("signalsToReceive", signalsToReceive, notNullValue()), // guard
+        assertAll(() -> assertThat("events", events, notNullValue()),
+                () -> assertThat("start", start, notNullValue()),
+                () -> assertThat("stateHistory", stateHistory, notNullValue()),
+                () -> assertThat("signalsToReceive", signalsToReceive, notNullValue()),
                 () -> assertThat("whenReceiveNextSignal", whenReceiveNextSignal, notNullValue())
         );
         ValueHistoryTest.assertInvariants(stateHistory);
@@ -111,7 +111,7 @@ public class ActorTest {
 
     private static <STATE> Stream<Executable> createEventsAssertions(@Nonnull final Actor<STATE> actor) {
         return actor.getEvents().stream().map(event -> () -> {
-            assertThat(event, notNullValue());// guard
+            assertThat(event, notNullValue());
             assertAll("event " + event,
                     () -> EventTest.assertInvariants(event),
                     () -> assertThat("when", event.getWhen(), greaterThan(actor.getStart())),
@@ -123,7 +123,7 @@ public class ActorTest {
 
     private static <STATE> Stream<Executable> createSignalsToReceiveAssertions(@Nonnull final Actor<STATE> actor) {
         return actor.getSignalsToReceive().stream().map(signal -> () -> {
-            assertThat(signal, notNullValue());// guard
+            assertThat("signal", signal, notNullValue());
             assertAll("event " + signal,
                     () -> SignalTest.assertInvariants(signal),
                     () -> assertThat("whenSent", signal.getWhenSent(), greaterThanOrEqualTo(actor.getStart())),
@@ -659,16 +659,17 @@ public class ActorTest {
                 final var affectedActors = receiveSignal(receiver);
 
                 final var events = receiver.getEvents();
-                assertThat("events", events, hasSize(2));// guard
+                assertThat("events", events, hasSize(2));
                 final var event1 = events.first();
                 final var event2 = events.last();
-                assertThat("event 1 resulted from receiving signal 1", event1, is(signal1.receive(state0)));
                 final Integer state1 = event1.getState();
-                assertThat("event 1 result state", state1, notNullValue());// guard
-                assertThat("event 2 resulted from receiving signal 2", event2, is(signal2.receive(state1)));
-                assertThat(affectedActors.getAdded(), empty());
-                assertThat(affectedActors.getRemoved(), empty());
-                assertThat(affectedActors.getChanged(), contains(receiver));
+                assertThat("event 1 resulted from receiving signal 1", event1, is(signal1.receive(state0)));
+                assertThat("event 1 result state", state1, notNullValue());
+                assertAll(
+                        () -> assertThat("event 2 resulted from receiving signal 2", event2, is(signal2.receive(state1))),
+                        () -> assertThat("added", affectedActors.getAdded(), empty()),
+                        () -> assertThat("empty", affectedActors.getRemoved(), empty()),
+                        () -> assertThat("changed", affectedActors.getChanged(), contains(receiver)));
             }
         }
 
@@ -699,16 +700,17 @@ public class ActorTest {
                 final var affectedActors = receiveSignal(actor2);
 
                 final var events = actor2.getEvents();
-                assertThat("events", events, hasSize(2));// guard
+                assertThat("events", events, hasSize(2));
                 final var event1 = events.first();
                 final var event2 = events.last();
-                assertThat("event 1 resulted from receiving signal 1", event1, is(signal1.receive(state0)));
                 final Integer state1 = event1.getState();
-                assertThat("event 1 result state", state1, notNullValue());// guard
-                assertThat("event 2 resulted from receiving signal 2", event2, is(signal2.receive(state1)));
-                assertThat(affectedActors.getAdded(), empty());
-                assertThat(affectedActors.getRemoved(), empty());
-                assertThat(affectedActors.getChanged(), containsInAnyOrder(actor1, actor2));
+                assertThat("event 1 result state", state1, notNullValue());
+                assertAll(
+                        () -> assertThat("event 1 resulted from receiving signal 1", event1, is(signal1.receive(state0))),
+                        () -> assertThat("event 2 resulted from receiving signal 2", event2, is(signal2.receive(state1))),
+                        () -> assertThat("added", affectedActors.getAdded(), empty()),
+                        () -> assertThat("removed", affectedActors.getRemoved(), empty()),
+                        () -> assertThat("changed", affectedActors.getChanged(), containsInAnyOrder(actor1, actor2)));
             }
         }
 
@@ -740,10 +742,10 @@ public class ActorTest {
                 final var affectedActors1 = receiveSignal(actor2);
 
                 final var events = actor2.getEvents();
-                assertThat(events, hasSize(1));// guard
-                assertThat("event 1 resulted from receiving signal 1",
-                        events.first(), is(signal1.receive(state0)));
+                assertThat(events, hasSize(1));
                 assertAll(
+                        () -> assertThat("event 1 resulted from receiving signal 1",
+                                events.first(), is(signal1.receive(state0))),
                         () -> assertThat("added", affectedActors1.getAdded(), empty()),
                         () -> assertThat("changed", affectedActors1.getChanged(), contains(actor2)),
                         () -> assertThat("removed", affectedActors1.getRemoved(), contains(addedActor)));

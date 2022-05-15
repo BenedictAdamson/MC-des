@@ -67,7 +67,7 @@ public class EventTest {
 
         assertAll(() -> assertThat("affectedObject", affectedObject, notNullValue()),
                 () -> assertThat("causingSignal", causingSignal, notNullValue()),
-                () -> assertThat("signalsEmitted", signalsEmitted, notNullValue()), // guard
+                () -> assertThat("signalsEmitted", signalsEmitted, notNullValue()),
                 () -> assertThat("when", when, notNullValue()),
                 () -> assertThat("createdActors", createdActors, notNullValue()),
                 () -> assertThat("indirectlyAffectedObjects", indirectlyAffectedObjects, notNullValue()),
