@@ -413,6 +413,36 @@ public final class Actor<STATE> {
 
     /**
      * <p>
+     * Add a given event to the {@linkplain #getEvents() sequence of events} of this actor.
+     * </p>
+     *
+     * @throws IllegalArgumentException If this is not the {@linkplain Event#getAffectedObject() affected object} of the event
+     * @throws IllegalStateException    <ul>
+     *                                      <li>If this has a {@linkplain #getLastEvent() last event}  and the given event is not {@linkplain Event#compareTo(Event) after} the last event</li>
+     *                                      <li>If the current {@linkplain #getLastEvent() last event}  is a destruction event (for which the {@linkplain Event#getState() state} is null)</li>
+     *                                  </ul>
+     */
+    public void addEvent(@Nonnull final Event<STATE> event) {
+        Objects.requireNonNull(event, "event");
+        if (event.getAffectedObject() != this) {
+            throw new IllegalArgumentException("this is not the affectedObject of the event");
+        }
+        synchronized (lock) {
+            if (!events.isEmpty()) {
+                final var last = events.last();
+                if (last.getState() == null) {
+                    throw new IllegalStateException("last event event is a destruction event");
+                }
+                if (last.compareTo(event) >= 0) {
+                    throw new IllegalStateException("not after the last event");
+                }
+            }
+            appendEventWhileLocked(event);
+        }
+    }
+
+    /**
+     * <p>
      * Add a signal to the {@linkplain #getSignalsToReceive() set of signals to receive}.
      * </p>
      *
@@ -767,14 +797,12 @@ public final class Actor<STATE> {
         /**
          * <p>Construct an object with given aggregate content.</p>
          *
-         * @throws NullPointerException
-         * Ifd any given {@link Set} is null or contains null.
-         * @throws IllegalArgumentException
-         * <ul>
-         *     <li>If {@code added} {@linkplain Collection#contains(Object) contains} any elements in {@code changed}</li>
-         *     <li>If {@code removed} {@linkplain Collection#contains(Object) contains} any elements in {@code changed}</li>
-         *     <li>If {@code removed} {@linkplain Collection#contains(Object) contains} any elements in {@code added}</li>
-         * </ul>
+         * @throws NullPointerException     Ifd any given {@link Set} is null or contains null.
+         * @throws IllegalArgumentException <ul>
+         *                                      <li>If {@code added} {@linkplain Collection#contains(Object) contains} any elements in {@code changed}</li>
+         *                                      <li>If {@code removed} {@linkplain Collection#contains(Object) contains} any elements in {@code changed}</li>
+         *                                      <li>If {@code removed} {@linkplain Collection#contains(Object) contains} any elements in {@code added}</li>
+         *                                  </ul>
          */
         public AffectedActors(@Nonnull final Set<Actor<STATE>> changed, @Nonnull final Set<Actor<STATE>> added, @Nonnull final Set<Actor<STATE>> removed) {
             this.changed = Set.copyOf(changed);

@@ -151,6 +151,16 @@ public class ActorTest {
         return affectedActors;
     }
 
+    private static <STATE> void addEvent(@Nonnull final Actor<STATE> actor, @Nonnull final Event<STATE> event) {
+        final int size0 = actor.getEvents().size();
+
+        actor.addEvent(event);
+
+        assertInvariants(actor);
+        assertThat(actor.getEvents(), hasSize(size0 + 1));
+        assertThat(actor.getLastEvent(), sameInstance(event));
+    }
+
     @Test
     public void concurrentlyReceiveSignals() {
         final Actor<Integer> sender = new Actor<>(WHEN_A, 0);
@@ -481,6 +491,52 @@ public class ActorTest {
         }
     }
 
+    @Immutable
+    static final class NeighbourActorState {
+        @Nullable
+        private final Actor<NeighbourActorState> neighbour;
+
+        NeighbourActorState(@Nullable final Actor<NeighbourActorState> neighbour) {
+            this.neighbour = neighbour;
+        }
+
+        @Nullable
+        public Actor<NeighbourActorState> getNeighbour() {
+            return neighbour;
+        }
+    }
+
+    @Immutable
+    static final class NeighbourSignal extends Signal<NeighbourActorState> {
+        public NeighbourSignal(
+                @Nonnull final Duration whenSent,
+                @Nonnull final Actor<NeighbourActorState> sender,
+                @Nonnull final Actor<NeighbourActorState> receiver) {
+            super(whenSent, sender, receiver, MEDIUM_A);
+        }
+
+        @Nonnull
+        @Override
+        protected Duration getPropagationDelay(@Nonnull final NeighbourActorState receiverState) {
+            return Duration.ofSeconds(1);
+        }
+
+        @Nonnull
+        @Override
+        protected Event<NeighbourActorState> receive(
+                @Nonnull final Duration when,
+                @Nonnull final NeighbourActorState receiverState) throws UnreceivableSignalException {
+            final Actor<NeighbourActorState> neighbour = receiverState.getNeighbour();
+            final Set<Signal<NeighbourActorState>> signalsEmitted;
+            if (neighbour == null) {
+                signalsEmitted = Set.of();
+            } else {
+                signalsEmitted = Set.of(new NeighbourSignal(when, getReceiver(), neighbour));
+            }
+            return new Event<>(this, when, receiverState, signalsEmitted, Set.of());
+        }
+    }
+
     @Nested
     public class Constructor {
 
@@ -676,6 +732,30 @@ public class ActorTest {
         }
 
         @Nested
+        public class AddEvent {
+
+            @Test
+            public void continuation() {
+                test(WHEN_A, WHEN_B, 1, 2);
+            }
+
+            @Test
+            public void destruction() {
+                test(WHEN_B, WHEN_C, 3, null);
+            }
+
+            private void test(
+                    @Nonnull final Duration start, @Nonnull final Duration when,
+                    @Nonnull final Integer state0, @Nullable final Integer state) {
+                final var actor = new Actor<>(start, state0);
+                final Signal<Integer> signal = new SignalTest.SimpleTestSignal(start, actor, actor, MEDIUM_A);
+                final Event<Integer> event = new Event<>(signal, when, state);
+
+                addEvent(actor, event);
+            }
+        }
+
+        @Nested
         public class InvalidatingEmittedSignal {
 
             @Test
@@ -845,51 +925,5 @@ public class ActorTest {
             }
         }
     }// class
-
-    @Immutable
-    static final class NeighbourActorState{
-        @Nullable
-        private final Actor<NeighbourActorState> neighbour;
-
-        NeighbourActorState(@Nullable final Actor<NeighbourActorState> neighbour) {
-            this.neighbour = neighbour;
-        }
-
-        @Nullable
-        public Actor<NeighbourActorState> getNeighbour() {
-            return neighbour;
-        }
-    }
-
-    @Immutable
-    static final class NeighbourSignal extends Signal<NeighbourActorState> {
-        public NeighbourSignal(
-                @Nonnull final Duration whenSent,
-                @Nonnull final Actor<NeighbourActorState> sender,
-                @Nonnull final Actor<NeighbourActorState> receiver) {
-            super(whenSent, sender, receiver, MEDIUM_A);
-        }
-
-        @Nonnull
-        @Override
-        protected Duration getPropagationDelay(@Nonnull NeighbourActorState receiverState) {
-            return Duration.ofSeconds(1);
-        }
-
-        @Nonnull
-        @Override
-        protected Event<NeighbourActorState> receive(
-                @Nonnull final Duration when,
-                @Nonnull final NeighbourActorState receiverState) throws UnreceivableSignalException {
-            final Actor<NeighbourActorState> neighbour = receiverState.getNeighbour();
-            final Set<Signal<NeighbourActorState>> signalsEmitted;
-            if (neighbour == null) {
-                signalsEmitted = Set.of();
-            } else {
-                signalsEmitted = Set.of(new NeighbourSignal(when, getReceiver(), neighbour));
-            }
-            return new Event<>(this, when, receiverState, signalsEmitted, Set.of());
-        }
-    }
 
 }// class
