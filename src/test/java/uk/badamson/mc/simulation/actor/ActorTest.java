@@ -29,6 +29,8 @@ import uk.badamson.dbc.assertions.ThreadSafetyTest;
 import uk.badamson.mc.history.ValueHistoryTest;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
@@ -843,5 +845,51 @@ public class ActorTest {
             }
         }
     }// class
+
+    @Immutable
+    static final class NeighbourActorState{
+        @Nullable
+        private final Actor<NeighbourActorState> neighbour;
+
+        NeighbourActorState(@Nullable final Actor<NeighbourActorState> neighbour) {
+            this.neighbour = neighbour;
+        }
+
+        @Nullable
+        public Actor<NeighbourActorState> getNeighbour() {
+            return neighbour;
+        }
+    }
+
+    @Immutable
+    static final class NeighbourSignal extends Signal<NeighbourActorState> {
+        public NeighbourSignal(
+                @Nonnull final Duration whenSent,
+                @Nonnull final Actor<NeighbourActorState> sender,
+                @Nonnull final Actor<NeighbourActorState> receiver) {
+            super(whenSent, sender, receiver, MEDIUM_A);
+        }
+
+        @Nonnull
+        @Override
+        protected Duration getPropagationDelay(@Nonnull NeighbourActorState receiverState) {
+            return Duration.ofSeconds(1);
+        }
+
+        @Nonnull
+        @Override
+        protected Event<NeighbourActorState> receive(
+                @Nonnull final Duration when,
+                @Nonnull final NeighbourActorState receiverState) throws UnreceivableSignalException {
+            final Actor<NeighbourActorState> neighbour = receiverState.getNeighbour();
+            final Set<Signal<NeighbourActorState>> signalsEmitted;
+            if (neighbour == null) {
+                signalsEmitted = Set.of();
+            } else {
+                signalsEmitted = Set.of(new NeighbourSignal(when, getReceiver(), neighbour));
+            }
+            return new Event<>(this, when, receiverState, signalsEmitted, Set.of());
+        }
+    }
 
 }// class

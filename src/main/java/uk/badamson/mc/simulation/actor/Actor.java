@@ -250,7 +250,7 @@ public final class Actor<STATE> {
                 advanceToWithCompletableFuture(when, furtherActorsToAdvance, executor)
                         .handle((indirectlyAffectedActors, exception) -> {
                             if (exception == null) {
-                                future.complete(affectedActors);// TODO include indirectlyAffectedActors
+                                future.complete(affectedActors.plus(indirectlyAffectedActors));
                             } else {
                                 future.completeExceptionally(exception);
                             }

@@ -656,7 +656,7 @@ public class UniverseTest {
             @Test
             public void removesActor() throws Exception {
                 final var state0 = 1;
-                final var margin = Duration.ofSeconds(7);
+                final var margin = Duration.ofNanos(1);
                 final var actor1 = new Actor<>(WHEN_A, 0);
                 final var actor2 = new Actor<>(WHEN_A, state0);
                 final Signal<Integer> signal1 = new SignalTest.SimpleTestSignal(WHEN_A, actor1, actor2, MEDIUM_A);
@@ -690,6 +690,34 @@ public class UniverseTest {
                         () -> assertThat("added", actorsAdded, empty()),
                         () -> assertThat("changed", affectedActors.getChanged(), contains(actor2)));
                 assertThat(universe, contains(actor2));
+            }
+
+            @Test
+            public void chainingSignals() throws Exception {
+                final Duration when = Duration.ofSeconds(60);
+                final var actor1 = new Actor<>(WHEN_A, new ActorTest.NeighbourActorState(null));
+                final var actor2 = new Actor<>(WHEN_A, new ActorTest.NeighbourActorState(actor1));
+                final var actor3 = new Actor<>(WHEN_A, new ActorTest.NeighbourActorState(actor2));
+                final var actor4 = new Actor<>(WHEN_A, new ActorTest.NeighbourActorState(actor3));
+                final var signal = new ActorTest.NeighbourSignal(WHEN_A, actor4, actor3);
+                actor3.addSignalToReceive(signal);
+                final Universe<ActorTest.NeighbourActorState> universe = new Universe<>();
+                universe.add(actor3);
+
+                final var future = advanceTo(universe, when, DIRECT_EXECUTOR);
+                final var affectedActors = future.get();
+
+                ActorTest.assertInvariants(actor1);
+                ActorTest.assertInvariants(actor2);
+                ActorTest.assertInvariants(actor3);
+                assertAllHaveAdvancedTo(when, universe);
+                assertThat(universe, contains(actor3));
+                assertThat(affectedActors, notNullValue());
+                ActorTest.AffectedActorsTest.assertInvariants(affectedActors);
+                assertAll(
+                        () -> assertThat("removed", affectedActors.getRemoved(), empty()),
+                        () -> assertThat("added", affectedActors.getAdded(), empty()),
+                        () -> assertThat("changed", affectedActors.getChanged(), containsInAnyOrder(actor1, actor2, actor3)));
             }
 
             @Test
