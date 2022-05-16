@@ -352,6 +352,33 @@ public class SignalTest {
         }
     }
 
+    static class InteractingActorCreatingTestSignal extends Signal<Integer> {
+
+        InteractingActorCreatingTestSignal(
+                @Nonnull final Duration whenSent,
+                @Nonnull final Actor<Integer> sender, @Nonnull final Actor<Integer> receiver,
+                @Nonnull final Medium medium) {
+            super(whenSent, sender, receiver, medium);
+        }
+
+        @Nonnull
+        @Override
+        protected Duration getPropagationDelay(@Nonnull final Integer receiverState) {
+            return Duration.ofSeconds(1 + Math.abs(receiverState));
+        }
+
+        @Nonnull
+        @Override
+        protected Event<Integer> receive(
+                @Nonnull final Duration when, @Nonnull final Integer receiverState
+        ) throws UnreceivableSignalException {
+            final Integer newState = receiverState + 1;
+            final Actor<Integer> createdActor = new Actor<>(when, receiverState - 3);
+            final Signal<Integer> emittedSignal = new StrobingTestSignal(when, getReceiver(), createdActor, MEDIUM_A);
+            return new Event<>(this, when, newState, Set.of(emittedSignal), Set.of(createdActor));
+        }
+    }
+
     public static class IdTest {
 
         public static <STATE> void assertInvariants(@Nonnull final Signal.Id<STATE> id) {

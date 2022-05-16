@@ -211,6 +211,22 @@ public final class Actor<STATE> {
                 .orElse(AffectedActors.emptyInstance());
     }
 
+    @Nonnull
+    private static <STATE> Set<Actor<STATE>> plus(
+            @Nonnull final Set<Actor<STATE>> actorsA,
+            @Nonnull final Set<Actor<STATE>> actorsB
+    ) {
+        if (actorsB.isEmpty()) {
+            return actorsA;
+        } else if (actorsA.isEmpty()) {
+            return actorsB;
+        } else {
+            final Set<Actor<STATE>> result = new HashSet<>(actorsA);
+            result.addAll(actorsB);
+            return result;
+        }
+    }
+
     private CompletableFuture<AffectedActors<STATE>> advanceTo(
             @Nonnull final Duration when,
             @Nonnull final Executor executor) {
@@ -230,7 +246,8 @@ public final class Actor<STATE> {
             if (affectedActors.isEmpty()) {
                 future.complete(affectedActors);
             } else {
-                advanceToWithCompletableFuture(when, affectedActors.getChanged(), executor)
+                final Set<Actor<STATE>> furtherActorsToAdvance = plus(affectedActors.getChanged(), affectedActors.getAdded());
+                advanceToWithCompletableFuture(when, furtherActorsToAdvance, executor)
                         .handle((indirectlyAffectedActors, exception) -> {
                             if (exception == null) {
                                 future.complete(affectedActors);// TODO include indirectlyAffectedActors
@@ -444,9 +461,6 @@ public final class Actor<STATE> {
      * @return The actors affected by this change.
      * <ul>
      *     <li>No {@linkplain AffectedActors#getChanged() changed} actors if, and only if, no signal is received.</li>
-     *     <li>If {@linkplain AffectedActors#getChanged() changed} actors is not empty,
-     *     it includes all the {@linkplain Event#getIndirectlyAffectedObjects() indirectly affected objects}
-     *     of the event caused by reception of the signal.</li>
      * </ul>
      * @throws SignalException If a {@link Signal} object throws a {@link RuntimeException}.
      *                         The method is safe if this exception is thrown:
@@ -613,6 +627,7 @@ public final class Actor<STATE> {
         assert Thread.holdsLock(lock);
         final Signal<STATE> causingSignal = event.getCausingSignal();
         assert !eventsForSignals.containsKey(causingSignal);
+        assert this == event.getAffectedObject();
         invalidateNextSignalToReceive();
         version++;
         events.add(event);
@@ -620,10 +635,17 @@ public final class Actor<STATE> {
         eventsForSignals.put(causingSignal, event);
         stateHistory.setValueFrom(event.getWhen(), event.getState());
         signalsToReceive.remove(causingSignal);
-        for (final var emittedSignal : event.getSignalsEmitted()) {
-            emittedSignal.getReceiver().addUnscheduledSignalToReceive(emittedSignal);
+        final Collection<Signal<STATE>> signalsEmitted = event.getSignalsEmitted();
+        final Set<Actor<STATE>> createdActors = event.getCreatedActors();
+        final Set<Actor<STATE>> changedActors = new HashSet<>();
+        for (final var emittedSignal : signalsEmitted) {
+            final Actor<STATE> receiver = emittedSignal.getReceiver();
+            receiver.addUnscheduledSignalToReceive(emittedSignal);
+            changedActors.add(receiver);
         }
-        return new AffectedActors<>(event.getIndirectlyAffectedObjects(), event.getCreatedActors(), Set.of());
+        changedActors.removeAll(createdActors);
+        changedActors.add(this);
+        return new AffectedActors<>(changedActors, createdActors, Set.of());
     }
 
     @Nonnull
@@ -742,31 +764,39 @@ public final class Actor<STATE> {
         @Nonnull
         private final Set<Actor<STATE>> removed;
 
+        /**
+         * <p>Construct an object with given aggregate content.</p>
+         *
+         * @throws NullPointerException
+         * Ifd any given {@link Set} is null or contains null.
+         * @throws IllegalArgumentException
+         * <ul>
+         *     <li>If {@code added} {@linkplain Collection#contains(Object) contains} any elements in {@code changed}</li>
+         *     <li>If {@code removed} {@linkplain Collection#contains(Object) contains} any elements in {@code changed}</li>
+         *     <li>If {@code removed} {@linkplain Collection#contains(Object) contains} any elements in {@code added}</li>
+         * </ul>
+         */
         public AffectedActors(@Nonnull final Set<Actor<STATE>> changed, @Nonnull final Set<Actor<STATE>> added, @Nonnull final Set<Actor<STATE>> removed) {
             this.changed = Set.copyOf(changed);
             this.added = Set.copyOf(added);
             this.removed = Set.copyOf(removed);
+            requireNoIntersection("added and changed intersect", this.added, this.changed);
+            requireNoIntersection("removed and changed intersect", this.removed, this.changed);
+            requireNoIntersection("removed and added intersect", this.removed, this.added);
+        }
+
+        private static <E> void requireNoIntersection(
+                @Nonnull final String message,
+                @Nonnull final Set<E> setA,
+                @Nonnull final Set<E> setB) {
+            if (setA.stream().anyMatch(setB::contains)) {
+                throw new IllegalArgumentException(message);
+            }
         }
 
         @SuppressWarnings("unchecked")
         public static <STATE> AffectedActors<STATE> emptyInstance() {
             return (AffectedActors<STATE>) EMPTY;
-        }
-
-        @Nonnull
-        private static <STATE> Set<Actor<STATE>> plus(
-                @Nonnull final Set<Actor<STATE>> actorsA,
-                @Nonnull final Set<Actor<STATE>> actorsB
-        ) {
-            if (actorsB.isEmpty()) {
-                return actorsA;
-            } else if (actorsA.isEmpty()) {
-                return actorsB;
-            } else {
-                final Set<Actor<STATE>> result = new HashSet<>(actorsA);
-                result.addAll(actorsB);
-                return result;
-            }
         }
 
         @Nonnull
@@ -797,11 +827,14 @@ public final class Actor<STATE> {
         }
 
         /**
+         * <p>
          * The Actors that had {@linkplain Actor#getEvents() events} added or removed,
          * or had {@linkplain Actor#getSignalsToReceive() signals to receive} added,
          * as a result of a {@linkplain Signal signal} or set of signals.
+         * </p>
          * <p>
          * Exclusive with the sets of {@linkplain #getAdded() added actors} and {@linkplain #getRemoved() removed actors}.
+         * </p>
          */
         @Nonnull
         public Set<Actor<STATE>> getChanged() {
@@ -872,10 +905,10 @@ public final class Actor<STATE> {
             } else if (isEmpty()) {
                 return that;
             } else {
-                final var changedSum = plus(changed, that.changed);
-                final var addedSum = plus(added, that.added);
-                final var removedSum = plus(removed, that.removed);
-                var changedResult = minus(changedSum, plus(addedSum, removedSum));
+                final var changedSum = Actor.plus(changed, that.changed);
+                final var addedSum = Actor.plus(added, that.added);
+                final var removedSum = Actor.plus(removed, that.removed);
+                var changedResult = minus(changedSum, Actor.plus(addedSum, removedSum));
                 var addedResult = minus(addedSum, removedSum);
                 var removedResult = minus(removedSum, addedSum);
                 changedResult = reduceDuplicateObjects(changedResult, Set.of(), changed, that.changed);

@@ -62,7 +62,6 @@ public class EventTest {
         final var signalsEmitted = event.getSignalsEmitted();
         final var createdActors = event.getCreatedActors();
         final var when = event.getWhen();
-        final var indirectlyAffectedObjects = event.getIndirectlyAffectedObjects();
         final var id = event.getId();
 
         assertAll(() -> assertThat("affectedObject", affectedObject, notNullValue()),
@@ -70,7 +69,6 @@ public class EventTest {
                 () -> assertThat("signalsEmitted", signalsEmitted, notNullValue()),
                 () -> assertThat("when", when, notNullValue()),
                 () -> assertThat("createdActors", createdActors, notNullValue()),
-                () -> assertThat("indirectlyAffectedObjects", indirectlyAffectedObjects, notNullValue()),
                 () -> assertThat("id", id, notNullValue()));
         IdTest.assertInvariants(id);
 
@@ -80,7 +78,6 @@ public class EventTest {
                     SignalTest.assertInvariants(signal);
                     assertThat("sender", signal.getSender(), sameInstance(affectedObject));
                     assertThat("whenSent", signal.getWhenSent(), sameInstance(when));
-                    assertThat("indirectlyAffectedObjects has receiver", indirectlyAffectedObjects, hasItem(signal.getReceiver()));
                 }));
         assertAll(
                 createdActors.stream().map(actor -> () -> {
@@ -90,7 +87,6 @@ public class EventTest {
                             () -> assertThat(actor, not(is(affectedObject))));
                 })
         );
-        assertThat(indirectlyAffectedObjects, hasItem(affectedObject));
         assertThat(when, sameInstance(id.getWhen()));
         assertThat(causingSignal, sameInstance(id.getCausingSignal()));
         assertThat(affectedObject, sameInstance(causingSignal.getReceiver()));
