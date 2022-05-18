@@ -80,9 +80,10 @@ public class ActorTest {
                         () -> assertThat("is either null or is the  last of the sequence of events.",
                                 lastEvent == null || lastEvent == events.last())
                 ),
-                () -> assertAll("stateHistory", () -> assertThat(stateHistory.getFirstTransitionTime(), sameInstance(start)),
-                        () -> assertThat(stateHistory.getFirstValue(), nullValue()),
-                        () -> assertThat(stateHistory.isEmpty(), is(false))
+                () -> assertAll("stateHistory",
+                        () -> assertThat("firstTransitionTime", stateHistory.getFirstTransitionTime(), is(start)),
+                        () -> assertThat("firstValue", stateHistory.getFirstValue(), nullValue()),
+                        () -> assertThat("empty", stateHistory.isEmpty(), is(false))
                 ),
                 () -> assertAll("whenReceiveNextSignal",
                         () -> assertThat("after start", whenReceiveNextSignal, greaterThan(start)),
@@ -159,6 +160,13 @@ public class ActorTest {
         assertInvariants(actor);
         assertThat(actor.getEvents(), hasSize(size0 + 1));
         assertThat(actor.getLastEvent(), sameInstance(event));
+    }
+
+
+    private static <STATE> void clearEventsBefore(@Nonnull final Actor<STATE> actor, @Nonnull final Duration when) {
+        actor.clearEventsBefore(when);
+
+        assertInvariants(actor);
     }
 
     @Test
@@ -925,5 +933,111 @@ public class ActorTest {
             }
         }
     }// class
+
+    @Nested
+    public class ClearEventsBefore {
+
+        @Nested
+        public class NoEvents {
+
+            @Test
+            public void a() {
+                test(WHEN_A, WHEN_B);
+            }
+
+            @Test
+            public void b() {
+                test(WHEN_B, WHEN_C);
+            }
+
+            @Test
+            public void atStart() {
+                test(WHEN_A, WHEN_A);
+            }
+
+            @Test
+            public void beforeStart() {
+                test(WHEN_C, WHEN_B);
+            }
+
+            private void test(@Nonnull final Duration start0, @Nonnull final Duration when) {
+                final var actor = new Actor<>(start0, 1);
+
+                clearEventsBefore(actor, when);
+
+                assertAll("No-op",
+                        () -> assertThat("start", actor.getStart(), sameInstance(start0)),
+                        () -> assertThat("events", actor.getEvents(), empty()));
+            }
+
+        }
+
+        @Nested
+        public class EventAfter {
+
+            @Test
+            public void near() {
+                test(WHEN_A, Duration.ofNanos(1), 1, 2);
+            }
+
+            @Test
+            public void far() {
+                test(WHEN_B, Duration.ofDays(365), 3, 4);
+            }
+
+            private void test(
+                    @Nonnull final Duration start, @Nonnull final Duration margin,
+                    @Nonnull final Integer state0, @Nullable final Integer eventState) {
+                final var actor = new Actor<>(start, state0);
+                final Signal<Integer> signal = new SignalTest.SimpleTestSignal(start, actor, actor, MEDIUM_A);
+                final var whenEvent = signal.getWhenReceived(state0);
+                final var when = whenEvent.minus(margin);
+                final var event = new Event<>(signal, whenEvent, eventState);
+                actor.addEvent(event);
+
+                clearEventsBefore(actor, when);
+
+                assertAll("No-op",
+                        () -> assertThat("start", actor.getStart(), sameInstance(start)),
+                        () -> assertThat("events", actor.getEvents(), contains(event)));
+            }
+        }
+
+        @Nested
+        public class EventBefore {
+
+            @Test
+            public void near() {
+                test(WHEN_A, Duration.ofNanos(1), 1, 2);
+            }
+
+            @Test
+            public void far() {
+                test(WHEN_B, Duration.ofDays(365), 3, 4);
+            }
+
+            private void test(
+                    @Nonnull final Duration start, @Nonnull final Duration margin,
+                    @Nonnull final Integer state0, @Nullable final Integer eventState) {
+                final var actor = new Actor<>(start, state0);
+                final Signal<Integer> signal = new SignalTest.SimpleTestSignal(start, actor, actor, MEDIUM_A);
+                final var whenEvent = signal.getWhenReceived(state0);
+                final var when = whenEvent.plus(margin);
+                final var event = new Event<>(signal, whenEvent, eventState);
+                actor.addEvent(event);
+
+                clearEventsBefore(actor, when);
+
+                final var stateHistory = actor.getStateHistory();
+                assertAll(
+                        () -> assertThat("start", actor.getStart(), sameInstance(whenEvent)),
+                        () -> assertThat("events", actor.getEvents(), empty()),
+                        () -> assertThat("stateHistory transitionTimes", stateHistory.getTransitionTimes(), contains(whenEvent)),
+                        () -> assertThat("stateHistory value", stateHistory.get(whenEvent), is(eventState)));
+            }
+        }
+
+
+    }
 
 }// class

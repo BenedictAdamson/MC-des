@@ -51,9 +51,6 @@ public final class Actor<STATE> {
      */
     final UUID lock = UUID.randomUUID();
 
-    @Nonnull
-    private final Duration start;
-
     @GuardedBy("lock")
     private final ModifiableValueHistory<STATE> stateHistory = new ModifiableValueHistory<>();
 
@@ -74,6 +71,10 @@ public final class Actor<STATE> {
 
     @GuardedBy("lock")
     Duration whenReceiveNextSignal = Signal.NEVER_RECEIVED;
+
+    @GuardedBy("lock")
+    @Nonnull
+    private Duration start;
 
     @GuardedBy("lock")
     private long version;
@@ -331,7 +332,9 @@ public final class Actor<STATE> {
      */
     @Nonnull
     public Duration getStart() {
-        return start;
+        synchronized (lock) {
+            return start;
+        }
     }
 
     /**
@@ -418,8 +421,8 @@ public final class Actor<STATE> {
      *
      * @throws IllegalArgumentException If this is not the {@linkplain Event#getAffectedObject() affected object} of the event
      * @throws IllegalStateException    <ul>
-     *                                      <li>If this has a {@linkplain #getLastEvent() last event}  and the given event is not {@linkplain Event#compareTo(Event) after} the last event</li>
-     *                                      <li>If the current {@linkplain #getLastEvent() last event}  is a destruction event (for which the {@linkplain Event#getState() state} is null)</li>
+     *                                  <li>If this has a {@linkplain #getLastEvent() last event}  and the given event is not {@linkplain Event#compareTo(Event) after} the last event</li>
+     *                                  <li>If the current {@linkplain #getLastEvent() last event}  is a destruction event (for which the {@linkplain Event#getState() state} is null)</li>
      *                                  </ul>
      */
     public void addEvent(@Nonnull final Event<STATE> event) {
@@ -446,12 +449,10 @@ public final class Actor<STATE> {
      * Add a signal to the {@linkplain #getSignalsToReceive() set of signals to receive}.
      * </p>
      *
-     * @throws IllegalArgumentException <ul>
-     *                                  <li>If the {@linkplain Signal#getReceiver() receiver} of the {@code signal} is not this actor.</li>
-     *                                  <li>If the {@linkplain Signal#getWhenSent()} sending time of the {@code signal}
+     * @throws IllegalArgumentException If the {@linkplain Signal#getReceiver() receiver} of the {@code signal} is not this actor.
+     * @throws IllegalStateException    If the {@linkplain Signal#getWhenSent()} sending time of the {@code signal}
      *                                  is {@linkplain Duration#compareTo(Duration) before} the
-     *                                  {@linkplain #getStart() start time} of this actor.</li>
-     *                                  </ul>
+     *                                  {@linkplain #getStart() start time} of this actor.
      * @see #receiveSignal()
      */
     public void addSignalToReceive(@Nonnull final Signal<STATE> signal) {
@@ -459,10 +460,10 @@ public final class Actor<STATE> {
         if (signal.getReceiver() != this) {
             throw new IllegalArgumentException("this actor is not the receiver of the signal");
         }
-        if (signal.getWhenSent().compareTo(start) < 0) {
-            throw new IllegalArgumentException("signal sent before the start time of this actor");
-        }
         synchronized (lock) {
+            if (signal.getWhenSent().compareTo(start) < 0) {
+                throw new IllegalStateException("signal sent before the start time of this actor");
+            }
             addUnscheduledSignalToReceive(signal);
         }
     }
@@ -536,6 +537,45 @@ public final class Actor<STATE> {
             }
         } while (!done);
         return totalResult;
+    }
+
+    /**
+     * <p>
+     * Remove {@linkplain #getEvents() event} information
+     * before a given point in time.
+     * </p>
+     * <p>Post conditions:</p>
+     * <ul>
+     *     <li>This has no {@linkplain #getEvents() events} with a {@linkplain Event#getWhen() time of occurrence}
+     *     {@linkplain Duration#compareTo(Duration) before} the given time.</li>
+     *     <li>If this had any events before the given time, the {@linkplain #getStart() start} time becomes the time of occurrence of the last such event.</li>
+     * </ul>
+     *
+     * @throws IllegalStateException Ifr {@code when} is after the {@linkplain #getWhenReceiveNextSignal() the time of the next signal to receive}.
+     */
+    public void clearEventsBefore(@Nonnull final Duration when) {
+        Objects.requireNonNull(when, "when");
+        synchronized (lock) {
+            final var whenNextSignal = computeNextSignalToReceive();
+            if (whenNextSignal != null && whenNextSignal.compareTo(when) < 0) {
+                throw new IllegalStateException("when before whenReceiveNextSignal");
+            }
+            final var e = events.iterator();
+            Event<STATE> lastEvent = null;
+            while (e.hasNext()) {
+                final var event = e.next();
+                if (event.getWhen().compareTo(when) < 0) {
+                    e.remove();
+                    lastEvent = event;
+                } else {
+                    break;
+                }
+            }
+            if (lastEvent != null) {
+                start = lastEvent.getWhen();
+                stateHistory.setValueUntil(start.minusNanos(1), null);
+            }
+        }
     }
 
     @Nullable
@@ -799,9 +839,9 @@ public final class Actor<STATE> {
          *
          * @throws NullPointerException     Ifd any given {@link Set} is null or contains null.
          * @throws IllegalArgumentException <ul>
-         *                                      <li>If {@code added} {@linkplain Collection#contains(Object) contains} any elements in {@code changed}</li>
-         *                                      <li>If {@code removed} {@linkplain Collection#contains(Object) contains} any elements in {@code changed}</li>
-         *                                      <li>If {@code removed} {@linkplain Collection#contains(Object) contains} any elements in {@code added}</li>
+         *                                  <li>If {@code added} {@linkplain Collection#contains(Object) contains} any elements in {@code changed}</li>
+         *                                  <li>If {@code removed} {@linkplain Collection#contains(Object) contains} any elements in {@code changed}</li>
+         *                                  <li>If {@code removed} {@linkplain Collection#contains(Object) contains} any elements in {@code added}</li>
          *                                  </ul>
          */
         public AffectedActors(@Nonnull final Set<Actor<STATE>> changed, @Nonnull final Set<Actor<STATE>> added, @Nonnull final Set<Actor<STATE>> removed) {
