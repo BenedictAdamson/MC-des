@@ -490,6 +490,7 @@ public abstract class Signal<STATE> {
         @Nonnull
         private final Medium medium;
 
+        @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification = "sender has reference semantics")
         public Id(
                 @Nonnull final Duration whenSent,
                 @Nonnull final Actor<STATE> sender,

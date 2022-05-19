@@ -194,6 +194,7 @@ public final class Event<STATE> implements Comparable<Event<STATE>> {
      * {@linkplain Duration#equals(Object) equal to} the {@linkplain #getWhen() time that this event occurred}.</li>
      * </ul>
      */
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "createdActors is unmodifiable")
     @Nonnull
     public Set<Actor<STATE>> getCreatedActors() {
         return createdActors;

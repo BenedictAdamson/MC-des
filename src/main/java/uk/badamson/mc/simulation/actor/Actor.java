@@ -18,6 +18,7 @@ package uk.badamson.mc.simulation.actor;
  * along with MC-des.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import uk.badamson.mc.history.ModifiableValueHistory;
 import uk.badamson.mc.history.ValueHistory;
 
@@ -386,7 +387,7 @@ public final class Actor<STATE> {
             if (unscheduledSignalsToReceive.isEmpty()) {
                 return Set.copyOf(signalsToReceive);
             } else {
-                final Set<Signal<STATE>> result = new HashSet<>((signalsToReceive));
+                final Set<Signal<STATE>> result = new HashSet<>(signalsToReceive);
                 result.addAll(unscheduledSignalsToReceive);
                 return result;
             }
@@ -820,6 +821,7 @@ public final class Actor<STATE> {
      *                {@link Immutable immutable}. It ought to have value semantics, but
      *                that is not required.
      */
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "immutable Sets")
     @Immutable
     public static final class AffectedActors<STATE> {
 
