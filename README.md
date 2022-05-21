@@ -10,22 +10,21 @@ Multi-threaded Parallel Discrete Event Simulation (PDES) engine
 * In common with most PDES algorithms, this engine partly enables parallel computation by eliminating an explicit
   global (shared) _event list_.
 * This engine further enables parallel computation by not attempting to compute and record a single set of _state
-  variables_ at one point in time. It instead computes and records the full time history of all the state variables.
+  variables_ at one point in time. It instead computes and records a time history of all the state variables.
 * Unlike other PDES algorithms, the engine does not mandate a
   _process-oriented_ methodology, although it can be used in that manner. Instead, the engine models the system as
   composed as a set of objects, each of which has a time-varying state.
-* Unlike other PDES algorithms, explicit message passing between continually running _logical processes_ is not used to
-  perform the computation. Instead, the computation is broken down into a large set of
-  _transactions_. Each transaction computes the effect (the state change) of one event.
-* The algorithm of the engine prevents causality violations by recording dependency relationships (reads of time-stamped
-  states) between the transactions. The engine uses the dependency information as scheduling hints.
-* Unlike PDES algorithms using _logical processes_, the simulation events (transactions) of this engine may access (
-  read) the states of any number of objects.
-* The engine enforces causality and partly avoids deadlock by requiring that the time-stamps of states read by a
-  transaction are strictly before the time-stamp of the state (or states) written by the transaction.
-* Only the (state read) dependencies between transactions constrain the order of their computation. Computation of the
-  state histories for different objects can therefore proceed at different rates, for objects uncoupled (or only loosely
-  coupled) by dependencies.
+* This uses an _actor model_ for the simulated objects.
+  The simulated objects interact only by sending signals to each other.
+  Reception of a signal is an event.
+  An event may emit further signals.
+* The algorithm of the enforces causality and avoids deadlock by requiring that signals have a propagation delay,
+  and that the event caused by reception of a signal depends only on the type of signal
+  and the state of the receiver at the time the signal was received.
+* Computation of the
+  state histories for different objects can proceed at different rates, for objects uncoupled (or only loosely
+  coupled) by signals.
+  If the engine computes a state history too far ahead, it rolls-back work and reschedules computations.
 * The engine reduces the memory required to record all the state histories by recording only the changes in the object
   states. It assumes that the object states will be recorded as collections of immutable objects. Successive states then
   can reuse (share) references to immutable objects for unchanged parts of the state, to further reduce the memory
@@ -33,7 +32,7 @@ Multi-threaded Parallel Discrete Event Simulation (PDES) engine
 
 ## License
 
-© Copyright Benedict Adamson 2018,2021.
+© Copyright Benedict Adamson 2018,2021-22.
 
 ![GPLV3](https://www.gnu.org/graphics/gplv3-with-text-136x68.png)
 
@@ -50,7 +49,7 @@ see <https://www.gnu.org/licenses/>.
 
 ## Technologies Used
 
-* [Java 10](https://docs.oracle.com/javase/10/)
+* [Java 11](https://docs.oracle.com/javase/11/)
 * Annotations:
     * [SpotBugs annotations](https://javadoc.io/doc/com.github.spotbugs/spotbugs-annotations)
 * Development environment:
@@ -71,3 +70,4 @@ see <https://www.gnu.org/licenses/>.
     * [Java Hamcrest](http://hamcrest.org/JavaHamcrest/)
     * [Open Test Alliance for the JVM](https://github.com/ota4j-team/opentest4j)
     * [SpotBugs](https://spotbugs.github.io/)
+    * My [DBC-assertions](https://github.com/BenedictAdamson/DBC-assertions) library
