@@ -468,7 +468,7 @@ public abstract class Signal<STATE> {
             super(DEFAULT_MESSAGE, cause);
         }
 
-    }// class
+    }
 
     /**
      * The unique ID of a Signal.

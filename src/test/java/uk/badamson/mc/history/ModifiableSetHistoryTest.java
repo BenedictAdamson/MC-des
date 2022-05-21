@@ -128,7 +128,7 @@ public class ModifiableSetHistoryTest {
                 addFrom_1(WHEN_2, "value");
             }
 
-        }// class
+        }
 
         @Nested
         public class Call2 {
@@ -202,8 +202,8 @@ public class ModifiableSetHistoryTest {
                 addFrom_2_sameValue(when, when, Integer.MIN_VALUE);
             }
 
-        }// class
-    }// class
+        }
+    }
 
     @Nested
     public class AddUntil {
@@ -254,7 +254,7 @@ public class ModifiableSetHistoryTest {
                 addUntil_1(WHEN_2, "value");
             }
 
-        }// class
+        }
 
         @Nested
         public class Call2 {
@@ -330,8 +330,8 @@ public class ModifiableSetHistoryTest {
                 final Duration when = WHEN_1;
                 addUntil_2_sameValue(when, when, Integer.MIN_VALUE);
             }
-        }// class
-    }// class
+        }
+    }
 
     @Nested
     public class Remove {
@@ -397,5 +397,5 @@ public class ModifiableSetHistoryTest {
             remove(history, value);
         }
 
-    }// class
+    }
 }

@@ -216,7 +216,7 @@ public class SignalTest {
             final var exception = new Signal.UnreceivableSignalException("message", new IllegalStateException());
             assertInvariants(exception);
         }
-    }// class
+    }
 
     static final class ThrowingSignal extends Signal<Integer> {
 
@@ -570,8 +570,8 @@ public class SignalTest {
                 assertThat(signalA, not(signalB));
             }
 
-        }// class
-    }// class
+        }
+    }
 
     @Nested
     public class Receive {
@@ -603,7 +603,7 @@ public class SignalTest {
             receive(signal, receiverState);
         }
 
-    }// class
+    }
 
     @Nested
     public class ReceiveForStateHistory {
@@ -629,7 +629,7 @@ public class SignalTest {
             assertThat("event.when", event.getWhen(), is(signal.getWhenReceived(state0)));
             assertThat("event", event, is(signal.receive(event.getWhen(), state0)));
         }
-    }// class
+    }
 
     @Nested
     public class WhenReceived {
@@ -663,7 +663,7 @@ public class SignalTest {
                     assertThat(whenReceived, is(signal.getWhenReceived(receiverState)));
                 }
 
-            }// class
+            }
 
             @Nested
             public class OneChange {
@@ -719,10 +719,10 @@ public class SignalTest {
                     getWhenReceived(signal, receiverStateHistory);
                 }
 
-            }// class
+            }
 
-        }// class
+        }
 
-    }// class
+    }
 
 }

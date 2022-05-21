@@ -255,7 +255,7 @@ public class EventTest {
                 assertInvariants(id1, id2);
             }
 
-        }// class
+        }
 
     }
 
@@ -304,6 +304,6 @@ public class EventTest {
             assertInvariants(event1, event2);
         }
 
-    }// class
+    }
 
-}// class
+}

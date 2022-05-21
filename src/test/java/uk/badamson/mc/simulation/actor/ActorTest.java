@@ -561,9 +561,9 @@ public class ActorTest {
                 constructor(WHEN_B, 1);
             }
 
-        }// class
+        }
 
-    }// class
+    }
 
     @Nested
     public class AddSignalToReceive {
@@ -618,7 +618,7 @@ public class ActorTest {
                 assertThat("receiver events", receiver.getEvents(), hasSize(1));
             }
         }
-    }// class
+    }
 
     @Nested
     public class ReceiveSignal {
@@ -932,7 +932,7 @@ public class ActorTest {
                 ));
             }
         }
-    }// class
+    }
 
     @Nested
     public class ClearEventsBefore {
@@ -1040,4 +1040,4 @@ public class ActorTest {
 
     }
 
-}// class
+}

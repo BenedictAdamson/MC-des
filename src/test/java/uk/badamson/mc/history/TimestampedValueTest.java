@@ -162,7 +162,7 @@ public class TimestampedValueTest {
                 assertInvariants(timestampedA, timestampedB);
                 assertThat(timestampedA, is(timestampedB));
             }
-        }// class
+        }
 
-    }// class
-}// class
+    }
+}

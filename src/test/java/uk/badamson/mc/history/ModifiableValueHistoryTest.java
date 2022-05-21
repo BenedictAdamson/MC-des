@@ -126,7 +126,7 @@ public class ModifiableValueHistoryTest {
 
                 assertThrows(IllegalStateException.class, () -> appendTransition(history, WHEN_1, null));
             }
-        }// class
+        }
 
         @Nested
         public class Call2 {
@@ -195,8 +195,8 @@ public class ModifiableValueHistoryTest {
                 public void valuesSame() {
                     appendTransition_2InvalidState(WHEN_1, Boolean.FALSE, WHEN_2, Boolean.FALSE);
                 }
-            }// class
-        }// class
+            }
+        }
     }
 
     @Nested
@@ -259,7 +259,7 @@ public class ModifiableValueHistoryTest {
                 constructor_1((Boolean) null);
             }
 
-        }// class
+        }
 
         @Nested
         public class Copy {
@@ -285,7 +285,7 @@ public class ModifiableValueHistoryTest {
                 constructor(that);
             }
 
-        }// class
+        }
 
         @Nested
         public class Transitions {
@@ -325,8 +325,8 @@ public class ModifiableValueHistoryTest {
 
                 test(1, transitions);
             }
-        }// class
-    }// class
+        }
+    }
 
     @Nested
     public class RemoveTransitionsFrom {
@@ -392,7 +392,7 @@ public class ModifiableValueHistoryTest {
                 assertEquals(history0, history, "Unchanged");
             }
 
-        }// class
+        }
 
         @Nested
         public class BeforeLast {
@@ -417,7 +417,7 @@ public class ModifiableValueHistoryTest {
 
             }
 
-        }// class
+        }
 
         @Nested
         public class Empty {
@@ -435,9 +435,9 @@ public class ModifiableValueHistoryTest {
                 removeTransitionsFrom(history, WHEN_1);
             }
 
-        }// class
+        }
 
-    }// class
+    }
 
     @Nested
     public class SetValueFrom {
@@ -506,7 +506,7 @@ public class ModifiableValueHistoryTest {
                 setValueFrom_1(Boolean.FALSE, ValueHistory.START_OF_TIME, Boolean.TRUE);
             }
 
-        }// class
+        }
 
         @Nested
         public class Call2 {
@@ -539,8 +539,8 @@ public class ModifiableValueHistoryTest {
                 setValueFrom(history, when2, value2);
             }
 
-        }// class
-    }// class
+        }
+    }
 
     @Nested
     public class SetValueUntil {
@@ -605,7 +605,7 @@ public class ModifiableValueHistoryTest {
                 setValueUntil_1(Boolean.FALSE, ValueHistory.START_OF_TIME, Boolean.TRUE);
             }
 
-        }// class
+        }
 
         @Nested
         public class Call2 {
@@ -639,6 +639,6 @@ public class ModifiableValueHistoryTest {
                 setValueUntil(history, when2, value2);
             }
 
-        }// class
-    }// class
+        }
+    }
 }
