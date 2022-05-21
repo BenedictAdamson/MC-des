@@ -63,7 +63,7 @@ public abstract class Signal<STATE> {
 
     protected Signal(
             @Nonnull final Duration whenSent,
-            @Nonnull final Actor<STATE> sender, @Nonnull final Actor<STATE> receiver,
+            @Nullable final Actor<STATE> sender, @Nonnull final Actor<STATE> receiver,
             @Nonnull final Medium medium
     ) {
         this(new Id<>(whenSent, sender, receiver, medium));
@@ -145,6 +145,8 @@ public abstract class Signal<STATE> {
      * An object may send signals to itself. That is; the sender and
      * {@linkplain #getReceiver() receiver} may be the same.
      * That can be done to implement internal events, such as timers.
+     * The sender may be null, which indicates that the signal is an input to the simulation
+     * rather than having been generated within the simulation.
      * </p>
      * <ul>
      *     <li>The same as the {@link Id#getSender() sender} of the {@link #getId() ID} of this Signal.</li>
@@ -152,7 +154,7 @@ public abstract class Signal<STATE> {
      *
      * @see #getReceiver()
      */
-    @Nonnull
+    @Nullable
     public final Actor<STATE> getSender() {
         return id.getSender();
     }
@@ -481,7 +483,7 @@ public abstract class Signal<STATE> {
         @Nonnull
         private final Duration whenSent;
 
-        @Nonnull
+        @Nullable
         private final Actor<STATE> sender;
 
         @Nonnull
@@ -493,12 +495,12 @@ public abstract class Signal<STATE> {
         @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification = "sender has reference semantics")
         public Id(
                 @Nonnull final Duration whenSent,
-                @Nonnull final Actor<STATE> sender,
+                @Nullable final Actor<STATE> sender,
                 @Nonnull final Actor<STATE> receiver,
                 @Nonnull final Medium medium
         ) {
             this.whenSent = Objects.requireNonNull(whenSent, "whenSent");
-            this.sender = Objects.requireNonNull(sender, "sender");
+            this.sender = sender;
             this.receiver = Objects.requireNonNull(receiver, "receiver");
             this.medium = Objects.requireNonNull(medium, "medium");
         }
@@ -508,14 +510,18 @@ public abstract class Signal<STATE> {
             return whenSent;
         }
 
-        @Nonnull
-        @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "effectively immutable")
+        /**
+         * The {@link Actor} in the simulation that sent this signal,
+         * or null if this signal is an input to the simulation.
+         */
+        @Nullable
+        @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "reference semantics")
         public Actor<STATE> getSender() {
             return sender;
         }
 
         @Nonnull
-        @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "effectively immutable")
+        @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "reference semantics")
         public Actor<STATE> getReceiver() {
             return receiver;
         }
@@ -538,17 +544,16 @@ public abstract class Signal<STATE> {
             if (that == null || getClass() != that.getClass()) return false;
 
             final Id<?> id = (Id<?>) that;
-            return
-                    whenSent.equals(id.whenSent) &&
-                            sender.equals(id.sender) &&
-                            receiver.equals(id.receiver) &&
-                            medium.equals(id.medium);
+            return whenSent.equals(id.whenSent) &&
+                    Objects.equals(sender, id.sender) &&
+                    receiver.equals(id.receiver) &&
+                    medium.equals(id.medium);
         }
 
         @Override
         public int hashCode() {
             int result = whenSent.hashCode();
-            result = 31 * result + sender.hashCode();
+            result = 31 * result + (sender == null ? 0 : sender.hashCode());
             result = 31 * result + receiver.hashCode();
             result = 31 * result + medium.hashCode();
             return result;
@@ -567,7 +572,13 @@ public abstract class Signal<STATE> {
         int tieBreakCompareTo(@Nonnull final Id<STATE> that) {
             int c = whenSent.compareTo(that.whenSent);
             if (c == 0) {
-                c = sender.lock.compareTo(that.sender.lock);
+                if (sender != null && that.sender != null) {
+                    c = sender.lock.compareTo(that.sender.lock);
+                } else if (sender == null && that.sender != null) {
+                    c = -1;
+                } else if (sender != null) {
+                    c = 1;
+                }
             }
             if (c == 0) {
                 c = medium.id.compareTo(that.medium.id);

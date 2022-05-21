@@ -41,17 +41,20 @@ public class EventTest {
 
     private static final Duration WHEN_B = Duration.ofMillis(5000);
 
-    private static final Actor<Integer> ACTOR_A = new Actor<>(WHEN_A, 0);
-
-    private static final Actor<Integer> ACTOR_B = new Actor<>(WHEN_B, 1);
-
     private static final Medium MEDIUM_A = new Medium();
 
     private static final Medium MEDIUM_B = new Medium();
 
+    private static final Actor<Integer> ACTOR_A = new Actor<>(WHEN_A, 0);
+
+    private static final Actor<Integer> ACTOR_B = new Actor<>(WHEN_B, 1);
+
     private static final Signal<Integer> SIGNAL_A = new SignalTest.SimpleTestSignal(WHEN_A, ACTOR_A, ACTOR_B, MEDIUM_A);
 
     private static final Signal<Integer> SIGNAL_B = new SignalTest.SimpleTestSignal(WHEN_B, ACTOR_B, ACTOR_A, MEDIUM_B);
+
+    private static final Signal<Integer> NULL_SENDER_SIGNAL =
+            new SignalTest.SimpleTestSignal(WHEN_B, null, ACTOR_A, MEDIUM_B);
 
     public static <STATE> void assertInvariants(@Nonnull final Event<STATE> event) {
         ObjectVerifier.assertInvariants(event);// inherited
@@ -222,6 +225,11 @@ public class EventTest {
             constructor(SIGNAL_B, WHEN_B);
         }
 
+        @Test
+        public void nullSenderCausingSignal() {
+            constructor(NULL_SENDER_SIGNAL, WHEN_A);
+        }
+
 
         @Nested
         public class Two {
@@ -269,8 +277,29 @@ public class EventTest {
         }
 
         @Test
+        public void differentThisNullSenderCausingSignal() {
+            final var event1 = new Event<>(NULL_SENDER_SIGNAL, WHEN_A, 0);
+            final var event2 = new Event<>(SIGNAL_B, WHEN_A, 0);
+            assertInvariants(event1, event2);
+        }
+
+        @Test
+        public void differentThatNullSenderCausingSignal() {
+            final var event1 = new Event<>(SIGNAL_A, WHEN_A, 0);
+            final var event2 = new Event<>(NULL_SENDER_SIGNAL, WHEN_A, 0);
+            assertInvariants(event1, event2);
+        }
+
+        @Test
         public void equivalent() {
             final var event1 = new Event<>(SIGNAL_A, WHEN_A, 0);
+            final var event2 = new Event<>(SIGNAL_A, WHEN_A, 0);
+            assertInvariants(event1, event2);
+        }
+
+        @Test
+        public void equivalentNullSenderCausingSignal() {
+            final var event1 = new Event<>(NULL_SENDER_SIGNAL, WHEN_A, 0);
             final var event2 = new Event<>(SIGNAL_A, WHEN_A, 0);
             assertInvariants(event1, event2);
         }

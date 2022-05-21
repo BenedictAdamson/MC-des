@@ -518,7 +518,7 @@ public class ActorTest {
     static final class NeighbourSignal extends Signal<NeighbourActorState> {
         public NeighbourSignal(
                 @Nonnull final Duration whenSent,
-                @Nonnull final Actor<NeighbourActorState> sender,
+                @Nullable final Actor<NeighbourActorState> sender,
                 @Nonnull final Actor<NeighbourActorState> receiver) {
             super(whenSent, sender, receiver, MEDIUM_A);
         }

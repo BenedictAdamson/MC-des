@@ -66,7 +66,6 @@ public class SignalTest {
         assertAll(
                 () -> assertThat("id", id, notNullValue()),
                 () -> assertThat("receiver", receiver, notNullValue()),
-                () -> assertThat("sender", sender, notNullValue()),
                 () -> assertThat("whenSent", whenSent, notNullValue()));
         assertAll(
                 () -> assertThat("receiver", receiver, sameInstance(id.getReceiver())),
@@ -108,7 +107,7 @@ public class SignalTest {
     }
 
     private static Signal<Integer> constructor(
-            @Nonnull final Actor<Integer> sender, @Nonnull final Duration whenSent,
+            @Nullable final Actor<Integer> sender, @Nonnull final Duration whenSent,
             @Nonnull final Actor<Integer> receiver, @Nonnull final Medium medium) {
         final Signal<Integer> signal = new SimpleTestSignal(whenSent, sender, receiver, medium);
 
@@ -221,7 +220,7 @@ public class SignalTest {
 
     static final class ThrowingSignal extends Signal<Integer> {
 
-        ThrowingSignal(@Nonnull final Duration whenSent, @Nonnull final Actor<Integer> sender, @Nonnull final Actor<Integer> receiver, @Nonnull final Medium medium) {
+        ThrowingSignal(@Nonnull final Duration whenSent, @Nullable final Actor<Integer> sender, @Nonnull final Actor<Integer> receiver, @Nonnull final Medium medium) {
             super(whenSent, sender, receiver, medium);
         }
 
@@ -247,7 +246,7 @@ public class SignalTest {
     static abstract class AbstractTestSignal extends Signal<Integer> {
 
         protected AbstractTestSignal(
-                @Nonnull final Actor<Integer> sender, @Nonnull final Duration whenSent, @Nonnull final Actor<Integer> receiver, @Nonnull final Medium medium) {
+                @Nullable final Actor<Integer> sender, @Nonnull final Duration whenSent, @Nonnull final Actor<Integer> receiver, @Nonnull final Medium medium) {
             super(whenSent, sender, receiver, medium);
         }
 
@@ -287,7 +286,7 @@ public class SignalTest {
 
         SimpleTestSignal(
                 @Nonnull final Duration whenSent,
-                @Nonnull final Actor<Integer> sender, @Nonnull final Actor<Integer> receiver,
+                @Nullable final Actor<Integer> sender, @Nonnull final Actor<Integer> receiver,
                 @Nonnull final Medium medium) {
             super(sender, whenSent, receiver, medium);
         }
@@ -321,10 +320,12 @@ public class SignalTest {
                 @Nonnull final Actor<Integer> sender, @Nonnull final Actor<Integer> receiver,
                 @Nonnull final Medium medium) {
             super(sender, whenSent, receiver, medium);
+            Objects.requireNonNull(sender, "sender");
         }
 
         @Override
         protected Set<Signal<Integer>> signalsEmitted(@Nonnull final Duration when) {
+            assert getSender() != null;
             return Set.of(new EchoingTestSignal(when, getReceiver(), getSender(), getMedium()));
         }
 
@@ -356,7 +357,7 @@ public class SignalTest {
 
         InteractingActorCreatingTestSignal(
                 @Nonnull final Duration whenSent,
-                @Nonnull final Actor<Integer> sender, @Nonnull final Actor<Integer> receiver,
+                @Nullable final Actor<Integer> sender, @Nonnull final Actor<Integer> receiver,
                 @Nonnull final Medium medium) {
             super(whenSent, sender, receiver, medium);
         }
@@ -385,7 +386,6 @@ public class SignalTest {
             ObjectVerifier.assertInvariants(id);
             assertAll(
                     () -> assertThat(id.getWhenSent(), notNullValue()),
-                    () -> assertThat(id.getSender(), notNullValue()),
                     () -> assertThat(id.getReceiver(), notNullValue()),
                     () -> assertThat(id.getMedium(), notNullValue())
             );
@@ -414,9 +414,14 @@ public class SignalTest {
                 test(WHEN_B, ACTOR_B, ACTOR_A, MEDIUM_B);
             }
 
+            @Test
+            public void nullSender() {
+                test(WHEN_A, null, ACTOR_B, MEDIUM_A);
+            }
+
             private <STATE> void test(
                     @Nonnull final Duration whenSent,
-                    @Nonnull final Actor<STATE> sender, @Nonnull final Actor<STATE> receiver,
+                    @Nullable final Actor<STATE> sender, @Nonnull final Actor<STATE> receiver,
                     @Nonnull final Medium medium
             ) {
                 final var id = new Signal.Id<>(whenSent, sender, receiver, medium);
@@ -435,8 +440,16 @@ public class SignalTest {
 
             @Test
             public void equal() {
-                final var idA = new Signal.Id<>(SignalTest.WHEN_A, SignalTest.ACTOR_A, SignalTest.ACTOR_B, SignalTest.MEDIUM_A);
+                final var idA = new Signal.Id<>(WHEN_A, ACTOR_A, ACTOR_B, MEDIUM_A);
                 final var idB = new Signal.Id<>(WHEN_A, ACTOR_A, ACTOR_B, MEDIUM_A);
+                assertInvariants(idA, idB);
+                assertThat(idA, is(idB));
+            }
+
+            @Test
+            public void equalNullSenders() {
+                final var idA = new Signal.Id<>(WHEN_A, null, ACTOR_B, MEDIUM_A);
+                final var idB = new Signal.Id<>(WHEN_A, null, ACTOR_B, MEDIUM_A);
                 assertInvariants(idA, idB);
                 assertThat(idA, is(idB));
             }
@@ -456,6 +469,21 @@ public class SignalTest {
             }
 
             @Test
+            public void differentThatSenderNull() {
+                testDifferent(
+                        WHEN_A, null, ACTOR_B, MEDIUM_A
+                );
+            }
+
+            @Test
+            public void differentThisSenderNull() {
+                final var idA = new Signal.Id<>(WHEN_A, null, ACTOR_B, MEDIUM_A);
+                final var idB = new Signal.Id<>(WHEN_A, ACTOR_A, ACTOR_B, MEDIUM_A);
+                assertInvariants(idA, idB);
+                assertThat(idA, not(idB));
+            }
+
+            @Test
             public void differentReceiver() {
                 testDifferent(
                         WHEN_A, ACTOR_A, ACTOR_A, MEDIUM_A
@@ -471,10 +499,10 @@ public class SignalTest {
 
             private void testDifferent(
                     @Nonnull final Duration whenSentB,
-                    @Nonnull final Actor<Integer> senderB, @Nonnull final Actor<Integer> receiverB,
+                    @Nullable final Actor<Integer> senderB, @Nonnull final Actor<Integer> receiverB,
                     @Nonnull final Medium mediumB
             ) {
-                final var idA = new Signal.Id<>(SignalTest.WHEN_A, SignalTest.ACTOR_A, SignalTest.ACTOR_B, SignalTest.MEDIUM_A);
+                final var idA = new Signal.Id<>(WHEN_A, ACTOR_A, ACTOR_B, MEDIUM_A);
                 final var idB = new Signal.Id<>(whenSentB, senderB, receiverB, mediumB);
                 assertInvariants(idA, idB);
                 assertThat(idA, not(idB));
@@ -489,6 +517,15 @@ public class SignalTest {
         @Test
         public void a() {
             final var signal = constructor(ACTOR_A, WHEN_A, ACTOR_B, MEDIUM_A);
+
+            assertInvariants(signal, 0);
+            assertInvariants(signal, Integer.MAX_VALUE);
+            assertInvariants(signal, (Integer) null);
+        }
+
+        @Test
+        public void nullSender() {
+            final var signal = constructor(null, WHEN_A, ACTOR_B, MEDIUM_A);
 
             assertInvariants(signal, 0);
             assertInvariants(signal, Integer.MAX_VALUE);
